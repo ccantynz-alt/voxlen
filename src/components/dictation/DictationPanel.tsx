@@ -56,7 +56,9 @@ export function DictationPanel() {
     };
   }, [status, incrementDuration]);
 
-  // Listen for audio level events from Tauri
+  const setCurrentTranscript = useDictationStore((s) => s.setCurrentTranscript);
+
+  // Listen for audio level + transcription events from Tauri
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
@@ -69,6 +71,7 @@ export function DictationPanel() {
           pushWaveformSample(event.payload);
         });
 
+        // Final transcription results
         const unlistenTranscription = await listen<{
           text: string;
           is_final: boolean;
@@ -76,7 +79,7 @@ export function DictationPanel() {
           language?: string;
         }>("transcription", (event) => {
           const result = event.payload;
-          if (result.is_final) {
+          if (result.is_final && result.text.trim()) {
             addSegment({
               id: crypto.randomUUID(),
               text: result.text,
@@ -86,12 +89,39 @@ export function DictationPanel() {
               isFinal: true,
               grammarApplied: false,
             });
+            // Clear the partial transcript since we got a final result
+            setCurrentTranscript("");
           }
+        });
+
+        // Streaming partial results (real-time word-by-word)
+        const unlistenPartial = await listen<{
+          text: string;
+          is_final: boolean;
+          confidence: number;
+        }>("streaming-partial", (event) => {
+          if (!event.payload.is_final && event.payload.text) {
+            setCurrentTranscript(event.payload.text);
+          }
+        });
+
+        // Speech activity events
+        const unlistenSpeechStarted = await listen("speech-started", () => {
+          // Visual feedback that speech detected
+          setStatus("listening");
+        });
+
+        const unlistenUtteranceEnd = await listen("utterance-end", () => {
+          // Brief processing indicator between utterances
+          setCurrentTranscript("");
         });
 
         unlisten = () => {
           unlistenLevel();
           unlistenTranscription();
+          unlistenPartial();
+          unlistenSpeechStarted();
+          unlistenUtteranceEnd();
         };
       } catch {
         // Not in Tauri environment - use demo mode
@@ -100,7 +130,7 @@ export function DictationPanel() {
 
     setup();
     return () => unlisten?.();
-  }, [setInputLevel, pushWaveformSample, addSegment]);
+  }, [setInputLevel, pushWaveformSample, addSegment, setCurrentTranscript, setStatus]);
 
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused") {

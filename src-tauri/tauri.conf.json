@@ -50,9 +50,14 @@
     "longDescription": "Vox is the most advanced AI-powered voice dictation tool. Speak naturally and let AI transcribe, format, and inject text into any application. Works with any microphone, never interrupts, and supports 90+ languages.",
     "copyright": "Copyright 2026 Vox",
     "macOS": {
-      "entitlements": null,
+      "entitlements": "Entitlements.plist",
       "minimumSystemVersion": "12.0",
-      "signingIdentity": null
+      "signingIdentity": null,
+      "dmg": {
+        "appPosition": { "x": 180, "y": 170 },
+        "applicationFolderPosition": { "x": 480, "y": 170 },
+        "windowSize": { "width": 660, "height": 400 }
+      }
     },
     "windows": {
       "certificateThumbprint": null,

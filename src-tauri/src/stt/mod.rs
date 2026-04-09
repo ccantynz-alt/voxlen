@@ -1,5 +1,6 @@
 pub mod cloud;
 pub mod processor;
+pub mod streaming;
 
 use std::sync::Arc;
 use parking_lot::RwLock;

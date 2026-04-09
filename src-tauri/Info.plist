@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Vox needs microphone access to transcribe your voice into text. Your audio is processed in real-time and never stored on our servers.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Vox needs accessibility access to type dictated text into other applications.</string>
+    <key>LSUIElement</key>
+    <false/>
+    <key>LSMinimumSystemVersion</key>
+    <string>12.0</string>
+</dict>
+</plist>

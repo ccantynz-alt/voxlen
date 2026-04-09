@@ -5,17 +5,39 @@ import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useAudioStore } from "@/stores/audio";
 import { useDictationStore } from "@/stores/dictation";
+import { useSettingsStore } from "@/stores/settings";
 
 type View = "dictation" | "grammar" | "history" | "settings";
 
 export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
 
-  // Load audio devices on mount
+  // Check if first launch
   useEffect(() => {
+    async function checkFirstLaunch() {
+      try {
+        const { load } = await import("@tauri-apps/plugin-store");
+        const store = await load("settings.json");
+        const hasCompletedOnboarding = await store.get<boolean>("onboarding_complete");
+        setShowOnboarding(!hasCompletedOnboarding);
+      } catch {
+        // Not in Tauri - check localStorage
+        const completed = localStorage.getItem("vox_onboarding_complete");
+        setShowOnboarding(!completed);
+      }
+    }
+    checkFirstLaunch();
+  }, []);
+
+  // Load audio devices on mount (when not in onboarding)
+  useEffect(() => {
+    if (showOnboarding) return;
+
     async function init() {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
@@ -42,13 +64,18 @@ export default function App() {
         );
 
         // Auto-select external mic if available
-        const externalMic = devices.find((d) => d.is_external);
-        if (externalMic) {
-          useAudioStore.getState().setSelectedDevice(externalMic.id);
+        const preferred = useSettingsStore.getState().preferredDeviceId;
+        if (preferred) {
+          useAudioStore.getState().setSelectedDevice(preferred);
         } else {
-          const defaultMic = devices.find((d) => d.is_default);
-          if (defaultMic) {
-            useAudioStore.getState().setSelectedDevice(defaultMic.id);
+          const externalMic = devices.find((d) => d.is_external);
+          if (externalMic) {
+            useAudioStore.getState().setSelectedDevice(externalMic.id);
+          } else {
+            const defaultMic = devices.find((d) => d.is_default);
+            if (defaultMic) {
+              useAudioStore.getState().setSelectedDevice(defaultMic.id);
+            }
           }
         }
       } catch {
@@ -76,10 +103,12 @@ export default function App() {
     }
 
     init();
-  }, [setDevices]);
+  }, [setDevices, showOnboarding]);
 
   // Register global shortcuts
   useEffect(() => {
+    if (showOnboarding) return;
+
     async function registerShortcuts() {
       try {
         const { register } = await import(
@@ -102,6 +131,44 @@ export default function App() {
     }
 
     registerShortcuts();
+  }, [showOnboarding]);
+
+  const handleOnboardingComplete = useCallback(async () => {
+    // Save onboarding state
+    try {
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("settings.json");
+      await store.set("onboarding_complete", true);
+      await store.save();
+    } catch {
+      localStorage.setItem("vox_onboarding_complete", "true");
+    }
+
+    // Save current settings
+    try {
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("settings.json");
+      const settings = useSettingsStore.getState();
+      await store.set("settings", {
+        preferredDeviceId: settings.preferredDeviceId,
+        sttEngine: settings.sttEngine,
+        sttApiKey: settings.sttApiKey,
+        grammarApiKey: settings.grammarApiKey,
+        grammarProvider: settings.grammarProvider,
+        writingStyle: settings.writingStyle,
+      });
+      await store.save();
+    } catch {
+      // Store in localStorage as fallback
+      const settings = useSettingsStore.getState();
+      localStorage.setItem("vox_settings", JSON.stringify({
+        preferredDeviceId: settings.preferredDeviceId,
+        sttEngine: settings.sttEngine,
+        sttApiKey: settings.sttApiKey,
+      }));
+    }
+
+    setShowOnboarding(false);
   }, []);
 
   const renderView = useCallback(() => {
@@ -116,6 +183,20 @@ export default function App() {
         return <SettingsPanel />;
     }
   }, [activeView]);
+
+  // Still loading
+  if (showOnboarding === null) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-surface-0">
+        <div className="animate-pulse text-surface-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show onboarding wizard for first-time users
+  if (showOnboarding) {
+    return <OnboardingWizard onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <div className="flex flex-col h-screen bg-surface-0 rounded-xl overflow-hidden border border-surface-300/30">

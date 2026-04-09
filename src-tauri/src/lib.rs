@@ -3,7 +3,11 @@ mod commands;
 mod stt;
 mod text_injection;
 
-use tauri::Manager;
+use tauri::{
+    Manager,
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,6 +32,77 @@ pub fn run() {
             // Initialize the text injection engine
             let injector = text_injection::TextInjector::new();
             app.manage(text_injection::InjectorState::new(injector));
+
+            // Build system tray menu
+            let show_item = MenuItem::with_id(app, "show", "Show Vox", true, None::<&str>)?;
+            let dictate_item = MenuItem::with_id(app, "dictate", "Start Dictation", true, None::<&str>)?;
+            let grammar_item = MenuItem::with_id(app, "grammar", "Grammar Panel", true, None::<&str>)?;
+            let separator = MenuItem::with_id(app, "sep", "────────────", false, None::<&str>)?;
+            let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Vox", true, None::<&str>)?;
+
+            let menu = Menu::with_items(
+                app,
+                &[
+                    &show_item,
+                    &separator,
+                    &dictate_item,
+                    &grammar_item,
+                    &settings_item,
+                    &MenuItem::with_id(app, "sep2", "────────────", false, None::<&str>)?,
+                    &quit_item,
+                ],
+            )?;
+
+            let _tray = TrayIconBuilder::new()
+                .tooltip("Vox - AI Voice Dictation")
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(move |app, event| {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "dictate" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                                let _ = window.emit("navigate", "dictation");
+                            }
+                        }
+                        "grammar" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                                let _ = window.emit("navigate", "grammar");
+                            }
+                        }
+                        "settings" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                                let _ = window.emit("navigate", "settings");
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
 
             log::info!("Vox initialized successfully");
             Ok(())
