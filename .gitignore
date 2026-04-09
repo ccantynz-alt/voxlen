@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+
+# Rust
+src-tauri/target/
+**/*.rs.bk
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# iOS
+ios/VoxKeyboard/build/
+ios/VoxKeyboard/DerivedData/
+ios/VoxKeyboard/*.xcworkspace
+ios/VoxKeyboard/xcuserdata/
+
+# Test
+coverage/

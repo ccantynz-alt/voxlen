@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-utils/schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for Vox",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-size",
+    "core:window:allow-set-position",
+    "core:window:allow-set-focus",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "global-shortcut:default",
+    "notification:default",
+    "store:default",
+    "shell:default"
+  ]
+}
