@@ -1,4 +1,4 @@
-export const APP_NAME = "Vox";
+export const APP_NAME = "Voxlen";
 export const APP_VERSION = "1.0.0";
 export const APP_DESCRIPTION = "AI-Powered Voice Dictation";
 

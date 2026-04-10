@@ -1,8 +1,8 @@
 {
-  "name": "vox",
+  "name": "voxlen",
   "private": true,
   "version": "1.0.0",
-  "description": "Vox - AI-Powered Voice Dictation. The most advanced dictation tool available.",
+  "description": "Voxlen - AI-Powered Voice Dictation. The most advanced dictation tool available.",
   "type": "module",
   "scripts": {
     "dev": "vite",

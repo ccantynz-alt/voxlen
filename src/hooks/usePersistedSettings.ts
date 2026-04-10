@@ -17,7 +17,7 @@ export function usePersistedSettings() {
       } catch {
         // Fallback to localStorage
         try {
-          const saved = localStorage.getItem("vox_settings");
+          const saved = localStorage.getItem("voxlen_settings");
           if (saved) {
             const parsed = JSON.parse(saved) as Partial<AppSettings>;
             updateSettings(parsed);
@@ -41,8 +41,8 @@ export async function saveSettings(settings: Partial<AppSettings>) {
     await store.save();
   } catch {
     try {
-      const existing = JSON.parse(localStorage.getItem("vox_settings") || "{}");
-      localStorage.setItem("vox_settings", JSON.stringify({ ...existing, ...settings }));
+      const existing = JSON.parse(localStorage.getItem("voxlen_settings") || "{}");
+      localStorage.setItem("voxlen_settings", JSON.stringify({ ...existing, ...settings }));
     } catch {
       // Ignore
     }

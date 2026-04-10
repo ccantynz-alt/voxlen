@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Vox needs microphone access to transcribe your voice into text. Your audio is processed in real-time and never stored on our servers.</string>
+    <string>Voxlen needs microphone access to transcribe your voice into text. Your audio is processed in real-time and never stored on our servers.</string>
     <key>NSAppleEventsUsageDescription</key>
-    <string>Vox needs accessibility access to type dictated text into other applications.</string>
+    <string>Voxlen needs accessibility access to type dictated text into other applications.</string>
     <key>LSUIElement</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
