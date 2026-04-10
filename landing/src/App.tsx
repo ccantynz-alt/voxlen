@@ -19,6 +19,8 @@ import {
   Download,
   Apple,
 } from "lucide-react";
+import Privacy from "./Privacy";
+import Terms from "./Terms";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -29,7 +31,14 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.1 } },
 };
 
+const GITHUB_RELEASES = "https://github.com/ccantynz-alt/voice/releases/latest";
+
 export default function App() {
+  const path = window.location.pathname;
+
+  if (path === "/privacy") return <Privacy />;
+  if (path === "/terms") return <Terms />;
+
   return (
     <div className="min-h-screen bg-[#09090b]">
       <Navbar />
@@ -710,11 +719,11 @@ function CTA() {
             Download Voxlen for free and start dictating in under 2 minutes.
           </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="#" className="h-14 px-10 rounded-xl bg-voxlen-600 text-white text-lg font-bold flex items-center gap-3 hover:bg-voxlen-700 transition-all shadow-xl shadow-voxlen-600/30 hover:shadow-voxlen-600/50 hover:scale-[1.02]">
+            <a href={GITHUB_RELEASES} className="h-14 px-10 rounded-xl bg-voxlen-600 text-white text-lg font-bold flex items-center gap-3 hover:bg-voxlen-700 transition-all shadow-xl shadow-voxlen-600/30 hover:shadow-voxlen-600/50 hover:scale-[1.02]">
               <Apple className="h-6 w-6" />
               Download for Mac
             </a>
-            <a href="#" className="h-14 px-10 rounded-xl bg-white/5 border border-white/10 text-white text-lg font-medium flex items-center gap-3 hover:bg-white/10 transition-all">
+            <a href={GITHUB_RELEASES} className="h-14 px-10 rounded-xl bg-white/5 border border-white/10 text-white text-lg font-medium flex items-center gap-3 hover:bg-white/10 transition-all">
               <Monitor className="h-5 w-5" />
               Windows / Linux
             </a>
@@ -741,10 +750,10 @@ function Footer() {
             <span className="text-xs text-zinc-600">v1.0.0</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-zinc-500">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors">Support</a>
-            <a href="#" className="hover:text-white transition-colors">GitHub</a>
+            <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+            <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+            <a href="mailto:support@voxlen.ai" className="hover:text-white transition-colors">Support</a>
+            <a href={GITHUB_RELEASES} className="hover:text-white transition-colors">GitHub</a>
           </div>
           <p className="text-xs text-zinc-600">
             Built with pride. Made to help people.
