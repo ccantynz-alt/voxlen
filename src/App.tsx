@@ -27,7 +27,7 @@ export default function App() {
         setShowOnboarding(!hasCompletedOnboarding);
       } catch {
         // Not in Tauri - check localStorage
-        const completed = localStorage.getItem("vox_onboarding_complete");
+        const completed = localStorage.getItem("voxlen_onboarding_complete");
         setShowOnboarding(!completed);
       }
     }
@@ -141,7 +141,7 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("vox_onboarding_complete", "true");
+      localStorage.setItem("voxlen_onboarding_complete", "true");
     }
 
     // Save current settings
@@ -161,7 +161,7 @@ export default function App() {
     } catch {
       // Store in localStorage as fallback
       const settings = useSettingsStore.getState();
-      localStorage.setItem("vox_settings", JSON.stringify({
+      localStorage.setItem("voxlen_settings", JSON.stringify({
         preferredDeviceId: settings.preferredDeviceId,
         sttEngine: settings.sttEngine,
         sttApiKey: settings.sttApiKey,

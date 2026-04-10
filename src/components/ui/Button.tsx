@@ -24,10 +24,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vox-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 disabled:opacity-50 disabled:pointer-events-none",
+          "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-voxlen-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 disabled:opacity-50 disabled:pointer-events-none",
           {
             // Variants
-            "bg-vox-600 text-white hover:bg-vox-700 active:bg-vox-800 shadow-lg shadow-vox-600/20":
+            "bg-voxlen-600 text-white hover:bg-voxlen-700 active:bg-voxlen-800 shadow-lg shadow-voxlen-600/20":
               variant === "primary",
             "bg-surface-200 text-surface-900 hover:bg-surface-300 active:bg-surface-400 border border-surface-300":
               variant === "secondary",
@@ -35,7 +35,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               variant === "ghost",
             "bg-red-600 text-white hover:bg-red-700 active:bg-red-800":
               variant === "danger",
-            "bg-vox-600 text-white hover:bg-vox-700 glow-blue":
+            "bg-voxlen-600 text-white hover:bg-voxlen-700 glow-blue":
               variant === "glow",
             // Sizes
             "h-8 px-3 text-xs": size === "sm",

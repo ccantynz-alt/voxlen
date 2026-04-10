@@ -1,25 +1,25 @@
-# Vox iOS Keyboard Extension
+# Voxlen iOS Keyboard Extension
 
 AI-powered grammar correction keyboard for iPhone and iPad.
 
 ## Setup in Xcode
 
 1. Open Xcode and create a new project: **File > New > Project**
-2. Choose **App** template, name it `VoxKeyboard`
+2. Choose **App** template, name it `VoxlenKeyboard`
 3. Add a new target: **File > New > Target > Custom Keyboard Extension**
-4. Name it `VoxKeyboardExtension`
+4. Name it `VoxlenKeyboardExtension`
 5. Copy the Swift files from this directory into the appropriate targets
-6. Enable **App Groups** capability for both targets with group: `group.com.vox.keyboard`
+6. Enable **App Groups** capability for both targets with group: `group.com.voxlen.keyboard`
 7. Enable **RequestsOpenAccess** in the keyboard extension's Info.plist (already configured)
 
 ## Building
 
 ```bash
 # Build for simulator
-xcodebuild -scheme VoxKeyboard -destination 'platform=iOS Simulator,name=iPhone 15' build
+xcodebuild -scheme VoxlenKeyboard -destination 'platform=iOS Simulator,name=iPhone 15' build
 
 # Build for device
-xcodebuild -scheme VoxKeyboard -destination 'generic/platform=iOS' archive
+xcodebuild -scheme VoxlenKeyboard -destination 'generic/platform=iOS' archive
 ```
 
 ## App Store Submission
@@ -31,9 +31,9 @@ xcodebuild -scheme VoxKeyboard -destination 'generic/platform=iOS' archive
 
 ## How It Works
 
-- The main app (`VoxApp`) provides settings management
-- The keyboard extension (`VoxKeyboardExtension`) is a custom keyboard
-- Settings are shared via App Groups (`group.com.vox.keyboard`)
+- The main app (`VoxlenApp`) provides settings management
+- The keyboard extension (`VoxlenKeyboardExtension`) is a custom keyboard
+- Settings are shared via App Groups (`group.com.voxlen.keyboard`)
 - The "Polish" button in the keyboard bar sends text to Claude/OpenAI for grammar correction
 - Corrected text replaces the original directly in any text field
 
