@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   History,
   Clock,
@@ -6,50 +6,32 @@ import {
   Check,
   Search,
   Calendar,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { formatDuration } from "@/lib/utils";
-
-interface HistoryEntry {
-  id: string;
-  text: string;
-  duration: number;
-  wordCount: number;
-  language: string;
-  timestamp: Date;
-  grammarCorrected: boolean;
-}
-
-// Demo history data
-const demoHistory: HistoryEntry[] = [
-  {
-    id: "1",
-    text: "This is a sample dictation entry to show what the history view looks like. The AI-powered grammar engine has already polished this text.",
-    duration: 45000,
-    wordCount: 25,
-    language: "en",
-    timestamp: new Date(Date.now() - 3600000),
-    grammarCorrected: true,
-  },
-  {
-    id: "2",
-    text: "Meeting notes: discussed the quarterly roadmap and upcoming product launches. Action items include finalizing the design specs by Friday.",
-    duration: 120000,
-    wordCount: 22,
-    language: "en",
-    timestamp: new Date(Date.now() - 86400000),
-    grammarCorrected: true,
-  },
-];
+import { useHistoryStore, type HistoryEntry } from "@/stores/history";
+import { useSettingsStore } from "@/stores/settings";
 
 export function HistoryPanel() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [history] = useState<HistoryEntry[]>(demoHistory);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const entries = useHistoryStore((s) => s.entries);
+  const isLoaded = useHistoryStore((s) => s.isLoaded);
+  const removeEntry = useHistoryStore((s) => s.removeEntry);
+  const clearAll = useHistoryStore((s) => s.clearAll);
+  const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
 
-  const filteredHistory = history.filter((entry) =>
+  // Load history on mount if not already loaded
+  useEffect(() => {
+    if (!isLoaded) {
+      useHistoryStore.getState().loadFromStore();
+    }
+  }, [isLoaded]);
+
+  const filteredHistory = entries.filter((entry) =>
     entry.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -72,11 +54,25 @@ export function HistoryPanel() {
               Session History
             </h2>
             <p className="text-xs text-surface-600">
-              {history.length} sessions recorded
+              {entries.length} session{entries.length !== 1 ? "s" : ""} recorded
             </p>
           </div>
         </div>
+        {entries.length > 0 && (
+          <Button variant="danger" size="sm" onClick={clearAll}>
+            <Trash2 className="h-3.5 w-3.5" />
+            Clear All
+          </Button>
+        )}
       </div>
+
+      {!saveTranscripts && (
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3">
+          <p className="text-xs text-amber-300">
+            Transcript saving is disabled. Enable it in Settings &gt; Privacy to keep your history.
+          </p>
+        </div>
+      )}
 
       {/* Search */}
       <Input
@@ -88,12 +84,22 @@ export function HistoryPanel() {
 
       {/* History list */}
       <div className="flex-1 overflow-y-auto space-y-2">
-        {filteredHistory.length === 0 ? (
+        {!isLoaded ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="animate-pulse text-surface-600 text-sm">
+              Loading history...
+            </div>
+          </div>
+        ) : filteredHistory.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Calendar className="h-10 w-10 text-surface-500 mb-3" />
-            <p className="text-sm text-surface-700">No sessions found</p>
+            <p className="text-sm text-surface-700">
+              {searchQuery ? "No matching sessions" : "No sessions yet"}
+            </p>
             <p className="text-xs text-surface-600 mt-1">
-              Start dictating to build your history
+              {searchQuery
+                ? "Try a different search term"
+                : "Start dictating to build your history"}
             </p>
           </div>
         ) : (
@@ -105,8 +111,8 @@ export function HistoryPanel() {
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2 text-xs text-surface-600">
                   <Clock className="h-3 w-3" />
-                  {entry.timestamp.toLocaleDateString()} at{" "}
-                  {entry.timestamp.toLocaleTimeString([], {
+                  {new Date(entry.timestamp).toLocaleDateString()} at{" "}
+                  {new Date(entry.timestamp).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
@@ -123,6 +129,14 @@ export function HistoryPanel() {
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeEntry(entry.id)}
+                    className="h-7 px-2"
+                  >
+                    <Trash2 className="h-3 w-3 text-red-400" />
                   </Button>
                 </div>
               </div>

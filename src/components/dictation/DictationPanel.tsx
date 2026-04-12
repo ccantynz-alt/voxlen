@@ -18,7 +18,14 @@ import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
 import { useDictationStore } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
+import { useSettingsStore } from "@/stores/settings";
+import { useHistoryStore } from "@/stores/history";
 import { formatDuration } from "@/lib/utils";
+import {
+  processVoiceCommands,
+  executeVoiceCommand,
+  applyTextCommand,
+} from "@/lib/voiceCommands";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -34,14 +41,21 @@ export function DictationPanel() {
   const pushWaveformSample = useAudioStore((s) => s.pushWaveformSample);
   const selectedDeviceId = useAudioStore((s) => s.selectedDeviceId);
   const devices = useAudioStore((s) => s.devices);
+  const showWaveform = useSettingsStore((s) => s.showWaveform);
+  const voiceCommandsEnabled = useSettingsStore((s) => s.voiceCommandsEnabled);
+  const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartRef = useRef<Date | null>(null);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
 
   // Session timer
   useEffect(() => {
     if (status === "listening") {
+      if (!sessionStartRef.current) {
+        sessionStartRef.current = new Date();
+      }
       timerRef.current = setInterval(() => {
         incrementDuration();
       }, 1000);
@@ -80,16 +94,53 @@ export function DictationPanel() {
         }>("transcription", (event) => {
           const result = event.payload;
           if (result.is_final && result.text.trim()) {
+            let textToAdd = result.text;
+
+            // Process voice commands if enabled
+            if (voiceCommandsEnabled) {
+              const commandResult = processVoiceCommands(result.text);
+              if (commandResult.matched && commandResult.action) {
+                const output = executeVoiceCommand(commandResult.action);
+                if (commandResult.remainingText) {
+                  // Add remaining text as a segment, then apply command
+                  const finalText = applyTextCommand(
+                    commandResult.remainingText,
+                    output
+                  );
+                  textToAdd = finalText;
+                } else if (output !== null) {
+                  // Command only - apply it to last segment
+                  const currentSegments = useDictationStore.getState().segments;
+                  if (currentSegments.length > 0) {
+                    const lastSeg = currentSegments[currentSegments.length - 1];
+                    const updatedText = applyTextCommand(
+                      lastSeg.correctedText || lastSeg.text,
+                      output
+                    );
+                    useDictationStore.getState().updateSegment(lastSeg.id, {
+                      text: updatedText,
+                      correctedText: updatedText,
+                    });
+                  }
+                  setCurrentTranscript("");
+                  return; // Don't add a new segment
+                } else {
+                  // Command with no output (e.g., delete, stop)
+                  setCurrentTranscript("");
+                  return;
+                }
+              }
+            }
+
             addSegment({
               id: crypto.randomUUID(),
-              text: result.text,
+              text: textToAdd,
               timestamp: new Date(),
               confidence: result.confidence,
               language: result.language || undefined,
               isFinal: true,
               grammarApplied: false,
             });
-            // Clear the partial transcript since we got a final result
             setCurrentTranscript("");
           }
         });
@@ -107,12 +158,10 @@ export function DictationPanel() {
 
         // Speech activity events
         const unlistenSpeechStarted = await listen("speech-started", () => {
-          // Visual feedback that speech detected
           setStatus("listening");
         });
 
         const unlistenUtteranceEnd = await listen("utterance-end", () => {
-          // Brief processing indicator between utterances
           setCurrentTranscript("");
         });
 
@@ -130,16 +179,23 @@ export function DictationPanel() {
 
     setup();
     return () => unlisten?.();
-  }, [setInputLevel, pushWaveformSample, addSegment, setCurrentTranscript, setStatus]);
+  }, [
+    setInputLevel,
+    pushWaveformSample,
+    addSegment,
+    setCurrentTranscript,
+    setStatus,
+    voiceCommandsEnabled,
+  ]);
 
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused") {
+      sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("start_dictation");
         setStatus("listening");
       } catch {
-        // Demo mode
         setStatus("listening");
       }
     } else if (status === "listening") {
@@ -150,8 +206,26 @@ export function DictationPanel() {
       } catch {
         setStatus("idle");
       }
+
+      // Save session to history
+      if (saveTranscripts && segments.length > 0) {
+        const fullText = segments
+          .map((s) => s.correctedText || s.text)
+          .join(" ");
+        const hasGrammar = segments.some((s) => s.grammarApplied);
+
+        useHistoryStore.getState().addEntry({
+          id: crypto.randomUUID(),
+          text: fullText,
+          duration: sessionDuration * 1000,
+          wordCount,
+          language: segments[0]?.language || "en",
+          timestamp: new Date().toISOString(),
+          grammarCorrected: hasGrammar,
+        });
+      }
     }
-  }, [status, setStatus]);
+  }, [status, setStatus, segments, saveTranscripts, sessionDuration, wordCount]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
@@ -273,10 +347,17 @@ export function DictationPanel() {
                 No microphone selected - go to Settings
               </p>
             )}
+            {voiceCommandsEnabled && (
+              <p className="text-[10px] text-surface-600 mt-1">
+                Voice commands enabled
+              </p>
+            )}
           </div>
 
-          {/* Waveform */}
-          <Waveform className="w-full max-w-lg" height={60} />
+          {/* Waveform - respects showWaveform setting */}
+          {showWaveform && (
+            <Waveform className="w-full max-w-lg" height={60} />
+          )}
 
           {/* Control buttons */}
           {showControls && (

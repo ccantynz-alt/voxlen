@@ -141,6 +141,9 @@ pub fn run() {
             // Window commands
             commands::window::minimize_to_tray,
             commands::window::toggle_window,
+            // Permission commands
+            commands::permissions::check_permissions,
+            commands::permissions::request_admin_permissions,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

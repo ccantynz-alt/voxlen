@@ -5,17 +5,51 @@ import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
+import { AdminPanel } from "@/components/settings/AdminPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useAudioStore } from "@/stores/audio";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
+import { useHistoryStore } from "@/stores/history";
 
-type View = "dictation" | "grammar" | "history" | "settings";
+type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
 export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
+  const theme = useSettingsStore((s) => s.theme);
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.remove("dark");
+      root.classList.add("light");
+    } else if (theme === "dark") {
+      root.classList.remove("light");
+      root.classList.add("dark");
+    } else {
+      // System preference
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.toggle("dark", prefersDark);
+      root.classList.toggle("light", !prefersDark);
+
+      const listener = (e: MediaQueryListEvent) => {
+        root.classList.toggle("dark", e.matches);
+        root.classList.toggle("light", !e.matches);
+      };
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      mq.addEventListener("change", listener);
+      return () => mq.removeEventListener("change", listener);
+    }
+  }, [theme]);
+
+  // Apply font size to document
+  const fontSize = useSettingsStore((s) => s.fontSize);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--voxlen-font-size", `${fontSize}px`);
+  }, [fontSize]);
 
   // Check if first launch
   useEffect(() => {
@@ -25,13 +59,33 @@ export default function App() {
         const store = await load("settings.json");
         const hasCompletedOnboarding = await store.get<boolean>("onboarding_complete");
         setShowOnboarding(!hasCompletedOnboarding);
+
+        // Load saved settings
+        const savedSettings = await store.get<Record<string, unknown>>("settings");
+        if (savedSettings) {
+          useSettingsStore.getState().updateSettings(savedSettings);
+        }
       } catch {
-        // Not in Tauri - check localStorage
         const completed = localStorage.getItem("voxlen_onboarding_complete");
         setShowOnboarding(!completed);
+
+        // Load saved settings from localStorage
+        try {
+          const saved = localStorage.getItem("voxlen_settings");
+          if (saved) {
+            useSettingsStore.getState().updateSettings(JSON.parse(saved));
+          }
+        } catch {
+          // ignore
+        }
       }
     }
     checkFirstLaunch();
+  }, []);
+
+  // Load history on startup
+  useEffect(() => {
+    useHistoryStore.getState().loadFromStore();
   }, []);
 
   // Load audio devices on mount (when not in onboarding)
@@ -109,13 +163,17 @@ export default function App() {
   useEffect(() => {
     if (showOnboarding) return;
 
+    let unregisterFns: (() => void)[] = [];
+
     async function registerShortcuts() {
       try {
         const { register } = await import(
           "@tauri-apps/plugin-global-shortcut"
         );
+        const settings = useSettingsStore.getState();
 
-        await register("CommandOrControl+Shift+D", (event) => {
+        // Toggle dictation shortcut
+        await register(settings.shortcutToggle, (event) => {
           if (event.state === "Pressed") {
             const status = useDictationStore.getState().status;
             if (status === "idle") {
@@ -125,13 +183,80 @@ export default function App() {
             }
           }
         });
+
+        // Push-to-talk shortcut
+        await register(settings.shortcutPushToTalk, (event) => {
+          if (event.state === "Pressed") {
+            const status = useDictationStore.getState().status;
+            if (status === "idle") {
+              useDictationStore.getState().setStatus("listening");
+              // Try to start capture
+              import("@tauri-apps/api/core").then(({ invoke }) => {
+                invoke("start_dictation").catch(() => {});
+              });
+            }
+          } else if (event.state === "Released") {
+            const status = useDictationStore.getState().status;
+            if (status === "listening") {
+              useDictationStore.getState().setStatus("idle");
+              import("@tauri-apps/api/core").then(({ invoke }) => {
+                invoke("stop_dictation").catch(() => {});
+              });
+            }
+          }
+        });
+
+        // Grammar correction shortcut
+        await register(settings.shortcutCorrectGrammar, (event) => {
+          if (event.state === "Pressed") {
+            const segments = useDictationStore.getState().segments;
+            if (segments.length > 0) {
+              const lastSegment = segments[segments.length - 1];
+              const text = lastSegment.correctedText || lastSegment.text;
+              import("@tauri-apps/api/core").then(({ invoke }) => {
+                invoke("correct_grammar", { text })
+                  .then((result: unknown) => {
+                    const r = result as { corrected: string };
+                    useDictationStore.getState().updateSegment(lastSegment.id, {
+                      correctedText: r.corrected,
+                      grammarApplied: true,
+                    });
+                  })
+                  .catch(() => {});
+              });
+            }
+          }
+        });
       } catch {
         // Not in Tauri environment
       }
     }
 
     registerShortcuts();
+
+    return () => {
+      unregisterFns.forEach((fn) => fn());
+    };
   }, [showOnboarding]);
+
+  // Listen for tray navigation events
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    async function setup() {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        const u = await listen<string>("navigate", (event) => {
+          setActiveView(event.payload as View);
+        });
+        unlisten = u;
+      } catch {
+        // Not in Tauri
+      }
+    }
+    setup();
+    return () => unlisten?.();
+  }, []);
 
   const handleOnboardingComplete = useCallback(async () => {
     // Save onboarding state
@@ -156,15 +281,24 @@ export default function App() {
         grammarApiKey: settings.grammarApiKey,
         grammarProvider: settings.grammarProvider,
         writingStyle: settings.writingStyle,
+        theme: settings.theme,
+        fontSize: settings.fontSize,
+        showWaveform: settings.showWaveform,
+        injectionMode: settings.injectionMode,
+        voiceCommandsEnabled: settings.voiceCommandsEnabled,
+        shortcutToggle: settings.shortcutToggle,
+        shortcutPushToTalk: settings.shortcutPushToTalk,
+        shortcutCorrectGrammar: settings.shortcutCorrectGrammar,
       });
       await store.save();
     } catch {
-      // Store in localStorage as fallback
       const settings = useSettingsStore.getState();
       localStorage.setItem("voxlen_settings", JSON.stringify({
         preferredDeviceId: settings.preferredDeviceId,
         sttEngine: settings.sttEngine,
         sttApiKey: settings.sttApiKey,
+        theme: settings.theme,
+        fontSize: settings.fontSize,
       }));
     }
 
@@ -181,6 +315,8 @@ export default function App() {
         return <HistoryPanel />;
       case "settings":
         return <SettingsPanel />;
+      case "admin":
+        return <AdminPanel />;
     }
   }, [activeView]);
 

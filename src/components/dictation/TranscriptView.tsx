@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useDictationStore } from "@/stores/dictation";
+import { useSettingsStore } from "@/stores/settings";
 import { Copy, Check, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatTimestamp } from "@/lib/utils";
@@ -17,6 +18,7 @@ export function TranscriptView({
   const segments = useDictationStore((s) => s.segments);
   const currentTranscript = useDictationStore((s) => s.currentTranscript);
   const status = useDictationStore((s) => s.status);
+  const fontSize = useSettingsStore((s) => s.fontSize);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = React.useState(false);
 
@@ -89,6 +91,7 @@ export function TranscriptView({
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 min-h-[200px] max-h-[500px]"
+        style={{ fontSize: `${fontSize}px` }}
       >
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
