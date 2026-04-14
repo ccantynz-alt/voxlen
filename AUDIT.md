@@ -304,11 +304,11 @@ Current leaders: **Otter.ai**, **Dragon NaturallySpeaking**, **Whisper Memos**, 
 
 **Voxlen has an excellent foundation.** The architecture is clean, the tech choices are right (Tauri v2, Deepgram streaming, Claude Haiku for grammar), and the UI is well-designed. But it's an unfinished product sitting at ~75%.
 
-**The path to launch:**
-1. **2-3 weeks:** Finish the 12 critical gaps in desktop (Phase 1)
-2. **1 week:** Testing and polish (Phase 2)
-3. **1-2 weeks:** iOS voice input (Phase 3)
-4. **2 weeks:** AlecRae.com Web SDK integration (Phase 4)
-5. **Ongoing:** Android, market differentiation features (Phase 5-6)
+**The path to launch (compressed timeline — ship fast):**
+1. **Phase 1 — Desktop gaps:** Wire up the 12 missing connections. Most are plumbing, not new architecture. Do in parallel.
+2. **Phase 2 — Tests + polish:** Core unit tests alongside Phase 1, not after.
+3. **Phase 3 — iOS voice input:** Add Apple Speech Framework to keyboard extension.
+4. **Phase 4 — AlecRae.com Web SDK:** Lightweight JS embed with Web Speech API + grammar.
+5. **Phase 5+:** Android, market differentiation features.
 
 The AlecRae.com email integration should be available to ALL users (not just Pro), with Pro unlocking premium accuracy and unlimited usage. Craig should be on a Pro/internal account with full access across all devices.

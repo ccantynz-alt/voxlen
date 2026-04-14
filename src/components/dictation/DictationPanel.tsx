@@ -18,7 +18,10 @@ import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
 import { useDictationStore } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
+import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
+import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
+import { useHistoryStore } from "@/stores/history";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -71,7 +74,7 @@ export function DictationPanel() {
           pushWaveformSample(event.payload);
         });
 
-        // Final transcription results
+        // Final transcription results — with voice command processing
         const unlistenTranscription = await listen<{
           text: string;
           is_final: boolean;
@@ -80,9 +83,43 @@ export function DictationPanel() {
         }>("transcription", (event) => {
           const result = event.payload;
           if (result.is_final && result.text.trim()) {
+            let textToAdd = result.text;
+
+            // Process voice commands if enabled
+            const voiceCommandsEnabled = useSettingsStore.getState().voiceCommandsEnabled;
+            if (voiceCommandsEnabled) {
+              const cmdResult = processVoiceCommands(result.text);
+              if (cmdResult.matched && cmdResult.action) {
+                const commandOutput = executeVoiceCommand(cmdResult.action);
+                // If command produced text (punctuation, newline, etc.), apply it to remaining text
+                if (cmdResult.remainingText) {
+                  textToAdd = applyTextCommand(cmdResult.remainingText, commandOutput);
+                } else if (commandOutput) {
+                  // Pure command with output (e.g., "period" → ".")
+                  // Apply to the last segment's text
+                  const segments = useDictationStore.getState().segments;
+                  if (segments.length > 0) {
+                    const last = segments[segments.length - 1];
+                    const updated = applyTextCommand(last.correctedText || last.text, commandOutput);
+                    useDictationStore.getState().updateSegment(last.id, {
+                      text: updated,
+                      correctedText: undefined,
+                    });
+                  }
+                  setCurrentTranscript("");
+                  return; // Don't add a new segment
+                } else {
+                  // Command with no output and no remaining text (e.g., "stop listening", "delete that")
+                  setCurrentTranscript("");
+                  return;
+                }
+              }
+            }
+
+            const segmentId = crypto.randomUUID();
             addSegment({
-              id: crypto.randomUUID(),
-              text: result.text,
+              id: segmentId,
+              text: textToAdd,
               timestamp: new Date(),
               confidence: result.confidence,
               language: result.language || undefined,
@@ -91,6 +128,25 @@ export function DictationPanel() {
             });
             // Clear the partial transcript since we got a final result
             setCurrentTranscript("");
+
+            // Auto-grammar: if enabled, polish the segment in the background
+            const { grammarEnabled, autoCorrect, grammarApiKey } = useSettingsStore.getState();
+            if (grammarEnabled && autoCorrect && grammarApiKey) {
+              import("@tauri-apps/api/core").then(({ invoke }) => {
+                invoke<{ corrected: string }>("correct_grammar", { text: textToAdd })
+                  .then((grammarResult) => {
+                    if (grammarResult.corrected !== textToAdd) {
+                      useDictationStore.getState().updateSegment(segmentId, {
+                        correctedText: grammarResult.corrected,
+                        grammarApplied: true,
+                      });
+                    }
+                  })
+                  .catch(() => {
+                    // Grammar correction failed silently — don't block dictation
+                  });
+              }).catch(() => {});
+            }
           }
         });
 
@@ -146,10 +202,27 @@ export function DictationPanel() {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("stop_dictation");
-        setStatus("idle");
       } catch {
-        setStatus("idle");
+        // Demo mode
       }
+      // Save session to history if there are segments
+      const currentSegments = useDictationStore.getState().segments;
+      const currentDuration = useDictationStore.getState().sessionDuration;
+      if (currentSegments.length > 0) {
+        const fullText = currentSegments.map((s) => s.correctedText || s.text).join(" ");
+        const wc = fullText.split(/\s+/).filter(Boolean).length;
+        const hasGrammar = currentSegments.some((s) => s.grammarApplied);
+        useHistoryStore.getState().addEntry({
+          id: crypto.randomUUID(),
+          text: fullText,
+          duration: currentDuration * 1000,
+          wordCount: wc,
+          language: currentSegments[0].language || "en",
+          timestamp: new Date().toISOString(),
+          grammarCorrected: hasGrammar,
+        });
+      }
+      setStatus("idle");
     }
   }, [status, setStatus]);
 

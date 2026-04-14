@@ -100,16 +100,79 @@ const defaultSettings: AppSettings = {
   saveTranscripts: true,
 };
 
+// Debounced persistence — saves settings after changes settle
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePersist() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const state = useSettingsStore.getState();
+    // Extract only AppSettings keys (not UI state like activeTab/isLoaded)
+    const toSave: Partial<AppSettings> = {
+      preferredDeviceId: state.preferredDeviceId,
+      inputGain: state.inputGain,
+      noiseSuppression: state.noiseSuppression,
+      sttEngine: state.sttEngine,
+      sttApiKey: state.sttApiKey,
+      sttLanguage: state.sttLanguage,
+      autoDetectLanguage: state.autoDetectLanguage,
+      customVocabulary: state.customVocabulary,
+      grammarEnabled: state.grammarEnabled,
+      grammarApiKey: state.grammarApiKey,
+      grammarProvider: state.grammarProvider,
+      writingStyle: state.writingStyle,
+      autoCorrect: state.autoCorrect,
+      preserveTone: state.preserveTone,
+      autoPunctuate: state.autoPunctuate,
+      smartFormat: state.smartFormat,
+      voiceCommandsEnabled: state.voiceCommandsEnabled,
+      injectionMode: state.injectionMode,
+      shortcutToggle: state.shortcutToggle,
+      shortcutPushToTalk: state.shortcutPushToTalk,
+      shortcutCancel: state.shortcutCancel,
+      shortcutCorrectGrammar: state.shortcutCorrectGrammar,
+      theme: state.theme,
+      showWaveform: state.showWaveform,
+      fontSize: state.fontSize,
+      startMinimized: state.startMinimized,
+      minimizeToTray: state.minimizeToTray,
+      launchAtLogin: state.launchAtLogin,
+      telemetryEnabled: state.telemetryEnabled,
+      saveTranscripts: state.saveTranscripts,
+    };
+    try {
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("settings.json");
+      await store.set("settings", toSave);
+      await store.save();
+    } catch {
+      try {
+        localStorage.setItem("voxlen_settings", JSON.stringify(toSave));
+      } catch {
+        // Ignore
+      }
+    }
+  }, 500);
+}
+
 export const useSettingsStore = create<SettingsState>((set) => ({
   ...defaultSettings,
   isLoaded: false,
   activeTab: "general",
 
-  updateSetting: (key, value) => set({ [key]: value }),
+  updateSetting: (key, value) => {
+    set({ [key]: value });
+    schedulePersist();
+  },
 
-  updateSettings: (settings) => set(settings),
+  updateSettings: (settings) => {
+    set(settings);
+    schedulePersist();
+  },
 
   setActiveTab: (tab) => set({ activeTab: tab }),
 
-  resetToDefaults: () => set({ ...defaultSettings }),
+  resetToDefaults: () => {
+    set({ ...defaultSettings });
+    schedulePersist();
+  },
 }));

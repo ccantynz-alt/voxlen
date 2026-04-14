@@ -9,10 +9,13 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useAudioStore } from "@/stores/audio";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
+import { usePersistedSettings } from "@/hooks/usePersistedSettings";
 
 type View = "dictation" | "grammar" | "history" | "settings";
 
 export default function App() {
+  // Load saved settings from disk/localStorage on startup
+  usePersistedSettings();
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
@@ -115,6 +118,7 @@ export default function App() {
           "@tauri-apps/plugin-global-shortcut"
         );
 
+        // Toggle dictation: Ctrl/Cmd+Shift+D
         await register("CommandOrControl+Shift+D", (event) => {
           if (event.state === "Pressed") {
             const status = useDictationStore.getState().status;
@@ -123,6 +127,43 @@ export default function App() {
             } else {
               useDictationStore.getState().setStatus("idle");
             }
+          }
+        });
+
+        // Push-to-talk: Ctrl/Cmd+Shift+Space — hold to dictate, release to stop
+        await register("CommandOrControl+Shift+Space", (event) => {
+          if (event.state === "Pressed") {
+            const status = useDictationStore.getState().status;
+            if (status === "idle") {
+              useDictationStore.getState().setStatus("listening");
+            }
+          } else if (event.state === "Released") {
+            const status = useDictationStore.getState().status;
+            if (status === "listening" || status === "processing") {
+              useDictationStore.getState().setStatus("idle");
+            }
+          }
+        });
+
+        // Grammar correction: Ctrl/Cmd+Shift+G — polish the current transcript
+        await register("CommandOrControl+Shift+G", async () => {
+          const segments = useDictationStore.getState().segments;
+          if (segments.length === 0) return;
+          const fullText = segments.map((s) => s.correctedText || s.text).join(" ");
+          try {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const result = await invoke<{
+              corrected: string;
+              changes: Array<{ original: string; corrected: string; reason: string }>;
+            }>("correct_grammar", { text: fullText });
+            // Update the last segment with the corrected full text
+            const lastSegment = segments[segments.length - 1];
+            useDictationStore.getState().updateSegment(lastSegment.id, {
+              correctedText: result.corrected,
+              grammarApplied: true,
+            });
+          } catch {
+            // Grammar correction not available
           }
         });
       } catch {

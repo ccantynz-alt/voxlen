@@ -94,9 +94,12 @@ impl SttEngine {
                 cloud::whisper_transcribe(&wav_data, &config).await
             }
             SttEngineType::WhisperLocal => {
-                // Local whisper processing
-                let wav_data = encode_wav(audio_data, sample_rate)?;
-                cloud::whisper_transcribe(&wav_data, &config).await
+                // TODO: Integrate whisper-rs (whisper.cpp Rust bindings) for true on-device inference.
+                // For now, return a clear error rather than silently falling through to cloud.
+                anyhow::bail!(
+                    "Whisper Local is not yet available. Please select Deepgram or Whisper Cloud in Settings > Speech Engine. \
+                     Local on-device inference (whisper.cpp) is coming in a future update."
+                )
             }
         }
     }

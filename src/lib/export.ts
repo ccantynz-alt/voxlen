@@ -1,6 +1,6 @@
 import type { TranscriptionSegment } from "@/stores/dictation";
 
-export type ExportFormat = "txt" | "md" | "json" | "srt" | "docx";
+export type ExportFormat = "txt" | "md" | "json" | "srt";
 
 export function exportTranscript(
   segments: TranscriptionSegment[],

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   History,
   Clock,
@@ -6,54 +6,29 @@ import {
   Check,
   Search,
   Calendar,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { formatDuration } from "@/lib/utils";
-
-interface HistoryEntry {
-  id: string;
-  text: string;
-  duration: number;
-  wordCount: number;
-  language: string;
-  timestamp: Date;
-  grammarCorrected: boolean;
-}
-
-// Demo history data
-const demoHistory: HistoryEntry[] = [
-  {
-    id: "1",
-    text: "This is a sample dictation entry to show what the history view looks like. The AI-powered grammar engine has already polished this text.",
-    duration: 45000,
-    wordCount: 25,
-    language: "en",
-    timestamp: new Date(Date.now() - 3600000),
-    grammarCorrected: true,
-  },
-  {
-    id: "2",
-    text: "Meeting notes: discussed the quarterly roadmap and upcoming product launches. Action items include finalizing the design specs by Friday.",
-    duration: 120000,
-    wordCount: 22,
-    language: "en",
-    timestamp: new Date(Date.now() - 86400000),
-    grammarCorrected: true,
-  },
-];
+import { useHistoryStore, loadHistory } from "@/stores/history";
 
 export function HistoryPanel() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [history] = useState<HistoryEntry[]>(demoHistory);
+  const entries = useHistoryStore((s) => s.entries);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const filteredHistory = history.filter((entry) =>
+  // Load persisted history on mount
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const filteredHistory = entries.filter((entry) =>
     entry.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCopy = async (entry: HistoryEntry) => {
+  const handleCopy = async (entry: typeof entries[0]) => {
     await navigator.clipboard.writeText(entry.text);
     setCopiedId(entry.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -72,7 +47,7 @@ export function HistoryPanel() {
               Session History
             </h2>
             <p className="text-xs text-surface-600">
-              {history.length} sessions recorded
+              {entries.length} sessions recorded
             </p>
           </div>
         </div>
@@ -105,8 +80,8 @@ export function HistoryPanel() {
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2 text-xs text-surface-600">
                   <Clock className="h-3 w-3" />
-                  {entry.timestamp.toLocaleDateString()} at{" "}
-                  {entry.timestamp.toLocaleTimeString([], {
+                  {new Date(entry.timestamp).toLocaleDateString()} at{" "}
+                  {new Date(entry.timestamp).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
