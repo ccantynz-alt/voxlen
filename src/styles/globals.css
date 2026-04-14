@@ -4,6 +4,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark theme (default) */
+:root {
+  --surface-0: #09090b;
+  --surface-50: #0c0c0f;
+  --surface-100: #111114;
+  --surface-200: #18181b;
+  --surface-300: #1f1f23;
+  --surface-400: #27272a;
+  --surface-500: #3f3f46;
+  --surface-600: #52525b;
+  --surface-700: #71717a;
+  --surface-800: #a1a1aa;
+  --surface-900: #d4d4d8;
+  --surface-950: #fafafa;
+}
+
+/* Light theme */
+.light {
+  --surface-0: #ffffff;
+  --surface-50: #fafafa;
+  --surface-100: #f4f4f5;
+  --surface-200: #e4e4e7;
+  --surface-300: #d4d4d8;
+  --surface-400: #a1a1aa;
+  --surface-500: #71717a;
+  --surface-600: #52525b;
+  --surface-700: #3f3f46;
+  --surface-800: #27272a;
+  --surface-900: #18181b;
+  --surface-950: #09090b;
+}
+
+/* System preference: auto-apply light when OS is light and class="system" */
+@media (prefers-color-scheme: light) {
+  .system {
+    --surface-0: #ffffff;
+    --surface-50: #fafafa;
+    --surface-100: #f4f4f5;
+    --surface-200: #e4e4e7;
+    --surface-300: #d4d4d8;
+    --surface-400: #a1a1aa;
+    --surface-500: #71717a;
+    --surface-600: #52525b;
+    --surface-700: #3f3f46;
+    --surface-800: #27272a;
+    --surface-900: #18181b;
+    --surface-950: #09090b;
+  }
+}
+
 @layer base {
   * {
     @apply border-surface-300;

@@ -19,6 +19,19 @@ export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
+  const theme = useSettingsStore((s) => s.theme);
+
+  // Apply theme class to document root
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("dark", "light", "system");
+    if (theme === "light") {
+      root.classList.add("light");
+    } else if (theme === "system") {
+      root.classList.add("system");
+    }
+    // dark is the default (no class needed, :root vars apply)
+  }, [theme]);
 
   // Check if first launch
   useEffect(() => {
