@@ -158,7 +158,7 @@ export async function persistSettings(settings: AppSettings): Promise<void> {
   } catch {
     // Non-Tauri environment — best-effort localStorage fallback.
     try {
-      localStorage.setItem("voxlen_settings", JSON.stringify(settings));
+      localStorage.setItem("marcoreid_settings", JSON.stringify(settings));
     } catch {
       // Ignore
     }
@@ -176,7 +176,7 @@ export async function loadSettings(): Promise<Partial<AppSettings> | undefined> 
     return fromBackendSettings(backend);
   } catch {
     try {
-      const raw = localStorage.getItem("voxlen_settings");
+      const raw = localStorage.getItem("marcoreid_settings");
       if (raw) return JSON.parse(raw) as Partial<AppSettings>;
     } catch {
       // Ignore

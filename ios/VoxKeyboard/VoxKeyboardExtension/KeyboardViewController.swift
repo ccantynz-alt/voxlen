@@ -6,7 +6,7 @@ class KeyboardViewController: UIInputViewController {
     private var grammarBar: UIView!
     private var grammarLabel: UILabel!
     private var polishButton: UIButton!
-    private let defaults = UserDefaults(suiteName: "group.com.voxlen.keyboard")
+    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")
 
     // Current state
     private var isShifted = false
@@ -40,7 +40,7 @@ class KeyboardViewController: UIInputViewController {
         grammarBar.translatesAutoresizingMaskIntoConstraints = false
 
         grammarLabel = UILabel()
-        grammarLabel.text = "Voxlen AI Grammar"
+        grammarLabel.text = "Marco Reid Voice AI Grammar"
         grammarLabel.font = .systemFont(ofSize: 12, weight: .medium)
         grammarLabel.textColor = .secondaryLabel
         grammarLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -283,7 +283,7 @@ class KeyboardViewController: UIInputViewController {
                     polishButton.isEnabled = true
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                        self?.grammarLabel.text = "Voxlen AI Grammar"
+                        self?.grammarLabel.text = "Marco Reid Voice AI Grammar"
                     }
                 }
             } catch {

@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>NSMicrophoneUsageDescription</key>
-    <string>AlecRae Voice needs microphone access to transcribe your voice into text. Audio is processed in real time and is not stored on AlecRae servers.</string>
+    <string>Marco Reid Voice needs microphone access to transcribe your voice into text. Audio is processed in real time and is not stored on Marco Reid servers.</string>
     <key>NSAppleEventsUsageDescription</key>
-    <string>AlecRae Voice needs accessibility access to type dictated text into other applications.</string>
+    <string>Marco Reid Voice needs accessibility access to type dictated text into other applications.</string>
     <key>LSUIElement</key>
     <false/>
     <key>LSMinimumSystemVersion</key>

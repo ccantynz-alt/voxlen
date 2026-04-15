@@ -57,9 +57,9 @@ export function Select({
         className={cn(
           "flex items-center justify-between w-full h-10 px-3 rounded-lg text-sm transition-colors",
           "bg-surface-200 border border-surface-300 text-surface-900",
-          "hover:bg-surface-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-voxlen-500",
+          "hover:bg-surface-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marcoreid-500",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          isOpen && "ring-2 ring-voxlen-500"
+          isOpen && "ring-2 ring-marcoreid-500"
         )}
       >
         <div className="flex items-center gap-2 truncate">
@@ -89,7 +89,7 @@ export function Select({
                 "flex items-center gap-2 w-full px-3 py-2 text-sm transition-colors",
                 "hover:bg-surface-200",
                 option.value === value
-                  ? "text-voxlen-400"
+                  ? "text-marcoreid-400"
                   : "text-surface-900"
               )}
             >
@@ -103,7 +103,7 @@ export function Select({
                 )}
               </div>
               {option.value === value && (
-                <Check className="h-4 w-4 text-voxlen-400 shrink-0" />
+                <Check className="h-4 w-4 text-marcoreid-400 shrink-0" />
               )}
             </button>
           ))}

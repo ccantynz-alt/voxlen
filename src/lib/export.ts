@@ -12,31 +12,31 @@ export function exportTranscript(
     case "txt":
       return {
         content: formatAsText(segments),
-        filename: `alecrae-transcript-${timestamp}.txt`,
+        filename: `marcoreid-transcript-${timestamp}.txt`,
         mimeType: "text/plain",
       };
     case "md":
       return {
         content: formatAsMarkdown(segments),
-        filename: `alecrae-transcript-${timestamp}.md`,
+        filename: `marcoreid-transcript-${timestamp}.md`,
         mimeType: "text/markdown",
       };
     case "json":
       return {
         content: formatAsJson(segments),
-        filename: `alecrae-transcript-${timestamp}.json`,
+        filename: `marcoreid-transcript-${timestamp}.json`,
         mimeType: "application/json",
       };
     case "srt":
       return {
         content: formatAsSrt(segments),
-        filename: `alecrae-transcript-${timestamp}.srt`,
+        filename: `marcoreid-transcript-${timestamp}.srt`,
         mimeType: "text/srt",
       };
     default:
       return {
         content: formatAsText(segments),
-        filename: `alecrae-transcript-${timestamp}.txt`,
+        filename: `marcoreid-transcript-${timestamp}.txt`,
         mimeType: "text/plain",
       };
   }
@@ -48,7 +48,7 @@ function formatAsText(segments: TranscriptionSegment[]): string {
 
 function formatAsMarkdown(segments: TranscriptionSegment[]): string {
   const lines = [
-    "# AlecRae Voice Transcript",
+    "# Marco Reid Voice Transcript",
     "",
     `**Date:** ${new Date().toLocaleDateString()}`,
     `**Words:** ${segments.reduce((c, s) => c + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length, 0)}`,
@@ -73,7 +73,7 @@ function formatAsJson(segments: TranscriptionSegment[]): string {
   return JSON.stringify(
     {
       version: "1.0",
-      app: "AlecRae Voice",
+      app: "Marco Reid Voice",
       exported: new Date().toISOString(),
       segments: segments.map((s) => ({
         id: s.id,

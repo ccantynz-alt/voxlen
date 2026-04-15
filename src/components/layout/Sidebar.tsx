@@ -57,14 +57,14 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-all duration-150",
                 isActive
-                  ? "bg-voxlen-600/10 text-voxlen-400"
+                  ? "bg-marcoreid-600/10 text-marcoreid-400"
                   : "text-surface-700 hover:bg-surface-200 hover:text-surface-900"
               )}
             >
               <Icon
                 className={cn(
                   "h-4 w-4 shrink-0",
-                  isActive ? "text-voxlen-400" : "text-surface-600"
+                  isActive ? "text-marcoreid-400" : "text-surface-600"
                 )}
               />
               <div className="flex flex-col items-start min-w-0">
@@ -88,14 +88,14 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-all duration-150",
                 isActive
-                  ? "bg-voxlen-600/10 text-voxlen-400"
+                  ? "bg-marcoreid-600/10 text-marcoreid-400"
                   : "text-surface-700 hover:bg-surface-200 hover:text-surface-900"
               )}
             >
               <Icon
                 className={cn(
                   "h-4 w-4 shrink-0",
-                  isActive ? "text-voxlen-400" : "text-surface-600"
+                  isActive ? "text-marcoreid-400" : "text-surface-600"
                 )}
               />
               <span className="font-medium">{item.label}</span>
@@ -106,7 +106,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         {/* Version info */}
         <div className="px-3 pt-2">
           <span className="text-[10px] text-surface-600 font-mono">
-            AlecRae Voice v1.0.0
+            Marco Reid Voice v1.0.0
           </span>
         </div>
       </div>

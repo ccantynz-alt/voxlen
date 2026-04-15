@@ -1,4 +1,4 @@
-# Contributing to Voxlen
+# Contributing to Marco Reid Voice
 
 Thanks for your interest in contributing. This document covers the conventions we follow and how to get a dev environment running.
 

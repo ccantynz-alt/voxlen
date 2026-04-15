@@ -65,7 +65,7 @@
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-voxlen-400 to-voxlen-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-marcoreid-400 to-marcoreid-600;
   }
 
   .dictation-pulse {

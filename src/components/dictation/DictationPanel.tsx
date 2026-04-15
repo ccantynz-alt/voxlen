@@ -182,7 +182,7 @@ export function DictationPanel() {
               className={cn(
                 "relative z-10 flex items-center justify-center w-20 h-20 rounded-full transition-all duration-300",
                 isActive
-                  ? "bg-voxlen-600 text-white shadow-lg shadow-voxlen-600/30 scale-110"
+                  ? "bg-marcoreid-600 text-white shadow-lg shadow-marcoreid-600/30 scale-110"
                   : "bg-surface-200 text-surface-700 hover:bg-surface-300 hover:text-surface-900 hover:scale-105"
               )}
             >

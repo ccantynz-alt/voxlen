@@ -1,8 +1,8 @@
 {
-  "name": "alecrae-voice",
+  "name": "marco-reid-voice",
   "private": true,
   "version": "1.0.0",
-  "description": "AlecRae Voice - AI-powered dictation for legal and accounting professionals. Mobile, desktop, and web.",
+  "description": "Marco Reid Voice - the platform input layer for Marco Reid. Voice-first dictation and commands for legal and accounting professionals across desktop, mobile, and web.",
   "type": "module",
   "scripts": {
     "dev": "vite",

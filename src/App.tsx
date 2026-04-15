@@ -38,7 +38,7 @@ export default function App() {
         setShowOnboarding(!hasCompletedOnboarding);
       } catch {
         // Not in Tauri - check localStorage
-        const completed = localStorage.getItem("alecrae_onboarding_complete");
+        const completed = localStorage.getItem("marcoreid_onboarding_complete");
         setShowOnboarding(!completed);
       }
 
@@ -168,7 +168,7 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("alecrae_onboarding_complete", "true");
+      localStorage.setItem("marcoreid_onboarding_complete", "true");
     }
 
     // Save current settings through the persistence pipeline

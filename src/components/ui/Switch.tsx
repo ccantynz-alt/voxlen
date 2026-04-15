@@ -48,11 +48,11 @@ export function Switch({
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
         className={cn(
-          "relative inline-flex shrink-0 rounded-full transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-voxlen-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0",
+          "relative inline-flex shrink-0 rounded-full transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marcoreid-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0",
           {
             "h-5 w-9": size === "sm",
             "h-6 w-11": size === "md",
-            "bg-voxlen-600": checked,
+            "bg-marcoreid-600": checked,
             "bg-surface-400": !checked,
           }
         )}

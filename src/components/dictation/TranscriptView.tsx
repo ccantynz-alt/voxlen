@@ -133,7 +133,7 @@ export function TranscriptView({
                     {segment.correctedText || segment.text}
                     {segment.grammarApplied && (
                       <span className="inline-flex ml-1">
-                        <Wand2 className="h-3 w-3 text-voxlen-400" />
+                        <Wand2 className="h-3 w-3 text-marcoreid-400" />
                       </span>
                     )}
                   </p>
@@ -150,7 +150,7 @@ export function TranscriptView({
                 <p className="text-sm leading-relaxed text-surface-700 italic">
                   {currentTranscript}
                   {status === "listening" && (
-                    <span className="inline-block w-0.5 h-4 bg-voxlen-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-0.5 h-4 bg-marcoreid-400 ml-0.5 animate-pulse align-text-bottom" />
                   )}
                 </p>
               </div>
