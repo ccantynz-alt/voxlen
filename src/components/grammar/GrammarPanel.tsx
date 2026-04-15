@@ -120,7 +120,7 @@ export function GrammarPanel() {
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Paste or type text here to check grammar, spelling, and style..."
+            placeholder="Paste or type text to polish..."
             className="flex-1 w-full p-4 bg-transparent text-sm text-surface-900 placeholder:text-surface-600 resize-none focus:outline-none leading-relaxed"
           />
         </div>

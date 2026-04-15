@@ -94,7 +94,7 @@ Enumerate available STT engines and their capabilities.
 
 ```ts
 type EngineInfo = {
-  id: "whisper_cloud" | "deepgram" | "whisper_local";
+  id: "whisper_cloud" | "deepgram";
   name: string;
   description: string;
   requires_api_key: boolean;
@@ -107,7 +107,7 @@ type EngineInfo = {
 
 Switch the active STT engine.
 
-- **Parameters:** `engine_id: "whisper_cloud" | "deepgram" | "whisper_local"`
+- **Parameters:** `engine_id: "whisper_cloud" | "deepgram"`
 - **Returns:** `void`
 
 ### `get_stt_config`
@@ -117,7 +117,7 @@ Switch the active STT engine.
 
 ```ts
 type SttConfig = {
-  engine: "DeepgramCloud" | "WhisperCloud" | "WhisperLocal";
+  engine: "DeepgramCloud" | "WhisperCloud";
   api_key: string | null;
   language: string;       // ISO code, or "auto"
   punctuate: boolean;
