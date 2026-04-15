@@ -400,7 +400,7 @@ function ShortcutSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Global Shortcuts"
-        description="These shortcuts work from any application, even when Voxlen is minimized."
+        description="These shortcuts work from any application, even when AlecRae Voice is minimized."
       />
 
       <SettingRow>

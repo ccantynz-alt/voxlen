@@ -60,7 +60,7 @@ export function TitleBar() {
           <Mic className="h-3.5 w-3.5 text-white" />
         </div>
         <span className="text-sm font-semibold text-surface-900 tracking-tight">
-          Voxlen
+          AlecRae Voice
         </span>
         <Badge
           variant={

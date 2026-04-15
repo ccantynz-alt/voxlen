@@ -106,7 +106,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         {/* Version info */}
         <div className="px-3 pt-2">
           <span className="text-[10px] text-surface-600 font-mono">
-            Voxlen v1.0.0
+            AlecRae Voice v1.0.0
           </span>
         </div>
       </div>

@@ -1,6 +1,6 @@
-export const APP_NAME = "Voxlen";
+export const APP_NAME = "AlecRae Voice";
 export const APP_VERSION = "1.0.0";
-export const APP_DESCRIPTION = "AI-Powered Voice Dictation";
+export const APP_DESCRIPTION = "AI dictation for legal and accounting professionals";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "en", name: "English", flag: "🇬🇧" },
