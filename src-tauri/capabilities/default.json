@@ -20,7 +20,6 @@
     "notification:default",
     "store:default",
     "shell:default",
-    "updater:default",
     "dialog:default",
     "fs:default"
   ]

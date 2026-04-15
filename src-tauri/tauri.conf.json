@@ -67,14 +67,5 @@
       }
     }
   },
-  "plugins": {
-    "updater": {
-      "active": true,
-      "endpoints": [
-        "https://releases.marcoreid.com/{{target}}/{{current_version}}"
-      ],
-      "dialog": true,
-      "pubkey": "REPLACE_WITH_TAURI_UPDATER_PUBKEY"
-    }
-  }
+  "plugins": {}
 }
