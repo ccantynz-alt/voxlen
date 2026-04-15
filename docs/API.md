@@ -1,4 +1,4 @@
-# Voxlen IPC Reference
+# Marco Reid Voice IPC Reference
 
 This document enumerates every Tauri `invoke` command and every event emitted from the Rust backend. Types are given in their serialized (JSON) shape.
 
