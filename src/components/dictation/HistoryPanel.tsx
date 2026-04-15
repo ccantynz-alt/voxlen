@@ -226,6 +226,14 @@ export function HistoryPanel() {
         )}
       </div>
 
+      {!saveTranscripts && (
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3">
+          <p className="text-xs text-amber-300">
+            Transcript saving is disabled. Enable it in Settings &gt; Privacy to keep your history.
+          </p>
+        </div>
+      )}
+
       {/* Search */}
       <Input
         placeholder="Search transcripts..."

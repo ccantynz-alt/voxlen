@@ -3,6 +3,7 @@ import {
   Settings,
   SpellCheck,
   History,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,12 @@ const navItems = [
 ];
 
 const bottomItems = [
+  {
+    id: "admin",
+    label: "Admin",
+    icon: ShieldCheck,
+    description: "Permissions",
+  },
   {
     id: "settings",
     label: "Settings",

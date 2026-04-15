@@ -5,6 +5,7 @@ import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
+import { AdminPanel } from "@/components/settings/AdminPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
@@ -13,7 +14,7 @@ import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
-type View = "dictation" | "grammar" | "history" | "settings";
+type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
 export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
@@ -36,10 +37,26 @@ export default function App() {
         const store = await load("settings.json");
         const hasCompletedOnboarding = await store.get<boolean>("onboarding_complete");
         setShowOnboarding(!hasCompletedOnboarding);
+
+        // Load saved settings
+        const savedSettings = await store.get<Record<string, unknown>>("settings");
+        if (savedSettings) {
+          useSettingsStore.getState().updateSettings(savedSettings);
+        }
       } catch {
         // Not in Tauri - check localStorage
         const completed = localStorage.getItem("marcoreid_onboarding_complete");
         setShowOnboarding(!completed);
+
+        // Load saved settings from localStorage
+        try {
+          const saved = localStorage.getItem("voxlen_settings");
+          if (saved) {
+            useSettingsStore.getState().updateSettings(JSON.parse(saved));
+          }
+        } catch {
+          // ignore
+        }
       }
 
       // Hydrate settings from backend on boot.
@@ -87,6 +104,11 @@ export default function App() {
       if (timeoutId) clearTimeout(timeoutId);
       unsub();
     };
+  }, []);
+
+  // Load history on startup
+  useEffect(() => {
+    useHistoryStore.getState().loadFromStore();
   }, []);
 
   // Load audio devices on mount (when not in onboarding)

@@ -21,6 +21,11 @@ import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
+import {
+  processVoiceCommands,
+  executeVoiceCommand,
+  applyTextCommand,
+} from "@/lib/voiceCommands";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -37,12 +42,16 @@ export function DictationPanel() {
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartRef = useRef<Date | null>(null);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
 
   // Session timer
   useEffect(() => {
     if (status === "listening") {
+      if (!sessionStartRef.current) {
+        sessionStartRef.current = new Date();
+      }
       timerRef.current = setInterval(() => {
         incrementDuration();
       }, 1000);
@@ -59,12 +68,12 @@ export function DictationPanel() {
 
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused") {
+      sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("start_dictation");
         setStatus("listening");
       } catch {
-        // Demo mode
         setStatus("listening");
       }
     } else if (status === "listening") {
@@ -78,7 +87,7 @@ export function DictationPanel() {
       }
       setStatus("idle");
     }
-  }, [status, setStatus]);
+  }, [status, setStatus, segments, saveTranscripts, sessionDuration, wordCount]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
@@ -226,8 +235,10 @@ export function DictationPanel() {
             )}
           </div>
 
-          {/* Waveform */}
-          <Waveform className="w-full max-w-lg" height={60} />
+          {/* Waveform - respects showWaveform setting */}
+          {showWaveform && (
+            <Waveform className="w-full max-w-lg" height={60} />
+          )}
 
           {/* Control buttons */}
           {showControls && (
