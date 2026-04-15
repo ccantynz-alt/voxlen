@@ -43,12 +43,12 @@ pub fn run() {
             app.manage(text_injection::InjectorState::new(injector));
 
             // Build system tray menu
-            let show_item = MenuItem::with_id(app, "show", "Show Voxlen", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Show Marco Reid Voice", true, None::<&str>)?;
             let dictate_item = MenuItem::with_id(app, "dictate", "Start Dictation", true, None::<&str>)?;
             let grammar_item = MenuItem::with_id(app, "grammar", "Grammar Panel", true, None::<&str>)?;
             let separator = MenuItem::with_id(app, "sep", "────────────", false, None::<&str>)?;
             let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Voxlen", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Marco Reid Voice", true, None::<&str>)?;
 
             let menu = Menu::with_items(
                 app,
@@ -64,7 +64,7 @@ pub fn run() {
             )?;
 
             let _tray = TrayIconBuilder::new()
-                .tooltip("Voxlen - AI Voice Dictation")
+                .tooltip("Marco Reid Voice - platform input layer for legal and accounting")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(move |app, event| {
@@ -113,7 +113,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            log::info!("Voxlen initialized successfully");
+            log::info!("Marco Reid Voice initialized successfully");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -155,6 +155,9 @@ pub fn run() {
             // Window commands
             commands::window::minimize_to_tray,
             commands::window::toggle_window,
+            // Permission commands
+            commands::permissions::check_permissions,
+            commands::permissions::request_admin_permissions,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -164,5 +167,5 @@ pub fn run() {
             }
         })
         .run(tauri::generate_context!())
-        .expect("error while running Voxlen");
+        .expect("error while running Marco Reid Voice");
 }

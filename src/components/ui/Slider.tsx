@@ -45,7 +45,7 @@ export function Slider({
       <div className="relative h-5 flex items-center">
         <div className="absolute h-1.5 w-full rounded-full bg-surface-300">
           <div
-            className="absolute h-full rounded-full bg-voxlen-600 transition-all"
+            className="absolute h-full rounded-full bg-marcoreid-600 transition-all"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -62,7 +62,7 @@ export function Slider({
           )}
         />
         <div
-          className="absolute h-4 w-4 rounded-full bg-white shadow-md border-2 border-voxlen-600 pointer-events-none transition-all"
+          className="absolute h-4 w-4 rounded-full bg-white shadow-md border-2 border-marcoreid-600 pointer-events-none transition-all"
           style={{ left: `calc(${percentage}% - 8px)` }}
         />
       </div>

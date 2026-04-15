@@ -1,4 +1,4 @@
-name: Build & Release Voxlen
+name: Build & Release Marco Reid Voice
 
 on:
   push:
@@ -37,13 +37,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libgtk-3-dev \
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
             libasound2-dev \
             libssl-dev \
-            pkg-config
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            pkg-config \
+            xdotool \
+            xclip
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -76,9 +81,9 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: v__VERSION__
-          releaseName: 'Voxlen v__VERSION__'
-          releaseBody: 'AI-Powered Voice Dictation - see CHANGELOG for details.'
-          releaseDraft: true
+          releaseName: 'Marco Reid Voice v__VERSION__'
+          releaseBody: 'Marco Reid Voice v1.0.0 — voice input layer for the Marco Reid platform. Download the installer for your OS below. First-run note: Windows SmartScreen and macOS Gatekeeper will warn about an unknown publisher on first launch (the build is not code-signed yet). Click "More info → Run anyway" on Windows, or right-click → Open on Mac.'
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
 

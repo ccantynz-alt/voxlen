@@ -1,6 +1,6 @@
-export const APP_NAME = "Voxlen";
+export const APP_NAME = "Marco Reid Voice";
 export const APP_VERSION = "1.0.0";
-export const APP_DESCRIPTION = "AI-Powered Voice Dictation";
+export const APP_DESCRIPTION = "Voice input layer for the Marco Reid platform";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "en", name: "English", flag: "🇬🇧" },

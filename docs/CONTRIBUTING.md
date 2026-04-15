@@ -1,11 +1,11 @@
-# Contributing to Voxlen
+# Contributing to Marco Reid Voice
 
 Thanks for your interest in contributing. This document covers the conventions we follow and how to get a dev environment running.
 
 ## Dev setup
 
 ```bash
-git clone https://github.com/voxlen/voxlen.git   # placeholder URL
+git clone https://github.com/ccantynz-alt/voxlen.git   # placeholder URL
 cd voxlen
 npm install
 npm run tauri dev
@@ -76,4 +76,4 @@ See [RELEASE.md](./RELEASE.md) for the release process, including auto-updater k
 
 ## Reporting bugs
 
-File an issue with clear reproduction steps and your platform (OS + version, Voxlen version). For security-sensitive reports, follow [SECURITY.md](./SECURITY.md) instead.
+File an issue with clear reproduction steps and your platform (OS + version, Marco Reid Voice version). For security-sensitive reports, follow [SECURITY.md](./SECURITY.md) instead.

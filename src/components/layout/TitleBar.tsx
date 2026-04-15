@@ -56,11 +56,11 @@ export function TitleBar() {
     >
       {/* Left: App identity */}
       <div className="flex items-center gap-2.5" data-tauri-drag-region>
-        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-voxlen-600">
+        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-marcoreid-600">
           <Mic className="h-3.5 w-3.5 text-white" />
         </div>
         <span className="text-sm font-semibold text-surface-900 tracking-tight">
-          Voxlen
+          Marco Reid Voice
         </span>
         <Badge
           variant={

@@ -1,6 +1,6 @@
-# Voxlen Landing Page
+# Marco Reid Voice Landing Page
 
-A standalone Vite + React marketing site for Voxlen. Deployed independently from the desktop app.
+A standalone Vite + React marketing site for Marco Reid Voice. Deployed independently from the desktop app.
 
 ## Local development
 

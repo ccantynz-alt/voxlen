@@ -1,4 +1,4 @@
-# Voxlen
+# Marco Reid Voice
 
 AI-powered voice dictation and grammar correction for macOS, Windows, and Linux, with a companion iOS keyboard.
 
@@ -6,9 +6,9 @@ AI-powered voice dictation and grammar correction for macOS, Windows, and Linux,
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](#installation)
 [![iOS Keyboard](https://img.shields.io/badge/iOS-Keyboard%20Extension-black.svg)](./ios)
 
-## What is Voxlen
+## What is Marco Reid Voice
 
-Voxlen is a desktop voice dictation tool that transcribes your speech in real time and injects the result into whatever application you are using. It pairs a low-latency streaming speech-to-text engine with an optional AI grammar pass, so the text that lands in your editor, chat client, or email is already cleaned up. An iOS keyboard extension brings the same grammar assistance to mobile typing.
+Marco Reid Voice is a desktop voice dictation tool that transcribes your speech in real time and injects the result into whatever application you are using. It pairs a low-latency streaming speech-to-text engine with an optional AI grammar pass, so the text that lands in your editor, chat client, or email is already cleaned up. An iOS keyboard extension brings the same grammar assistance to mobile typing.
 
 ## Features
 
@@ -33,7 +33,7 @@ Voxlen is a desktop voice dictation tool that transcribes your speech in real ti
 
 ## Installation
 
-Download the latest installer for your platform from the [Releases page](https://github.com/voxlen/voxlen/releases) (placeholder URL).
+Download the latest installer for your platform from the [Releases page](https://github.com/ccantynz-alt/voxlen/releases) (placeholder URL).
 
 - macOS: `.dmg` (Apple Silicon and Intel builds)
 - Windows: `.msi` installer
@@ -70,7 +70,7 @@ npm run tauri build        # produce a release bundle for the host platform
 
 ## Configuration
 
-Voxlen needs API keys for its cloud providers. Enter them in **Settings** (or during the first-run Onboarding Wizard). Keys are persisted locally via `tauri-plugin-store`.
+Marco Reid Voice needs API keys for its cloud providers. Enter them in **Settings** (or during the first-run Onboarding Wizard). Keys are persisted locally via `tauri-plugin-store`.
 
 | Provider   | Used for              | Where to get a key                                   |
 | ---------- | --------------------- | ---------------------------------------------------- |

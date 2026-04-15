@@ -1,6 +1,6 @@
-# Voxlen Architecture
+# Marco Reid Voice Architecture
 
-This document describes the high-level structure of Voxlen. For a line-by-line IPC reference, see [API.md](./API.md).
+This document describes the high-level structure of Marco Reid Voice. For a line-by-line IPC reference, see [API.md](./API.md).
 
 ## Stack
 

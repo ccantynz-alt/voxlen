@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    voxlen_lib::run()
+    marco_reid_voice_lib::run()
 }
