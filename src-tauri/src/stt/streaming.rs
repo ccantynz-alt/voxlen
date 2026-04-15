@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 use parking_lot::RwLock;
 use tauri::{AppHandle, Emitter};
 use futures_util::{SinkExt, StreamExt};
@@ -36,6 +37,16 @@ pub struct StreamingWord {
     pub end: f64,
     pub confidence: f32,
     pub punctuated_word: String,
+}
+
+/// Outcome of a single streaming session attempt
+enum SessionOutcome {
+    /// stop_flag was set — don't retry
+    StoppedByUser,
+    /// 401/403 — don't retry, emit error
+    AuthFailed,
+    /// connection lost — retry (Duration = how long session was active)
+    Disconnected(Duration),
 }
 
 /// Start a real-time streaming session with Deepgram
@@ -77,6 +88,86 @@ async fn run_streaming_session(
     app_handle: AppHandle,
     stop_flag: Arc<AtomicBool>,
 ) -> anyhow::Result<()> {
+    let mut backoff_ms: u64 = 1000;
+    let mut attempt: u32 = 0;
+
+    loop {
+        if stop_flag.load(Ordering::Relaxed) {
+            break;
+        }
+
+        match run_session_once(
+            api_key,
+            language,
+            auto_detect,
+            &audio_receiver,
+            app_handle.clone(),
+            stop_flag.clone(),
+        ).await {
+            Ok(SessionOutcome::StoppedByUser) => break,
+            Ok(SessionOutcome::AuthFailed) => {
+                let _ = app_handle.emit(
+                    "transcription-error",
+                    "Authentication failed — check your Deepgram API key",
+                );
+                break;
+            }
+            outcome => {
+                if stop_flag.load(Ordering::Relaxed) {
+                    break;
+                }
+
+                // Determine if last session was healthy (>10s)
+                let session_duration_was_healthy = match &outcome {
+                    Ok(SessionOutcome::Disconnected(d)) => *d > Duration::from_secs(10),
+                    _ => false,
+                };
+
+                if session_duration_was_healthy {
+                    backoff_ms = 1000;
+                    attempt = 0;
+                }
+
+                attempt += 1;
+                let _ = app_handle.emit("streaming-reconnecting", attempt);
+                log::warn!(
+                    "Deepgram disconnected, reconnecting in {}ms (attempt {})",
+                    backoff_ms,
+                    attempt
+                );
+
+                // Sleep with periodic stop_flag checks (100ms granularity)
+                let sleep_until = Instant::now() + Duration::from_millis(backoff_ms);
+                while Instant::now() < sleep_until {
+                    if stop_flag.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    // Also drain the audio receiver so queue doesn't backlog
+                    while let Ok(_) = audio_receiver.try_recv() {}
+                }
+
+                backoff_ms = (backoff_ms * 2).min(16000);
+            }
+        }
+    }
+
+    let _ = app_handle.emit("streaming-disconnected", true);
+    log::info!("Streaming session ended");
+
+    Ok(())
+}
+
+async fn run_session_once(
+    api_key: &str,
+    language: &str,
+    auto_detect: bool,
+    audio_receiver: &Receiver<AudioChunk>,
+    app_handle: AppHandle,
+    stop_flag: Arc<AtomicBool>,
+) -> anyhow::Result<SessionOutcome> {
+    let session_start = Instant::now();
+
     // Build Deepgram WebSocket URL
     let mut url = String::from(
         "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-2&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1500&vad_events=true&endpointing=300"
@@ -102,9 +193,17 @@ async fn run_streaming_session(
         .body(())
         .map_err(|e| anyhow::anyhow!("Failed to build WebSocket request: {}", e))?;
 
-    let (ws_stream, _response) = tokio_tungstenite::connect_async(request)
-        .await
-        .map_err(|e| anyhow::anyhow!("WebSocket connection failed: {}", e))?;
+    let (ws_stream, _response) = match tokio_tungstenite::connect_async(request).await {
+        Ok(v) => v,
+        Err(e) => {
+            let es = e.to_string();
+            let lower = es.to_lowercase();
+            if es.contains("401") || es.contains("403") || lower.contains("unauthorized") {
+                return Ok(SessionOutcome::AuthFailed);
+            }
+            return Err(anyhow::anyhow!("WebSocket connection failed: {}", e));
+        }
+    };
 
     log::info!("Connected to Deepgram streaming");
     let _ = app_handle.emit("streaming-connected", true);
@@ -113,6 +212,7 @@ async fn run_streaming_session(
 
     // Spawn audio sender task
     let stop_sender = stop_flag.clone();
+    let audio_receiver_clone = audio_receiver.clone();
     let sender_handle = tokio::spawn(async move {
         loop {
             if stop_sender.load(Ordering::Relaxed) {
@@ -125,7 +225,7 @@ async fn run_streaming_session(
                 break;
             }
 
-            match audio_receiver.recv_timeout(std::time::Duration::from_millis(50)) {
+            match audio_receiver_clone.recv_timeout(std::time::Duration::from_millis(50)) {
                 Ok(chunk) => {
                     // Convert f32 samples to 16-bit PCM bytes (Deepgram expects linear16)
                     let mono_samples = if chunk.channels > 1 {
@@ -256,10 +356,13 @@ async fn run_streaming_session(
     }
 
     sender_handle.abort();
-    let _ = app_handle.emit("streaming-disconnected", true);
     log::info!("Streaming session ended");
 
-    Ok(())
+    if stop_flag.load(Ordering::Relaxed) {
+        Ok(SessionOutcome::StoppedByUser)
+    } else {
+        Ok(SessionOutcome::Disconnected(session_start.elapsed()))
+    }
 }
 
 fn to_mono(samples: &[f32], channels: u16) -> Vec<f32> {
