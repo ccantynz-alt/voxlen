@@ -1,10 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Planned for v1.1
+- Fully offline Whisper Local engine (whisper-rs integration)
+- iOS keyboard extension App Store build
+- Webhook emitter for enterprise integrations
+- Batched grammar API calls for cost optimization
+
 ## [1.0.0] - 2026-04-09
 
 ### Added
 - Real-time voice dictation with Deepgram Nova-2 streaming (sub-300ms latency)
-- OpenAI Whisper cloud and local transcription engines
+- OpenAI Whisper cloud transcription engine
 - AI grammar correction powered by Claude Haiku and GPT-4o-mini
 - Universal text injection into any application (keyboard simulation + clipboard paste)
 - Smart microphone management with external USB mic auto-detection
@@ -17,7 +25,6 @@
 - Session history with search
 - Export to TXT, Markdown, JSON, and SRT formats
 - iOS keyboard extension with AI grammar bar
-- Privacy mode with fully offline Whisper Local
 - Persistent settings storage
 - Custom dark theme with glass-morphism UI
 - Waveform audio visualization

@@ -10,14 +10,16 @@ import {
   Clock,
   FileText,
   Zap,
+  Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
-import { useDictationStore } from "@/stores/dictation";
+import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
+import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 
 export function DictationPanel() {
@@ -26,14 +28,13 @@ export function DictationPanel() {
   const sessionDuration = useDictationStore((s) => s.sessionDuration);
   const inputLevel = useDictationStore((s) => s.inputLevel);
   const segments = useDictationStore((s) => s.segments);
+  const capsLock = useDictationStore((s) => s.capsLock);
   const setStatus = useDictationStore((s) => s.setStatus);
-  const addSegment = useDictationStore((s) => s.addSegment);
   const clearSession = useDictationStore((s) => s.clearSession);
   const incrementDuration = useDictationStore((s) => s.incrementDuration);
-  const setInputLevel = useDictationStore((s) => s.setInputLevel);
-  const pushWaveformSample = useAudioStore((s) => s.pushWaveformSample);
   const selectedDeviceId = useAudioStore((s) => s.selectedDeviceId);
   const devices = useAudioStore((s) => s.devices);
+  const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -56,82 +57,6 @@ export function DictationPanel() {
     };
   }, [status, incrementDuration]);
 
-  const setCurrentTranscript = useDictationStore((s) => s.setCurrentTranscript);
-
-  // Listen for audio level + transcription events from Tauri
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-
-    async function setup() {
-      try {
-        const { listen } = await import("@tauri-apps/api/event");
-
-        const unlistenLevel = await listen<number>("audio-level", (event) => {
-          setInputLevel(event.payload);
-          pushWaveformSample(event.payload);
-        });
-
-        // Final transcription results
-        const unlistenTranscription = await listen<{
-          text: string;
-          is_final: boolean;
-          confidence: number;
-          language?: string;
-        }>("transcription", (event) => {
-          const result = event.payload;
-          if (result.is_final && result.text.trim()) {
-            addSegment({
-              id: crypto.randomUUID(),
-              text: result.text,
-              timestamp: new Date(),
-              confidence: result.confidence,
-              language: result.language || undefined,
-              isFinal: true,
-              grammarApplied: false,
-            });
-            // Clear the partial transcript since we got a final result
-            setCurrentTranscript("");
-          }
-        });
-
-        // Streaming partial results (real-time word-by-word)
-        const unlistenPartial = await listen<{
-          text: string;
-          is_final: boolean;
-          confidence: number;
-        }>("streaming-partial", (event) => {
-          if (!event.payload.is_final && event.payload.text) {
-            setCurrentTranscript(event.payload.text);
-          }
-        });
-
-        // Speech activity events
-        const unlistenSpeechStarted = await listen("speech-started", () => {
-          // Visual feedback that speech detected
-          setStatus("listening");
-        });
-
-        const unlistenUtteranceEnd = await listen("utterance-end", () => {
-          // Brief processing indicator between utterances
-          setCurrentTranscript("");
-        });
-
-        unlisten = () => {
-          unlistenLevel();
-          unlistenTranscription();
-          unlistenPartial();
-          unlistenSpeechStarted();
-          unlistenUtteranceEnd();
-        };
-      } catch {
-        // Not in Tauri environment - use demo mode
-      }
-    }
-
-    setup();
-    return () => unlisten?.();
-  }, [setInputLevel, pushWaveformSample, addSegment, setCurrentTranscript, setStatus]);
-
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused") {
       try {
@@ -143,13 +68,15 @@ export function DictationPanel() {
         setStatus("listening");
       }
     } else if (status === "listening") {
+      // Capture session BEFORE status flip so autosave in useTauriEvents
+      // has a consistent view. The autosave subscription handles save_session.
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("stop_dictation");
-        setStatus("idle");
       } catch {
-        setStatus("idle");
+        // Demo mode
       }
+      setStatus("idle");
     }
   }, [status, setStatus]);
 
@@ -185,7 +112,11 @@ export function DictationPanel() {
       await invoke("inject_text", { text: fullText });
     } catch {
       // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(fullText);
+      try {
+        await navigator.clipboard.writeText(fullText);
+      } catch {
+        // Ignore
+      }
     }
   }, [segments]);
 
@@ -217,8 +148,23 @@ export function DictationPanel() {
     [segments]
   );
 
+  const handleClearSession = useCallback(async () => {
+    // Before clearing, persist the session (if any) so it lands in history.
+    const record = buildSessionRecord();
+    if (record) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("save_session", { session: record });
+      } catch {
+        // Non-Tauri — skip.
+      }
+    }
+    clearSession();
+  }, [clearSession]);
+
   const isActive = status === "listening" || status === "processing";
   const showControls = isActive || status === "paused";
+  const hasContent = segments.length > 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -273,6 +219,11 @@ export function DictationPanel() {
                 No microphone selected - go to Settings
               </p>
             )}
+            {capsLock && (
+              <Badge variant="warning" className="mt-2 text-[10px]">
+                CAPS ON
+              </Badge>
+            )}
           </div>
 
           {/* Waveform */}
@@ -305,11 +256,26 @@ export function DictationPanel() {
           )}
         </div>
 
-        {/* Transcript */}
-        <TranscriptView
-          className="flex-1"
-          onCorrectGrammar={handleCorrectGrammar}
-        />
+        {/* Transcript or empty state */}
+        {hasContent ? (
+          <TranscriptView
+            className="flex-1"
+            onCorrectGrammar={handleCorrectGrammar}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+            <div className="w-14 h-14 rounded-2xl bg-surface-200 flex items-center justify-center mb-3">
+              <Mic className="h-7 w-7 text-surface-700" />
+            </div>
+            <p className="text-sm font-medium text-surface-900">
+              Press the mic button or use your shortcut to start
+            </p>
+            <p className="text-xs text-surface-600 mt-1 flex items-center gap-1">
+              <Keyboard className="h-3 w-3" />
+              {shortcutToggle.replace("CommandOrControl", "Ctrl/Cmd")}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Bottom status bar */}
@@ -334,7 +300,7 @@ export function DictationPanel() {
         <div className="flex items-center gap-2">
           {segments.length > 0 && (
             <>
-              <Button variant="ghost" size="sm" onClick={clearSession}>
+              <Button variant="ghost" size="sm" onClick={handleClearSession}>
                 <Trash2 className="h-3.5 w-3.5" />
                 Clear
               </Button>

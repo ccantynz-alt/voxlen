@@ -6,9 +6,12 @@ import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
-import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
+import { loadSettings, persistSettings } from "@/lib/settings";
+import { useTauriEvents } from "@/hooks/useTauriEvents";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
 type View = "dictation" | "grammar" | "history" | "settings";
 
@@ -16,8 +19,16 @@ export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
+  const updateSettingsStore = useSettingsStore((s) => s.updateSettings);
 
-  // Check if first launch
+  // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
+  // Hook handles its own cleanup and is safe outside Tauri.
+  useTauriEvents();
+
+  // Register all global shortcuts; re-registers on setting changes.
+  useGlobalShortcuts(showOnboarding === false);
+
+  // Check if first launch + hydrate settings from backend
   useEffect(() => {
     async function checkFirstLaunch() {
       try {
@@ -30,8 +41,52 @@ export default function App() {
         const completed = localStorage.getItem("voxlen_onboarding_complete");
         setShowOnboarding(!completed);
       }
+
+      // Hydrate settings from backend on boot.
+      try {
+        const backendSettings = await loadSettings();
+        if (backendSettings) {
+          updateSettingsStore(backendSettings);
+        }
+      } catch {
+        // Already handled inside loadSettings.
+      }
     }
     checkFirstLaunch();
+  }, [updateSettingsStore]);
+
+  // Persist settings on every change.
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let lastSerialized = "";
+
+    const unsub = useSettingsStore.subscribe((state) => {
+      // Strip transient UI-only fields.
+      const {
+        isLoaded: _isLoaded,
+        activeTab: _activeTab,
+        updateSetting: _us,
+        updateSettings: _uss,
+        setActiveTab: _sat,
+        resetToDefaults: _rtd,
+        ...appSettings
+      } = state;
+      void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+
+      const serialized = JSON.stringify(appSettings);
+      if (serialized === lastSerialized) return;
+      lastSerialized = serialized;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        persistSettings(appSettings);
+      }, 300);
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      unsub();
+    };
   }, []);
 
   // Load audio devices on mount (when not in onboarding)
@@ -105,34 +160,6 @@ export default function App() {
     init();
   }, [setDevices, showOnboarding]);
 
-  // Register global shortcuts
-  useEffect(() => {
-    if (showOnboarding) return;
-
-    async function registerShortcuts() {
-      try {
-        const { register } = await import(
-          "@tauri-apps/plugin-global-shortcut"
-        );
-
-        await register("CommandOrControl+Shift+D", (event) => {
-          if (event.state === "Pressed") {
-            const status = useDictationStore.getState().status;
-            if (status === "idle") {
-              useDictationStore.getState().setStatus("listening");
-            } else {
-              useDictationStore.getState().setStatus("idle");
-            }
-          }
-        });
-      } catch {
-        // Not in Tauri environment
-      }
-    }
-
-    registerShortcuts();
-  }, [showOnboarding]);
-
   const handleOnboardingComplete = useCallback(async () => {
     // Save onboarding state
     try {
@@ -144,29 +171,19 @@ export default function App() {
       localStorage.setItem("voxlen_onboarding_complete", "true");
     }
 
-    // Save current settings
-    try {
-      const { load } = await import("@tauri-apps/plugin-store");
-      const store = await load("settings.json");
-      const settings = useSettingsStore.getState();
-      await store.set("settings", {
-        preferredDeviceId: settings.preferredDeviceId,
-        sttEngine: settings.sttEngine,
-        sttApiKey: settings.sttApiKey,
-        grammarApiKey: settings.grammarApiKey,
-        grammarProvider: settings.grammarProvider,
-        writingStyle: settings.writingStyle,
-      });
-      await store.save();
-    } catch {
-      // Store in localStorage as fallback
-      const settings = useSettingsStore.getState();
-      localStorage.setItem("voxlen_settings", JSON.stringify({
-        preferredDeviceId: settings.preferredDeviceId,
-        sttEngine: settings.sttEngine,
-        sttApiKey: settings.sttApiKey,
-      }));
-    }
+    // Save current settings through the persistence pipeline
+    const state = useSettingsStore.getState();
+    const {
+      isLoaded: _isLoaded,
+      activeTab: _activeTab,
+      updateSetting: _us,
+      updateSettings: _uss,
+      setActiveTab: _sat,
+      resetToDefaults: _rtd,
+      ...appSettings
+    } = state;
+    void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+    await persistSettings(appSettings);
 
     setShowOnboarding(false);
   }, []);
@@ -174,13 +191,29 @@ export default function App() {
   const renderView = useCallback(() => {
     switch (activeView) {
       case "dictation":
-        return <DictationPanel />;
+        return (
+          <ErrorBoundary label="Dictation">
+            <DictationPanel />
+          </ErrorBoundary>
+        );
       case "grammar":
-        return <GrammarPanel />;
+        return (
+          <ErrorBoundary label="Grammar">
+            <GrammarPanel />
+          </ErrorBoundary>
+        );
       case "history":
-        return <HistoryPanel />;
+        return (
+          <ErrorBoundary label="History">
+            <HistoryPanel />
+          </ErrorBoundary>
+        );
       case "settings":
-        return <SettingsPanel />;
+        return (
+          <ErrorBoundary label="Settings">
+            <SettingsPanel />
+          </ErrorBoundary>
+        );
     }
   }, [activeView]);
 

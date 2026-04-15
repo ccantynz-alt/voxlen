@@ -340,62 +340,45 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               options={[
                 { value: "deepgram", label: "Deepgram Nova-2", description: "Best for real-time (recommended)" },
                 { value: "whisper_cloud", label: "OpenAI Whisper", description: "High accuracy, batch mode" },
-                { value: "whisper_local", label: "Whisper Local", description: "Offline - no API key needed" },
               ]}
             />
 
-            {settings.sttEngine !== "whisper_local" && (
-              <>
-                <Input
-                  label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
-                  type="password"
-                  value={settings.sttApiKey}
-                  onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-                  placeholder={settings.sttEngine === "deepgram" ? "Enter Deepgram API key..." : "sk-..."}
-                  icon={<Key className="h-4 w-4" />}
-                />
+            <Input
+              label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
+              type="password"
+              value={settings.sttApiKey}
+              onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
+              placeholder={settings.sttEngine === "deepgram" ? "Enter Deepgram API key..." : "sk-..."}
+              icon={<Key className="h-4 w-4" />}
+            />
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleValidateApiKey}
-                    loading={apiKeyValidating}
-                    disabled={!settings.sttApiKey}
-                  >
-                    Validate Key
-                  </Button>
-                  {apiKeyValid === true && (
-                    <Badge variant="success" dot>Valid</Badge>
-                  )}
-                  {apiKeyValid === false && (
-                    <Badge variant="error" dot>Invalid - check your key</Badge>
-                  )}
-                </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleValidateApiKey}
+                loading={apiKeyValidating}
+                disabled={!settings.sttApiKey}
+              >
+                Validate Key
+              </Button>
+              {apiKeyValid === true && (
+                <Badge variant="success" dot>Valid</Badge>
+              )}
+              {apiKeyValid === false && (
+                <Badge variant="error" dot>Invalid - check your key</Badge>
+              )}
+            </div>
 
-                <div className="p-3 rounded-lg bg-surface-100 border border-surface-300/50">
-                  <p className="text-xs text-surface-700">
-                    {settings.sttEngine === "deepgram" ? (
-                      <>Get a free Deepgram API key with $200 in credits at deepgram.com. That's enough for ~46,000 minutes of dictation.</>
-                    ) : (
-                      <>Get an OpenAI API key at platform.openai.com. Whisper costs ~$0.006/minute (about $0.36/hour).</>
-                    )}
-                  </p>
-                </div>
-              </>
-            )}
-
-            {settings.sttEngine === "whisper_local" && (
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm font-medium text-green-300 mb-1">
-                  No API key needed
-                </p>
-                <p className="text-xs text-green-400/70">
-                  Whisper Local runs entirely on your device. Your audio never leaves your computer.
-                  Note: accuracy may be lower than cloud options.
-                </p>
-              </div>
-            )}
+            <div className="p-3 rounded-lg bg-surface-100 border border-surface-300/50">
+              <p className="text-xs text-surface-700">
+                {settings.sttEngine === "deepgram" ? (
+                  <>Get a free Deepgram API key with $200 in credits at deepgram.com. That's enough for ~46,000 minutes of dictation.</>
+                ) : (
+                  <>Get an OpenAI API key at platform.openai.com. Whisper costs ~$0.006/minute (about $0.36/hour).</>
+                )}
+              </p>
+            </div>
 
             <div className="border-t border-surface-300/50 pt-4">
               <h3 className="text-xs font-semibold text-surface-800 mb-3">
