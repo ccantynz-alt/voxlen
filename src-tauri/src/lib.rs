@@ -24,6 +24,12 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle().clone();
 
+            // Hydrate settings from disk before the window opens so the
+            // frontend sees the persisted values on first query.
+            if let Err(e) = commands::settings::load_settings_from_disk(app_handle.clone()) {
+                log::warn!("Failed to load settings from disk: {}", e);
+            }
+
             // Initialize the audio engine
             let audio_engine = audio::AudioEngine::new(app_handle.clone());
             app.manage(audio::AudioState::new(audio_engine));
@@ -138,6 +144,14 @@ pub fn run() {
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::reset_settings,
+            commands::settings::load_settings_from_disk,
+            // History commands
+            commands::history::save_session,
+            commands::history::get_history,
+            commands::history::get_session,
+            commands::history::delete_session,
+            commands::history::clear_history,
+            commands::history::search_history,
             // Window commands
             commands::window::minimize_to_tray,
             commands::window::toggle_window,

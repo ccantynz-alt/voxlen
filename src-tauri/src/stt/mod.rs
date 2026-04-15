@@ -28,7 +28,6 @@ pub struct WordResult {
 pub enum SttEngineType {
     DeepgramCloud,
     WhisperCloud,
-    WhisperLocal,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -90,11 +89,6 @@ impl SttEngine {
                 cloud::deepgram_transcribe(&wav_data, &config).await
             }
             SttEngineType::WhisperCloud => {
-                let wav_data = encode_wav(audio_data, sample_rate)?;
-                cloud::whisper_transcribe(&wav_data, &config).await
-            }
-            SttEngineType::WhisperLocal => {
-                // Local whisper processing
                 let wav_data = encode_wav(audio_data, sample_rate)?;
                 cloud::whisper_transcribe(&wav_data, &config).await
             }
