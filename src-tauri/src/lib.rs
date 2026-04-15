@@ -24,6 +24,12 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle().clone();
 
+            // Hydrate settings from disk before the window opens so the
+            // frontend sees the persisted values on first query.
+            if let Err(e) = commands::settings::load_settings_from_disk(app_handle.clone()) {
+                log::warn!("Failed to load settings from disk: {}", e);
+            }
+
             // Initialize the audio engine
             let audio_engine = audio::AudioEngine::new(app_handle.clone());
             app.manage(audio::AudioState::new(audio_engine));
@@ -37,12 +43,12 @@ pub fn run() {
             app.manage(text_injection::InjectorState::new(injector));
 
             // Build system tray menu
-            let show_item = MenuItem::with_id(app, "show", "Show Voxlen", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Show Marco Reid Voice", true, None::<&str>)?;
             let dictate_item = MenuItem::with_id(app, "dictate", "Start Dictation", true, None::<&str>)?;
             let grammar_item = MenuItem::with_id(app, "grammar", "Grammar Panel", true, None::<&str>)?;
             let separator = MenuItem::with_id(app, "sep", "────────────", false, None::<&str>)?;
             let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Voxlen", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Marco Reid Voice", true, None::<&str>)?;
 
             let menu = Menu::with_items(
                 app,
@@ -58,7 +64,7 @@ pub fn run() {
             )?;
 
             let _tray = TrayIconBuilder::new()
-                .tooltip("Voxlen - AI Voice Dictation")
+                .tooltip("Marco Reid Voice - platform input layer for legal and accounting")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(move |app, event| {
@@ -107,7 +113,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            log::info!("Voxlen initialized successfully");
+            log::info!("Marco Reid Voice initialized successfully");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -138,6 +144,14 @@ pub fn run() {
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::reset_settings,
+            commands::settings::load_settings_from_disk,
+            // History commands
+            commands::history::save_session,
+            commands::history::get_history,
+            commands::history::get_session,
+            commands::history::delete_session,
+            commands::history::clear_history,
+            commands::history::search_history,
             // Window commands
             commands::window::minimize_to_tray,
             commands::window::toggle_window,
@@ -153,5 +167,5 @@ pub fn run() {
             }
         })
         .run(tauri::generate_context!())
-        .expect("error while running Voxlen");
+        .expect("error while running Marco Reid Voice");
 }

@@ -167,7 +167,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all",
                 i === step
-                  ? "bg-voxlen-600 text-white scale-110"
+                  ? "bg-marcoreid-600 text-white scale-110"
                   : i < step
                     ? "bg-green-500/20 text-green-400"
                     : "bg-surface-200 text-surface-600"
@@ -192,22 +192,23 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 0 && (
           <div className="text-center space-y-6">
             <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-voxlen-500 to-voxlen-700 flex items-center justify-center shadow-xl shadow-voxlen-600/30">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-marcoreid-500 to-marcoreid-700 flex items-center justify-center shadow-xl shadow-marcoreid-600/30">
                 <Mic className="h-10 w-10 text-white" />
               </div>
             </div>
             <div>
               <h1 className="text-3xl font-bold text-surface-950 mb-2">
-                Welcome to Voxlen
+                Welcome to Marco Reid Voice
               </h1>
               <p className="text-surface-700 leading-relaxed">
-                The most advanced AI dictation tool. Speak naturally and let AI
-                transcribe, polish, and inject your words into any application.
+                The voice input layer for the Marco Reid platform. Speak
+                naturally — dictate, polish, and inject into any application,
+                with matter-aware context when you're signed in.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 pt-4">
               <div className="p-3 rounded-xl bg-surface-100 border border-surface-300/50 text-center">
-                <Zap className="h-5 w-5 text-voxlen-400 mx-auto mb-1.5" />
+                <Zap className="h-5 w-5 text-marcoreid-400 mx-auto mb-1.5" />
                 <p className="text-xs font-medium text-surface-800">Real-time</p>
                 <p className="text-[10px] text-surface-600">Words appear as you speak</p>
               </div>
@@ -247,7 +248,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 label: d.name,
                 description: d.isExternal ? "External - Recommended" : "Built-in",
                 icon: d.isExternal ? (
-                  <Mic className="h-4 w-4 text-voxlen-400" />
+                  <Mic className="h-4 w-4 text-marcoreid-400" />
                 ) : (
                   <Mic className="h-4 w-4 text-surface-600" />
                 ),
@@ -340,62 +341,45 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               options={[
                 { value: "deepgram", label: "Deepgram Nova-2", description: "Best for real-time (recommended)" },
                 { value: "whisper_cloud", label: "OpenAI Whisper", description: "High accuracy, batch mode" },
-                { value: "whisper_local", label: "Whisper Local", description: "Offline - no API key needed" },
               ]}
             />
 
-            {settings.sttEngine !== "whisper_local" && (
-              <>
-                <Input
-                  label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
-                  type="password"
-                  value={settings.sttApiKey}
-                  onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-                  placeholder={settings.sttEngine === "deepgram" ? "Enter Deepgram API key..." : "sk-..."}
-                  icon={<Key className="h-4 w-4" />}
-                />
+            <Input
+              label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
+              type="password"
+              value={settings.sttApiKey}
+              onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
+              placeholder={settings.sttEngine === "deepgram" ? "Enter Deepgram API key..." : "sk-..."}
+              icon={<Key className="h-4 w-4" />}
+            />
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleValidateApiKey}
-                    loading={apiKeyValidating}
-                    disabled={!settings.sttApiKey}
-                  >
-                    Validate Key
-                  </Button>
-                  {apiKeyValid === true && (
-                    <Badge variant="success" dot>Valid</Badge>
-                  )}
-                  {apiKeyValid === false && (
-                    <Badge variant="error" dot>Invalid - check your key</Badge>
-                  )}
-                </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleValidateApiKey}
+                loading={apiKeyValidating}
+                disabled={!settings.sttApiKey}
+              >
+                Validate Key
+              </Button>
+              {apiKeyValid === true && (
+                <Badge variant="success" dot>Valid</Badge>
+              )}
+              {apiKeyValid === false && (
+                <Badge variant="error" dot>Invalid - check your key</Badge>
+              )}
+            </div>
 
-                <div className="p-3 rounded-lg bg-surface-100 border border-surface-300/50">
-                  <p className="text-xs text-surface-700">
-                    {settings.sttEngine === "deepgram" ? (
-                      <>Get a free Deepgram API key with $200 in credits at deepgram.com. That's enough for ~46,000 minutes of dictation.</>
-                    ) : (
-                      <>Get an OpenAI API key at platform.openai.com. Whisper costs ~$0.006/minute (about $0.36/hour).</>
-                    )}
-                  </p>
-                </div>
-              </>
-            )}
-
-            {settings.sttEngine === "whisper_local" && (
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm font-medium text-green-300 mb-1">
-                  No API key needed
-                </p>
-                <p className="text-xs text-green-400/70">
-                  Whisper Local runs entirely on your device. Your audio never leaves your computer.
-                  Note: accuracy may be lower than cloud options.
-                </p>
-              </div>
-            )}
+            <div className="p-3 rounded-lg bg-surface-100 border border-surface-300/50">
+              <p className="text-xs text-surface-700">
+                {settings.sttEngine === "deepgram" ? (
+                  <>Get a free Deepgram API key with $200 in credits at deepgram.com. That's enough for ~46,000 minutes of dictation.</>
+                ) : (
+                  <>Get an OpenAI API key at platform.openai.com. Whisper costs ~$0.006/minute (about $0.36/hour).</>
+                )}
+              </p>
+            </div>
 
             <div className="border-t border-surface-300/50 pt-4">
               <h3 className="text-xs font-semibold text-surface-800 mb-3">
@@ -429,14 +413,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 You're All Set!
               </h2>
               <p className="text-sm text-surface-700 leading-relaxed">
-                Voxlen is ready to go. Here are your shortcuts:
+                Marco Reid Voice is ready to go. Here are your shortcuts:
               </p>
             </div>
 
             <div className="space-y-2 text-left">
               <div className="flex items-center justify-between p-3 rounded-lg bg-surface-100 border border-surface-300/50">
                 <div className="flex items-center gap-2">
-                  <Mic className="h-4 w-4 text-voxlen-400" />
+                  <Mic className="h-4 w-4 text-marcoreid-400" />
                   <span className="text-sm text-surface-900">Toggle Dictation</span>
                 </div>
                 <kbd className="px-2 py-1 rounded bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
@@ -445,7 +429,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-surface-100 border border-surface-300/50">
                 <div className="flex items-center gap-2">
-                  <Volume2 className="h-4 w-4 text-voxlen-400" />
+                  <Volume2 className="h-4 w-4 text-marcoreid-400" />
                   <span className="text-sm text-surface-900">Push to Talk</span>
                 </div>
                 <kbd className="px-2 py-1 rounded bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
@@ -464,7 +448,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             </div>
 
             <p className="text-xs text-surface-600">
-              These shortcuts work from any app, even when Voxlen is minimized to the tray.
+              These shortcuts work from any app, even when Marco Reid Voice is minimized to the tray.
             </p>
           </div>
         )}

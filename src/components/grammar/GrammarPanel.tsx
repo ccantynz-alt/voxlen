@@ -74,7 +74,7 @@ export function GrammarPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-voxlen-500 to-purple-600">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-marcoreid-500 to-purple-600">
             <SpellCheck className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -120,7 +120,7 @@ export function GrammarPanel() {
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Paste or type text here to check grammar, spelling, and style..."
+            placeholder="Paste or type text to polish..."
             className="flex-1 w-full p-4 bg-transparent text-sm text-surface-900 placeholder:text-surface-600 resize-none focus:outline-none leading-relaxed"
           />
         </div>

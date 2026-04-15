@@ -7,10 +7,12 @@ import { HistoryPanel } from "@/components/dictation/HistoryPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { AdminPanel } from "@/components/settings/AdminPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
-import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
-import { useHistoryStore } from "@/stores/history";
+import { loadSettings, persistSettings } from "@/lib/settings";
+import { useTauriEvents } from "@/hooks/useTauriEvents";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
 type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
@@ -18,40 +20,16 @@ export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
-  const theme = useSettingsStore((s) => s.theme);
+  const updateSettingsStore = useSettingsStore((s) => s.updateSettings);
 
-  // Apply theme to document
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.remove("dark");
-      root.classList.add("light");
-    } else if (theme === "dark") {
-      root.classList.remove("light");
-      root.classList.add("dark");
-    } else {
-      // System preference
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.classList.toggle("dark", prefersDark);
-      root.classList.toggle("light", !prefersDark);
+  // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
+  // Hook handles its own cleanup and is safe outside Tauri.
+  useTauriEvents();
 
-      const listener = (e: MediaQueryListEvent) => {
-        root.classList.toggle("dark", e.matches);
-        root.classList.toggle("light", !e.matches);
-      };
-      const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      mq.addEventListener("change", listener);
-      return () => mq.removeEventListener("change", listener);
-    }
-  }, [theme]);
+  // Register all global shortcuts; re-registers on setting changes.
+  useGlobalShortcuts(showOnboarding === false);
 
-  // Apply font size to document
-  const fontSize = useSettingsStore((s) => s.fontSize);
-  useEffect(() => {
-    document.documentElement.style.setProperty("--voxlen-font-size", `${fontSize}px`);
-  }, [fontSize]);
-
-  // Check if first launch
+  // Check if first launch + hydrate settings from backend
   useEffect(() => {
     async function checkFirstLaunch() {
       try {
@@ -66,7 +44,8 @@ export default function App() {
           useSettingsStore.getState().updateSettings(savedSettings);
         }
       } catch {
-        const completed = localStorage.getItem("voxlen_onboarding_complete");
+        // Not in Tauri - check localStorage
+        const completed = localStorage.getItem("marcoreid_onboarding_complete");
         setShowOnboarding(!completed);
 
         // Load saved settings from localStorage
@@ -79,8 +58,52 @@ export default function App() {
           // ignore
         }
       }
+
+      // Hydrate settings from backend on boot.
+      try {
+        const backendSettings = await loadSettings();
+        if (backendSettings) {
+          updateSettingsStore(backendSettings);
+        }
+      } catch {
+        // Already handled inside loadSettings.
+      }
     }
     checkFirstLaunch();
+  }, [updateSettingsStore]);
+
+  // Persist settings on every change.
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let lastSerialized = "";
+
+    const unsub = useSettingsStore.subscribe((state) => {
+      // Strip transient UI-only fields.
+      const {
+        isLoaded: _isLoaded,
+        activeTab: _activeTab,
+        updateSetting: _us,
+        updateSettings: _uss,
+        setActiveTab: _sat,
+        resetToDefaults: _rtd,
+        ...appSettings
+      } = state;
+      void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+
+      const serialized = JSON.stringify(appSettings);
+      if (serialized === lastSerialized) return;
+      lastSerialized = serialized;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        persistSettings(appSettings);
+      }, 300);
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      unsub();
+    };
   }, []);
 
   // Load history on startup
@@ -159,105 +182,6 @@ export default function App() {
     init();
   }, [setDevices, showOnboarding]);
 
-  // Register global shortcuts
-  useEffect(() => {
-    if (showOnboarding) return;
-
-    let unregisterFns: (() => void)[] = [];
-
-    async function registerShortcuts() {
-      try {
-        const { register } = await import(
-          "@tauri-apps/plugin-global-shortcut"
-        );
-        const settings = useSettingsStore.getState();
-
-        // Toggle dictation shortcut
-        await register(settings.shortcutToggle, (event) => {
-          if (event.state === "Pressed") {
-            const status = useDictationStore.getState().status;
-            if (status === "idle") {
-              useDictationStore.getState().setStatus("listening");
-            } else {
-              useDictationStore.getState().setStatus("idle");
-            }
-          }
-        });
-
-        // Push-to-talk shortcut
-        await register(settings.shortcutPushToTalk, (event) => {
-          if (event.state === "Pressed") {
-            const status = useDictationStore.getState().status;
-            if (status === "idle") {
-              useDictationStore.getState().setStatus("listening");
-              // Try to start capture
-              import("@tauri-apps/api/core").then(({ invoke }) => {
-                invoke("start_dictation").catch(() => {});
-              });
-            }
-          } else if (event.state === "Released") {
-            const status = useDictationStore.getState().status;
-            if (status === "listening") {
-              useDictationStore.getState().setStatus("idle");
-              import("@tauri-apps/api/core").then(({ invoke }) => {
-                invoke("stop_dictation").catch(() => {});
-              });
-            }
-          }
-        });
-
-        // Grammar correction shortcut
-        await register(settings.shortcutCorrectGrammar, (event) => {
-          if (event.state === "Pressed") {
-            const segments = useDictationStore.getState().segments;
-            if (segments.length > 0) {
-              const lastSegment = segments[segments.length - 1];
-              const text = lastSegment.correctedText || lastSegment.text;
-              import("@tauri-apps/api/core").then(({ invoke }) => {
-                invoke("correct_grammar", { text })
-                  .then((result: unknown) => {
-                    const r = result as { corrected: string };
-                    useDictationStore.getState().updateSegment(lastSegment.id, {
-                      correctedText: r.corrected,
-                      grammarApplied: true,
-                    });
-                  })
-                  .catch(() => {});
-              });
-            }
-          }
-        });
-      } catch {
-        // Not in Tauri environment
-      }
-    }
-
-    registerShortcuts();
-
-    return () => {
-      unregisterFns.forEach((fn) => fn());
-    };
-  }, [showOnboarding]);
-
-  // Listen for tray navigation events
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-
-    async function setup() {
-      try {
-        const { listen } = await import("@tauri-apps/api/event");
-        const u = await listen<string>("navigate", (event) => {
-          setActiveView(event.payload as View);
-        });
-        unlisten = u;
-      } catch {
-        // Not in Tauri
-      }
-    }
-    setup();
-    return () => unlisten?.();
-  }, []);
-
   const handleOnboardingComplete = useCallback(async () => {
     // Save onboarding state
     try {
@@ -266,41 +190,22 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("voxlen_onboarding_complete", "true");
+      localStorage.setItem("marcoreid_onboarding_complete", "true");
     }
 
-    // Save current settings
-    try {
-      const { load } = await import("@tauri-apps/plugin-store");
-      const store = await load("settings.json");
-      const settings = useSettingsStore.getState();
-      await store.set("settings", {
-        preferredDeviceId: settings.preferredDeviceId,
-        sttEngine: settings.sttEngine,
-        sttApiKey: settings.sttApiKey,
-        grammarApiKey: settings.grammarApiKey,
-        grammarProvider: settings.grammarProvider,
-        writingStyle: settings.writingStyle,
-        theme: settings.theme,
-        fontSize: settings.fontSize,
-        showWaveform: settings.showWaveform,
-        injectionMode: settings.injectionMode,
-        voiceCommandsEnabled: settings.voiceCommandsEnabled,
-        shortcutToggle: settings.shortcutToggle,
-        shortcutPushToTalk: settings.shortcutPushToTalk,
-        shortcutCorrectGrammar: settings.shortcutCorrectGrammar,
-      });
-      await store.save();
-    } catch {
-      const settings = useSettingsStore.getState();
-      localStorage.setItem("voxlen_settings", JSON.stringify({
-        preferredDeviceId: settings.preferredDeviceId,
-        sttEngine: settings.sttEngine,
-        sttApiKey: settings.sttApiKey,
-        theme: settings.theme,
-        fontSize: settings.fontSize,
-      }));
-    }
+    // Save current settings through the persistence pipeline
+    const state = useSettingsStore.getState();
+    const {
+      isLoaded: _isLoaded,
+      activeTab: _activeTab,
+      updateSetting: _us,
+      updateSettings: _uss,
+      setActiveTab: _sat,
+      resetToDefaults: _rtd,
+      ...appSettings
+    } = state;
+    void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+    await persistSettings(appSettings);
 
     setShowOnboarding(false);
   }, []);
@@ -308,15 +213,29 @@ export default function App() {
   const renderView = useCallback(() => {
     switch (activeView) {
       case "dictation":
-        return <DictationPanel />;
+        return (
+          <ErrorBoundary label="Dictation">
+            <DictationPanel />
+          </ErrorBoundary>
+        );
       case "grammar":
-        return <GrammarPanel />;
+        return (
+          <ErrorBoundary label="Grammar">
+            <GrammarPanel />
+          </ErrorBoundary>
+        );
       case "history":
-        return <HistoryPanel />;
+        return (
+          <ErrorBoundary label="History">
+            <HistoryPanel />
+          </ErrorBoundary>
+        );
       case "settings":
-        return <SettingsPanel />;
-      case "admin":
-        return <AdminPanel />;
+        return (
+          <ErrorBoundary label="Settings">
+            <SettingsPanel />
+          </ErrorBoundary>
+        );
     }
   }, [activeView]);
 

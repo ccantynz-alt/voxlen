@@ -25,7 +25,7 @@ export function Badge({
             variant === "warning",
           "bg-red-500/10 text-red-400 border border-red-500/20":
             variant === "error",
-          "bg-voxlen-500/10 text-voxlen-400 border border-voxlen-500/20":
+          "bg-marcoreid-500/10 text-marcoreid-400 border border-marcoreid-500/20":
             variant === "info",
         },
         className
@@ -39,7 +39,7 @@ export function Badge({
             "bg-green-400 animate-pulse": variant === "success",
             "bg-amber-400": variant === "warning",
             "bg-red-400 animate-pulse": variant === "error",
-            "bg-voxlen-400 animate-pulse": variant === "info",
+            "bg-marcoreid-400 animate-pulse": variant === "info",
           })}
         />
       )}

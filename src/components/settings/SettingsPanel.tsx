@@ -200,7 +200,7 @@ export function SettingsPanel() {
               className={cn(
                 "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm transition-all",
                 isActive
-                  ? "bg-voxlen-600/10 text-voxlen-400"
+                  ? "bg-marcoreid-600/10 text-marcoreid-400"
                   : "text-surface-700 hover:bg-surface-200"
               )}
             >
@@ -375,7 +375,7 @@ function AudioSettings() {
             label: d.name,
             description: `${d.sampleRate / 1000}kHz ${d.channels}ch${d.isExternal ? " - External" : ""}`,
             icon: d.isExternal ? (
-              <Mic className="h-4 w-4 text-voxlen-400" />
+              <Mic className="h-4 w-4 text-marcoreid-400" />
             ) : (
               <Mic className="h-4 w-4 text-surface-600" />
             ),
@@ -593,7 +593,7 @@ function ShortcutSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Global Shortcuts"
-        description="These shortcuts work from any application, even when Voxlen is minimized. Click a shortcut to rebind it."
+        description="These shortcuts work from any application, even when Marco Reid Voice is minimized."
       />
 
       <SettingRow>
@@ -743,7 +743,7 @@ function AdvancedSettings() {
             {
               value: "buffer",
               label: "Buffer Only",
-              description: "Text stays in Voxlen - copy manually",
+              description: "Text stays in Marco Reid Voice - copy manually",
             },
           ]}
         />
@@ -752,7 +752,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Start Minimized"
-          description="Launch Voxlen minimized to the system tray"
+          description="Launch Marco Reid Voice minimized to the system tray"
           checked={settings.startMinimized}
           onChange={(v) => settings.updateSetting("startMinimized", v)}
         />
@@ -761,7 +761,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Minimize to Tray"
-          description="Keep Voxlen running in the system tray when closed"
+          description="Keep Marco Reid Voice running in the system tray when closed"
           checked={settings.minimizeToTray}
           onChange={(v) => settings.updateSetting("minimizeToTray", v)}
         />
@@ -770,7 +770,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Launch at Login"
-          description="Automatically start Voxlen when you log in"
+          description="Automatically start Marco Reid Voice when you log in"
           checked={settings.launchAtLogin}
           onChange={(v) => settings.updateSetting("launchAtLogin", v)}
         />
@@ -796,7 +796,7 @@ function PrivacySettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Privacy"
-        description="Your data, your control. Voxlen can work fully offline with local models."
+        description="Your data, your control. Marco Reid Voice can work fully offline with local models."
       />
 
       <SettingRow>
@@ -811,7 +811,7 @@ function PrivacySettings() {
       <SettingRow>
         <Switch
           label="Usage Analytics"
-          description="Help us improve Voxlen with anonymous usage data"
+          description="Help us improve Marco Reid Voice with anonymous usage data"
           checked={settings.telemetryEnabled}
           onChange={(v) => settings.updateSetting("telemetryEnabled", v)}
         />
