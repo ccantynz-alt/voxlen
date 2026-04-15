@@ -19,6 +19,7 @@ import { formatDuration } from "@/lib/utils";
 import type { BackendSessionRecord } from "@/stores/dictation";
 import type { TranscriptionSegment } from "@/stores/dictation";
 import { downloadExport, type ExportFormat } from "@/lib/export";
+import { useSettingsStore } from "@/stores/settings";
 
 interface HistorySession {
   id: string;
@@ -78,6 +79,7 @@ function sessionToSegments(session: HistorySession): TranscriptionSegment[] {
 }
 
 export function HistoryPanel() {
+  const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
   const [searchQuery, setSearchQuery] = useState("");
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

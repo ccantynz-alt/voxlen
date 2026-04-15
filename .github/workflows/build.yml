@@ -89,19 +89,20 @@ jobs:
 
   build-ios:
     runs-on: macos-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
-
       - name: Build iOS keyboard
         run: |
-          cd ios/VoxKeyboard
-          xcodebuild -scheme VoxKeyboard \
-            -destination 'generic/platform=iOS' \
-            -configuration Release \
-            clean build \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            || echo "iOS build requires Xcode project setup"
+          if [ -d "ios/VoxKeyboard/VoxKeyboard.xcodeproj" ] || [ -d "ios/VoxKeyboard/VoxKeyboard.xcworkspace" ]; then
+            cd ios/VoxKeyboard
+            xcodebuild -scheme VoxKeyboard \
+              -destination 'generic/platform=iOS' \
+              -configuration Release \
+              clean build \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO
+          else
+            echo "iOS Xcode project not yet initialised; skipping iOS keyboard build."
+          fi
