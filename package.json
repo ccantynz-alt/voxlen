@@ -1,8 +1,8 @@
 {
-  "name": "voxlen",
+  "name": "alecrae-voice",
   "private": true,
   "version": "1.0.0",
-  "description": "Voxlen - AI-Powered Voice Dictation. The most advanced dictation tool available.",
+  "description": "AlecRae Voice - AI-powered dictation for legal and accounting professionals. Mobile, desktop, and web.",
   "type": "module",
   "scripts": {
     "dev": "vite",
