@@ -10,6 +10,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
+import { useHistoryStore } from "@/stores/history";
 import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
@@ -234,6 +235,12 @@ export default function App() {
         return (
           <ErrorBoundary label="Settings">
             <SettingsPanel />
+          </ErrorBoundary>
+        );
+      case "admin":
+        return (
+          <ErrorBoundary label="Admin">
+            <AdminPanel />
           </ErrorBoundary>
         );
     }

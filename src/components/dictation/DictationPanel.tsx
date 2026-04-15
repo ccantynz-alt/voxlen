@@ -21,11 +21,6 @@ import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
-import {
-  processVoiceCommands,
-  executeVoiceCommand,
-  applyTextCommand,
-} from "@/lib/voiceCommands";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -40,6 +35,7 @@ export function DictationPanel() {
   const selectedDeviceId = useAudioStore((s) => s.selectedDeviceId);
   const devices = useAudioStore((s) => s.devices);
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
+  const showWaveform = useSettingsStore((s) => s.showWaveform);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
@@ -87,7 +83,7 @@ export function DictationPanel() {
       }
       setStatus("idle");
     }
-  }, [status, setStatus, segments, saveTranscripts, sessionDuration, wordCount]);
+  }, [status, setStatus]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
