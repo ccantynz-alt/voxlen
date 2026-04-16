@@ -496,9 +496,36 @@ function Comparison() {
   );
 }
 
+// Checkout URLs are resolved from Vite env vars at build time so we can swap
+// Stripe accounts or price IDs without touching code. Supply either a
+// fully-resolved Stripe-hosted checkout page (https://buy.stripe.com/...)
+// or a path on our own site that mounts Stripe Checkout.
+// When unset, the button falls back to #download so we never ship a
+// broken "Buy" link.
+const CHECKOUT_URLS = {
+  pro: import.meta.env.VITE_STRIPE_CHECKOUT_PRO || "#download",
+  professional: import.meta.env.VITE_STRIPE_CHECKOUT_PROFESSIONAL || "#download",
+  lifetime: import.meta.env.VITE_STRIPE_CHECKOUT_LIFETIME || "#download",
+};
+
+type TierKey = "free" | "pro" | "professional" | "lifetime";
+
 function Pricing() {
-  const tiers = [
+  const tiers: Array<{
+    key: TierKey;
+    name: string;
+    tagline: string;
+    price: string;
+    period: string;
+    features: string[];
+    cta: string;
+    ctaStyle: "primary" | "secondary";
+    highlight: boolean;
+    badge?: string;
+    href: string;
+  }> = [
     {
+      key: "free",
       name: "Free",
       tagline: "Try it out",
       price: "$0",
@@ -511,8 +538,10 @@ function Pricing() {
       cta: "Download Free",
       ctaStyle: "secondary",
       highlight: false,
+      href: "#download",
     },
     {
+      key: "pro",
       name: "Pro",
       tagline: "For daily dictation",
       price: "$29",
@@ -532,8 +561,10 @@ function Pricing() {
       ctaStyle: "primary",
       highlight: true,
       badge: "Most Popular",
+      href: CHECKOUT_URLS.pro,
     },
     {
+      key: "professional",
       name: "Professional",
       tagline: "For lawyers, accountants & firms",
       price: "$79",
@@ -551,8 +582,10 @@ function Pricing() {
       ctaStyle: "secondary",
       highlight: false,
       badge: "Recommended for Pros",
+      href: CHECKOUT_URLS.professional,
     },
     {
+      key: "lifetime",
       name: "Lifetime",
       tagline: "Pay once, own forever",
       price: "$599",
@@ -567,6 +600,7 @@ function Pricing() {
       cta: "Get Lifetime",
       ctaStyle: "secondary",
       highlight: false,
+      href: CHECKOUT_URLS.lifetime,
     },
   ];
 
@@ -642,7 +676,7 @@ function Pricing() {
                 ))}
               </ul>
               <a
-                href="#download"
+                href={t.href}
                 className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
                   t.ctaStyle === "primary"
                     ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
