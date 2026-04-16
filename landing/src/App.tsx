@@ -94,7 +94,7 @@ function Hero() {
           <motion.div variants={fadeUp} className="flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-marcoreid-600/10 border border-marcoreid-600/20 text-marcoreid-400 text-xs font-medium">
               <Zap className="h-3 w-3" />
-              The Grammarly + Dictation killer is here
+              The professional-grade dictation tool has arrived
             </div>
           </motion.div>
 
@@ -113,11 +113,11 @@ function Hero() {
             variants={fadeUp}
             className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed"
           >
-            Real-time voice dictation with AI grammar correction that types into
-            any application. Never interrupted by window switches. Works with
-            your external mic. 20+ languages.{" "}
+            Professional-grade voice dictation with AI grammar correction that types
+            into any application, on any device. Never interrupted. Built for lawyers,
+            accountants, and professionals who can't afford mistakes.{" "}
             <span className="text-white font-medium">
-              100x cheaper than Grammarly.
+              Everything included — no API keys, no setup.
             </span>
           </motion.p>
 
@@ -157,7 +157,10 @@ function Hero() {
               <Monitor className="h-3.5 w-3.5" /> Linux
             </span>
             <span className="flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5" /> iOS Keyboard
+              <Smartphone className="h-3.5 w-3.5" /> iOS
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Smartphone className="h-3.5 w-3.5" /> Android
             </span>
           </motion.div>
         </motion.div>
@@ -256,7 +259,7 @@ function Features() {
     {
       icon: Sparkles,
       title: "AI Grammar Engine",
-      description: "Every sentence gets polished by Claude AI. Grammar, punctuation, style - all corrected instantly. Like Grammarly but 100x cheaper.",
+      description: "Every sentence gets polished by Claude — the most advanced AI. Grammar, punctuation, and style corrected instantly. More accurate than Grammarly, more capable than Dragon.",
       color: "text-purple-400",
       bg: "bg-purple-400/10",
     },
@@ -305,7 +308,7 @@ function Features() {
     {
       icon: Smartphone,
       title: "iOS Keyboard",
-      description: "Install the Marco Reid Voice keyboard on your iPhone. AI grammar correction in every text field - iMessage, WhatsApp, email, everywhere.",
+      description: "Install the Marco Reid Voice keyboard on iPhone or Android. AI grammar correction in every text field — iMessage, WhatsApp, email, everywhere.",
       color: "text-pink-400",
       bg: "bg-pink-400/10",
     },
@@ -423,7 +426,7 @@ function Comparison() {
     { name: "Grammarly", price: "$12/mo", realtime: false, neverInterrupts: false, grammar: true, anyApp: false, offline: false, extMic: false },
     { name: "Dragon", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false },
-    { name: "Marco Reid Voice", price: "$5.99/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
+    { name: "Marco Reid Voice", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
   ];
 
   return (
@@ -494,9 +497,82 @@ function Comparison() {
 }
 
 function Pricing() {
+  const tiers = [
+    {
+      name: "Free",
+      tagline: "Try it out",
+      price: "$0",
+      period: "/forever",
+      features: [
+        "500 words/week",
+        "Basic dictation",
+        "Community support",
+      ],
+      cta: "Download Free",
+      ctaStyle: "secondary",
+      highlight: false,
+    },
+    {
+      name: "Pro",
+      tagline: "For daily dictation",
+      price: "$29",
+      period: "/month",
+      features: [
+        "Unlimited dictation",
+        "AI grammar (Claude)",
+        "All APIs included — zero setup",
+        "Text injection (any app)",
+        "Voice commands",
+        "20+ languages",
+        "iOS + Android keyboard",
+        "macOS, Windows, Linux",
+        "Priority email support",
+      ],
+      cta: "Start 14-Day Free Trial",
+      ctaStyle: "primary",
+      highlight: true,
+      badge: "Most Popular",
+    },
+    {
+      name: "Professional",
+      tagline: "For lawyers, accountants & firms",
+      price: "$79",
+      period: "/month",
+      features: [
+        "Everything in Pro",
+        "Confidential mode (zero-retention)",
+        "Per-matter / per-client vocabulary",
+        "Legal & accounting terminology packs",
+        "Local audit logs",
+        "SSO & team management",
+        "SLA & dedicated support",
+      ],
+      cta: "Start Free Trial",
+      ctaStyle: "secondary",
+      highlight: false,
+      badge: "Recommended for Pros",
+    },
+    {
+      name: "Lifetime",
+      tagline: "Pay once, own forever",
+      price: "$599",
+      period: "/one-time",
+      features: [
+        "Everything in Pro",
+        "Lifetime updates",
+        "Early access to new features",
+        "Custom vocabulary",
+        "Direct founder support",
+      ],
+      cta: "Get Lifetime",
+      ctaStyle: "secondary",
+      highlight: false,
+    },
+  ];
+
   return (
     <section id="pricing" className="py-24 bg-[#0c0c0f]">
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-6">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -508,10 +584,11 @@ function Pricing() {
             Pricing
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            Made to be affordable.
+            Professional-grade. Priced like one.
           </motion.h2>
-          <motion.p variants={fadeUp} className="text-zinc-400 mt-3 max-w-lg mx-auto">
-            Life is hard enough. Good tools shouldn't break the bank.
+          <motion.p variants={fadeUp} className="text-zinc-400 mt-3 max-w-xl mx-auto">
+            Every plan includes the full AI stack — speech, grammar, text injection.
+            No API keys, no separate bills, no setup. Just download and speak.
           </motion.p>
         </motion.div>
 
@@ -520,95 +597,69 @@ function Pricing() {
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
         >
-          {/* Free */}
-          <motion.div variants={fadeUp} className="p-8 rounded-2xl bg-[#111114] border border-white/5">
-            <h3 className="text-lg font-bold mb-1">Free</h3>
-            <p className="text-sm text-zinc-500 mb-6">Get started, no strings</p>
-            <div className="mb-6">
-              <span className="text-4xl font-black">$0</span>
-              <span className="text-zinc-500 text-sm">/forever</span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              {["2,000 words/week", "1 STT engine", "Basic voice commands", "Buffer mode only", "Community support"].map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-zinc-400">
-                  <Check className="h-4 w-4 text-zinc-600 shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <a href="#download" className="block text-center h-11 leading-[44px] rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-colors">
-              Download Free
-            </a>
-          </motion.div>
-
-          {/* Pro */}
-          <motion.div variants={fadeUp} className="p-8 rounded-2xl bg-[#111114] border-2 border-marcoreid-600/50 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-marcoreid-600 text-white text-xs font-semibold">
-              Most Popular
-            </div>
-            <h3 className="text-lg font-bold mb-1">Pro</h3>
-            <p className="text-sm text-zinc-500 mb-6">For daily dictation users</p>
-            <div className="mb-6">
-              <span className="text-4xl font-black">$5.99</span>
-              <span className="text-zinc-500 text-sm">/month</span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              {[
-                "Unlimited dictation",
-                "All STT engines",
-                "AI Grammar (Claude)",
-                "Text injection (any app)",
-                "Voice commands",
-                "20+ languages",
-                "iOS keyboard",
-                "Priority support",
-              ].map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                  <Check className="h-4 w-4 text-marcoreid-400 shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <a href="#download" className="block text-center h-11 leading-[44px] rounded-xl bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors shadow-lg shadow-marcoreid-600/25">
-              Start Free Trial
-            </a>
-          </motion.div>
-
-          {/* Lifetime */}
-          <motion.div variants={fadeUp} className="p-8 rounded-2xl bg-[#111114] border border-white/5">
-            <h3 className="text-lg font-bold mb-1">Lifetime</h3>
-            <p className="text-sm text-zinc-500 mb-6">Pay once, own forever</p>
-            <div className="mb-6">
-              <span className="text-4xl font-black">$149</span>
-              <span className="text-zinc-500 text-sm">/one-time</span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              {[
-                "Everything in Pro",
-                "Lifetime updates",
-                "Early access to new features",
-                "Custom vocabulary",
-                "API access",
-                "Direct support line",
-              ].map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-zinc-400">
-                  <Check className="h-4 w-4 text-zinc-600 shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <a href="#download" className="block text-center h-11 leading-[44px] rounded-xl bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-colors">
-              Get Lifetime
-            </a>
-          </motion.div>
+          {tiers.map((t) => (
+            <motion.div
+              key={t.name}
+              variants={fadeUp}
+              className={`p-7 rounded-2xl bg-[#111114] relative ${
+                t.highlight ? "border-2 border-marcoreid-600/50" : "border border-white/5"
+              }`}
+            >
+              {t.badge && (
+                <div
+                  className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                    t.highlight
+                      ? "bg-marcoreid-600 text-white"
+                      : "bg-white/10 text-zinc-300 border border-white/10"
+                  }`}
+                >
+                  {t.badge}
+                </div>
+              )}
+              <h3 className="text-lg font-bold mb-1">{t.name}</h3>
+              <p className="text-xs text-zinc-500 mb-5">{t.tagline}</p>
+              <div className="mb-5">
+                <span className="text-4xl font-black">{t.price}</span>
+                <span className="text-zinc-500 text-sm">{t.period}</span>
+              </div>
+              <ul className="space-y-2.5 mb-7">
+                {t.features.map((f) => (
+                  <li
+                    key={f}
+                    className={`flex items-start gap-2 text-sm ${
+                      t.highlight ? "text-zinc-300" : "text-zinc-400"
+                    }`}
+                  >
+                    <Check
+                      className={`h-4 w-4 shrink-0 mt-0.5 ${
+                        t.highlight ? "text-marcoreid-400" : "text-zinc-600"
+                      }`}
+                    />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="#download"
+                className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
+                  t.ctaStyle === "primary"
+                    ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
+                    : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                }`}
+              >
+                {t.cta}
+              </a>
+            </motion.div>
+          ))}
         </motion.div>
 
-        <p className="text-center text-xs text-zinc-600 mt-8">
-          All plans include a 14-day free trial. No credit card required. Cancel anytime.
-          <br />
-          You bring your own API keys (Deepgram, OpenAI, Anthropic) - we don't mark up API costs.
+        <p className="text-center text-xs text-zinc-600 mt-10 max-w-2xl mx-auto leading-relaxed">
+          Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
+          All AI costs (speech-to-text and grammar correction) are included — your subscription
+          covers everything. Audio still streams directly from your device to AI providers and is
+          never routed through or stored by Voxlen.
         </p>
       </div>
     </section>
@@ -619,31 +670,35 @@ function FAQ() {
   const faqs = [
     {
       q: "How is this different from Windows+H or Apple Dictation?",
-      a: "Those stop working the moment you switch apps or click somewhere else. Voxlen runs as a background service - it NEVER gets interrupted. Plus, it has AI grammar correction, works with your external mic, and supports 20+ languages.",
+      a: "Those stop working the moment you switch apps or click somewhere else. Marco Reid Voice runs as a background service — it NEVER gets interrupted. Plus, it has AI grammar correction, works with your external mic, and supports 20+ languages.",
     },
     {
-      q: "How is this cheaper than Grammarly?",
-      a: "Grammarly charges $12/month and just killed their voice features. Marco Reid Voice uses Claude Haiku for grammar correction which costs about $0.03/month for heavy use. You bring your own API key, so there's no markup. We charge $5.99/month for the app itself.",
+      q: "Why is this better than Grammarly?",
+      a: "Grammarly is a typing-focused tool that killed their voice features — and their grammar engine is weaker than the frontier AI models we use. Marco Reid Voice is built on Claude, the most capable language AI available, and combines real-time dictation with grammar correction in a single product. It is more advanced and more accurate, and it works everywhere you type — not just inside Grammarly's browser extension.",
+    },
+    {
+      q: "Do I need to set up API keys or separate accounts?",
+      a: "No. Everything is included. Your subscription covers all the AI infrastructure — speech-to-text, grammar correction, all of it. Download, sign in, speak. There is nothing else to configure. (Advanced users can optionally plug in their own API keys if they prefer — but 99% of users will never need to.)",
+    },
+    {
+      q: "What platforms does it run on?",
+      a: "Everything. macOS (Apple Silicon and Intel), Windows 10/11, Linux, iOS (keyboard extension), and Android (keyboard extension). Your subscription covers every device you use. We will never lock features behind a specific OS.",
     },
     {
       q: "Do I need an internet connection?",
-      a: "Not necessarily. Marco Reid Voice includes a fully offline mode using Whisper Local that runs entirely on your device. Cloud engines (Deepgram, OpenAI) give better accuracy but require internet. You choose.",
-    },
-    {
-      q: "What API keys do I need?",
-      a: "For the best experience: a Deepgram key (free $200 credits) for real-time transcription, and an Anthropic key for grammar correction. Both take 2 minutes to set up. The onboarding wizard walks you through it.",
+      a: "Not always. Marco Reid Voice includes a fully offline mode that runs entirely on your device — ideal for flights or sensitive work. Our cloud models give higher accuracy and lower latency, but you always have the choice.",
     },
     {
       q: "Does it work with my external USB microphone?",
-      a: "Yes! Marco Reid Voice auto-detects external mics (Razer, Blue Yeti, Rode, HyperX, etc.) and prioritizes them over your built-in laptop mic. You'll get a warning if you're accidentally using the internal mic.",
+      a: "Yes. Marco Reid Voice auto-detects external mics (Razer, Blue Yeti, Rode, HyperX, etc.) and prioritizes them over your built-in laptop mic. You will get a warning if you are accidentally using the internal mic.",
     },
     {
-      q: "Can I use it on my iPhone?",
-      a: "Yes. Marco Reid Voice includes an iOS keyboard extension that adds AI grammar correction to every text field on your phone - iMessage, WhatsApp, email, everything. Install it from the App Store.",
+      q: "Is my audio private? I handle privileged information.",
+      a: "Yes. Even though we provide the AI infrastructure as part of your subscription, your audio and transcripts are NEVER routed through or stored on Voxlen-operated servers. Audio streams directly from your device to the AI provider using zero-retention endpoints and is discarded immediately after transcription. On the Professional plan, we enable the strictest zero-retention guarantees from every AI provider. Offline mode means nothing leaves your device at all. This is a hard architectural rule we will never compromise.",
     },
     {
-      q: "Is my audio data private?",
-      a: "In offline mode, your audio never leaves your device. In cloud mode, audio is sent to the STT provider (Deepgram/OpenAI) for processing and immediately discarded. We never store, log, or access your audio.",
+      q: "Can my firm get a team plan?",
+      a: "Yes. The Professional plan includes SSO, team management, and per-client / per-matter vocabulary isolation — designed specifically for law firms and accounting practices. Contact us for firm-wide pricing.",
     },
   ];
 
@@ -854,7 +909,7 @@ function CTA() {
           )}
         </motion.div>
 
-        {/* iOS keyboard promo */}
+        {/* Mobile keyboard promo */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -866,21 +921,33 @@ function CTA() {
             <Smartphone className="h-7 w-7 text-marcoreid-400" />
           </div>
           <div className="flex-1 text-center md:text-left">
-            <div className="text-lg font-bold text-white mb-1">Marco Reid Voice Keyboard for iPhone &amp; iPad</div>
+            <div className="text-lg font-bold text-white mb-1">Marco Reid Voice Keyboard — iPhone, iPad &amp; Android</div>
             <div className="text-sm text-zinc-400">
-              AI grammar correction in every text field — iMessage, Mail, Notes, Safari, everywhere.
+              AI grammar correction in every text field — iMessage, Mail, Notes, Safari, WhatsApp, Gmail, everywhere.
             </div>
           </div>
-          <a
-            href="#"
-            className="h-12 px-6 rounded-xl bg-black border border-white/10 text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/5 transition-colors shrink-0"
-          >
-            <Apple className="h-5 w-5" />
-            <div className="text-left leading-tight">
-              <div className="text-[10px] text-zinc-400">Coming soon on the</div>
-              <div>App Store</div>
-            </div>
-          </a>
+          <div className="flex gap-2 shrink-0">
+            <a
+              href="#"
+              className="h-12 px-5 rounded-xl bg-black border border-white/10 text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/5 transition-colors"
+            >
+              <Apple className="h-5 w-5" />
+              <div className="text-left leading-tight">
+                <div className="text-[10px] text-zinc-400">Coming soon on</div>
+                <div>App Store</div>
+              </div>
+            </a>
+            <a
+              href="#"
+              className="h-12 px-5 rounded-xl bg-black border border-white/10 text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/5 transition-colors"
+            >
+              <Smartphone className="h-5 w-5" />
+              <div className="text-left leading-tight">
+                <div className="text-[10px] text-zinc-400">Coming soon on</div>
+                <div>Google Play</div>
+              </div>
+            </a>
+          </div>
         </motion.div>
 
         {/* Checksums / integrity footer */}
@@ -984,12 +1051,15 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">2. Data Processing Architecture</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen operates as a <strong>pass-through</strong> application. Your data flows directly between your device and your chosen API providers:
+        Voxlen operates as a <strong>pass-through</strong> application. Even though paid plans
+        include AI infrastructure as part of your subscription, your data flows directly between
+        your device and the underlying AI providers — never through Voxlen-operated servers:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly to Deepgram or OpenAI Whisper using your API key. In offline mode (Whisper Local), audio never leaves your device.</li>
-        <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent directly to Anthropic (Claude) or OpenAI using your API key. We have no intermediary server.</li>
+        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly from your device to the speech-to-text provider on zero-retention endpoints. In offline mode, audio never leaves your device.</li>
+        <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent directly from your device to the grammar AI provider (Anthropic or OpenAI) on zero-retention endpoints. We have no intermediary server.</li>
         <li><strong className="text-zinc-200">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
+        <li><strong className="text-zinc-200">API credentials:</strong> Voxlen provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">3. Confidentiality for Legal &amp; Accounting Professionals</h2>
@@ -998,10 +1068,11 @@ function PrivacyContent() {
         privileged or confidential information. Voxlen is designed to respect these obligations:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li>No Voxlen-operated server ever receives your content</li>
+        <li>No Voxlen-operated server ever receives your content — this is a hard architectural rule</li>
         <li>Session history is stored only on your local device and never synced to our infrastructure</li>
         <li>Custom vocabulary and dictionaries remain local to your device</li>
-        <li>You control which third-party providers process your data through your own API keys</li>
+        <li>All AI provider traffic uses zero-retention endpoints</li>
+        <li>Professional plan users get the strictest zero-retention guarantees enabled by default, plus per-matter / per-client vocabulary isolation</li>
         <li>Offline mode ensures zero external data transmission</li>
       </ul>
 
@@ -1020,7 +1091,8 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">5. Third-Party Services</h2>
       <p className="text-zinc-300 leading-relaxed">
-        When you provide API keys, data is processed according to each provider's privacy policy:
+        Voxlen includes AI infrastructure as part of your paid subscription. Your audio and text
+        are processed by our underlying AI providers on zero-retention endpoints:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
         <li>Deepgram — processes audio for transcription</li>
@@ -1028,8 +1100,9 @@ function PrivacyContent() {
         <li>Anthropic — processes text for grammar correction</li>
       </ul>
       <p className="text-zinc-300 leading-relaxed">
-        We recommend reviewing each provider's data retention policies. Both Anthropic and OpenAI
-        offer zero-retention API options suitable for handling sensitive content.
+        We configure zero-retention with every provider wherever it is available. The
+        Professional plan enables the strictest retention and data-handling controls by default.
+        Advanced users who prefer to supply their own credentials may do so in Settings.
       </p>
 
       <h2 className="text-lg font-bold mt-8">6. Contact</h2>
@@ -1057,22 +1130,21 @@ function TermsContent() {
         on your device and connects to third-party APIs using your own credentials.
       </p>
 
-      <h2 className="text-lg font-bold mt-8">2. API Keys &amp; Third-Party Services</h2>
+      <h2 className="text-lg font-bold mt-8">2. AI Services &amp; Third-Party Providers</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen requires you to provide your own API keys for speech-to-text and grammar correction
-        services. You are responsible for:
+        Paid plans include all AI infrastructure (speech-to-text and grammar correction) as part of
+        your subscription. You do not need to provide your own API keys. Audio streams directly
+        from your device to the relevant AI providers on zero-retention endpoints — Voxlen
+        provisions the credentials, but your content never passes through Voxlen-operated
+        infrastructure. Advanced users may optionally supply their own API keys.
       </p>
-      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li>Keeping your API keys secure</li>
-        <li>Any costs incurred through third-party API usage</li>
-        <li>Complying with each provider's terms of service</li>
-      </ul>
 
       <h2 className="text-lg font-bold mt-8">3. Subscription Plans</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen offers Free, Pro ($5.99/month), and Lifetime ($149 one-time) plans. The Free plan
-        includes basic dictation. Pro and Lifetime unlock all features. Subscriptions can be cancelled at
-        any time. We offer a 14-day free trial for Pro with no credit card required.
+        Voxlen offers Free, Pro ($29/month), Professional ($79/month for legal and accounting
+        teams), and Lifetime ($599 one-time) plans. The Free plan includes limited dictation. Paid
+        plans unlock all features and include all AI costs. Subscriptions can be cancelled at any
+        time. We offer a 14-day free trial for Pro and Professional with no credit card required.
       </p>
 
       <h2 className="text-lg font-bold mt-8">4. Acceptable Use</h2>
