@@ -117,6 +117,20 @@ fn encode_wav(samples: &[f32], sample_rate: u32) -> anyhow::Result<Vec<u8>> {
     Ok(cursor.into_inner())
 }
 
+/// Standalone transcription function that takes owned config, avoiding holding
+/// a lock guard across an await point.
+pub(crate) async fn transcribe_audio(
+    audio_data: &[f32],
+    sample_rate: u32,
+    config: SttConfig,
+) -> anyhow::Result<TranscriptionResult> {
+    let wav_data = encode_wav(audio_data, sample_rate)?;
+    match config.engine {
+        SttEngineType::DeepgramCloud => cloud::deepgram_transcribe(&wav_data, &config).await,
+        SttEngineType::WhisperCloud => cloud::whisper_transcribe(&wav_data, &config).await,
+    }
+}
+
 pub struct SttState(pub Arc<RwLock<SttEngine>>);
 
 impl SttState {

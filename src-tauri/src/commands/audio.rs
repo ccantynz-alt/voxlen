@@ -10,7 +10,8 @@ pub fn list_audio_devices(state: State<'_, AudioState>) -> Result<Vec<AudioDevic
 #[tauri::command]
 pub fn get_selected_device(state: State<'_, AudioState>) -> Result<Option<String>, String> {
     let engine = state.0.read();
-    Ok(engine.selected_device.read().clone())
+    let device = engine.selected_device.read().clone();
+    Ok(device)
 }
 
 #[tauri::command]
