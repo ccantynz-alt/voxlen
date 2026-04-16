@@ -174,10 +174,10 @@ export function DictationPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Main dictation area */}
-      <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col p-8 gap-7 overflow-hidden">
         {/* Mic control + waveform */}
-        <div className="flex flex-col items-center gap-6">
-          {/* Large mic button */}
+        <div className="flex flex-col items-center gap-5">
+          {/* Large mic button — oxford navy gradient with brass inflection. */}
           <div className="relative">
             {isActive && (
               <div className="absolute inset-0 rounded-full dictation-pulse" />
@@ -185,47 +185,51 @@ export function DictationPanel() {
             <button
               onClick={handleToggleDictation}
               className={cn(
-                "relative z-10 flex items-center justify-center w-20 h-20 rounded-full transition-all duration-300",
+                "relative z-10 flex items-center justify-center w-[84px] h-[84px] rounded-full transition-all duration-300 shadow-inset-hairline",
                 isActive
-                  ? "bg-marcoreid-600 text-white shadow-lg shadow-marcoreid-600/30 scale-110"
-                  : "bg-surface-200 text-surface-700 hover:bg-surface-300 hover:text-surface-900 hover:scale-105"
+                  ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation-lg scale-105"
+                  : "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-700 hover:from-surface-200 hover:to-surface-300 hover:text-surface-900 shadow-elevation"
               )}
             >
               {isActive ? (
-                <Mic className="h-8 w-8" />
+                <Mic className="h-7 w-7" strokeWidth={1.75} />
               ) : (
-                <MicOff className="h-8 w-8" />
+                <MicOff className="h-7 w-7" strokeWidth={1.75} />
               )}
             </button>
           </div>
 
-          {/* Status text */}
+          {/* Status text — editorial serif for the headline, small-caps metadata below. */}
           <div className="text-center">
-            <p className="text-sm font-medium text-surface-900">
-              {status === "idle" && "Press to start dictating"}
-              {status === "listening" && "Listening..."}
-              {status === "processing" && "Processing speech..."}
+            <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
+              {status === "idle" && "Press to begin dictation"}
+              {status === "listening" && (
+                <>
+                  Listening<span className="text-brass-400">.</span>
+                </>
+              )}
+              {status === "processing" && "Processing speech"}
               {status === "paused" && "Paused"}
               {status === "error" && "An error occurred"}
-            </p>
+            </h2>
             {selectedDevice && (
-              <p className="text-xs text-surface-600 mt-1 flex items-center justify-center gap-1">
-                <Mic className="h-3 w-3" />
-                {selectedDevice.name}
+              <p className="text-[11px] text-surface-600 mt-2 flex items-center justify-center gap-1.5 tracking-tight">
+                <Mic className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
+                <span className="font-medium text-surface-700">{selectedDevice.name}</span>
                 {selectedDevice.isExternal && (
-                  <Badge variant="info" className="ml-1 text-[10px] py-0">
+                  <Badge variant="info" className="ml-1 text-[9px] py-0">
                     External
                   </Badge>
                 )}
               </p>
             )}
             {!selectedDevice && (
-              <p className="text-xs text-amber-400 mt-1">
-                No microphone selected - go to Settings
+              <p className="text-[11px] text-brass-500 mt-2 tracking-tight">
+                No microphone selected — configure in Settings
               </p>
             )}
             {capsLock && (
-              <Badge variant="warning" className="mt-2 text-[10px]">
+              <Badge variant="warning" className="mt-2 text-[9px]">
                 CAPS ON
               </Badge>
             )}
@@ -233,7 +237,7 @@ export function DictationPanel() {
 
           {/* Waveform - respects showWaveform setting */}
           {showWaveform && (
-            <Waveform className="w-full max-w-lg" height={60} />
+            <Waveform className="w-full max-w-lg" height={56} />
           )}
 
           {/* Control buttons */}
@@ -271,36 +275,47 @@ export function DictationPanel() {
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-            <div className="w-14 h-14 rounded-2xl bg-surface-200 flex items-center justify-center mb-3">
-              <Mic className="h-7 w-7 text-surface-700" />
-            </div>
-            <p className="text-sm font-medium text-surface-900">
-              Press the mic button or use your shortcut to start
-            </p>
-            <p className="text-xs text-surface-600 mt-1 flex items-center gap-1">
-              <Keyboard className="h-3 w-3" />
+            <div className="divider-brass w-24 mb-5" />
+            <h3 className="font-display text-[15px] italic text-surface-800 tracking-tight-display leading-snug max-w-sm">
+              Press the microphone, or use your shortcut, to begin a session.
+            </h3>
+            <p className="text-[11px] text-surface-600 mt-3 flex items-center gap-1.5 font-mono">
+              <Keyboard className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
               {shortcutToggle.replace("CommandOrControl", "Ctrl/Cmd")}
             </p>
           </div>
         )}
       </div>
 
-      {/* Bottom status bar */}
+      {/* Bottom status bar — metadata row with small-caps labels. */}
       <div className="flex items-center justify-between px-6 py-3 border-t border-surface-300/50 bg-surface-50/50">
-        <div className="flex items-center gap-4 text-xs text-surface-600">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {formatDuration(sessionDuration * 1000)}
-          </span>
-          <span className="flex items-center gap-1">
-            <FileText className="h-3 w-3" />
-            {wordCount} words
-          </span>
-          {inputLevel > 0 && (
-            <span className="flex items-center gap-1">
-              <Zap className="h-3 w-3" />
-              {Math.round(inputLevel * 100)}% level
+        <div className="flex items-center gap-5">
+          <div className="flex items-baseline gap-1.5">
+            <Clock className="h-3 w-3 text-surface-600 self-center" strokeWidth={1.75} />
+            <span className="font-mono text-[11px] tabular-nums text-surface-800">
+              {formatDuration(sessionDuration * 1000)}
             </span>
+            <span className="label-caps">elapsed</span>
+          </div>
+          <div className="h-3 w-px bg-surface-300/60" />
+          <div className="flex items-baseline gap-1.5">
+            <FileText className="h-3 w-3 text-surface-600 self-center" strokeWidth={1.75} />
+            <span className="font-mono text-[11px] tabular-nums text-surface-800">
+              {wordCount}
+            </span>
+            <span className="label-caps">words</span>
+          </div>
+          {inputLevel > 0 && (
+            <>
+              <div className="h-3 w-px bg-surface-300/60" />
+              <div className="flex items-baseline gap-1.5">
+                <Zap className="h-3 w-3 text-brass-500/80 self-center" strokeWidth={1.75} />
+                <span className="font-mono text-[11px] tabular-nums text-surface-800">
+                  {Math.round(inputLevel * 100)}%
+                </span>
+                <span className="label-caps">level</span>
+              </div>
+            </>
           )}
         </div>
 
