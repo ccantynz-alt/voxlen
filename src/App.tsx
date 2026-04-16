@@ -10,7 +10,10 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
-import { usePersistedSettings } from "@/hooks/usePersistedSettings";
+import { loadHistory } from "@/stores/history";
+import { usePersistedSettings, saveSettings } from "@/hooks/usePersistedSettings";
+import { useTauriEvents } from "@/hooks/useTauriEvents";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
 
 type View = "dictation" | "grammar" | "history" | "settings" | "admin";
@@ -77,18 +80,9 @@ export default function App() {
         }
       }
 
-      // Hydrate settings from backend on boot.
-      try {
-        const backendSettings = await loadSettings();
-        if (backendSettings) {
-          updateSettingsStore(backendSettings);
-        }
-      } catch {
-        // Already handled inside loadSettings.
-      }
     }
     checkFirstLaunch();
-  }, [updateSettingsStore]);
+  }, []);
 
   // Persist settings on every change.
   useEffect(() => {
@@ -114,7 +108,7 @@ export default function App() {
 
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        persistSettings(appSettings);
+        saveSettings(appSettings);
       }, 300);
     });
 
@@ -126,7 +120,7 @@ export default function App() {
 
   // Load history on startup
   useEffect(() => {
-    useHistoryStore.getState().loadFromStore();
+    loadHistory();
   }, []);
 
   // Load audio devices on mount (when not in onboarding)
@@ -200,72 +194,6 @@ export default function App() {
     init();
   }, [setDevices, showOnboarding]);
 
-  // Register global shortcuts
-  useEffect(() => {
-    if (showOnboarding) return;
-
-    async function registerShortcuts() {
-      try {
-        const { register } = await import(
-          "@tauri-apps/plugin-global-shortcut"
-        );
-
-        // Toggle dictation: Ctrl/Cmd+Shift+D
-        await register("CommandOrControl+Shift+D", (event) => {
-          if (event.state === "Pressed") {
-            const status = useDictationStore.getState().status;
-            if (status === "idle") {
-              useDictationStore.getState().setStatus("listening");
-            } else {
-              useDictationStore.getState().setStatus("idle");
-            }
-          }
-        });
-
-        // Push-to-talk: Ctrl/Cmd+Shift+Space — hold to dictate, release to stop
-        await register("CommandOrControl+Shift+Space", (event) => {
-          if (event.state === "Pressed") {
-            const status = useDictationStore.getState().status;
-            if (status === "idle") {
-              useDictationStore.getState().setStatus("listening");
-            }
-          } else if (event.state === "Released") {
-            const status = useDictationStore.getState().status;
-            if (status === "listening" || status === "processing") {
-              useDictationStore.getState().setStatus("idle");
-            }
-          }
-        });
-
-        // Grammar correction: Ctrl/Cmd+Shift+G — polish the current transcript
-        await register("CommandOrControl+Shift+G", async () => {
-          const segments = useDictationStore.getState().segments;
-          if (segments.length === 0) return;
-          const fullText = segments.map((s) => s.correctedText || s.text).join(" ");
-          try {
-            const { invoke } = await import("@tauri-apps/api/core");
-            const result = await invoke<{
-              corrected: string;
-              changes: Array<{ original: string; corrected: string; reason: string }>;
-            }>("correct_grammar", { text: fullText });
-            // Update the last segment with the corrected full text
-            const lastSegment = segments[segments.length - 1];
-            useDictationStore.getState().updateSegment(lastSegment.id, {
-              correctedText: result.corrected,
-              grammarApplied: true,
-            });
-          } catch {
-            // Grammar correction not available
-          }
-        });
-      } catch {
-        // Not in Tauri environment
-      }
-    }
-
-    registerShortcuts();
-  }, [showOnboarding]);
-
   const handleOnboardingComplete = useCallback(async () => {
     // Save onboarding state
     try {
@@ -289,7 +217,7 @@ export default function App() {
       ...appSettings
     } = state;
     void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
-    await persistSettings(appSettings);
+    await saveSettings(appSettings);
 
     setShowOnboarding(false);
   }, []);
