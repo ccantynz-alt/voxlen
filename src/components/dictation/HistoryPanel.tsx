@@ -7,90 +7,79 @@ import {
   Search,
   Calendar,
   Trash2,
+  Download,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { formatDuration } from "@/lib/utils";
 import { useHistoryStore, loadHistory } from "@/stores/history";
+import { useSettingsStore } from "@/stores/settings";
 
 export function HistoryPanel() {
   const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
-  const [searchQuery, setSearchQuery] = useState("");
   const entries = useHistoryStore((s) => s.entries);
+  const removeEntry = useHistoryStore((s) => s.removeEntry);
+  const clearAll = useHistoryStore((s) => s.clearAll);
+
+  const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [confirmClear, setConfirmClear] = useState<boolean>(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
-  // Load persisted history on mount
   useEffect(() => {
     loadHistory();
   }, []);
 
-  const filteredHistory = entries.filter((entry) =>
+  const filteredEntries = entries.filter((entry) =>
     entry.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCopy = async (entry: typeof entries[0]) => {
+  const handleCopy = async (entry: (typeof entries)[0]) => {
     await navigator.clipboard.writeText(entry.text);
     setCopiedId(entry.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDelete = async (session: HistorySession) => {
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("delete_session", { id: session.id });
-    } catch {
-      // Degrade: still remove locally.
-    }
-    setSessions((prev) => prev.filter((s) => s.id !== session.id));
+  const handleExportTxt = (entry: (typeof entries)[0]) => {
+    const blob = new Blob([entry.text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transcript-${new Date(entry.timestamp).toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
-
-  const handleClearAll = async () => {
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("clear_history");
-    } catch {
-      // Degrade: still clear locally.
-    }
-    setSessions([]);
-    setConfirmClear(false);
-  };
-
-  const handleExport = async (session: HistorySession, format: ExportFormat) => {
-    await downloadExport(sessionToSegments(session), format);
-  };
-
-  const sortedSessions = useMemo(
-    () =>
-      [...sessions].sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime()),
-    [sessions]
-  );
 
   return (
     <div className="flex flex-col h-full p-8 gap-5">
-      {/* Header — editorial, hairline separator. */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3.5">
-          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
-            <History className="h-4 w-4 text-brass-300" strokeWidth={2} />
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-surface-200">
+            <History className="h-5 w-5 text-surface-700" />
           </div>
           <div>
-            <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
-              The <span className="italic text-brass-500">record</span>
-            </h2>
+            <h2 className="text-xl font-bold text-surface-950">History</h2>
             <p className="text-xs text-surface-600">
-              {entries.length} sessions recorded
+              {entries.length} session{entries.length !== 1 ? "s" : ""} recorded
             </p>
           </div>
         </div>
-        {sessions.length > 0 && (
+        {entries.length > 0 && (
           <div className="flex items-center gap-2">
             {confirmClear ? (
               <>
-                <span className="text-[11px] italic text-surface-600 font-display">Clear all sessions?</span>
-                <Button variant="danger" size="sm" onClick={handleClearAll}>
+                <span className="text-xs text-surface-600">Clear all?</span>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    clearAll();
+                    setConfirmClear(false);
+                  }}
+                >
                   Yes, clear
                 </Button>
                 <Button
@@ -107,7 +96,7 @@ export function HistoryPanel() {
                 size="sm"
                 onClick={() => setConfirmClear(true)}
               >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                <Trash2 className="h-3.5 w-3.5" />
                 Clear all
               </Button>
             )}
@@ -115,56 +104,39 @@ export function HistoryPanel() {
         )}
       </div>
 
-      <div className="divider-brass" />
-
       {!saveTranscripts && (
-        <div className="rounded-md bg-amber-500/8 border border-amber-500/25 shadow-inset-hairline px-4 py-3">
-          <p className="text-[11px] text-amber-600 leading-snug">
-            Transcript saving is disabled. Enable it in <span className="italic">Settings &rsaquo; Privacy</span> to keep your history.
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3">
+          <p className="text-xs text-amber-600">
+            Transcript saving is disabled. Enable it in Settings &gt; Privacy to
+            keep your history.
           </p>
         </div>
       )}
 
-      {/* Search */}
       <Input
-        placeholder="Search transcripts…"
+        placeholder="Search transcripts..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        icon={<Search className="h-4 w-4" strokeWidth={1.75} />}
+        icon={<Search className="h-4 w-4" />}
       />
 
-      {/* Error banner */}
-      {error && (
-        <div className="flex items-start gap-2 p-3 rounded-md bg-red-500/8 border border-red-500/25 shadow-inset-hairline">
-          <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" strokeWidth={1.75} />
-          <div className="text-[11px]">
-            <p className="font-medium text-red-600">Unable to load history</p>
-            <p className="text-surface-600 mt-0.5">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {/* History list */}
       <div className="flex-1 overflow-y-auto space-y-2">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="animate-pulse-soft text-[13px] italic text-surface-600 font-display">Loading history…</div>
-          </div>
-        ) : sortedSessions.length === 0 ? (
+        {filteredEntries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="divider-brass w-20 mb-4" />
-            <Calendar className="h-6 w-6 text-brass-500/70 mb-3" strokeWidth={1.5} />
-            <p className="font-display italic text-[14px] text-surface-800 tracking-tight-display">
-              {searchQuery.trim() ? "No matching sessions." : "No sessions yet."}
+            <Calendar className="h-6 w-6 text-surface-500 mb-3" />
+            <p className="text-sm font-medium text-surface-800">
+              {searchQuery.trim()
+                ? "No matching sessions."
+                : "No sessions yet."}
             </p>
-            <p className="text-[11px] text-surface-600 mt-1.5">
+            <p className="text-xs text-surface-600 mt-1">
               {searchQuery.trim()
                 ? "Try a different search term."
-                : "Start dictating to build your record."}
+                : "Start dictating to build your history."}
             </p>
           </div>
         ) : (
-          filteredHistory.map((entry) => (
+          filteredEntries.map((entry) => (
             <div
               key={entry.id}
               className="group p-4 rounded-xl bg-surface-100 border border-surface-300/50 hover:border-surface-400/50 transition-colors"
@@ -188,71 +160,67 @@ export function HistoryPanel() {
                     {copiedId === entry.id ? (
                       <Check className="h-3 w-3 text-green-400" />
                     ) : (
-                      session.segments.map((seg) => (
-                        <div
-                          key={seg.id}
-                          className="text-[12px] text-surface-900 p-3 rounded-md bg-surface-100/60 border border-surface-300/40"
-                        >
-                          <div className="flex items-center gap-2 mb-1.5 text-[10px] text-surface-600 font-mono">
-                            <Clock className="h-2.5 w-2.5" strokeWidth={1.75} />
-                            <span className="tabular-nums">
-                              {new Date(seg.timestampMs).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                second: "2-digit",
-                              })}
-                            </span>
-                            {seg.grammarApplied && (
-                              <Badge variant="success" className="ml-1">
-                                Polished
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="leading-relaxed whitespace-pre-wrap">
-                            {seg.correctedText || seg.text}
-                          </p>
-                        </div>
-                      ))
+                      <Copy className="h-3 w-3" />
                     )}
-                    <div className="flex items-center gap-2 pt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleExport(session, "txt")}
-                      >
-                        <Download className="h-3 w-3" strokeWidth={1.75} />
-                        .txt
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleExport(session, "md")}
-                      >
-                        <Download className="h-3 w-3" strokeWidth={1.75} />
-                        .md
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleExport(session, "json")}
-                      >
-                        <Download className="h-3 w-3" strokeWidth={1.75} />
-                        .json
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleExport(session, "srt")}
-                      >
-                        <Download className="h-3 w-3" strokeWidth={1.75} />
-                        .srt
-                      </Button>
-                    </div>
-                  </div>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleExportTxt(entry)}
+                    className="h-7 px-2"
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeEntry(entry.id)}
+                    className="h-7 px-2"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              <p
+                className={`text-sm text-surface-900 leading-relaxed ${
+                  expandedId === entry.id ? "" : "line-clamp-3"
+                }`}
+              >
+                {entry.text}
+              </p>
+
+              {entry.text.length > 200 && (
+                <button
+                  onClick={() =>
+                    setExpandedId(expandedId === entry.id ? null : entry.id)
+                  }
+                  className="text-xs text-voxlen-500 hover:text-voxlen-400 mt-1 flex items-center gap-1"
+                >
+                  {expandedId === entry.id ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" /> Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" /> Show more
+                    </>
+                  )}
+                </button>
+              )}
+
+              <div className="flex items-center gap-3 mt-3 text-xs text-surface-500">
+                <span>{entry.wordCount} words</span>
+                <span>{formatDuration(entry.duration)}</span>
+                <span className="uppercase">{entry.language}</span>
+                {entry.grammarCorrected && (
+                  <Badge variant="success" className="text-[10px]">
+                    AI Polished
+                  </Badge>
                 )}
               </div>
-            );
-          })
+            </div>
+          ))
         )}
       </div>
     </div>
