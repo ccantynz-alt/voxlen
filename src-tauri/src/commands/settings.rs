@@ -47,6 +47,10 @@ pub struct AppSettings {
     // Privacy
     pub telemetry_enabled: bool,
     pub save_transcripts: bool,
+
+    // Licensing
+    #[serde(default)]
+    pub license_key: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -87,8 +91,27 @@ impl Default for AppSettings {
 
             telemetry_enabled: false,
             save_transcripts: true,
+
+            license_key: None,
         }
     }
+}
+
+/// Read the currently-persisted license key (if any) from the in-memory
+/// settings cache. Used by gated commands and by the `license` command
+/// module.
+pub fn current_license_key() -> Option<String> {
+    get_settings_store().read().license_key.clone()
+}
+
+/// Set (or clear) the license key and persist settings to disk.
+pub fn set_license_key(app: &AppHandle, key: Option<String>) -> Result<(), String> {
+    {
+        let mut s = get_settings_store().write();
+        s.license_key = key;
+    }
+    let snapshot = get_settings_store().read().clone();
+    persist_settings(app, &snapshot)
 }
 
 const SETTINGS_STORE_FILE: &str = "settings.json";

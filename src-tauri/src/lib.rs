@@ -1,5 +1,6 @@
 mod audio;
 mod commands;
+mod license;
 mod stt;
 mod text_injection;
 
@@ -160,6 +161,10 @@ pub fn run() {
             // Permission commands
             commands::permissions::check_permissions,
             commands::permissions::request_admin_permissions,
+            // License commands
+            commands::license::get_license_status,
+            commands::license::activate_license,
+            commands::license::clear_license,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

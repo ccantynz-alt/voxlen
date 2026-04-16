@@ -66,6 +66,15 @@ pub async fn correct_grammar(
     text: String,
     custom_vocabulary: Option<Vec<String>>,
 ) -> Result<GrammarResult, String> {
+    if !super::license::current_tier().is_paid() {
+        return Err(
+            "AI grammar correction requires a Pro, Professional, or Lifetime license. \
+             Activate your license in Settings → License, or start a trial at \
+             voxlen.ai/pricing."
+                .to_string(),
+        );
+    }
+
     let config = get_config_store().read().clone();
 
     if !config.enabled {
