@@ -1,21 +1,87 @@
-MIT License
+MARCO REID VOICE — PROPRIETARY LICENSE AGREEMENT
 
-Copyright (c) 2026 Marco Reid Contributors
+Copyright © 2026 Marco Reid. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This Marco Reid Voice software, including all source code, binaries, assets,
+documentation, and related materials (the "Software"), is the proprietary and
+confidential property of Marco Reid. The Software is licensed, not sold.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+By downloading, installing, copying, or otherwise using the Software, you
+("Licensee") agree to be bound by this Licence Agreement and by the full End
+User Licence Agreement ("EULA") set out in `legal/EULA.md`, the Terms of
+Service set out in `legal/TERMS.md`, the Privacy Policy set out in
+`legal/PRIVACY_POLICY.md`, the Acceptable Use Policy set out in
+`legal/ACCEPTABLE_USE.md`, and (where applicable) the Data Processing Addendum
+set out in `legal/DPA.md` (collectively, the "Agreement"). If you do not agree,
+do not install or use the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+SUMMARY (non-binding — see the full Agreement for terms):
+
+1. GRANT. Marco Reid grants Licensee a personal, non-exclusive, non-transferable,
+   non-sublicensable, revocable licence to install and use the Software on
+   devices Licensee owns or controls, strictly in accordance with the
+   Agreement.
+
+2. RESTRICTIONS. Licensee shall NOT, in whole or in part: (a) copy, modify, or
+   create derivative works of the Software; (b) reverse engineer, decompile,
+   disassemble, or otherwise attempt to derive source code from any binary
+   component; (c) remove, alter, or obscure any proprietary notices;
+   (d) sublicense, sell, rent, lease, lend, distribute, or make the Software
+   available to any third party; (e) use the Software to train, fine-tune, or
+   evaluate any machine-learning model; (f) use the Software to build a
+   competing product; (g) use the Software in any manner that violates
+   applicable law, professional-conduct rules, or the rights of any third
+   party.
+
+3. OWNERSHIP. All right, title, and interest in and to the Software — including
+   all intellectual property rights — are and remain the exclusive property of
+   Marco Reid. This Agreement conveys no ownership interest.
+
+4. THIRD-PARTY SERVICES. The Software may integrate with third-party services
+   (including but not limited to Deepgram, OpenAI, and Anthropic) that you
+   supply credentials for. Your use of those services is governed by their
+   respective terms and privacy policies, and is strictly between you and
+   those providers. Marco Reid is not a party to those relationships and does
+   not resell, relay, or log the content you send to them.
+
+5. NO WARRANTY. THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT
+   WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING ANY WARRANTY OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR
+   UNINTERRUPTED OPERATION. TO THE MAXIMUM EXTENT PERMITTED BY LAW, ALL SUCH
+   WARRANTIES ARE DISCLAIMED.
+
+6. LIMITATION OF LIABILITY. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO
+   EVENT SHALL MARCO REID BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+   CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR ANY LOST PROFITS,
+   LOST DATA, BUSINESS INTERRUPTION, OR LOSS OF GOODWILL, ARISING OUT OF OR
+   RELATED TO THE SOFTWARE OR THIS AGREEMENT, REGARDLESS OF THE LEGAL THEORY
+   AND EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. MARCO REID'S TOTAL
+   AGGREGATE LIABILITY SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT PAID BY
+   LICENSEE FOR THE SOFTWARE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM OR
+   (B) NZD $100.
+
+7. PROFESSIONAL USE DISCLAIMER. THE SOFTWARE IS A DICTATION AND DRAFTING TOOL.
+   IT DOES NOT PROVIDE LEGAL, ACCOUNTING, TAX, MEDICAL, OR OTHER PROFESSIONAL
+   ADVICE. OUTPUTS MUST BE REVIEWED BY A QUALIFIED PROFESSIONAL BEFORE BEING
+   RELIED ON OR DELIVERED TO A CLIENT OR THIRD PARTY. LICENSEE IS SOLELY
+   RESPONSIBLE FOR VERIFYING ACCURACY, CONFIDENTIALITY, AND COMPLIANCE WITH
+   ANY APPLICABLE PROFESSIONAL, REGULATORY, OR ETHICAL OBLIGATIONS.
+
+8. TERMINATION. This licence terminates automatically upon any breach.
+   Upon termination, Licensee must immediately cease all use and destroy all
+   copies of the Software in its possession.
+
+9. GOVERNING LAW. This Agreement is governed by the laws of New Zealand.
+   Exclusive jurisdiction for any dispute lies with the courts of New Zealand,
+   subject to any binding arbitration provision in `legal/TERMS.md`.
+
+10. SEVERABILITY. If any provision is held unenforceable, the remainder of the
+    Agreement continues in full force.
+
+THIRD-PARTY COMPONENTS. The Software incorporates open-source components
+listed in `legal/THIRD_PARTY_NOTICES.md`. Those components remain subject to
+their original licences; nothing in this Agreement modifies or overrides those
+licences.
+
+For the complete, binding terms, see the documents in the `legal/` directory.
+For questions: `legal@marcoreid.com`.

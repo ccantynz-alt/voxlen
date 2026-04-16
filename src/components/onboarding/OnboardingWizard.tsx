@@ -10,7 +10,16 @@ import {
   Zap,
   Volume2,
   AlertCircle,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
+
+export const LEGAL_POLICY_VERSION = "2026-04-16";
+const LEGAL_BASE_URL =
+  "https://github.com/ccantynz-alt/voxlen/blob/main/legal";
+const openLegalDoc = (path: string) => {
+  window.open(`${LEGAL_BASE_URL}/${path}`, "_blank", "noopener,noreferrer");
+};
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -29,6 +38,17 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
   const [apiKeyValidating, setApiKeyValidating] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+
+  const handleCompleteWithConsent = () => {
+    if (!legalAccepted || !consentAccepted) return;
+    settings.updateSettings({
+      legalAcceptedVersion: LEGAL_POLICY_VERSION,
+      legalAcceptedAt: new Date().toISOString(),
+    });
+    onComplete();
+  };
 
   const devices = useAudioStore((s) => s.devices);
   const setDevices = useAudioStore((s) => s.setDevices);
@@ -463,6 +483,95 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             <p className="text-[11px] text-surface-600 leading-snug">
               These shortcuts work from any app — even when Marco Reid Voice is minimised.
             </p>
+
+            {/* Legal acceptance — required before first use. */}
+            <div className="mt-6 pt-5 border-t border-surface-300/60 space-y-4 text-left">
+              <div>
+                <p className="label-caps mb-2">Before you begin</p>
+                <p className="text-[12px] text-surface-800 leading-relaxed">
+                  Marco Reid Voice is a professional tool. Please read and accept the
+                  terms below. You can review them again any time from Settings.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Licence (EULA)", path: "EULA.md" },
+                  { label: "Terms of Service", path: "TERMS.md" },
+                  { label: "Privacy Policy", path: "PRIVACY_POLICY.md" },
+                  { label: "Acceptable Use", path: "ACCEPTABLE_USE.md" },
+                ].map((doc) => (
+                  <button
+                    key={doc.path}
+                    type="button"
+                    onClick={() => openLegalDoc(doc.path)}
+                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline hover:bg-surface-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-3.5 w-3.5 text-brass-500 shrink-0" strokeWidth={1.75} />
+                      <span className="text-[11px] text-surface-900 truncate">{doc.label}</span>
+                    </div>
+                    <ExternalLink className="h-3 w-3 text-surface-600 shrink-0" strokeWidth={1.75} />
+                  </button>
+                ))}
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={legalAccepted}
+                  onChange={(e) => setLegalAccepted(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-surface-400 text-brass-500 focus:ring-brass-400/50"
+                />
+                <span className="text-[11px] text-surface-800 leading-relaxed">
+                  I have read and agree to the{" "}
+                  <button type="button" onClick={() => openLegalDoc("EULA.md")} className="text-brass-500 hover:underline">
+                    End User Licence Agreement
+                  </button>
+                  , the{" "}
+                  <button type="button" onClick={() => openLegalDoc("TERMS.md")} className="text-brass-500 hover:underline">
+                    Terms of Service
+                  </button>
+                  , the{" "}
+                  <button type="button" onClick={() => openLegalDoc("PRIVACY_POLICY.md")} className="text-brass-500 hover:underline">
+                    Privacy Policy
+                  </button>
+                  , and the{" "}
+                  <button type="button" onClick={() => openLegalDoc("ACCEPTABLE_USE.md")} className="text-brass-500 hover:underline">
+                    Acceptable Use Policy
+                  </button>
+                  .
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={consentAccepted}
+                  onChange={(e) => setConsentAccepted(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-surface-400 text-brass-500 focus:ring-brass-400/50"
+                />
+                <span className="text-[11px] text-surface-800 leading-relaxed">
+                  I confirm that (a) I am authorised to process any client, patient,
+                  or other confidential information I dictate, (b) I have any
+                  consents required by law to record or transcribe other people, and
+                  (c) I will review every output before relying on it or delivering
+                  it to a client, court, or regulator. Output is{" "}
+                  <span className="italic">not</span> legal, accounting, tax,
+                  medical, or financial advice.
+                </span>
+              </label>
+
+              <div className="rounded-md bg-amber-500/8 border border-amber-500/25 shadow-inset-hairline p-3 flex items-start gap-2">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" strokeWidth={1.75} />
+                <p className="text-[10.5px] text-surface-800 leading-snug">
+                  API keys and transcripts are stored locally in plaintext. Use
+                  full-disk encryption and a protected user account — especially for
+                  privileged, PHI, or regulated content. OS keychain integration is
+                  on the roadmap.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -488,20 +597,24 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
           </Button>
         ) : (
-          <Button variant="glow" onClick={onComplete}>
+          <Button
+            variant="glow"
+            onClick={handleCompleteWithConsent}
+            disabled={!legalAccepted || !consentAccepted}
+          >
             <Sparkles className="h-4 w-4" strokeWidth={1.75} />
-            Begin
+            Accept &amp; begin
           </Button>
         )}
       </div>
 
-      {/* Skip link */}
+      {/* Skip link — only when legal step hasn't been reached. */}
       {step < steps.length - 1 && (
         <button
-          onClick={onComplete}
+          onClick={() => setStep(steps.length - 1)}
           className="mt-5 text-[11px] italic text-surface-600 hover:text-surface-800 transition-colors font-display"
         >
-          Skip setup &mdash; I'll configure later.
+          Skip setup &mdash; jump to terms.
         </button>
       )}
     </div>

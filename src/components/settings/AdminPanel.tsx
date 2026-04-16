@@ -14,6 +14,8 @@ import {
   Mic,
   Bell,
   Power,
+  FileText,
+  Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -298,6 +300,48 @@ export function AdminPanel() {
           </div>
         </div>
       )}
+
+      {/* Legal pack */}
+      <div className="space-y-2">
+        <h3 className="label-caps mb-3 block">
+          Legal &amp; compliance
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: "Licence (EULA)", path: "EULA.md", icon: Scale },
+            { label: "Terms of Service", path: "TERMS.md", icon: FileText },
+            { label: "Privacy Policy", path: "PRIVACY_POLICY.md", icon: Shield },
+            { label: "Acceptable Use", path: "ACCEPTABLE_USE.md", icon: FileText },
+            { label: "Data Processing (DPA)", path: "DPA.md", icon: FileText },
+            { label: "Third-party notices", path: "THIRD_PARTY_NOTICES.md", icon: FileText },
+          ].map((doc) => {
+            const Icon = doc.icon;
+            return (
+              <button
+                key={doc.path}
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `https://github.com/ccantynz-alt/voxlen/blob/main/legal/${doc.path}`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+                className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline hover:bg-surface-100 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Icon className="h-3.5 w-3.5 text-brass-500 shrink-0" strokeWidth={1.75} />
+                  <span className="text-[12px] text-surface-900 truncate">{doc.label}</span>
+                </div>
+                <ExternalLink className="h-3 w-3 text-surface-600 shrink-0" strokeWidth={1.75} />
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10.5px] text-surface-600 leading-snug mt-2 italic font-display">
+          Governed by the laws of New Zealand. Questions: legal@marcoreid.com.
+        </p>
+      </div>
 
       {/* Request permissions button */}
       {status && !allGranted && (

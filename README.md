@@ -2,7 +2,7 @@
 
 AI-powered voice dictation and grammar correction for macOS, Windows, and Linux, with a companion iOS keyboard.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Licence: Proprietary](https://img.shields.io/badge/Licence-Proprietary-8a6b2f.svg)](./LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](#installation)
 [![iOS Keyboard](https://img.shields.io/badge/iOS-Keyboard%20Extension-black.svg)](./ios)
 
@@ -101,9 +101,20 @@ Shortcuts are customizable in Settings.
 
 Contributions are welcome. Please read [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) before opening a pull request.
 
-## License
+## Licence and legal
 
-Released under the [MIT License](./LICENSE).
+Marco Reid Voice is a proprietary commercial product. Use of the Software
+is governed by the [End User Licence Agreement](./legal/EULA.md), the
+[Terms of Service](./legal/TERMS.md), the
+[Privacy Policy](./legal/PRIVACY_POLICY.md), the
+[Acceptable Use Policy](./legal/ACCEPTABLE_USE.md), and, for business
+customers, the [Data Processing Addendum](./legal/DPA.md). The index of all
+legal documents is in [`legal/README.md`](./legal/README.md).
+
+Open-source components that Marco Reid Voice incorporates are listed,
+together with their licences, in
+[`legal/THIRD_PARTY_NOTICES.md`](./legal/THIRD_PARTY_NOTICES.md). Those
+components remain subject to their original licences.
 
 ## Changelog
 
