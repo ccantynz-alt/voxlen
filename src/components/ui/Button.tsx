@@ -24,18 +24,18 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marcoreid-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 disabled:opacity-50 disabled:pointer-events-none",
+          "inline-flex items-center justify-center gap-2 font-medium tracking-tight transition-all duration-200 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-50 disabled:opacity-50 disabled:pointer-events-none",
           {
-            // Variants
-            "bg-marcoreid-600 text-white hover:bg-marcoreid-700 active:bg-marcoreid-800 shadow-lg shadow-marcoreid-600/20":
+            // Variants — oxford navy with restrained brass accents, not neon.
+            "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900 text-surface-50 hover:from-marcoreid-600 hover:to-marcoreid-800 active:from-marcoreid-800 active:to-marcoreid-900 shadow-elevation shadow-inset-hairline":
               variant === "primary",
-            "bg-surface-200 text-surface-900 hover:bg-surface-300 active:bg-surface-400 border border-surface-300":
+            "bg-surface-100 text-surface-900 hover:bg-surface-200 active:bg-surface-300 border border-surface-300/70 shadow-inset-hairline":
               variant === "secondary",
-            "text-surface-800 hover:bg-surface-200 hover:text-surface-950":
+            "text-surface-700 hover:bg-surface-100/80 hover:text-surface-950":
               variant === "ghost",
-            "bg-red-600 text-white hover:bg-red-700 active:bg-red-800":
+            "bg-red-600/90 text-surface-50 hover:bg-red-600 active:bg-red-700 shadow-inset-hairline":
               variant === "danger",
-            "bg-marcoreid-600 text-white hover:bg-marcoreid-700 glow-blue":
+            "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900 text-brass-300 hover:from-marcoreid-600 hover:to-marcoreid-800 shadow-elevation shadow-inset-hairline":
               variant === "glow",
             // Sizes
             "h-8 px-3 text-xs": size === "sm",

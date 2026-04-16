@@ -182,19 +182,19 @@ export function HistoryPanel() {
   );
 
   return (
-    <div className="flex flex-col h-full p-6 gap-4">
-      {/* Header */}
+    <div className="flex flex-col h-full p-8 gap-5">
+      {/* Header — editorial, hairline separator. */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-surface-200">
-            <History className="h-5 w-5 text-surface-700" />
+        <div className="flex items-center gap-3.5">
+          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
+            <History className="h-4 w-4 text-brass-300" strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-surface-950">
-              Session History
+            <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
+              The <span className="italic text-brass-500">record</span>
             </h2>
-            <p className="text-xs text-surface-600">
-              {loading ? "Loading..." : `${sessions.length} session${sessions.length === 1 ? "" : "s"} recorded`}
+            <p className="text-[11px] text-surface-600 mt-0.5 leading-snug">
+              {loading ? "Loading…" : `${sessions.length} session${sessions.length === 1 ? "" : "s"} on file`}
             </p>
           </div>
         </div>
@@ -202,7 +202,7 @@ export function HistoryPanel() {
           <div className="flex items-center gap-2">
             {confirmClear ? (
               <>
-                <span className="text-xs text-surface-600">Clear all sessions?</span>
+                <span className="text-[11px] italic text-surface-600 font-display">Clear all sessions?</span>
                 <Button variant="danger" size="sm" onClick={handleClearAll}>
                   Yes, clear
                 </Button>
@@ -220,7 +220,7 @@ export function HistoryPanel() {
                 size="sm"
                 onClick={() => setConfirmClear(true)}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                 Clear all
               </Button>
             )}
@@ -228,28 +228,30 @@ export function HistoryPanel() {
         )}
       </div>
 
+      <div className="divider-brass" />
+
       {!saveTranscripts && (
-        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3">
-          <p className="text-xs text-amber-300">
-            Transcript saving is disabled. Enable it in Settings &gt; Privacy to keep your history.
+        <div className="rounded-md bg-amber-500/8 border border-amber-500/25 shadow-inset-hairline px-4 py-3">
+          <p className="text-[11px] text-amber-600 leading-snug">
+            Transcript saving is disabled. Enable it in <span className="italic">Settings &rsaquo; Privacy</span> to keep your history.
           </p>
         </div>
       )}
 
       {/* Search */}
       <Input
-        placeholder="Search transcripts..."
+        placeholder="Search transcripts…"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        icon={<Search className="h-4 w-4" />}
+        icon={<Search className="h-4 w-4" strokeWidth={1.75} />}
       />
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-          <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-red-400">
-            <p className="font-medium">Unable to load history</p>
+        <div className="flex items-start gap-2 p-3 rounded-md bg-red-500/8 border border-red-500/25 shadow-inset-hairline">
+          <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+          <div className="text-[11px]">
+            <p className="font-medium text-red-600">Unable to load history</p>
             <p className="text-surface-600 mt-0.5">{error}</p>
           </div>
         </div>
@@ -259,18 +261,19 @@ export function HistoryPanel() {
       <div className="flex-1 overflow-y-auto space-y-2">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="animate-pulse text-sm text-surface-600">Loading history...</div>
+            <div className="animate-pulse-soft text-[13px] italic text-surface-600 font-display">Loading history…</div>
           </div>
         ) : sortedSessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Calendar className="h-10 w-10 text-surface-500 mb-3" />
-            <p className="text-sm text-surface-700">
-              {searchQuery.trim() ? "No matching sessions" : "No sessions yet"}
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="divider-brass w-20 mb-4" />
+            <Calendar className="h-6 w-6 text-brass-500/70 mb-3" strokeWidth={1.5} />
+            <p className="font-display italic text-[14px] text-surface-800 tracking-tight-display">
+              {searchQuery.trim() ? "No matching sessions." : "No sessions yet."}
             </p>
-            <p className="text-xs text-surface-600 mt-1">
+            <p className="text-[11px] text-surface-600 mt-1.5">
               {searchQuery.trim()
-                ? "Try a different search term"
-                : "Start dictating to build your history"}
+                ? "Try a different search term."
+                : "Start dictating to build your record."}
             </p>
           </div>
         ) : (
@@ -280,7 +283,7 @@ export function HistoryPanel() {
             return (
               <div
                 key={session.id}
-                className="group rounded-xl bg-surface-100 border border-surface-300/50 hover:border-surface-400/50 transition-colors"
+                className="group rounded-md bg-surface-50 border border-surface-300/60 hover:border-surface-400/60 shadow-inset-hairline transition-colors"
               >
                 <button
                   onClick={() =>
@@ -289,18 +292,20 @@ export function HistoryPanel() {
                   className="w-full text-left p-4"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2 text-xs text-surface-600">
+                    <div className="flex items-center gap-2 text-[11px] text-surface-600 font-mono">
                       {expanded ? (
-                        <ChevronDown className="h-3 w-3" />
+                        <ChevronDown className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
                       ) : (
-                        <ChevronRight className="h-3 w-3" />
+                        <ChevronRight className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
                       )}
-                      <Clock className="h-3 w-3" />
-                      {session.startedAt.toLocaleDateString()} at{" "}
-                      {session.startedAt.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      <Clock className="h-3 w-3" strokeWidth={1.75} />
+                      <span className="tabular-nums">
+                        {session.startedAt.toLocaleDateString()} &middot;{" "}
+                        {session.startedAt.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
                     <div
                       className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -314,9 +319,9 @@ export function HistoryPanel() {
                         title="Copy transcript"
                       >
                         {copiedId === session.id ? (
-                          <Check className="h-3 w-3 text-green-400" />
+                          <Check className="h-3 w-3 text-brass-500" strokeWidth={2} />
                         ) : (
-                          <Copy className="h-3 w-3" />
+                          <Copy className="h-3 w-3" strokeWidth={1.75} />
                         )}
                       </Button>
                       <Button
@@ -326,7 +331,7 @@ export function HistoryPanel() {
                         className="h-7 px-2"
                         title="Export as .txt"
                       >
-                        <Download className="h-3 w-3" />
+                        <Download className="h-3 w-3" strokeWidth={1.75} />
                       </Button>
                       <Button
                         variant="ghost"
@@ -335,27 +340,31 @@ export function HistoryPanel() {
                         className="h-7 px-2"
                         title="Delete session"
                       >
-                        <Trash2 className="h-3 w-3 text-red-400" />
+                        <Trash2 className="h-3 w-3 text-red-500" strokeWidth={1.75} />
                       </Button>
                     </div>
                   </div>
-                  <p className="text-sm text-surface-900 leading-relaxed line-clamp-2">
+                  <p className="text-[13.5px] text-surface-900 leading-relaxed line-clamp-2 font-sans">
                     {preview}
                   </p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="text-[10px] text-surface-600">
+                  <div className="flex items-center gap-3 mt-2.5 font-mono">
+                    <span className="text-[10px] text-surface-600 tabular-nums">
                       {formatDuration(session.durationMs)}
                     </span>
-                    <span className="text-[10px] text-surface-600">
+                    <span className="text-surface-400">&middot;</span>
+                    <span className="text-[10px] text-surface-600 tabular-nums">
                       {session.wordCount} words
                     </span>
                     {session.language && (
-                      <span className="text-[10px] text-surface-600 uppercase">
-                        {session.language}
-                      </span>
+                      <>
+                        <span className="text-surface-400">&middot;</span>
+                        <span className="text-[10px] text-surface-600 uppercase tracking-wide-caps">
+                          {session.language}
+                        </span>
+                      </>
                     )}
                     {session.segments.some((s) => s.grammarApplied) && (
-                      <Badge variant="info" className="text-[10px] py-0">
+                      <Badge variant="success" className="ml-1">
                         Polished
                       </Badge>
                     )}
@@ -363,24 +372,26 @@ export function HistoryPanel() {
                 </button>
 
                 {expanded && (
-                  <div className="px-4 pb-4 border-t border-surface-300/30 pt-3 space-y-2">
+                  <div className="px-4 pb-4 border-t border-surface-300/40 pt-3 space-y-2">
                     {session.segments.length === 0 ? (
-                      <p className="text-xs text-surface-600">No segments in this session.</p>
+                      <p className="text-[11px] italic text-surface-600 font-display">No segments in this session.</p>
                     ) : (
                       session.segments.map((seg) => (
                         <div
                           key={seg.id}
-                          className="text-xs text-surface-900 p-2 rounded-md bg-surface-200/50"
+                          className="text-[12px] text-surface-900 p-3 rounded-md bg-surface-100/60 border border-surface-300/40"
                         >
-                          <div className="flex items-center gap-2 mb-1 text-[10px] text-surface-600">
-                            <Clock className="h-2.5 w-2.5" />
-                            {new Date(seg.timestampMs).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            })}
+                          <div className="flex items-center gap-2 mb-1.5 text-[10px] text-surface-600 font-mono">
+                            <Clock className="h-2.5 w-2.5" strokeWidth={1.75} />
+                            <span className="tabular-nums">
+                              {new Date(seg.timestampMs).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                              })}
+                            </span>
                             {seg.grammarApplied && (
-                              <Badge variant="info" className="text-[9px] py-0">
+                              <Badge variant="success" className="ml-1">
                                 Polished
                               </Badge>
                             )}
@@ -397,7 +408,7 @@ export function HistoryPanel() {
                         size="sm"
                         onClick={() => handleExport(session, "txt")}
                       >
-                        <Download className="h-3 w-3" />
+                        <Download className="h-3 w-3" strokeWidth={1.75} />
                         .txt
                       </Button>
                       <Button
@@ -405,7 +416,7 @@ export function HistoryPanel() {
                         size="sm"
                         onClick={() => handleExport(session, "md")}
                       >
-                        <Download className="h-3 w-3" />
+                        <Download className="h-3 w-3" strokeWidth={1.75} />
                         .md
                       </Button>
                       <Button
@@ -413,7 +424,7 @@ export function HistoryPanel() {
                         size="sm"
                         onClick={() => handleExport(session, "json")}
                       >
-                        <Download className="h-3 w-3" />
+                        <Download className="h-3 w-3" strokeWidth={1.75} />
                         .json
                       </Button>
                       <Button
@@ -421,7 +432,7 @@ export function HistoryPanel() {
                         size="sm"
                         onClick={() => handleExport(session, "srt")}
                       >
-                        <Download className="h-3 w-3" />
+                        <Download className="h-3 w-3" strokeWidth={1.75} />
                         .srt
                       </Button>
                     </div>

@@ -46,7 +46,7 @@ export function Select({
   return (
     <div className={cn("relative", className)} ref={ref}>
       {label && (
-        <label className="block text-xs font-medium text-surface-700 mb-1.5">
+        <label className="block text-[10px] font-medium uppercase tracking-wide-caps text-surface-600 mb-1.5">
           {label}
         </label>
       )}
@@ -55,29 +55,30 @@ export function Select({
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center justify-between w-full h-10 px-3 rounded-lg text-sm transition-colors",
-          "bg-surface-200 border border-surface-300 text-surface-900",
-          "hover:bg-surface-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marcoreid-500",
+          "flex items-center justify-between w-full h-10 px-3 rounded-md text-sm transition-colors shadow-inset-hairline",
+          "bg-surface-50 border border-surface-300/70 text-surface-900",
+          "hover:bg-surface-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/50",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          isOpen && "ring-2 ring-marcoreid-500"
+          isOpen && "ring-2 ring-brass-400/50 border-brass-400/40"
         )}
       >
         <div className="flex items-center gap-2 truncate">
           {selected?.icon}
-          <span className={!selected ? "text-surface-600" : ""}>
+          <span className={!selected ? "text-surface-600/70" : "font-medium"}>
             {selected?.label || placeholder}
           </span>
         </div>
         <ChevronDown
           className={cn(
-            "h-4 w-4 text-surface-600 transition-transform",
+            "h-3.5 w-3.5 text-surface-600 transition-transform",
             isOpen && "rotate-180"
           )}
+          strokeWidth={1.75}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg bg-surface-100 border border-surface-300 shadow-xl shadow-black/20 py-1 animate-slide-down">
+        <div className="absolute z-50 mt-1 w-full rounded-md bg-surface-50 border border-surface-300/80 shadow-elevation-lg shadow-inset-hairline py-1 animate-slide-down">
           {options.map((option) => (
             <button
               key={option.value}
@@ -87,23 +88,23 @@ export function Select({
               }}
               className={cn(
                 "flex items-center gap-2 w-full px-3 py-2 text-sm transition-colors",
-                "hover:bg-surface-200",
+                "hover:bg-surface-100",
                 option.value === value
-                  ? "text-marcoreid-400"
-                  : "text-surface-900"
+                  ? "text-surface-950 bg-surface-100/60"
+                  : "text-surface-800"
               )}
             >
               {option.icon}
               <div className="flex flex-col items-start flex-1 min-w-0">
-                <span className="truncate">{option.label}</span>
+                <span className={cn("truncate", option.value === value && "font-medium")}>{option.label}</span>
                 {option.description && (
-                  <span className="text-xs text-surface-600 truncate">
+                  <span className="text-[11px] text-surface-600 truncate">
                     {option.description}
                   </span>
                 )}
               </div>
               {option.value === value && (
-                <Check className="h-4 w-4 text-marcoreid-400 shrink-0" />
+                <Check className="h-4 w-4 text-brass-500 shrink-0" strokeWidth={2} />
               )}
             </button>
           ))}
