@@ -8,8 +8,10 @@ import {
   Shield,
   Zap,
   KeyRound,
+  Sparkles,
 } from "lucide-react";
 import { LicenseSettings } from "./LicenseSettings";
+import { FlywheelSettings } from "./FlywheelSettings";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
@@ -24,6 +26,7 @@ const tabs = [
   { id: "audio", label: "Audio", icon: Mic },
   { id: "stt", label: "Speech Engine", icon: Cpu },
   { id: "grammar", label: "Grammar AI", icon: SpellCheck },
+  { id: "learning", label: "Learning", icon: Sparkles },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "advanced", label: "Advanced", icon: Zap },
@@ -175,6 +178,8 @@ export function SettingsPanel() {
         return <SttSettings />;
       case "grammar":
         return <GrammarSettings />;
+      case "learning":
+        return <FlywheelSettings />;
       case "shortcuts":
         return <ShortcutSettings />;
       case "appearance":
@@ -832,7 +837,7 @@ function PrivacySettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Privacy"
-        description="Your data, your control. Marco Reid Voice can work fully offline with local models."
+        description="Your data, your control. Audio streams device-to-provider on zero-retention endpoints — never routed through Voxlen servers."
       />
 
       <SettingRow>
@@ -860,23 +865,23 @@ function PrivacySettings() {
         <ul className="space-y-1.5 text-[12px] text-surface-700 leading-relaxed">
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Audio is never stored on our servers.
+            Audio never passes through Voxlen servers. It streams direct to the speech provider on zero-retention endpoints.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Use Whisper Local for fully offline operation.
+            Grammar text goes direct to Anthropic or OpenAI on zero-retention endpoints.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            API keys are stored locally on your device.
+            API keys and your licence live in your OS keychain (Keychain / Credential Manager / Secret Service).
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            No data is shared with third parties.
+            Learned vocabulary and correction patterns stay on this device and never leave it.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            You can delete all local data at any time.
+            You can delete all local data any time — transcripts, learning data, or the whole settings store.
           </li>
         </ul>
       </div>
