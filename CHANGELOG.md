@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.0.2] - 2026-04-16
+
+### Added
+- Law-firm visual polish across every surface (oxford navy + brass + Fraunces display). Replaces the earlier high-contrast "neon" treatment with a restrained editorial aesthetic.
+- Aggressive legal compliance pack in `legal/`:
+  - End User Licence Agreement (proprietary)
+  - Terms of Service (NZ-governed, NZIAC arbitration, class-action waiver)
+  - Privacy Policy (GDPR / UK GDPR / NZ Privacy Act / APPs / CCPA-CPRA / FADP)
+  - Acceptable Use Policy
+  - Data Processing Addendum + SCC/UK-IDTA appendix
+  - Sub-processors list
+  - Third-party notices
+  - Copyright / trademark / DMCA policy
+- Onboarding consent gating: two required checkboxes (legal acceptance + professional authority/review confirmation) plus plaintext-at-rest advisory before first use.
+- Settings → Legal & compliance panel linking every document.
+- `legalAcceptedVersion` + `legalAcceptedAt` persisted to settings for future policy-version re-prompts.
+
+### Changed
+- LICENSE: proprietary commercial licence notice (was MIT).
+- README: licence section now points at the full `legal/` directory.
+
+## [1.0.1] - 2026-04-16
+
+### Changed
+- Version bump for fresh release tag (no code changes beyond version strings; the 1.0.0 tag existed from earlier failed CI runs without any published installers).
+
 ## [Unreleased]
 
 ### Planned for v1.1
