@@ -23,6 +23,9 @@ import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { useHistoryStore } from "@/stores/history";
 import { useFlywheelStore } from "@/stores/flywheel";
+import { useEntitlementStore } from "@/stores/entitlement";
+import { useUsageStore } from "@/stores/usage";
+import { FREE_WEEKLY_WORD_CAP } from "@/stores/entitlement";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -38,6 +41,12 @@ export function DictationPanel() {
   const devices = useAudioStore((s) => s.devices);
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
   const showWaveform = useSettingsStore((s) => s.showWaveform);
+  const tier = useEntitlementStore((s) => s.tier);
+  const weeklyWordsUsed = useUsageStore((s) => s.wordsUsed);
+  const recordWeeklyWords = useUsageStore((s) => s.recordWords);
+  const isFree = tier === "free";
+  const weeklyRemaining = Math.max(0, FREE_WEEKLY_WORD_CAP - weeklyWordsUsed);
+  const overFreeCap = isFree && weeklyRemaining === 0;
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
@@ -66,6 +75,10 @@ export function DictationPanel() {
 
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused") {
+      if (overFreeCap) {
+        // Free tier has exhausted the weekly cap. Don't start a session.
+        return;
+      }
       sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
@@ -102,10 +115,13 @@ export function DictationPanel() {
 
         const engine = useSettingsStore.getState().sttEngine;
         useFlywheelStore.getState().recordSession(wc, currentDuration, engine);
+        // Weekly meter is only enforced for Free, but we record for all tiers
+        // so the UI is accurate the moment a license is revoked or expires.
+        recordWeeklyWords(wc);
       }
       setStatus("idle");
     }
-  }, [status, setStatus]);
+  }, [status, setStatus, overFreeCap, recordWeeklyWords]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
@@ -195,6 +211,14 @@ export function DictationPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Free-tier weekly word meter. Hidden for paid tiers. */}
+      {isFree && (
+        <FreeTierMeter
+          used={weeklyWordsUsed}
+          cap={FREE_WEEKLY_WORD_CAP}
+          remaining={weeklyRemaining}
+        />
+      )}
       {/* Main dictation area */}
       <div className="flex-1 flex flex-col p-8 gap-7 overflow-hidden">
         {/* Mic control + waveform */}
@@ -206,11 +230,15 @@ export function DictationPanel() {
             )}
             <button
               onClick={handleToggleDictation}
+              disabled={overFreeCap && !isActive}
+              title={overFreeCap && !isActive ? "Free tier cap reached — upgrade to continue" : undefined}
               className={cn(
                 "relative z-10 flex items-center justify-center w-[84px] h-[84px] rounded-full transition-all duration-300 shadow-inset-hairline",
                 isActive
                   ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation-lg scale-105"
-                  : "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-700 hover:from-surface-200 hover:to-surface-300 hover:text-surface-900 shadow-elevation"
+                  : overFreeCap
+                    ? "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-500 opacity-50 cursor-not-allowed shadow-elevation"
+                    : "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-700 hover:from-surface-200 hover:to-surface-300 hover:text-surface-900 shadow-elevation"
               )}
             >
               {isActive ? (
@@ -359,6 +387,67 @@ export function DictationPanel() {
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface FreeTierMeterProps {
+  used: number;
+  cap: number;
+  remaining: number;
+}
+
+function FreeTierMeter({ used, cap, remaining }: FreeTierMeterProps) {
+  const pct = Math.min(100, Math.round((used / cap) * 100));
+  const depleted = remaining === 0;
+  const warning = !depleted && remaining <= cap * 0.2;
+  const barColour = depleted
+    ? "bg-red-500"
+    : warning
+      ? "bg-amber-500"
+      : "bg-brass-500";
+  const copy = depleted
+    ? "Weekly free cap reached — upgrade to keep dictating"
+    : warning
+      ? `${remaining} words left this week`
+      : `${used} / ${cap} words used this week`;
+
+  return (
+    <div className="px-6 py-2 border-b border-surface-300/50 bg-surface-50/70">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <span className="label-caps">Free tier</span>
+            <span
+              className={cn(
+                "font-mono text-[11px] tabular-nums",
+                depleted ? "text-red-600" : warning ? "text-amber-600" : "text-surface-700"
+              )}
+            >
+              {copy}
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-surface-300/60 overflow-hidden">
+            <div
+              className={cn("h-full transition-all duration-300", barColour)}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+        <a
+          href="https://voxlen.ai/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            "inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-[11px] font-medium tracking-tight whitespace-nowrap transition-colors",
+            depleted
+              ? "border-brass-500 bg-brass-500 text-marcoreid-900 hover:bg-brass-400"
+              : "border-surface-300 text-surface-800 hover:border-brass-500 hover:text-marcoreid-900"
+          )}
+        >
+          Upgrade
+        </a>
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
 import { useEntitlementStore } from "@/stores/entitlement";
+import { useUsageStore } from "@/stores/usage";
 
 type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
@@ -48,6 +49,7 @@ export default function App() {
   // which tier the user is on before any command is invoked.
   useEffect(() => {
     useEntitlementStore.getState().refresh();
+    useUsageStore.getState().load();
   }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
