@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
+use crate::secrets::{self, Secret};
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
     // Audio
@@ -99,19 +101,62 @@ impl Default for AppSettings {
 
 /// Read the currently-persisted license key (if any) from the in-memory
 /// settings cache. Used by gated commands and by the `license` command
-/// module.
+/// module. Backed by the OS keyring via the `secrets` module.
 pub fn current_license_key() -> Option<String> {
     get_settings_store().read().license_key.clone()
 }
 
-/// Set (or clear) the license key and persist settings to disk.
-pub fn set_license_key(app: &AppHandle, key: Option<String>) -> Result<(), String> {
-    {
-        let mut s = get_settings_store().write();
-        s.license_key = key;
+/// Set (or clear) the license key. Persists to the OS keyring (not to
+/// disk) and refreshes the in-memory cache.
+pub fn set_license_key(_app: &AppHandle, key: Option<String>) -> Result<(), String> {
+    secrets::write(Secret::LicenseKey, key.as_deref())?;
+    get_settings_store().write().license_key = key;
+    Ok(())
+}
+
+/// Fields that live in the OS keyring rather than the plain-text store.
+/// Stripped from the struct before it is persisted to disk and re-hydrated
+/// on load.
+fn strip_secrets(settings: &mut AppSettings) {
+    settings.license_key = None;
+    settings.stt_api_key = None;
+    settings.grammar_api_key = None;
+}
+
+/// Hydrate secrets from the OS keyring into an in-memory settings snapshot.
+fn hydrate_secrets(settings: &mut AppSettings) {
+    settings.license_key = secrets::read(Secret::LicenseKey);
+    settings.stt_api_key = secrets::read(Secret::SttApiKey);
+    settings.grammar_api_key = secrets::read(Secret::GrammarApiKey);
+}
+
+/// Migrate secrets that were previously written to the plain-text store
+/// into the OS keyring, then wipe them from the on-disk snapshot. Safe to
+/// call on every startup; becomes a no-op after the first successful run.
+fn migrate_plaintext_secrets(app: &AppHandle, loaded: &mut AppSettings) -> Result<(), String> {
+    let mut migrated = false;
+    if let Some(v) = loaded.license_key.clone().filter(|s| !s.is_empty()) {
+        if secrets::write(Secret::LicenseKey, Some(&v)).is_ok() {
+            migrated = true;
+        }
     }
-    let snapshot = get_settings_store().read().clone();
-    persist_settings(app, &snapshot)
+    if let Some(v) = loaded.stt_api_key.clone().filter(|s| !s.is_empty()) {
+        if secrets::write(Secret::SttApiKey, Some(&v)).is_ok() {
+            migrated = true;
+        }
+    }
+    if let Some(v) = loaded.grammar_api_key.clone().filter(|s| !s.is_empty()) {
+        if secrets::write(Secret::GrammarApiKey, Some(&v)).is_ok() {
+            migrated = true;
+        }
+    }
+    if migrated {
+        let mut stripped = loaded.clone();
+        strip_secrets(&mut stripped);
+        persist_settings(app, &stripped)?;
+        log::info!("Migrated plain-text secrets to OS keyring.");
+    }
+    Ok(())
 }
 
 const SETTINGS_STORE_FILE: &str = "settings.json";
@@ -128,7 +173,10 @@ fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), Strin
     let store = app
         .store(SETTINGS_STORE_FILE)
         .map_err(|e| e.to_string())?;
-    let value = serde_json::to_value(settings).map_err(|e| e.to_string())?;
+    // Never write secrets to the on-disk store; they live in the keyring.
+    let mut sanitised = settings.clone();
+    strip_secrets(&mut sanitised);
+    let value = serde_json::to_value(&sanitised).map_err(|e| e.to_string())?;
     store.set(SETTINGS_KEY, value);
     store.save().map_err(|e| e.to_string())?;
     Ok(())
@@ -141,6 +189,10 @@ pub fn get_settings() -> Result<AppSettings, String> {
 
 #[tauri::command]
 pub fn update_settings(app: AppHandle, settings: AppSettings) -> Result<(), String> {
+    // Route secrets to the OS keyring; everything else to the on-disk store.
+    secrets::write(Secret::LicenseKey, settings.license_key.as_deref())?;
+    secrets::write(Secret::SttApiKey, settings.stt_api_key.as_deref())?;
+    secrets::write(Secret::GrammarApiKey, settings.grammar_api_key.as_deref())?;
     *get_settings_store().write() = settings.clone();
     persist_settings(&app, &settings)?;
     Ok(())
@@ -148,6 +200,10 @@ pub fn update_settings(app: AppHandle, settings: AppSettings) -> Result<(), Stri
 
 #[tauri::command]
 pub fn reset_settings(app: AppHandle) -> Result<AppSettings, String> {
+    // Clear keyring-backed secrets as part of the reset.
+    let _ = secrets::write(Secret::LicenseKey, None);
+    let _ = secrets::write(Secret::SttApiKey, None);
+    let _ = secrets::write(Secret::GrammarApiKey, None);
     let defaults = AppSettings::default();
     *get_settings_store().write() = defaults.clone();
     persist_settings(&app, &defaults)?;
@@ -163,7 +219,7 @@ pub fn load_settings_from_disk(app: AppHandle) -> Result<AppSettings, String> {
         .store(SETTINGS_STORE_FILE)
         .map_err(|e| e.to_string())?;
 
-    let loaded = match store.get(SETTINGS_KEY) {
+    let mut loaded = match store.get(SETTINGS_KEY) {
         Some(value) => match serde_json::from_value::<AppSettings>(value) {
             Ok(s) => s,
             Err(e) => {
@@ -186,6 +242,13 @@ pub fn load_settings_from_disk(app: AppHandle) -> Result<AppSettings, String> {
             defaults
         }
     };
+
+    // Move any plain-text secrets into the keyring before hydrating from it.
+    // This is a one-shot migration for installs upgrading from pre-keyring builds.
+    if let Err(e) = migrate_plaintext_secrets(&app, &mut loaded) {
+        log::warn!("Secret migration failed: {}", e);
+    }
+    hydrate_secrets(&mut loaded);
 
     *get_settings_store().write() = loaded.clone();
     Ok(loaded)

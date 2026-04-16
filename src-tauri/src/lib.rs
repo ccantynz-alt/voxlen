@@ -1,6 +1,7 @@
 mod audio;
 mod commands;
 mod license;
+mod secrets;
 mod stt;
 mod text_injection;
 
