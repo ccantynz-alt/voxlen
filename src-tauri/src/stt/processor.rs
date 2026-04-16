@@ -4,7 +4,7 @@ use crossbeam_channel::Receiver;
 use tauri::{AppHandle, Emitter};
 
 use crate::audio::{AudioChunk, DictationStatus};
-use super::{SttEngine, TranscriptionResult};
+use super::SttEngine;
 
 /// Processes audio chunks from the capture thread and sends them to STT
 pub struct AudioProcessor {
@@ -78,8 +78,8 @@ impl AudioProcessor {
                                 samples
                             };
 
-                            let engine = stt_engine.read();
-                            match engine.transcribe(&resampled, 16000).await {
+                            let config = stt_engine.read().get_config();
+                            match super::transcribe_audio(&resampled, 16000, config).await {
                                 Ok(result) => {
                                     if !result.text.trim().is_empty() {
                                         log::info!("Transcription: {}", result.text);
@@ -116,8 +116,8 @@ impl AudioProcessor {
                                     samples
                                 };
 
-                                let engine = stt_engine.read();
-                                match engine.transcribe(&resampled, 16000).await {
+                                let config = stt_engine.read().get_config();
+                                match super::transcribe_audio(&resampled, 16000, config).await {
                                     Ok(result) => {
                                         if !result.text.trim().is_empty() {
                                             let _ = app_handle.emit("transcription", &result);

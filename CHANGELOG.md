@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.5] - 2026-04-17
+
+### Fixed
+- **Rust compile (all 4 CI platforms)**: resolved the compile errors that blocked every prior release (v1.0.0 through v1.0.4 never produced installers):
+  - Added missing `use tauri::Emitter` in `src-tauri/src/lib.rs` so `WebviewWindow::emit()` resolves.
+  - Fixed a `parking_lot::RwLock` read guard being held across `.await` in `src-tauri/src/stt/processor.rs` — the future became non-`Send` and wouldn't spawn on `tokio::spawn`. Config is now cloned out before the await.
+  - Added a module-level `transcribe_audio()` helper in `src-tauri/src/stt/mod.rs` so the processor can transcribe without re-entering the lock.
+  - Rewrote `commands::audio::get_selected_device` to land the read-guard result into a local before constructing the `Result`, fixing a borrow-check lifetime error.
+- Fixes originally identified by Copilot's build-repair agent on `copilot/fix-build-errors`; re-applied here onto mainline.
+
 ## [1.0.4] - 2026-04-16
 
 ### Changed

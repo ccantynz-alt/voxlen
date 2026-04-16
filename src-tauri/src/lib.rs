@@ -4,6 +4,7 @@ mod stt;
 mod text_injection;
 
 use tauri::{
+    Emitter,
     Manager,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
