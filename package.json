@@ -1,8 +1,8 @@
 {
-  "name": "voxlen",
+  "name": "marco-reid-voice",
   "private": true,
-  "version": "1.0.0",
-  "description": "Voxlen - AI-Powered Voice Dictation. The most advanced dictation tool available.",
+  "version": "1.0.5",
+  "description": "Marco Reid Voice - the platform input layer for Marco Reid. Voice-first dictation and commands for legal and accounting professionals across desktop, mobile, and web.",
   "type": "module",
   "scripts": {
     "dev": "vite",

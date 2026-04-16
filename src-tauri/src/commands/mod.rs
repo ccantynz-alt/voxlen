@@ -1,6 +1,8 @@
 pub mod audio;
 pub mod dictation;
 pub mod grammar;
+pub mod history;
+pub mod permissions;
 pub mod settings;
 pub mod stt;
 pub mod text_injection;

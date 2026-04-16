@@ -6,19 +6,38 @@ export default {
   theme: {
     extend: {
       colors: {
-        voxlen: {
-          50: "#eef4ff",
-          100: "#d9e5ff",
-          200: "#bcd2ff",
-          300: "#8eb4ff",
-          400: "#598bff",
-          500: "#3366ff",
-          600: "#1a45f5",
-          700: "#1333e1",
-          800: "#162bb6",
-          900: "#18298f",
-          950: "#141b57",
+        // Primary brand — deep oxford navy with a slightly warm undertone.
+        // Reads as "senior counsel", not "80s neon."
+        marcoreid: {
+          50: "#f4f6fb",
+          100: "#e6ebf4",
+          200: "#c5cfe3",
+          300: "#97a7c9",
+          400: "#6279a7",
+          500: "#3f5888",
+          600: "#2a4270",
+          700: "#1f3058",
+          800: "#162340",
+          900: "#101a30",
+          950: "#070c1c",
         },
+        // Restrained brass for active indicators, dividers, small accents.
+        // Never loud; used like a pen-nib highlight.
+        brass: {
+          50: "#fbf7ec",
+          100: "#f4eacc",
+          200: "#e9d597",
+          300: "#dabc5e",
+          400: "#c9a13b",
+          500: "#b0872c",
+          600: "#8f6b23",
+          700: "#6e511c",
+          800: "#523d18",
+          900: "#3a2b13",
+          950: "#201708",
+        },
+        // Warm ink charcoal (dark) / warm parchment (light) — overridden per
+        // theme in globals.css.
         surface: {
           0: "var(--surface-0)",
           50: "var(--surface-50)",
@@ -35,9 +54,18 @@ export default {
         },
       },
       fontFamily: {
+        // Editorial serif for display — headings, brand, big stats.
+        display: [
+          "Fraunces",
+          "Source Serif Pro",
+          "Charter",
+          "Georgia",
+          "serif",
+        ],
+        // Body + UI stays clean sans-serif.
         sans: [
           "Inter",
-          "SF Pro Display",
+          "SF Pro Text",
           "-apple-system",
           "BlinkMacSystemFont",
           "Segoe UI",
@@ -46,17 +74,23 @@ export default {
         ],
         mono: ["JetBrains Mono", "SF Mono", "Fira Code", "monospace"],
       },
+      boxShadow: {
+        // Multi-layer, soft, warm — replaces hard neon glows.
+        elevation: "0 1px 2px rgba(10,11,17,0.08), 0 8px 24px rgba(10,11,17,0.12)",
+        "elevation-lg": "0 2px 4px rgba(10,11,17,0.1), 0 16px 48px rgba(10,11,17,0.18)",
+        "inset-hairline": "inset 0 0 0 1px rgba(255,255,255,0.04)",
+      },
       animation: {
-        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
-        "waveform": "waveform 1.2s ease-in-out infinite",
-        "fade-in": "fade-in 0.2s ease-out",
-        "slide-up": "slide-up 0.3s ease-out",
-        "slide-down": "slide-down 0.3s ease-out",
+        "pulse-soft": "pulse-soft 2.8s ease-in-out infinite",
+        "waveform": "waveform 1.4s ease-in-out infinite",
+        "fade-in": "fade-in 0.35s ease-out",
+        "slide-up": "slide-up 0.4s cubic-bezier(0.22,1,0.36,1)",
+        "slide-down": "slide-down 0.4s cubic-bezier(0.22,1,0.36,1)",
       },
       keyframes: {
-        "pulse-glow": {
-          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
-          "50%": { opacity: "1", transform: "scale(1.05)" },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "0.55", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.03)" },
         },
         "waveform": {
           "0%, 100%": { height: "4px" },
@@ -77,6 +111,10 @@ export default {
       },
       backdropBlur: {
         xs: "2px",
+      },
+      letterSpacing: {
+        "tight-display": "-0.015em",
+        "wide-caps": "0.12em",
       },
     },
   },

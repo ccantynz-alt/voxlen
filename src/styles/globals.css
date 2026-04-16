@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -55,17 +55,116 @@
 }
 
 @layer base {
+  :root {
+    --voxlen-font-size: 14px;
+  }
+
   * {
     @apply border-surface-300;
   }
 
+  /* Dark theme (default) — warm ink on charcoal, not cold slate. */
+  .dark body,
   body {
     @apply bg-surface-0 text-surface-900 font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "cv11", "calt";
+    background-image:
+      radial-gradient(
+        ellipse 80% 60% at 50% 0%,
+        rgba(42, 66, 112, 0.15) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 85% 100%,
+        rgba(201, 161, 59, 0.05) 0%,
+        transparent 60%
+      );
+    background-attachment: fixed;
   }
 
-  /* Custom scrollbar */
+  /* Light theme — warm parchment, not cold slate. */
+  .light body {
+    background-color: #faf7f0;
+    color: #1a1f2e;
+    background-image:
+      radial-gradient(
+        ellipse 80% 60% at 50% 0%,
+        rgba(42, 66, 112, 0.04) 0%,
+        transparent 60%
+      );
+  }
+
+  .light .bg-surface-0 {
+    background-color: #ffffff;
+  }
+  .light .bg-surface-50 {
+    background-color: #faf7f0;
+  }
+  .light .bg-surface-100 {
+    background-color: #f3efe5;
+  }
+  .light .bg-surface-200 {
+    background-color: #e8e3d4;
+  }
+  .light .bg-surface-300 {
+    background-color: #d5cfbc;
+  }
+  .light .bg-surface-400 {
+    background-color: #a8a193;
+  }
+
+  .light .text-surface-600 {
+    color: #6e6a5e;
+  }
+  .light .text-surface-700 {
+    color: #4a4740;
+  }
+  .light .text-surface-800 {
+    color: #2e2c27;
+  }
+  .light .text-surface-900 {
+    color: #1a1f2e;
+  }
+  .light .text-surface-950 {
+    color: #0c0f19;
+  }
+
+  .light .border-surface-300 {
+    border-color: #e0dac8;
+  }
+  .light .border-surface-300\/50 {
+    border-color: rgba(224, 218, 200, 0.5);
+  }
+  .light .border-surface-300\/30 {
+    border-color: rgba(224, 218, 200, 0.3);
+  }
+  .light .border-surface-400\/50 {
+    border-color: rgba(168, 161, 147, 0.5);
+  }
+
+  .light .bg-surface-200\/50 {
+    background-color: rgba(232, 227, 212, 0.5);
+  }
+  .light .bg-surface-100\/80 {
+    background-color: rgba(243, 239, 229, 0.85);
+  }
+  .light .bg-surface-50\/50 {
+    background-color: rgba(250, 247, 240, 0.65);
+  }
+
+  .light .hover\:bg-surface-200:hover {
+    background-color: #e8e3d4;
+  }
+  .light .hover\:bg-surface-300:hover {
+    background-color: #d5cfbc;
+  }
+  .light .hover\:text-surface-900:hover {
+    color: #1a1f2e;
+  }
+
+  /* Custom scrollbar — refined, almost invisible. */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -76,59 +175,110 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-surface-400 rounded-full;
+    @apply bg-surface-400/60 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-surface-500;
   }
 
-  /* Prevent text selection on drag areas */
+  .light ::-webkit-scrollbar-thumb {
+    background-color: rgba(168, 161, 147, 0.5);
+  }
+
+  .light ::-webkit-scrollbar-thumb:hover {
+    background-color: #6e6a5e;
+  }
+
+  /* Drag regions unselectable */
   [data-tauri-drag-region] {
     -webkit-user-select: none;
     user-select: none;
   }
+
+  /* Serif display on all h1/h2 by default — typographic calm. */
+  h1, h2 {
+    @apply font-display tracking-tight-display;
+    font-optical-sizing: auto;
+  }
 }
 
 @layer components {
+  /* Refined glass surface — layered, with hairline inset. */
   .glass {
-    @apply bg-surface-100/80 backdrop-blur-xl border border-surface-300/50;
+    @apply bg-surface-100/85 backdrop-blur-xl border border-surface-300/60 shadow-inset-hairline;
+  }
+
+  .light .glass {
+    background-color: rgba(255, 253, 248, 0.88);
+    border-color: rgba(224, 218, 200, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(26, 31, 46, 0.03);
   }
 
   .glass-hover {
-    @apply hover:bg-surface-200/80 transition-colors duration-150;
+    @apply hover:bg-surface-200/70 transition-colors duration-200;
   }
 
-  .glow-blue {
-    box-shadow: 0 0 20px rgba(51, 102, 255, 0.3),
-                0 0 60px rgba(51, 102, 255, 0.1);
+  /* Elevation tokens — warm, soft, multi-layer instead of neon glow. */
+  .elev-1 {
+    @apply shadow-elevation;
   }
 
-  .glow-red {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3),
-                0 0 60px rgba(239, 68, 68, 0.1);
+  .elev-2 {
+    @apply shadow-elevation-lg;
   }
 
-  .glow-green {
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3),
-                0 0 60px rgba(34, 197, 94, 0.1);
+  /* Brass accent for live/active indicators — restrained pen-nib highlight. */
+  .accent-brass {
+    color: theme("colors.brass.400");
+  }
+
+  .divider-brass {
+    background-image: linear-gradient(
+      to right,
+      transparent,
+      theme("colors.brass.500" / 35%),
+      transparent
+    );
+    height: 1px;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-voxlen-400 to-voxlen-600;
+    @apply bg-clip-text text-transparent font-display;
+    background-image: linear-gradient(
+      135deg,
+      theme("colors.marcoreid.300"),
+      theme("colors.brass.400")
+    );
   }
 
+  .light .text-gradient {
+    background-image: linear-gradient(
+      135deg,
+      theme("colors.marcoreid.700"),
+      theme("colors.brass.700")
+    );
+  }
+
+  /* Dictation halo — warm brass shimmer, not electric blue. */
   .dictation-pulse {
-    animation: dictation-pulse 2s ease-in-out infinite;
+    animation: dictation-pulse 2.6s ease-in-out infinite;
   }
 
   @keyframes dictation-pulse {
     0%, 100% {
-      box-shadow: 0 0 0 0 rgba(51, 102, 255, 0.4);
+      box-shadow: 0 0 0 0 rgba(201, 161, 59, 0.32),
+                  0 0 0 0 rgba(42, 66, 112, 0.12);
     }
     50% {
-      box-shadow: 0 0 0 12px rgba(51, 102, 255, 0);
+      box-shadow: 0 0 0 14px rgba(201, 161, 59, 0),
+                  0 0 0 28px rgba(42, 66, 112, 0);
     }
+  }
+
+  /* Label caps — small-caps style label for metadata rows. */
+  .label-caps {
+    @apply text-[10px] font-medium uppercase tracking-wide-caps text-surface-600;
   }
 }
 

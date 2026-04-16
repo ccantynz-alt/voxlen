@@ -31,12 +31,12 @@ export function Switch({
       {(label || description) && (
         <div className="flex flex-col">
           {label && (
-            <span className="text-sm font-medium text-surface-900">
+            <span className="text-sm font-medium text-surface-900 tracking-tight">
               {label}
             </span>
           )}
           {description && (
-            <span className="text-xs text-surface-700 mt-0.5">
+            <span className="text-[11px] text-surface-600 mt-0.5 leading-snug">
               {description}
             </span>
           )}
@@ -48,18 +48,18 @@ export function Switch({
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
         className={cn(
-          "relative inline-flex shrink-0 rounded-full transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-voxlen-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0",
+          "relative inline-flex shrink-0 rounded-full transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-50 shadow-inset-hairline",
           {
             "h-5 w-9": size === "sm",
             "h-6 w-11": size === "md",
-            "bg-voxlen-600": checked,
-            "bg-surface-400": !checked,
+            "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900": checked,
+            "bg-surface-300": !checked,
           }
         )}
       >
         <span
           className={cn(
-            "pointer-events-none inline-block rounded-full bg-white shadow-lg transform transition-transform duration-200 ease-in-out",
+            "pointer-events-none inline-block rounded-full bg-surface-50 shadow-elevation transform transition-transform duration-200 ease-in-out",
             {
               "h-4 w-4": size === "sm",
               "h-5 w-5": size === "md",

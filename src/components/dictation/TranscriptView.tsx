@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useDictationStore } from "@/stores/dictation";
+import { useSettingsStore } from "@/stores/settings";
 import { Copy, Check, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatTimestamp } from "@/lib/utils";
@@ -17,6 +18,7 @@ export function TranscriptView({
   const segments = useDictationStore((s) => s.segments);
   const currentTranscript = useDictationStore((s) => s.currentTranscript);
   const status = useDictationStore((s) => s.status);
+  const fontSize = useSettingsStore((s) => s.fontSize);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = React.useState(false);
 
@@ -46,13 +48,13 @@ export function TranscriptView({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-xl bg-surface-100 border border-surface-300/50 overflow-hidden",
+        "flex flex-col rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline overflow-hidden",
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-300/50">
-        <span className="text-xs font-medium text-surface-700">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-300/50 bg-surface-50/60">
+        <span className="label-caps">
           Transcript
         </span>
         <div className="flex items-center gap-1">
@@ -61,9 +63,9 @@ export function TranscriptView({
               variant="ghost"
               size="sm"
               onClick={() => onCorrectGrammar(fullText)}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-[11px]"
             >
-              <Wand2 className="h-3 w-3" />
+              <Wand2 className="h-3 w-3" strokeWidth={1.75} />
               Polish
             </Button>
           )}
@@ -72,12 +74,12 @@ export function TranscriptView({
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-[11px]"
             >
               {copied ? (
-                <Check className="h-3 w-3 text-green-400" />
+                <Check className="h-3 w-3 text-brass-500" strokeWidth={2} />
               ) : (
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3 w-3" strokeWidth={1.75} />
               )}
               {copied ? "Copied" : "Copy"}
             </Button>
@@ -88,43 +90,30 @@ export function TranscriptView({
       {/* Transcript content */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 min-h-[200px] max-h-[500px]"
+        className="flex-1 overflow-y-auto p-5 min-h-[200px] max-h-[500px]"
+        style={{ fontSize: `${fontSize}px` }}
       >
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <div className="w-12 h-12 rounded-full bg-surface-200 flex items-center justify-center mb-3">
-              <svg
-                className="h-5 w-5 text-surface-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                />
-              </svg>
-            </div>
-            <p className="text-sm text-surface-700 font-medium">
-              No transcript yet
+            <div className="divider-brass w-20 mb-4" />
+            <p className="font-display italic text-[14px] text-surface-800 tracking-tight-display">
+              No transcript yet.
             </p>
-            <p className="text-xs text-surface-600 mt-1">
-              Start dictating to see your words appear here
+            <p className="text-[11px] text-surface-600 mt-1.5">
+              Start dictating to see your words appear here.
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {segments.map((segment) => (
               <div key={segment.id} className="group animate-fade-in">
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] text-surface-600 font-mono mt-1 shrink-0">
+                <div className="flex items-start gap-3">
+                  <span className="text-[10px] text-surface-600 font-mono tabular-nums mt-1 shrink-0">
                     {formatTimestamp(segment.timestamp)}
                   </span>
                   <p
                     className={cn(
-                      "text-sm leading-relaxed",
+                      "leading-relaxed",
                       segment.correctedText
                         ? "text-surface-950"
                         : "text-surface-900"
@@ -132,8 +121,8 @@ export function TranscriptView({
                   >
                     {segment.correctedText || segment.text}
                     {segment.grammarApplied && (
-                      <span className="inline-flex ml-1">
-                        <Wand2 className="h-3 w-3 text-voxlen-400" />
+                      <span className="inline-flex ml-1.5 align-middle">
+                        <Wand2 className="h-3 w-3 text-brass-500" strokeWidth={1.75} />
                       </span>
                     )}
                   </p>
@@ -143,14 +132,14 @@ export function TranscriptView({
 
             {/* Live transcription indicator */}
             {currentTranscript && (
-              <div className="flex items-start gap-2 animate-fade-in">
-                <span className="text-[10px] text-surface-600 font-mono mt-1 shrink-0">
+              <div className="flex items-start gap-3 animate-fade-in">
+                <span className="text-[10px] text-surface-600 font-mono tabular-nums mt-1 shrink-0">
                   {formatTimestamp(new Date())}
                 </span>
-                <p className="text-sm leading-relaxed text-surface-700 italic">
+                <p className="leading-relaxed text-surface-700 italic font-display">
                   {currentTranscript}
                   {status === "listening" && (
-                    <span className="inline-block w-0.5 h-4 bg-voxlen-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-px h-4 bg-brass-500 ml-0.5 animate-pulse-soft align-text-bottom" />
                   )}
                 </p>
               </div>

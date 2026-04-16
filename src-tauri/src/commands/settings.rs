@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use tauri::AppHandle;
+use tauri_plugin_store::StoreExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -89,11 +91,24 @@ impl Default for AppSettings {
     }
 }
 
+const SETTINGS_STORE_FILE: &str = "settings.json";
+const SETTINGS_KEY: &str = "settings";
+
 static SETTINGS: std::sync::OnceLock<parking_lot::RwLock<AppSettings>> =
     std::sync::OnceLock::new();
 
 fn get_settings_store() -> &'static parking_lot::RwLock<AppSettings> {
     SETTINGS.get_or_init(|| parking_lot::RwLock::new(AppSettings::default()))
+}
+
+fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
+    let store = app
+        .store(SETTINGS_STORE_FILE)
+        .map_err(|e| e.to_string())?;
+    let value = serde_json::to_value(settings).map_err(|e| e.to_string())?;
+    store.set(SETTINGS_KEY, value);
+    store.save().map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -102,14 +117,53 @@ pub fn get_settings() -> Result<AppSettings, String> {
 }
 
 #[tauri::command]
-pub fn update_settings(settings: AppSettings) -> Result<(), String> {
-    *get_settings_store().write() = settings;
+pub fn update_settings(app: AppHandle, settings: AppSettings) -> Result<(), String> {
+    *get_settings_store().write() = settings.clone();
+    persist_settings(&app, &settings)?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn reset_settings() -> Result<AppSettings, String> {
+pub fn reset_settings(app: AppHandle) -> Result<AppSettings, String> {
     let defaults = AppSettings::default();
     *get_settings_store().write() = defaults.clone();
+    persist_settings(&app, &defaults)?;
     Ok(defaults)
+}
+
+/// Load settings from disk into the in-memory cache. Called once during app
+/// startup. If the store file does not exist or the `settings` key is missing,
+/// defaults are written to disk so subsequent reads are consistent.
+#[tauri::command]
+pub fn load_settings_from_disk(app: AppHandle) -> Result<AppSettings, String> {
+    let store = app
+        .store(SETTINGS_STORE_FILE)
+        .map_err(|e| e.to_string())?;
+
+    let loaded = match store.get(SETTINGS_KEY) {
+        Some(value) => match serde_json::from_value::<AppSettings>(value) {
+            Ok(s) => s,
+            Err(e) => {
+                log::warn!(
+                    "Failed to parse persisted settings ({}). Falling back to defaults.",
+                    e
+                );
+                let defaults = AppSettings::default();
+                let v = serde_json::to_value(&defaults).map_err(|e| e.to_string())?;
+                store.set(SETTINGS_KEY, v);
+                store.save().map_err(|e| e.to_string())?;
+                defaults
+            }
+        },
+        None => {
+            let defaults = AppSettings::default();
+            let v = serde_json::to_value(&defaults).map_err(|e| e.to_string())?;
+            store.set(SETTINGS_KEY, v);
+            store.save().map_err(|e| e.to_string())?;
+            defaults
+        }
+    };
+
+    *get_settings_store().write() = loaded.clone();
+    Ok(loaded)
 }

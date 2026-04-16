@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        voxlen: {
+        marcoreid: {
           50: "#eef4ff",
           100: "#d9e5ff",
           200: "#bcd2ff",

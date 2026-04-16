@@ -20,10 +20,11 @@ interface AudioState {
   setSelectedDevice: (id: string | null) => void;
   setInputLevel: (level: number) => void;
   pushWaveformSample: (sample: number) => void;
+  setWaveformData: (samples: number[]) => void;
   setLoadingDevices: (loading: boolean) => void;
 }
 
-const WAVEFORM_LENGTH = 128;
+export const WAVEFORM_LENGTH = 64;
 
 export const useAudioStore = create<AudioState>((set) => ({
   devices: [],
@@ -42,6 +43,20 @@ export const useAudioStore = create<AudioState>((set) => ({
     set((state) => {
       const data = [...state.waveformData.slice(1), sample];
       return { waveformData: data };
+    }),
+
+  setWaveformData: (samples) =>
+    set(() => {
+      // Normalize to fixed length. Truncate or pad as needed.
+      if (samples.length === WAVEFORM_LENGTH) return { waveformData: samples };
+      if (samples.length > WAVEFORM_LENGTH) {
+        return { waveformData: samples.slice(samples.length - WAVEFORM_LENGTH) };
+      }
+      const padded = new Array(WAVEFORM_LENGTH).fill(0);
+      for (let i = 0; i < samples.length; i++) {
+        padded[WAVEFORM_LENGTH - samples.length + i] = samples[i];
+      }
+      return { waveformData: padded };
     }),
 
   setLoadingDevices: (loading) => set({ isLoadingDevices: loading }),

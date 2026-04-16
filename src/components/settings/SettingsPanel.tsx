@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Mic,
   Cpu,
@@ -28,9 +28,90 @@ const tabs = [
   { id: "privacy", label: "Privacy", icon: Shield },
 ];
 
+// Persist settings whenever they change
+function useSettingsPersistence() {
+  const settings = useSettingsStore();
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const saveSettings = async () => {
+      try {
+        const { load } = await import("@tauri-apps/plugin-store");
+        const store = await load("settings.json");
+        await store.set("settings", {
+          preferredDeviceId: settings.preferredDeviceId,
+          inputGain: settings.inputGain,
+          noiseSuppression: settings.noiseSuppression,
+          sttEngine: settings.sttEngine,
+          sttApiKey: settings.sttApiKey,
+          sttLanguage: settings.sttLanguage,
+          autoDetectLanguage: settings.autoDetectLanguage,
+          grammarEnabled: settings.grammarEnabled,
+          grammarApiKey: settings.grammarApiKey,
+          grammarProvider: settings.grammarProvider,
+          writingStyle: settings.writingStyle,
+          autoCorrect: settings.autoCorrect,
+          preserveTone: settings.preserveTone,
+          autoPunctuate: settings.autoPunctuate,
+          smartFormat: settings.smartFormat,
+          voiceCommandsEnabled: settings.voiceCommandsEnabled,
+          injectionMode: settings.injectionMode,
+          shortcutToggle: settings.shortcutToggle,
+          shortcutPushToTalk: settings.shortcutPushToTalk,
+          shortcutCancel: settings.shortcutCancel,
+          shortcutCorrectGrammar: settings.shortcutCorrectGrammar,
+          theme: settings.theme,
+          showWaveform: settings.showWaveform,
+          fontSize: settings.fontSize,
+          startMinimized: settings.startMinimized,
+          minimizeToTray: settings.minimizeToTray,
+          launchAtLogin: settings.launchAtLogin,
+          telemetryEnabled: settings.telemetryEnabled,
+          saveTranscripts: settings.saveTranscripts,
+        });
+        await store.save();
+      } catch {
+        try {
+          localStorage.setItem(
+            "voxlen_settings",
+            JSON.stringify({
+              preferredDeviceId: settings.preferredDeviceId,
+              sttEngine: settings.sttEngine,
+              sttApiKey: settings.sttApiKey,
+              grammarApiKey: settings.grammarApiKey,
+              grammarProvider: settings.grammarProvider,
+              writingStyle: settings.writingStyle,
+              theme: settings.theme,
+              fontSize: settings.fontSize,
+              showWaveform: settings.showWaveform,
+              voiceCommandsEnabled: settings.voiceCommandsEnabled,
+              injectionMode: settings.injectionMode,
+              shortcutToggle: settings.shortcutToggle,
+              shortcutPushToTalk: settings.shortcutPushToTalk,
+              shortcutCorrectGrammar: settings.shortcutCorrectGrammar,
+            })
+          );
+        } catch {
+          // Storage unavailable
+        }
+      }
+    };
+
+    const timeout = setTimeout(saveSettings, 500);
+    return () => clearTimeout(timeout);
+  });
+}
+
 export function SettingsPanel() {
   const settings = useSettingsStore();
   const setDevices = useAudioStore((s) => s.setDevices);
+
+  useSettingsPersistence();
 
   // Load audio devices
   useEffect(() => {
@@ -107,7 +188,10 @@ export function SettingsPanel() {
   return (
     <div className="flex h-full">
       {/* Settings sidebar */}
-      <div className="w-48 border-r border-surface-300/50 py-3 px-2 space-y-0.5">
+      <div className="w-52 border-r border-surface-300/50 py-4 px-3 space-y-0.5 bg-surface-50/30">
+        <div className="px-1 pb-2">
+          <span className="label-caps">Settings</span>
+        </div>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = settings.activeTab === tab.id;
@@ -117,21 +201,32 @@ export function SettingsPanel() {
               key={tab.id}
               onClick={() => settings.setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm transition-all",
+                "group relative flex items-center gap-2.5 w-full pl-4 pr-3 py-2 rounded-md text-sm transition-all duration-200",
                 isActive
-                  ? "bg-voxlen-600/10 text-voxlen-400"
-                  : "text-surface-700 hover:bg-surface-200"
+                  ? "bg-marcoreid-900/40 text-surface-950"
+                  : "text-surface-700 hover:bg-surface-100/80 hover:text-surface-900"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="font-medium">{tab.label}</span>
+              {isActive && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-brass-400" />
+              )}
+              <Icon
+                className={cn(
+                  "h-4 w-4 shrink-0",
+                  isActive ? "text-brass-400" : "text-surface-600 group-hover:text-surface-800"
+                )}
+                strokeWidth={isActive ? 2.25 : 1.75}
+              />
+              <span className={cn("font-medium tracking-tight", isActive && "text-surface-950")}>
+                {tab.label}
+              </span>
             </button>
           );
         })}
       </div>
 
       {/* Settings content */}
-      <div className="flex-1 p-6 overflow-y-auto">{renderContent()}</div>
+      <div className="flex-1 p-8 overflow-y-auto">{renderContent()}</div>
     </div>
   );
 }
@@ -144,11 +239,16 @@ function SectionHeader({
   description?: string;
 }) {
   return (
-    <div className="mb-4">
-      <h3 className="text-sm font-semibold text-surface-950">{title}</h3>
+    <div className="mb-5">
+      <h3 className="font-display text-[18px] font-medium tracking-tight-display text-surface-950 leading-tight">
+        {title}
+      </h3>
       {description && (
-        <p className="text-xs text-surface-600 mt-0.5">{description}</p>
+        <p className="text-[12px] text-surface-600 mt-1 leading-relaxed max-w-md">
+          {description}
+        </p>
       )}
+      <div className="divider-brass w-16 mt-3" />
     </div>
   );
 }
@@ -157,6 +257,118 @@ function SettingRow({ children }: { children: React.ReactNode }) {
   return (
     <div className="py-3 border-b border-surface-300/30 last:border-0">
       {children}
+    </div>
+  );
+}
+
+// Shortcut recorder component
+function ShortcutRecorder({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  onChange: (shortcut: string) => void;
+}) {
+  const [recording, setRecording] = useState(false);
+  const [keys, setKeys] = useState<Set<string>>(new Set());
+  const inputRef = useRef<HTMLButtonElement>(null);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!recording) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const newKeys = new Set(keys);
+      const key = e.key;
+
+      // Map modifier keys
+      if (e.ctrlKey || e.metaKey) newKeys.add("CommandOrControl");
+      if (e.shiftKey) newKeys.add("Shift");
+      if (e.altKey) newKeys.add("Alt");
+
+      // Add non-modifier key
+      if (!["Control", "Meta", "Shift", "Alt"].includes(key)) {
+        newKeys.add(key.length === 1 ? key.toUpperCase() : key);
+      }
+
+      setKeys(newKeys);
+    },
+    [recording, keys]
+  );
+
+  const handleKeyUp = useCallback(
+    (e: KeyboardEvent) => {
+      if (!recording) return;
+      e.preventDefault();
+
+      // Build shortcut string when a non-modifier key was pressed
+      const modifiers: string[] = [];
+      const regular: string[] = [];
+
+      keys.forEach((k) => {
+        if (["CommandOrControl", "Shift", "Alt"].includes(k)) {
+          modifiers.push(k);
+        } else {
+          regular.push(k);
+        }
+      });
+
+      if (modifiers.length > 0 && regular.length > 0) {
+        const shortcut = [...modifiers, ...regular].join("+");
+        onChange(shortcut);
+        setRecording(false);
+        setKeys(new Set());
+      }
+    },
+    [recording, keys, onChange]
+  );
+
+  useEffect(() => {
+    if (recording) {
+      window.addEventListener("keydown", handleKeyDown, true);
+      window.addEventListener("keyup", handleKeyUp, true);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("keyup", handleKeyUp, true);
+    };
+  }, [recording, handleKeyDown, handleKeyUp]);
+
+  const displayValue = value
+    .replace("CommandOrControl", "Ctrl/Cmd")
+    .replace("Shift", "Shift")
+    .replace("Alt", "Alt");
+
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-surface-900 tracking-tight">{label}</p>
+        <p className="text-[11px] text-surface-600 mt-0.5 leading-snug">{description}</p>
+      </div>
+      <button
+        ref={inputRef}
+        onClick={() => {
+          setRecording(!recording);
+          setKeys(new Set());
+        }}
+        className={cn(
+          "px-3 py-1.5 rounded-md border text-[11px] font-mono transition-all min-w-[140px] text-center shadow-inset-hairline",
+          recording
+            ? "bg-brass-400/10 border-brass-400/50 text-brass-500 animate-pulse-soft"
+            : "bg-surface-50 border-surface-300/70 text-surface-800 hover:border-surface-400"
+        )}
+      >
+        {recording
+          ? keys.size > 0
+            ? Array.from(keys).join(" + ")
+            : "Press keys…"
+          : displayValue}
+      </button>
     </div>
   );
 }
@@ -182,7 +394,7 @@ function AudioSettings() {
             label: d.name,
             description: `${d.sampleRate / 1000}kHz ${d.channels}ch${d.isExternal ? " - External" : ""}`,
             icon: d.isExternal ? (
-              <Mic className="h-4 w-4 text-voxlen-400" />
+              <Mic className="h-4 w-4 text-marcoreid-400" />
             ) : (
               <Mic className="h-4 w-4 text-surface-600" />
             ),
@@ -400,59 +612,43 @@ function ShortcutSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Global Shortcuts"
-        description="These shortcuts work from any application, even when Voxlen is minimized."
+        description="These shortcuts work from any application, even when Marco Reid Voice is minimized."
       />
 
       <SettingRow>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-surface-900">
-              Toggle Dictation
-            </p>
-            <p className="text-xs text-surface-600">Start/stop voice input</p>
-          </div>
-          <kbd className="px-3 py-1.5 rounded-lg bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
-            {settings.shortcutToggle.replace("CommandOrControl", "Ctrl/Cmd")}
-          </kbd>
-        </div>
+        <ShortcutRecorder
+          label="Toggle Dictation"
+          description="Start/stop voice input"
+          value={settings.shortcutToggle}
+          onChange={(v) => settings.updateSetting("shortcutToggle", v)}
+        />
       </SettingRow>
 
       <SettingRow>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-surface-900">
-              Push to Talk
-            </p>
-            <p className="text-xs text-surface-600">
-              Hold to dictate, release to stop
-            </p>
-          </div>
-          <kbd className="px-3 py-1.5 rounded-lg bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
-            {settings.shortcutPushToTalk.replace(
-              "CommandOrControl",
-              "Ctrl/Cmd"
-            )}
-          </kbd>
-        </div>
+        <ShortcutRecorder
+          label="Push to Talk"
+          description="Hold to dictate, release to stop"
+          value={settings.shortcutPushToTalk}
+          onChange={(v) => settings.updateSetting("shortcutPushToTalk", v)}
+        />
       </SettingRow>
 
       <SettingRow>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-surface-900">
-              Correct Grammar
-            </p>
-            <p className="text-xs text-surface-600">
-              Polish the last dictated text
-            </p>
-          </div>
-          <kbd className="px-3 py-1.5 rounded-lg bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
-            {settings.shortcutCorrectGrammar.replace(
-              "CommandOrControl",
-              "Ctrl/Cmd"
-            )}
-          </kbd>
-        </div>
+        <ShortcutRecorder
+          label="Correct Grammar"
+          description="Polish the last dictated text"
+          value={settings.shortcutCorrectGrammar}
+          onChange={(v) => settings.updateSetting("shortcutCorrectGrammar", v)}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <ShortcutRecorder
+          label="Cancel"
+          description="Cancel current operation"
+          value={settings.shortcutCancel}
+          onChange={(v) => settings.updateSetting("shortcutCancel", v)}
+        />
       </SettingRow>
 
       <SettingRow>
@@ -463,6 +659,24 @@ function ShortcutSettings() {
           onChange={(v) => settings.updateSetting("voiceCommandsEnabled", v)}
         />
       </SettingRow>
+
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-2">
+        <h4 className="label-caps mb-3 block">
+          Available Voice Commands
+        </h4>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-surface-700 font-mono">
+          <span><span className="text-brass-500/80">&ldquo;</span>new line<span className="text-brass-500/80">&rdquo;</span> &mdash; line break</span>
+          <span><span className="text-brass-500/80">&ldquo;</span>new paragraph<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>period<span className="text-brass-500/80">&rdquo;</span> / <span className="text-brass-500/80">&ldquo;</span>full stop<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>comma<span className="text-brass-500/80">&rdquo;</span> / <span className="text-brass-500/80">&ldquo;</span>question mark<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>delete that<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>undo<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>select all<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>copy that<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>stop listening<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>caps on/off<span className="text-brass-500/80">&rdquo;</span></span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -472,7 +686,7 @@ function AppearanceSettings() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <SectionHeader title="Appearance" />
+      <SectionHeader title="Appearance" description="Customize how Voxlen looks." />
 
       <SettingRow>
         <Select
@@ -482,9 +696,9 @@ function AppearanceSettings() {
             settings.updateSetting("theme", v as "dark" | "light" | "system")
           }
           options={[
-            { value: "dark", label: "Dark" },
-            { value: "light", label: "Light" },
-            { value: "system", label: "System" },
+            { value: "dark", label: "Dark", description: "Easy on the eyes" },
+            { value: "light", label: "Light", description: "Bright and clear" },
+            { value: "system", label: "System", description: "Match your OS setting" },
           ]}
         />
       </SettingRow>
@@ -504,7 +718,7 @@ function AppearanceSettings() {
       <SettingRow>
         <Switch
           label="Show Waveform"
-          description="Display audio waveform visualization"
+          description="Display audio waveform visualization during dictation"
           checked={settings.showWaveform}
           onChange={(v) => settings.updateSetting("showWaveform", v)}
         />
@@ -548,7 +762,7 @@ function AdvancedSettings() {
             {
               value: "buffer",
               label: "Buffer Only",
-              description: "Text stays in Voxlen - copy manually",
+              description: "Text stays in Marco Reid Voice - copy manually",
             },
           ]}
         />
@@ -557,7 +771,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Start Minimized"
-          description="Launch Voxlen minimized to the system tray"
+          description="Launch Marco Reid Voice minimized to the system tray"
           checked={settings.startMinimized}
           onChange={(v) => settings.updateSetting("startMinimized", v)}
         />
@@ -566,7 +780,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Minimize to Tray"
-          description="Keep Voxlen running in the system tray when closed"
+          description="Keep Marco Reid Voice running in the system tray when closed"
           checked={settings.minimizeToTray}
           onChange={(v) => settings.updateSetting("minimizeToTray", v)}
         />
@@ -575,7 +789,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Launch at Login"
-          description="Automatically start Voxlen when you log in"
+          description="Automatically start Marco Reid Voice when you log in"
           checked={settings.launchAtLogin}
           onChange={async (v) => {
             settings.updateSetting("launchAtLogin", v);
@@ -613,7 +827,7 @@ function PrivacySettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Privacy"
-        description="Your data, your control. Voxlen can work fully offline with local models."
+        description="Your data, your control. Marco Reid Voice can work fully offline with local models."
       />
 
       <SettingRow>
@@ -628,22 +842,37 @@ function PrivacySettings() {
       <SettingRow>
         <Switch
           label="Usage Analytics"
-          description="Help us improve Voxlen with anonymous usage data"
+          description="Help us improve Marco Reid Voice with anonymous usage data"
           checked={settings.telemetryEnabled}
           onChange={(v) => settings.updateSetting("telemetryEnabled", v)}
         />
       </SettingRow>
 
-      <div className="rounded-lg bg-surface-200/50 p-4 mt-4">
-        <h4 className="text-xs font-semibold text-surface-800 mb-2">
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-4">
+        <h4 className="label-caps mb-3 block">
           Privacy Guarantee
         </h4>
-        <ul className="space-y-1.5 text-xs text-surface-600">
-          <li>Audio is never stored on our servers</li>
-          <li>Use Whisper Local for fully offline operation</li>
-          <li>API keys are stored locally in your system keychain</li>
-          <li>No data is shared with third parties</li>
-          <li>You can delete all local data at any time</li>
+        <ul className="space-y-1.5 text-[12px] text-surface-700 leading-relaxed">
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Audio is never stored on our servers.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Use Whisper Local for fully offline operation.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            API keys are stored locally on your device.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            No data is shared with third parties.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            You can delete all local data at any time.
+          </li>
         </ul>
       </div>
     </div>

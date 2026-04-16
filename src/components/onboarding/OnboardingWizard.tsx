@@ -10,7 +10,16 @@ import {
   Zap,
   Volume2,
   AlertCircle,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
+
+export const LEGAL_POLICY_VERSION = "2026-04-16";
+const LEGAL_BASE_URL =
+  "https://github.com/ccantynz-alt/voxlen/blob/main/legal";
+const openLegalDoc = (path: string) => {
+  window.open(`${LEGAL_BASE_URL}/${path}`, "_blank", "noopener,noreferrer");
+};
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -29,6 +38,17 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
   const [apiKeyValidating, setApiKeyValidating] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+
+  const handleCompleteWithConsent = () => {
+    if (!legalAccepted || !consentAccepted) return;
+    settings.updateSettings({
+      legalAcceptedVersion: LEGAL_POLICY_VERSION,
+      legalAcceptedAt: new Date().toISOString(),
+    });
+    onComplete();
+  };
 
   const devices = useAudioStore((s) => s.devices);
   const setDevices = useAudioStore((s) => s.setDevices);
@@ -159,27 +179,43 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-surface-0 p-8">
-      {/* Progress dots */}
-      <div className="flex items-center gap-2 mb-8">
+      {/* Brand mark — editorial wordmark, hairline rule. */}
+      <div className="flex flex-col items-center gap-2 mb-10">
+        <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
+          <Mic className="h-4 w-4 text-brass-300" strokeWidth={2} />
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-display text-[17px] font-medium text-surface-900 tracking-tight-display leading-none">
+            Marco Reid
+          </span>
+          <span className="font-display text-[17px] italic text-brass-400 leading-none">
+            Voice
+          </span>
+        </div>
+        <div className="divider-brass w-20" />
+      </div>
+
+      {/* Progress dots — brass brand, not neon. */}
+      <div className="flex items-center gap-2 mb-10">
         {steps.map((_s, i) => (
           <div key={i} className="flex items-center">
             <div
               className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all",
+                "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono tabular-nums transition-all shadow-inset-hairline",
                 i === step
-                  ? "bg-voxlen-600 text-white scale-110"
+                  ? "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation"
                   : i < step
-                    ? "bg-green-500/20 text-green-400"
-                    : "bg-surface-200 text-surface-600"
+                    ? "bg-brass-400/10 text-brass-500 border border-brass-400/30"
+                    : "bg-surface-100 text-surface-600 border border-surface-300/60"
               )}
             >
-              {i < step ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+              {i < step ? <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} /> : i + 1}
             </div>
             {i < steps.length - 1 && (
               <div
                 className={cn(
-                  "w-12 h-0.5 mx-1",
-                  i < step ? "bg-green-500/40" : "bg-surface-300"
+                  "w-10 h-px mx-1",
+                  i < step ? "bg-brass-400/40" : "bg-surface-300/70"
                 )}
               />
             )}
@@ -191,35 +227,31 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       <div className="w-full max-w-md animate-fade-in">
         {step === 0 && (
           <div className="text-center space-y-6">
-            <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-voxlen-500 to-voxlen-700 flex items-center justify-center shadow-xl shadow-voxlen-600/30">
-                <Mic className="h-10 w-10 text-white" />
-              </div>
-            </div>
             <div>
-              <h1 className="text-3xl font-bold text-surface-950 mb-2">
-                Welcome to Voxlen
+              <h1 className="font-display text-[32px] font-medium tracking-tight-display text-surface-950 leading-[1.1] mb-3">
+                A considered voice, <span className="italic text-brass-500">in writing.</span>
               </h1>
-              <p className="text-surface-700 leading-relaxed">
-                The most advanced AI dictation tool. Speak naturally and let AI
-                transcribe, polish, and inject your words into any application.
+              <p className="text-sm text-surface-700 leading-relaxed max-w-sm mx-auto">
+                Dictate, polish, and inject into any application — with the
+                restraint and precision of counsel.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-3 pt-4">
-              <div className="p-3 rounded-xl bg-surface-100 border border-surface-300/50 text-center">
-                <Zap className="h-5 w-5 text-voxlen-400 mx-auto mb-1.5" />
-                <p className="text-xs font-medium text-surface-800">Real-time</p>
-                <p className="text-[10px] text-surface-600">Words appear as you speak</p>
+            <div className="divider-brass w-32 mx-auto" />
+            <div className="grid grid-cols-3 gap-3 pt-1">
+              <div className="p-4 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline text-left">
+                <Zap className="h-4 w-4 text-brass-500 mb-2" strokeWidth={1.75} />
+                <p className="text-[11px] font-medium text-surface-900 tracking-tight">Real-time</p>
+                <p className="text-[10px] text-surface-600 leading-snug mt-0.5">Words appear as you speak</p>
               </div>
-              <div className="p-3 rounded-xl bg-surface-100 border border-surface-300/50 text-center">
-                <Sparkles className="h-5 w-5 text-purple-400 mx-auto mb-1.5" />
-                <p className="text-xs font-medium text-surface-800">AI Grammar</p>
-                <p className="text-[10px] text-surface-600">Auto-polishes your text</p>
+              <div className="p-4 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline text-left">
+                <Sparkles className="h-4 w-4 text-brass-500 mb-2" strokeWidth={1.75} />
+                <p className="text-[11px] font-medium text-surface-900 tracking-tight">AI Grammar</p>
+                <p className="text-[10px] text-surface-600 leading-snug mt-0.5">Auto-polishes your text</p>
               </div>
-              <div className="p-3 rounded-xl bg-surface-100 border border-surface-300/50 text-center">
-                <Shield className="h-5 w-5 text-green-400 mx-auto mb-1.5" />
-                <p className="text-xs font-medium text-surface-800">Privacy</p>
-                <p className="text-[10px] text-surface-600">Offline mode available</p>
+              <div className="p-4 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline text-left">
+                <Shield className="h-4 w-4 text-brass-500 mb-2" strokeWidth={1.75} />
+                <p className="text-[11px] font-medium text-surface-900 tracking-tight">Privacy</p>
+                <p className="text-[10px] text-surface-600 leading-snug mt-0.5">Offline mode available</p>
               </div>
             </div>
           </div>
@@ -228,11 +260,11 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 1 && (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-surface-950 mb-1">
-                Select Your Microphone
+              <h2 className="font-display text-[26px] font-medium tracking-tight-display text-surface-950 mb-1 leading-tight">
+                Select your microphone
               </h2>
-              <p className="text-sm text-surface-700">
-                External mics give much better accuracy than built-in laptop mics
+              <p className="text-[13px] text-surface-700 leading-relaxed">
+                An external mic gives materially better accuracy than a built-in laptop mic.
               </p>
             </div>
 
@@ -247,7 +279,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 label: d.name,
                 description: d.isExternal ? "External - Recommended" : "Built-in",
                 icon: d.isExternal ? (
-                  <Mic className="h-4 w-4 text-voxlen-400" />
+                  <Mic className="h-4 w-4 text-marcoreid-400" />
                 ) : (
                   <Mic className="h-4 w-4 text-surface-600" />
                 ),
@@ -257,24 +289,24 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
             {/* External mic recommendation */}
             {selectedDeviceId && !devices.find(d => d.id === selectedDeviceId)?.isExternal && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <AlertCircle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/8 border border-amber-500/25 shadow-inset-hairline">
+                <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" strokeWidth={1.75} />
                 <div>
-                  <p className="text-xs font-medium text-amber-300">Using built-in microphone</p>
-                  <p className="text-[10px] text-amber-400/70 mt-0.5">
-                    An external USB mic (like your Razer) will give 20-30% better accuracy
+                  <p className="text-[11px] font-medium text-amber-600">Using built-in microphone</p>
+                  <p className="text-[10px] text-surface-600 mt-0.5 leading-snug">
+                    An external USB mic (such as your Razer) will give 20—30% better accuracy.
                   </p>
                 </div>
               </div>
             )}
 
             {selectedDeviceId && devices.find(d => d.id === selectedDeviceId)?.isExternal && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                <CheckCircle2 className="h-4 w-4 text-green-400 mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 p-3 rounded-md bg-brass-400/8 border border-brass-400/25 shadow-inset-hairline">
+                <CheckCircle2 className="h-4 w-4 text-brass-500 mt-0.5 shrink-0" strokeWidth={1.75} />
                 <div>
-                  <p className="text-xs font-medium text-green-300">External mic detected</p>
-                  <p className="text-[10px] text-green-400/70 mt-0.5">
-                    Great choice - you'll get the best possible accuracy
+                  <p className="text-[11px] font-medium text-brass-600">External mic detected</p>
+                  <p className="text-[10px] text-surface-600 mt-0.5 leading-snug">
+                    You'll get the best possible accuracy.
                   </p>
                 </div>
               </div>
@@ -288,33 +320,33 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 loading={isTesting}
                 className="w-full"
               >
-                <Volume2 className="h-4 w-4" />
-                {isTesting ? "Listening... speak now!" : "Test Microphone"}
+                <Volume2 className="h-4 w-4" strokeWidth={1.75} />
+                {isTesting ? "Listening — speak now" : "Test microphone"}
               </Button>
 
               {(isTesting || micTestLevel > 0) && (
-                <div className="space-y-1">
-                  <div className="h-3 rounded-full bg-surface-200 overflow-hidden">
+                <div className="space-y-1.5">
+                  <div className="h-1.5 rounded-full bg-surface-200 overflow-hidden shadow-inset-hairline">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-100",
                         micTestLevel > 0.3
-                          ? "bg-green-500"
+                          ? "bg-brass-500"
                           : micTestLevel > 0.1
                             ? "bg-amber-500"
-                            : "bg-red-500"
+                            : "bg-red-500/80"
                       )}
                       style={{ width: `${Math.min(micTestLevel * 200, 100)}%` }}
                     />
                   </div>
-                  <p className="text-[10px] text-surface-600 text-center">
+                  <p className="text-[10px] text-surface-600 text-center tracking-tight">
                     {micTestLevel > 0.3
-                      ? "Excellent signal!"
+                      ? "Excellent signal."
                       : micTestLevel > 0.1
-                        ? "Good - try speaking a bit louder"
+                        ? "Good — try speaking a touch louder."
                         : isTesting
-                          ? "Listening... speak into your mic"
-                          : "Signal too low - check your mic connection"}
+                          ? "Listening… speak into your mic."
+                          : "Signal too low — check your mic connection."}
                   </p>
                 </div>
               )}
@@ -325,11 +357,11 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 2 && (
           <div className="space-y-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-surface-950 mb-1">
-                Connect Your AI
+              <h2 className="font-display text-[26px] font-medium tracking-tight-display text-surface-950 mb-1 leading-tight">
+                Connect your AI
               </h2>
-              <p className="text-sm text-surface-700">
-                Add an API key to power voice transcription and grammar correction
+              <p className="text-[13px] text-surface-700 leading-relaxed">
+                An API key powers transcription and grammar polishing.
               </p>
             </div>
 
@@ -340,78 +372,61 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               options={[
                 { value: "deepgram", label: "Deepgram Nova-2", description: "Best for real-time (recommended)" },
                 { value: "whisper_cloud", label: "OpenAI Whisper", description: "High accuracy, batch mode" },
-                { value: "whisper_local", label: "Whisper Local", description: "Offline - no API key needed" },
               ]}
             />
 
-            {settings.sttEngine !== "whisper_local" && (
-              <>
-                <Input
-                  label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
-                  type="password"
-                  value={settings.sttApiKey}
-                  onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-                  placeholder={settings.sttEngine === "deepgram" ? "Enter Deepgram API key..." : "sk-..."}
-                  icon={<Key className="h-4 w-4" />}
-                />
+            <Input
+              label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
+              type="password"
+              value={settings.sttApiKey}
+              onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
+              placeholder={settings.sttEngine === "deepgram" ? "Enter Deepgram API key..." : "sk-..."}
+              icon={<Key className="h-4 w-4" />}
+            />
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleValidateApiKey}
-                    loading={apiKeyValidating}
-                    disabled={!settings.sttApiKey}
-                  >
-                    Validate Key
-                  </Button>
-                  {apiKeyValid === true && (
-                    <Badge variant="success" dot>Valid</Badge>
-                  )}
-                  {apiKeyValid === false && (
-                    <Badge variant="error" dot>Invalid - check your key</Badge>
-                  )}
-                </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleValidateApiKey}
+                loading={apiKeyValidating}
+                disabled={!settings.sttApiKey}
+              >
+                Validate Key
+              </Button>
+              {apiKeyValid === true && (
+                <Badge variant="success" dot>Valid</Badge>
+              )}
+              {apiKeyValid === false && (
+                <Badge variant="error" dot>Invalid - check your key</Badge>
+              )}
+            </div>
 
-                <div className="p-3 rounded-lg bg-surface-100 border border-surface-300/50">
-                  <p className="text-xs text-surface-700">
-                    {settings.sttEngine === "deepgram" ? (
-                      <>Get a free Deepgram API key with $200 in credits at deepgram.com. That's enough for ~46,000 minutes of dictation.</>
-                    ) : (
-                      <>Get an OpenAI API key at platform.openai.com. Whisper costs ~$0.006/minute (about $0.36/hour).</>
-                    )}
-                  </p>
-                </div>
-              </>
-            )}
+            <div className="p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+              <p className="text-[11px] text-surface-700 leading-relaxed">
+                {settings.sttEngine === "deepgram" ? (
+                  <>Free Deepgram API key with $200 in credits at deepgram.com — enough for ~46,000 minutes of dictation.</>
+                ) : (
+                  <>OpenAI API key at platform.openai.com. Whisper costs ~$0.006/min (~$0.36/hr).</>
+                )}
+              </p>
+            </div>
 
-            {settings.sttEngine === "whisper_local" && (
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm font-medium text-green-300 mb-1">
-                  No API key needed
-                </p>
-                <p className="text-xs text-green-400/70">
-                  Whisper Local runs entirely on your device. Your audio never leaves your computer.
-                  Note: accuracy may be lower than cloud options.
-                </p>
-              </div>
-            )}
-
-            <div className="border-t border-surface-300/50 pt-4">
-              <h3 className="text-xs font-semibold text-surface-800 mb-3">
-                Grammar AI (optional)
+            <div className="border-t border-surface-300/50 pt-5">
+              <h3 className="label-caps mb-3 block">
+                Grammar engine &mdash; optional
               </h3>
               <Input
-                label="Anthropic API Key (for grammar correction)"
+                label="Anthropic API key"
                 type="password"
                 value={settings.grammarApiKey}
                 onChange={(e) => settings.updateSetting("grammarApiKey", e.target.value)}
                 placeholder="sk-ant-..."
-                icon={<Sparkles className="h-4 w-4" />}
+                icon={<Sparkles className="h-4 w-4" strokeWidth={1.75} />}
               />
-              <p className="text-[10px] text-surface-600 mt-1.5">
-                Powers the AI grammar engine. Uses Claude Haiku - costs ~$0.03/month for heavy use.
-                Skip this for now if you just want dictation.
+              <p className="text-[10px] text-surface-600 mt-2 leading-snug">
+                Powers AI grammar polishing via Claude Haiku — approximately $0.03/month at
+                heavy use. Skip for now if you just want dictation.
               </p>
             </div>
           </div>
@@ -420,52 +435,143 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 3 && (
           <div className="text-center space-y-6">
             <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-full bg-green-500/10 border-2 border-green-500/30 flex items-center justify-center">
-                <CheckCircle2 className="h-10 w-10 text-green-400" />
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 border border-brass-400/30 flex items-center justify-center shadow-elevation-lg">
+                <CheckCircle2 className="h-7 w-7 text-brass-300" strokeWidth={1.75} />
               </div>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-surface-950 mb-2">
-                You're All Set!
+              <h2 className="font-display text-[26px] font-medium tracking-tight-display text-surface-950 mb-2 leading-tight">
+                You're <span className="italic text-brass-500">ready.</span>
               </h2>
-              <p className="text-sm text-surface-700 leading-relaxed">
-                Voxlen is ready to go. Here are your shortcuts:
+              <p className="text-[13px] text-surface-700 leading-relaxed">
+                A few shortcuts to keep in reach:
               </p>
             </div>
 
+            <div className="divider-brass w-32 mx-auto" />
+
             <div className="space-y-2 text-left">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-surface-100 border border-surface-300/50">
-                <div className="flex items-center gap-2">
-                  <Mic className="h-4 w-4 text-voxlen-400" />
-                  <span className="text-sm text-surface-900">Toggle Dictation</span>
+              <div className="flex items-center justify-between p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+                <div className="flex items-center gap-2.5">
+                  <Mic className="h-3.5 w-3.5 text-brass-500" strokeWidth={1.75} />
+                  <span className="text-[13px] text-surface-900">Toggle Dictation</span>
                 </div>
-                <kbd className="px-2 py-1 rounded bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
+                <kbd className="px-2 py-1 rounded bg-surface-100 border border-surface-300/70 text-[10px] font-mono text-surface-800">
                   Ctrl/Cmd+Shift+D
                 </kbd>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-surface-100 border border-surface-300/50">
-                <div className="flex items-center gap-2">
-                  <Volume2 className="h-4 w-4 text-voxlen-400" />
-                  <span className="text-sm text-surface-900">Push to Talk</span>
+              <div className="flex items-center justify-between p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+                <div className="flex items-center gap-2.5">
+                  <Volume2 className="h-3.5 w-3.5 text-brass-500" strokeWidth={1.75} />
+                  <span className="text-[13px] text-surface-900">Push to Talk</span>
                 </div>
-                <kbd className="px-2 py-1 rounded bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
+                <kbd className="px-2 py-1 rounded bg-surface-100 border border-surface-300/70 text-[10px] font-mono text-surface-800">
                   Ctrl/Cmd+Shift+Space
                 </kbd>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-surface-100 border border-surface-300/50">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-400" />
-                  <span className="text-sm text-surface-900">Polish Grammar</span>
+              <div className="flex items-center justify-between p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="h-3.5 w-3.5 text-brass-500" strokeWidth={1.75} />
+                  <span className="text-[13px] text-surface-900">Polish Grammar</span>
                 </div>
-                <kbd className="px-2 py-1 rounded bg-surface-200 border border-surface-300 text-xs font-mono text-surface-800">
+                <kbd className="px-2 py-1 rounded bg-surface-100 border border-surface-300/70 text-[10px] font-mono text-surface-800">
                   Ctrl/Cmd+Shift+G
                 </kbd>
               </div>
             </div>
 
-            <p className="text-xs text-surface-600">
-              These shortcuts work from any app, even when Voxlen is minimized to the tray.
+            <p className="text-[11px] text-surface-600 leading-snug">
+              These shortcuts work from any app — even when Marco Reid Voice is minimised.
             </p>
+
+            {/* Legal acceptance — required before first use. */}
+            <div className="mt-6 pt-5 border-t border-surface-300/60 space-y-4 text-left">
+              <div>
+                <p className="label-caps mb-2">Before you begin</p>
+                <p className="text-[12px] text-surface-800 leading-relaxed">
+                  Marco Reid Voice is a professional tool. Please read and accept the
+                  terms below. You can review them again any time from Settings.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Licence (EULA)", path: "EULA.md" },
+                  { label: "Terms of Service", path: "TERMS.md" },
+                  { label: "Privacy Policy", path: "PRIVACY_POLICY.md" },
+                  { label: "Acceptable Use", path: "ACCEPTABLE_USE.md" },
+                ].map((doc) => (
+                  <button
+                    key={doc.path}
+                    type="button"
+                    onClick={() => openLegalDoc(doc.path)}
+                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline hover:bg-surface-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-3.5 w-3.5 text-brass-500 shrink-0" strokeWidth={1.75} />
+                      <span className="text-[11px] text-surface-900 truncate">{doc.label}</span>
+                    </div>
+                    <ExternalLink className="h-3 w-3 text-surface-600 shrink-0" strokeWidth={1.75} />
+                  </button>
+                ))}
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={legalAccepted}
+                  onChange={(e) => setLegalAccepted(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-surface-400 text-brass-500 focus:ring-brass-400/50"
+                />
+                <span className="text-[11px] text-surface-800 leading-relaxed">
+                  I have read and agree to the{" "}
+                  <button type="button" onClick={() => openLegalDoc("EULA.md")} className="text-brass-500 hover:underline">
+                    End User Licence Agreement
+                  </button>
+                  , the{" "}
+                  <button type="button" onClick={() => openLegalDoc("TERMS.md")} className="text-brass-500 hover:underline">
+                    Terms of Service
+                  </button>
+                  , the{" "}
+                  <button type="button" onClick={() => openLegalDoc("PRIVACY_POLICY.md")} className="text-brass-500 hover:underline">
+                    Privacy Policy
+                  </button>
+                  , and the{" "}
+                  <button type="button" onClick={() => openLegalDoc("ACCEPTABLE_USE.md")} className="text-brass-500 hover:underline">
+                    Acceptable Use Policy
+                  </button>
+                  .
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={consentAccepted}
+                  onChange={(e) => setConsentAccepted(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-surface-400 text-brass-500 focus:ring-brass-400/50"
+                />
+                <span className="text-[11px] text-surface-800 leading-relaxed">
+                  I confirm that (a) I am authorised to process any client, patient,
+                  or other confidential information I dictate, (b) I have any
+                  consents required by law to record or transcribe other people, and
+                  (c) I will review every output before relying on it or delivering
+                  it to a client, court, or regulator. Output is{" "}
+                  <span className="italic">not</span> legal, accounting, tax,
+                  medical, or financial advice.
+                </span>
+              </label>
+
+              <div className="rounded-md bg-amber-500/8 border border-amber-500/25 shadow-inset-hairline p-3 flex items-start gap-2">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" strokeWidth={1.75} />
+                <p className="text-[10.5px] text-surface-800 leading-snug">
+                  API keys and transcripts are stored locally in plaintext. Use
+                  full-disk encryption and a protected user account — especially for
+                  privileged, PHI, or regulated content. OS keychain integration is
+                  on the roadmap.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -477,7 +583,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           onClick={() => setStep(step - 1)}
           disabled={step === 0}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
           Back
         </Button>
 
@@ -488,23 +594,27 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             disabled={!canProceed()}
           >
             Continue
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
           </Button>
         ) : (
-          <Button variant="glow" onClick={onComplete}>
-            <Sparkles className="h-4 w-4" />
-            Start Dictating
+          <Button
+            variant="glow"
+            onClick={handleCompleteWithConsent}
+            disabled={!legalAccepted || !consentAccepted}
+          >
+            <Sparkles className="h-4 w-4" strokeWidth={1.75} />
+            Accept &amp; begin
           </Button>
         )}
       </div>
 
-      {/* Skip link */}
+      {/* Skip link — only when legal step hasn't been reached. */}
       {step < steps.length - 1 && (
         <button
-          onClick={onComplete}
-          className="mt-4 text-xs text-surface-600 hover:text-surface-800 transition-colors"
+          onClick={() => setStep(steps.length - 1)}
+          className="mt-5 text-[11px] italic text-surface-600 hover:text-surface-800 transition-colors font-display"
         >
-          Skip setup - I'll configure later
+          Skip setup &mdash; jump to terms.
         </button>
       )}
     </div>

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct VoxlenApp: App {
+struct MarcoReidVoiceApp: App {
     @StateObject private var settingsManager = SettingsManager()
 
     var body: some Scene {
@@ -29,7 +29,7 @@ struct ContentView: View {
                                 .cornerRadius(12)
 
                             VStack(alignment: .leading) {
-                                Text("Voxlen Keyboard")
+                                Text("Marco Reid Voice Keyboard")
                                     .font(.title2)
                                     .fontWeight(.bold)
                                 Text("AI-Powered Grammar Correction")
@@ -47,7 +47,7 @@ struct ContentView: View {
                                     Text("Keyboard Not Enabled")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
-                                    Text("Go to Settings > General > Keyboard > Keyboards > Add New Keyboard > Voxlen")
+                                    Text("Go to Settings > General > Keyboard > Keyboards > Add New Keyboard > Marco Reid Voice")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -96,11 +96,11 @@ struct ContentView: View {
                         Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
-                    Link("Privacy Policy", destination: URL(string: "https://voxlen.ai/privacy")!)
-                    Link("Support", destination: URL(string: "https://voxlen.ai/support")!)
+                    Link("Privacy Policy", destination: URL(string: "https://marcoreid.com/privacy")!)
+                    Link("Support", destination: URL(string: "https://marcoreid.com/support")!)
                 }
             }
-            .navigationTitle("Voxlen")
+            .navigationTitle("Marco Reid Voice")
         }
     }
 }
@@ -114,7 +114,7 @@ enum AIProvider: String, CaseIterable {
 }
 
 class SettingsManager: ObservableObject {
-    private let defaults = UserDefaults(suiteName: "group.com.voxlen.keyboard")!
+    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")!
 
     @Published var isKeyboardEnabled: Bool = false
     @Published var autoCorrectEnabled: Bool {

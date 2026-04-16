@@ -46,6 +46,10 @@ export interface AppSettings {
   // Privacy
   telemetryEnabled: boolean;
   saveTranscripts: boolean;
+
+  // Legal
+  legalAcceptedVersion: string | null;
+  legalAcceptedAt: string | null;
 }
 
 interface SettingsState extends AppSettings {
@@ -98,6 +102,9 @@ const defaultSettings: AppSettings = {
 
   telemetryEnabled: false,
   saveTranscripts: true,
+
+  legalAcceptedVersion: null,
+  legalAcceptedAt: null,
 };
 
 // Debounced persistence — saves settings after changes settle

@@ -1,10 +1,69 @@
 # Changelog
 
+## [1.0.5] - 2026-04-17
+
+### Fixed
+- **Rust compile (all 4 CI platforms)**: resolved the compile errors that blocked every prior release (v1.0.0 through v1.0.4 never produced installers):
+  - Added missing `use tauri::Emitter` in `src-tauri/src/lib.rs` so `WebviewWindow::emit()` resolves.
+  - Fixed a `parking_lot::RwLock` read guard being held across `.await` in `src-tauri/src/stt/processor.rs` — the future became non-`Send` and wouldn't spawn on `tokio::spawn`. Config is now cloned out before the await.
+  - Added a module-level `transcribe_audio()` helper in `src-tauri/src/stt/mod.rs` so the processor can transcribe without re-entering the lock.
+  - Rewrote `commands::audio::get_selected_device` to land the read-guard result into a local before constructing the `Result`, fixing a borrow-check lifetime error.
+- Fixes originally identified by Copilot's build-repair agent on `copilot/fix-build-errors`; re-applied here onto mainline.
+
+## [1.0.4] - 2026-04-16
+
+### Changed
+- CI: replaced `tauri-action` with explicit `npm run tauri -- build` + `softprops/action-gh-release@v2`. Cargo/vite failures now surface directly in the workflow log instead of being wrapped inside `tauri-action`'s "Command … failed with exit code 1".
+- CI: upload build artifacts on every run (including failed runs) via `actions/upload-artifact@v4`, with 7-day retention, so debugging a red build no longer requires re-running.
+- CI: x86_64-apple-darwin now builds on `macos-13` (native Intel) rather than cross-compiling from the Apple Silicon `macos-latest` runner.
+
+## [1.0.3] - 2026-04-16
+
+### Changed
+- CI: pinned `tauri-action` to `v0.5.20` for reproducible builds (was floating `@v0`).
+- CI: added pre-build diagnostics step (toolchain versions, standalone frontend compile) so build failures surface the real error rather than a wrapped exit code.
+- CI: set `RUST_BACKTRACE=1` + colour on for Cargo during the tauri-action invocation.
+- Generic release body text (was stale v1.0.1 reference).
+
+## [1.0.2] - 2026-04-16
+
+### Added
+- Law-firm visual polish across every surface (oxford navy + brass + Fraunces display). Replaces the earlier high-contrast "neon" treatment with a restrained editorial aesthetic.
+- Aggressive legal compliance pack in `legal/`:
+  - End User Licence Agreement (proprietary)
+  - Terms of Service (NZ-governed, NZIAC arbitration, class-action waiver)
+  - Privacy Policy (GDPR / UK GDPR / NZ Privacy Act / APPs / CCPA-CPRA / FADP)
+  - Acceptable Use Policy
+  - Data Processing Addendum + SCC/UK-IDTA appendix
+  - Sub-processors list
+  - Third-party notices
+  - Copyright / trademark / DMCA policy
+- Onboarding consent gating: two required checkboxes (legal acceptance + professional authority/review confirmation) plus plaintext-at-rest advisory before first use.
+- Settings → Legal & compliance panel linking every document.
+- `legalAcceptedVersion` + `legalAcceptedAt` persisted to settings for future policy-version re-prompts.
+
+### Changed
+- LICENSE: proprietary commercial licence notice (was MIT).
+- README: licence section now points at the full `legal/` directory.
+
+## [1.0.1] - 2026-04-16
+
+### Changed
+- Version bump for fresh release tag (no code changes beyond version strings; the 1.0.0 tag existed from earlier failed CI runs without any published installers).
+
+## [Unreleased]
+
+### Planned for v1.1
+- Fully offline Whisper Local engine (whisper-rs integration)
+- iOS keyboard extension App Store build
+- Webhook emitter for enterprise integrations
+- Batched grammar API calls for cost optimization
+
 ## [1.0.0] - 2026-04-09
 
 ### Added
 - Real-time voice dictation with Deepgram Nova-2 streaming (sub-300ms latency)
-- OpenAI Whisper cloud and local transcription engines
+- OpenAI Whisper cloud transcription engine
 - AI grammar correction powered by Claude Haiku and GPT-4o-mini
 - Universal text injection into any application (keyboard simulation + clipboard paste)
 - Smart microphone management with external USB mic auto-detection
@@ -17,7 +76,6 @@
 - Session history with search
 - Export to TXT, Markdown, JSON, and SRT formats
 - iOS keyboard extension with AI grammar bar
-- Privacy mode with fully offline Whisper Local
 - Persistent settings storage
 - Custom dark theme with glass-morphism UI
 - Waveform audio visualization

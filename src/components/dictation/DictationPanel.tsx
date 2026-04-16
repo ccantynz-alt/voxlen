@@ -10,13 +10,14 @@ import {
   Clock,
   FileText,
   Zap,
+  Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
-import { useDictationStore } from "@/stores/dictation";
+import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
@@ -30,22 +31,26 @@ export function DictationPanel() {
   const sessionDuration = useDictationStore((s) => s.sessionDuration);
   const inputLevel = useDictationStore((s) => s.inputLevel);
   const segments = useDictationStore((s) => s.segments);
+  const capsLock = useDictationStore((s) => s.capsLock);
   const setStatus = useDictationStore((s) => s.setStatus);
-  const addSegment = useDictationStore((s) => s.addSegment);
   const clearSession = useDictationStore((s) => s.clearSession);
   const incrementDuration = useDictationStore((s) => s.incrementDuration);
-  const setInputLevel = useDictationStore((s) => s.setInputLevel);
-  const pushWaveformSample = useAudioStore((s) => s.pushWaveformSample);
   const selectedDeviceId = useAudioStore((s) => s.selectedDeviceId);
   const devices = useAudioStore((s) => s.devices);
+  const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
+  const showWaveform = useSettingsStore((s) => s.showWaveform);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionStartRef = useRef<Date | null>(null);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
 
   // Session timer
   useEffect(() => {
     if (status === "listening") {
+      if (!sessionStartRef.current) {
+        sessionStartRef.current = new Date();
+      }
       timerRef.current = setInterval(() => {
         incrementDuration();
       }, 1000);
@@ -202,15 +207,17 @@ export function DictationPanel() {
 
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused") {
+      sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("start_dictation");
         setStatus("listening");
       } catch {
-        // Demo mode
         setStatus("listening");
       }
     } else if (status === "listening") {
+      // Capture session BEFORE status flip so autosave in useTauriEvents
+      // has a consistent view. The autosave subscription handles save_session.
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("stop_dictation");
@@ -273,7 +280,11 @@ export function DictationPanel() {
       await invoke("inject_text", { text: fullText });
     } catch {
       // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(fullText);
+      try {
+        await navigator.clipboard.writeText(fullText);
+      } catch {
+        // Ignore
+      }
     }
   }, [segments]);
 
@@ -305,16 +316,31 @@ export function DictationPanel() {
     [segments]
   );
 
+  const handleClearSession = useCallback(async () => {
+    // Before clearing, persist the session (if any) so it lands in history.
+    const record = buildSessionRecord();
+    if (record) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("save_session", { session: record });
+      } catch {
+        // Non-Tauri — skip.
+      }
+    }
+    clearSession();
+  }, [clearSession]);
+
   const isActive = status === "listening" || status === "processing";
   const showControls = isActive || status === "paused";
+  const hasContent = segments.length > 0;
 
   return (
     <div className="flex flex-col h-full">
       {/* Main dictation area */}
-      <div className="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col p-8 gap-7 overflow-hidden">
         {/* Mic control + waveform */}
-        <div className="flex flex-col items-center gap-6">
-          {/* Large mic button */}
+        <div className="flex flex-col items-center gap-5">
+          {/* Large mic button — oxford navy gradient with brass inflection. */}
           <div className="relative">
             {isActive && (
               <div className="absolute inset-0 rounded-full dictation-pulse" />
@@ -322,49 +348,60 @@ export function DictationPanel() {
             <button
               onClick={handleToggleDictation}
               className={cn(
-                "relative z-10 flex items-center justify-center w-20 h-20 rounded-full transition-all duration-300",
+                "relative z-10 flex items-center justify-center w-[84px] h-[84px] rounded-full transition-all duration-300 shadow-inset-hairline",
                 isActive
-                  ? "bg-voxlen-600 text-white shadow-lg shadow-voxlen-600/30 scale-110"
-                  : "bg-surface-200 text-surface-700 hover:bg-surface-300 hover:text-surface-900 hover:scale-105"
+                  ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation-lg scale-105"
+                  : "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-700 hover:from-surface-200 hover:to-surface-300 hover:text-surface-900 shadow-elevation"
               )}
             >
               {isActive ? (
-                <Mic className="h-8 w-8" />
+                <Mic className="h-7 w-7" strokeWidth={1.75} />
               ) : (
-                <MicOff className="h-8 w-8" />
+                <MicOff className="h-7 w-7" strokeWidth={1.75} />
               )}
             </button>
           </div>
 
-          {/* Status text */}
+          {/* Status text — editorial serif for the headline, small-caps metadata below. */}
           <div className="text-center">
-            <p className="text-sm font-medium text-surface-900">
-              {status === "idle" && "Press to start dictating"}
-              {status === "listening" && "Listening..."}
-              {status === "processing" && "Processing speech..."}
+            <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
+              {status === "idle" && "Press to begin dictation"}
+              {status === "listening" && (
+                <>
+                  Listening<span className="text-brass-400">.</span>
+                </>
+              )}
+              {status === "processing" && "Processing speech"}
               {status === "paused" && "Paused"}
               {status === "error" && "An error occurred"}
-            </p>
+            </h2>
             {selectedDevice && (
-              <p className="text-xs text-surface-600 mt-1 flex items-center justify-center gap-1">
-                <Mic className="h-3 w-3" />
-                {selectedDevice.name}
+              <p className="text-[11px] text-surface-600 mt-2 flex items-center justify-center gap-1.5 tracking-tight">
+                <Mic className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
+                <span className="font-medium text-surface-700">{selectedDevice.name}</span>
                 {selectedDevice.isExternal && (
-                  <Badge variant="info" className="ml-1 text-[10px] py-0">
+                  <Badge variant="info" className="ml-1 text-[9px] py-0">
                     External
                   </Badge>
                 )}
               </p>
             )}
             {!selectedDevice && (
-              <p className="text-xs text-amber-400 mt-1">
-                No microphone selected - go to Settings
+              <p className="text-[11px] text-brass-500 mt-2 tracking-tight">
+                No microphone selected — configure in Settings
               </p>
+            )}
+            {capsLock && (
+              <Badge variant="warning" className="mt-2 text-[9px]">
+                CAPS ON
+              </Badge>
             )}
           </div>
 
-          {/* Waveform */}
-          <Waveform className="w-full max-w-lg" height={60} />
+          {/* Waveform - respects showWaveform setting */}
+          {showWaveform && (
+            <Waveform className="w-full max-w-lg" height={56} />
+          )}
 
           {/* Control buttons */}
           {showControls && (
@@ -393,36 +430,62 @@ export function DictationPanel() {
           )}
         </div>
 
-        {/* Transcript */}
-        <TranscriptView
-          className="flex-1"
-          onCorrectGrammar={handleCorrectGrammar}
-        />
+        {/* Transcript or empty state */}
+        {hasContent ? (
+          <TranscriptView
+            className="flex-1"
+            onCorrectGrammar={handleCorrectGrammar}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+            <div className="divider-brass w-24 mb-5" />
+            <h3 className="font-display text-[15px] italic text-surface-800 tracking-tight-display leading-snug max-w-sm">
+              Press the microphone, or use your shortcut, to begin a session.
+            </h3>
+            <p className="text-[11px] text-surface-600 mt-3 flex items-center gap-1.5 font-mono">
+              <Keyboard className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
+              {shortcutToggle.replace("CommandOrControl", "Ctrl/Cmd")}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Bottom status bar */}
+      {/* Bottom status bar — metadata row with small-caps labels. */}
       <div className="flex items-center justify-between px-6 py-3 border-t border-surface-300/50 bg-surface-50/50">
-        <div className="flex items-center gap-4 text-xs text-surface-600">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {formatDuration(sessionDuration * 1000)}
-          </span>
-          <span className="flex items-center gap-1">
-            <FileText className="h-3 w-3" />
-            {wordCount} words
-          </span>
-          {inputLevel > 0 && (
-            <span className="flex items-center gap-1">
-              <Zap className="h-3 w-3" />
-              {Math.round(inputLevel * 100)}% level
+        <div className="flex items-center gap-5">
+          <div className="flex items-baseline gap-1.5">
+            <Clock className="h-3 w-3 text-surface-600 self-center" strokeWidth={1.75} />
+            <span className="font-mono text-[11px] tabular-nums text-surface-800">
+              {formatDuration(sessionDuration * 1000)}
             </span>
+            <span className="label-caps">elapsed</span>
+          </div>
+          <div className="h-3 w-px bg-surface-300/60" />
+          <div className="flex items-baseline gap-1.5">
+            <FileText className="h-3 w-3 text-surface-600 self-center" strokeWidth={1.75} />
+            <span className="font-mono text-[11px] tabular-nums text-surface-800">
+              {wordCount}
+            </span>
+            <span className="label-caps">words</span>
+          </div>
+          {inputLevel > 0 && (
+            <>
+              <div className="h-3 w-px bg-surface-300/60" />
+              <div className="flex items-baseline gap-1.5">
+                <Zap className="h-3 w-3 text-brass-500/80 self-center" strokeWidth={1.75} />
+                <span className="font-mono text-[11px] tabular-nums text-surface-800">
+                  {Math.round(inputLevel * 100)}%
+                </span>
+                <span className="label-caps">level</span>
+              </div>
+            </>
           )}
         </div>
 
         <div className="flex items-center gap-2">
           {segments.length > 0 && (
             <>
-              <Button variant="ghost" size="sm" onClick={clearSession}>
+              <Button variant="ghost" size="sm" onClick={handleClearSession}>
                 <Trash2 className="h-3.5 w-3.5" />
                 Clear
               </Button>

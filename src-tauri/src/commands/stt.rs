@@ -30,14 +30,6 @@ pub fn get_stt_engines() -> Result<Vec<EngineInfo>, String> {
             supports_streaming: true,
             supports_offline: false,
         },
-        EngineInfo {
-            id: "whisper_local".to_string(),
-            name: "Whisper Local".to_string(),
-            description: "Fully offline transcription. Best for privacy.".to_string(),
-            requires_api_key: false,
-            supports_streaming: false,
-            supports_offline: true,
-        },
     ])
 }
 
@@ -49,7 +41,6 @@ pub fn set_stt_engine(engine_id: String, state: State<'_, SttState>) -> Result<(
     config.engine = match engine_id.as_str() {
         "deepgram" => SttEngineType::DeepgramCloud,
         "whisper_cloud" => SttEngineType::WhisperCloud,
-        "whisper_local" => SttEngineType::WhisperLocal,
         _ => return Err(format!("Unknown engine: {}", engine_id)),
     };
 

@@ -50,7 +50,7 @@ class KeyboardViewController: UIInputViewController {
         grammarBar.translatesAutoresizingMaskIntoConstraints = false
 
         grammarLabel = UILabel()
-        grammarLabel.text = "Voxlen AI Grammar"
+        grammarLabel.text = "Marco Reid Voice AI Grammar"
         grammarLabel.font = .systemFont(ofSize: 12, weight: .medium)
         grammarLabel.textColor = .secondaryLabel
         grammarLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -304,7 +304,7 @@ class KeyboardViewController: UIInputViewController {
                     polishButton.isEnabled = true
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                        self?.grammarLabel.text = "Voxlen AI Grammar"
+                        self?.grammarLabel.text = "Marco Reid Voice AI Grammar"
                     }
                 }
             } catch {

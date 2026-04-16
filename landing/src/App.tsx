@@ -55,10 +55,10 @@ function Navbar() {
     <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-voxlen-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-marcoreid-600 flex items-center justify-center">
             <Mic className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">Voxlen</span>
+          <span className="text-lg font-bold tracking-tight">Marco Reid Voice</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
           <a href="#features" className="hover:text-white transition-colors">Features</a>
@@ -67,7 +67,7 @@ function Navbar() {
         </div>
         <a
           href="#download"
-          className="h-9 px-4 rounded-lg bg-voxlen-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-voxlen-700 transition-colors"
+          className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-marcoreid-700 transition-colors"
         >
           <Download className="h-3.5 w-3.5" />
           Download Free
@@ -81,7 +81,7 @@ function Hero() {
   return (
     <section className="relative pt-32 pb-20 overflow-hidden glow-hero">
       {/* Background orbs */}
-      <div className="glow-orb w-[500px] h-[500px] bg-voxlen-600 top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <div className="glow-orb w-[500px] h-[500px] bg-marcoreid-600 top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
       <div className="max-w-6xl mx-auto px-6 text-center relative z-10">
         <motion.div
@@ -92,7 +92,7 @@ function Hero() {
         >
           {/* Badge */}
           <motion.div variants={fadeUp} className="flex justify-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-voxlen-600/10 border border-voxlen-600/20 text-voxlen-400 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-marcoreid-600/10 border border-marcoreid-600/20 text-marcoreid-400 text-xs font-medium">
               <Zap className="h-3 w-3" />
               The Grammarly + Dictation killer is here
             </div>
@@ -128,7 +128,7 @@ function Hero() {
           >
             <a
               href="#download"
-              className="h-12 px-8 rounded-xl bg-voxlen-600 text-white font-semibold flex items-center gap-2 hover:bg-voxlen-700 transition-all shadow-lg shadow-voxlen-600/25 hover:shadow-voxlen-600/40 hover:scale-[1.02]"
+              className="h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:shadow-marcoreid-600/40 hover:scale-[1.02]"
             >
               <Download className="h-5 w-5" />
               Download for Free
@@ -178,10 +178,10 @@ function Hero() {
                 <div className="w-3 h-3 rounded-full bg-green-500/80" />
               </div>
               <div className="flex items-center gap-2 ml-4">
-                <div className="w-5 h-5 rounded bg-voxlen-600 flex items-center justify-center">
+                <div className="w-5 h-5 rounded bg-marcoreid-600 flex items-center justify-center">
                   <Mic className="h-3 w-3 text-white" />
                 </div>
-                <span className="text-xs font-semibold text-zinc-300">Voxlen</span>
+                <span className="text-xs font-semibold text-zinc-300">Marco Reid Voice</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-medium">
                   Listening
                 </span>
@@ -192,7 +192,7 @@ function Hero() {
             <div className="flex">
               {/* Sidebar */}
               <div className="w-48 border-r border-white/5 p-3 space-y-1">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-voxlen-600/10 text-voxlen-400 text-xs font-medium">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-marcoreid-600/10 text-marcoreid-400 text-xs font-medium">
                   <Mic className="h-3.5 w-3.5" /> Dictation
                 </div>
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-500 text-xs">
@@ -210,7 +210,7 @@ function Hero() {
                   {Array.from({ length: 48 }).map((_, i) => (
                     <div
                       key={i}
-                      className="w-1 rounded-full bg-voxlen-500"
+                      className="w-1 rounded-full bg-marcoreid-500"
                       style={{
                         height: `${8 + Math.sin(i * 0.4) * 20 + Math.random() * 16}px`,
                         opacity: 0.3 + Math.sin(i * 0.3) * 0.4 + 0.3,
@@ -224,12 +224,12 @@ function Hero() {
                     <span className="text-[10px] text-zinc-600 font-mono mr-2">10:32:15</span>
                     The quarterly results exceeded all expectations, with revenue growing
                     forty-two percent year over year.
-                    <Sparkles className="h-3 w-3 text-voxlen-400 inline ml-1" />
+                    <Sparkles className="h-3 w-3 text-marcoreid-400 inline ml-1" />
                   </p>
                   <p className="text-sm text-zinc-500 italic leading-relaxed">
                     <span className="text-[10px] text-zinc-600 font-mono mr-2">10:32:28</span>
                     We should schedule a follow up meeting to discuss the...
-                    <span className="inline-block w-0.5 h-3.5 bg-voxlen-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-0.5 h-3.5 bg-marcoreid-400 ml-0.5 animate-pulse align-text-bottom" />
                   </p>
                 </div>
               </div>
@@ -270,7 +270,7 @@ function Features() {
     {
       icon: Shield,
       title: "Never Interrupted",
-      description: "Unlike Windows+H or Apple Dictation, Voxlen NEVER stops when you switch apps. Runs as a background service with its own audio pipeline.",
+      description: "Unlike Windows+H or Apple Dictation, Marco Reid Voice NEVER stops when you switch apps. Runs as a background service with its own audio pipeline.",
       color: "text-green-400",
       bg: "bg-green-400/10",
     },
@@ -305,7 +305,7 @@ function Features() {
     {
       icon: Smartphone,
       title: "iOS Keyboard",
-      description: "Install the Voxlen keyboard on your iPhone. AI grammar correction in every text field - iMessage, WhatsApp, email, everywhere.",
+      description: "Install the Marco Reid Voice keyboard on your iPhone. AI grammar correction in every text field - iMessage, WhatsApp, email, everywhere.",
       color: "text-pink-400",
       bg: "bg-pink-400/10",
     },
@@ -321,7 +321,7 @@ function Features() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-voxlen-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Features
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -380,7 +380,7 @@ function HowItWorks() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-voxlen-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
             How it works
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -401,8 +401,8 @@ function HowItWorks() {
               variants={fadeUp}
               className="flex items-start gap-6 p-6 rounded-2xl bg-[#111114] border border-white/5"
             >
-              <div className="shrink-0 w-12 h-12 rounded-xl bg-voxlen-600/10 border border-voxlen-600/20 flex items-center justify-center">
-                <span className="text-voxlen-400 font-bold text-sm">{step.num}</span>
+              <div className="shrink-0 w-12 h-12 rounded-xl bg-marcoreid-600/10 border border-marcoreid-600/20 flex items-center justify-center">
+                <span className="text-marcoreid-400 font-bold text-sm">{step.num}</span>
               </div>
               <div>
                 <h3 className="text-lg font-bold mb-1">{step.title}</h3>
@@ -423,7 +423,7 @@ function Comparison() {
     { name: "Grammarly", price: "$12/mo", realtime: false, neverInterrupts: false, grammar: true, anyApp: false, offline: false, extMic: false },
     { name: "Dragon", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false },
-    { name: "Voxlen", price: "$5.99/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
+    { name: "Marco Reid Voice", price: "$5.99/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
   ];
 
   return (
@@ -436,11 +436,11 @@ function Comparison() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-voxlen-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Comparison
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            See why Voxlen wins.
+            See why Marco Reid Voice wins.
           </motion.h2>
         </motion.div>
 
@@ -467,17 +467,17 @@ function Comparison() {
               {competitors.map((c) => (
                 <tr
                   key={c.name}
-                  className={`border-b border-white/5 ${c.highlight ? "bg-voxlen-600/5" : ""}`}
+                  className={`border-b border-white/5 ${c.highlight ? "bg-marcoreid-600/5" : ""}`}
                 >
-                  <td className={`py-4 px-4 font-semibold ${c.highlight ? "text-voxlen-400" : ""}`}>
+                  <td className={`py-4 px-4 font-semibold ${c.highlight ? "text-marcoreid-400" : ""}`}>
                     {c.name}
-                    {c.highlight && <Star className="h-3 w-3 text-voxlen-400 inline ml-1" />}
+                    {c.highlight && <Star className="h-3 w-3 text-marcoreid-400 inline ml-1" />}
                   </td>
                   <td className="text-center py-4 px-3 text-zinc-400">{c.price}</td>
                   {[c.realtime, c.neverInterrupts, c.grammar, c.anyApp, c.offline, c.extMic].map((val, i) => (
                     <td key={i} className="text-center py-4 px-3">
                       {val ? (
-                        <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-voxlen-400" : "text-green-400"}`} />
+                        <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-marcoreid-400" : "text-green-400"}`} />
                       ) : (
                         <span className="text-zinc-600">-</span>
                       )}
@@ -504,7 +504,7 @@ function Pricing() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-voxlen-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Pricing
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -544,8 +544,8 @@ function Pricing() {
           </motion.div>
 
           {/* Pro */}
-          <motion.div variants={fadeUp} className="p-8 rounded-2xl bg-[#111114] border-2 border-voxlen-600/50 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-voxlen-600 text-white text-xs font-semibold">
+          <motion.div variants={fadeUp} className="p-8 rounded-2xl bg-[#111114] border-2 border-marcoreid-600/50 relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-marcoreid-600 text-white text-xs font-semibold">
               Most Popular
             </div>
             <h3 className="text-lg font-bold mb-1">Pro</h3>
@@ -566,12 +566,12 @@ function Pricing() {
                 "Priority support",
               ].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                  <Check className="h-4 w-4 text-voxlen-400 shrink-0" />
+                  <Check className="h-4 w-4 text-marcoreid-400 shrink-0" />
                   {f}
                 </li>
               ))}
             </ul>
-            <a href="#download" className="block text-center h-11 leading-[44px] rounded-xl bg-voxlen-600 text-white text-sm font-semibold hover:bg-voxlen-700 transition-colors shadow-lg shadow-voxlen-600/25">
+            <a href="#download" className="block text-center h-11 leading-[44px] rounded-xl bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors shadow-lg shadow-marcoreid-600/25">
               Start Free Trial
             </a>
           </motion.div>
@@ -623,11 +623,11 @@ function FAQ() {
     },
     {
       q: "How is this cheaper than Grammarly?",
-      a: "Grammarly charges $12/month and just killed their voice features. Voxlen uses Claude Haiku for grammar correction which costs about $0.03/month for heavy use. You bring your own API key, so there's no markup. We charge $5.99/month for the app itself.",
+      a: "Grammarly charges $12/month and just killed their voice features. Marco Reid Voice uses Claude Haiku for grammar correction which costs about $0.03/month for heavy use. You bring your own API key, so there's no markup. We charge $5.99/month for the app itself.",
     },
     {
       q: "Do I need an internet connection?",
-      a: "Not necessarily. Voxlen includes a fully offline mode using Whisper Local that runs entirely on your device. Cloud engines (Deepgram, OpenAI) give better accuracy but require internet. You choose.",
+      a: "Not necessarily. Marco Reid Voice includes a fully offline mode using Whisper Local that runs entirely on your device. Cloud engines (Deepgram, OpenAI) give better accuracy but require internet. You choose.",
     },
     {
       q: "What API keys do I need?",
@@ -635,11 +635,11 @@ function FAQ() {
     },
     {
       q: "Does it work with my external USB microphone?",
-      a: "Yes! Voxlen auto-detects external mics (Razer, Blue Yeti, Rode, HyperX, etc.) and prioritizes them over your built-in laptop mic. You'll get a warning if you're accidentally using the internal mic.",
+      a: "Yes! Marco Reid Voice auto-detects external mics (Razer, Blue Yeti, Rode, HyperX, etc.) and prioritizes them over your built-in laptop mic. You'll get a warning if you're accidentally using the internal mic.",
     },
     {
       q: "Can I use it on my iPhone?",
-      a: "Yes. Voxlen includes an iOS keyboard extension that adds AI grammar correction to every text field on your phone - iMessage, WhatsApp, email, everything. Install it from the App Store.",
+      a: "Yes. Marco Reid Voice includes an iOS keyboard extension that adds AI grammar correction to every text field on your phone - iMessage, WhatsApp, email, everything. Install it from the App Store.",
     },
     {
       q: "Is my audio data private?",
@@ -659,7 +659,7 @@ function FAQ() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-voxlen-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
             FAQ
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl font-black tracking-tight">
@@ -725,28 +725,28 @@ const DOWNLOADS: Record<
   "mac-arm": {
     label: "Download for macOS",
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
-    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
+    file: `MarcoReidVoice_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   "mac-intel": {
     label: "Download for macOS",
     subLabel: "Intel (x86_64)",
-    file: `Voxlen_${APP_VERSION}_x64.dmg`,
+    file: `MarcoReidVoice_${APP_VERSION}_x64.dmg`,
     size: "~19 MB",
     icon: "apple",
   },
   windows: {
     label: "Download for Windows",
     subLabel: "Windows 10/11 (x64)",
-    file: `Voxlen_${APP_VERSION}_x64_en-US.msi`,
+    file: `MarcoReidVoice_${APP_VERSION}_x64_en-US.msi`,
     size: "~22 MB",
     icon: "monitor",
   },
   linux: {
     label: "Download for Linux",
     subLabel: "AppImage (x86_64)",
-    file: `voxlen_${APP_VERSION}_amd64.AppImage`,
+    file: `marcoreidvoice_${APP_VERSION}_amd64.AppImage`,
     size: "~24 MB",
     icon: "monitor",
   },
@@ -764,7 +764,7 @@ function CTA() {
 
   return (
     <section id="download" className="py-24 bg-[#0c0c0f] relative overflow-hidden">
-      <div className="glow-orb w-[600px] h-[600px] bg-voxlen-600 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <div className="glow-orb w-[600px] h-[600px] bg-marcoreid-600 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
       <div className="max-w-5xl mx-auto px-6 relative z-10">
         <motion.div
           initial="hidden"
@@ -773,7 +773,7 @@ function CTA() {
           variants={stagger}
           className="text-center"
         >
-          <motion.p variants={fadeUp} className="text-voxlen-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Download
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight mb-4">
@@ -788,7 +788,7 @@ function CTA() {
             <motion.div variants={fadeUp} className="flex justify-center mb-4">
               <a
                 href={`${GH_RELEASES}/${primary.file}`}
-                className="group h-16 px-10 rounded-2xl bg-voxlen-600 text-white font-bold flex items-center gap-4 hover:bg-voxlen-700 transition-all shadow-xl shadow-voxlen-600/30 hover:shadow-voxlen-600/50 hover:scale-[1.02]"
+                className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
               >
                 <PrimaryIcon className="h-7 w-7" />
                 <div className="text-left">
@@ -826,19 +826,19 @@ function CTA() {
                   href={`${GH_RELEASES}/${d.file}`}
                   className={`group relative p-5 rounded-xl border transition-all ${
                     isDetected
-                      ? "bg-voxlen-600/5 border-voxlen-600/40 hover:border-voxlen-600/60"
+                      ? "bg-marcoreid-600/5 border-marcoreid-600/40 hover:border-marcoreid-600/60"
                       : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10"
                   }`}
                 >
                   {isDetected && (
-                    <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-voxlen-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                    <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-marcoreid-600 text-white text-[10px] font-bold uppercase tracking-wider">
                       Detected
                     </div>
                   )}
                   <div className="flex items-start justify-between mb-3">
                     <div
                       className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        isDetected ? "bg-voxlen-600/20 text-voxlen-400" : "bg-white/5 text-zinc-400"
+                        isDetected ? "bg-marcoreid-600/20 text-marcoreid-400" : "bg-white/5 text-zinc-400"
                       }`}
                     >
                       <Icon className="h-5 w-5" />
@@ -860,13 +860,13 @@ function CTA() {
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          className="mt-10 p-6 rounded-2xl bg-gradient-to-br from-voxlen-600/10 to-transparent border border-voxlen-600/20 flex flex-col md:flex-row items-center gap-6"
+          className="mt-10 p-6 rounded-2xl bg-gradient-to-br from-marcoreid-600/10 to-transparent border border-marcoreid-600/20 flex flex-col md:flex-row items-center gap-6"
         >
-          <div className="w-14 h-14 rounded-xl bg-voxlen-600/20 border border-voxlen-600/30 flex items-center justify-center shrink-0">
-            <Smartphone className="h-7 w-7 text-voxlen-400" />
+          <div className="w-14 h-14 rounded-xl bg-marcoreid-600/20 border border-marcoreid-600/30 flex items-center justify-center shrink-0">
+            <Smartphone className="h-7 w-7 text-marcoreid-400" />
           </div>
           <div className="flex-1 text-center md:text-left">
-            <div className="text-lg font-bold text-white mb-1">Voxlen Keyboard for iPhone &amp; iPad</div>
+            <div className="text-lg font-bold text-white mb-1">Marco Reid Voice Keyboard for iPhone &amp; iPad</div>
             <div className="text-sm text-zinc-400">
               AI grammar correction in every text field — iMessage, Mail, Notes, Safari, everywhere.
             </div>
@@ -895,7 +895,7 @@ function CTA() {
             href="https://github.com/ccantynz-alt/voxlen/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-voxlen-400 transition-colors"
+            className="hover:text-marcoreid-400 transition-colors"
           >
             View all releases &amp; changelog →
           </a>
@@ -911,7 +911,7 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-voxlen-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded bg-marcoreid-600 flex items-center justify-center">
               <Mic className="h-3 w-3 text-white" />
             </div>
             <span className="text-sm font-bold">Voxlen</span>

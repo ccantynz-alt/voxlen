@@ -1,13 +1,13 @@
 [package]
-name = "voxlen"
-version = "1.0.0"
-description = "Voxlen - AI-Powered Voice Dictation"
-authors = ["Voxlen Team"]
+name = "marco-reid-voice"
+version = "1.0.5"
+description = "Marco Reid Voice - native voice input layer for the Marco Reid platform"
+authors = ["Marco Reid"]
 edition = "2021"
 rust-version = "1.77.2"
 
 [lib]
-name = "voxlen_lib"
+name = "marco_reid_voice_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -19,7 +19,6 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-store = "2"
 tauri-plugin-shell = "2"
-tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-autostart = "2"
