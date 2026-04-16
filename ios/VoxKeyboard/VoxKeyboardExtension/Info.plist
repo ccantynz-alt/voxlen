@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Voxlen uses speech recognition to transcribe your voice into text in any app.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Voxlen needs microphone access to listen to your voice for dictation.</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>

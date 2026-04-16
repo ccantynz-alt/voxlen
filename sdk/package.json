@@ -1,0 +1,21 @@
+{
+  "name": "@voxlen/sdk",
+  "version": "0.1.0",
+  "description": "Voxlen Web SDK — embeddable voice dictation + AI grammar for any web app",
+  "type": "module",
+  "main": "dist/voxlen.js",
+  "module": "dist/voxlen.esm.js",
+  "types": "dist/voxlen.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format esm --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": ["voxlen", "voice", "dictation", "speech-to-text", "grammar"],
+  "license": "MIT"
+}

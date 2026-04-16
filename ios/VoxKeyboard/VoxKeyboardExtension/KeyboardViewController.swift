@@ -1,4 +1,6 @@
 import UIKit
+import Speech
+import AVFoundation
 
 class KeyboardViewController: UIInputViewController {
 
@@ -6,12 +8,20 @@ class KeyboardViewController: UIInputViewController {
     private var grammarBar: UIView!
     private var grammarLabel: UILabel!
     private var polishButton: UIButton!
-    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")
+    private var micButton: UIButton!
+    private let defaults = UserDefaults(suiteName: "group.com.voxlen.keyboard")
 
     // Current state
     private var isShifted = false
     private var isCapsLock = false
     private var isNumberMode = false
+
+    // Speech recognition
+    private var speechRecognizer: SFSpeechRecognizer?
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    private var recognitionTask: SFSpeechRecognitionTask?
+    private let audioEngine = AVAudioEngine()
+    private var isListening = false
 
     // Standard QWERTY layout
     private let letterRows: [[String]] = [
@@ -45,6 +55,13 @@ class KeyboardViewController: UIInputViewController {
         grammarLabel.textColor = .secondaryLabel
         grammarLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        // Mic button for voice dictation
+        micButton = UIButton(type: .system)
+        micButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
+        micButton.tintColor = UIColor(red: 0.2, green: 0.4, blue: 1.0, alpha: 1.0)
+        micButton.addTarget(self, action: #selector(toggleDictation), for: .touchUpInside)
+        micButton.translatesAutoresizingMaskIntoConstraints = false
+
         polishButton = UIButton(type: .system)
         polishButton.setTitle("Polish", for: .normal)
         polishButton.setImage(UIImage(systemName: "wand.and.stars"), for: .normal)
@@ -54,11 +71,15 @@ class KeyboardViewController: UIInputViewController {
         polishButton.translatesAutoresizingMaskIntoConstraints = false
 
         grammarBar.addSubview(grammarLabel)
+        grammarBar.addSubview(micButton)
         grammarBar.addSubview(polishButton)
 
         NSLayoutConstraint.activate([
             grammarLabel.leadingAnchor.constraint(equalTo: grammarBar.leadingAnchor, constant: 12),
             grammarLabel.centerYAnchor.constraint(equalTo: grammarBar.centerYAnchor),
+            micButton.trailingAnchor.constraint(equalTo: polishButton.leadingAnchor, constant: -12),
+            micButton.centerYAnchor.constraint(equalTo: grammarBar.centerYAnchor),
+            micButton.widthAnchor.constraint(equalToConstant: 32),
             polishButton.trailingAnchor.constraint(equalTo: grammarBar.trailingAnchor, constant: -12),
             polishButton.centerYAnchor.constraint(equalTo: grammarBar.centerYAnchor),
         ])
@@ -401,6 +422,145 @@ class KeyboardViewController: UIInputViewController {
         return corrected
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+    }
+
+    // MARK: - Voice Dictation (Apple Speech Framework)
+
+    @objc private func toggleDictation() {
+        if isListening {
+            stopDictation()
+        } else {
+            startDictation()
+        }
+    }
+
+    private func startDictation() {
+        // Request authorization
+        SFSpeechRecognizer.requestAuthorization { [weak self] status in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                switch status {
+                case .authorized:
+                    self.beginRecognition()
+                case .denied, .restricted:
+                    self.grammarLabel.text = "Speech access denied — check Settings"
+                case .notDetermined:
+                    self.grammarLabel.text = "Requesting speech permission..."
+                @unknown default:
+                    break
+                }
+            }
+        }
+    }
+
+    private func beginRecognition() {
+        // Cancel any existing task
+        recognitionTask?.cancel()
+        recognitionTask = nil
+
+        let locale = Locale(identifier: defaults?.string(forKey: "language") ?? "en-US")
+        speechRecognizer = SFSpeechRecognizer(locale: locale)
+
+        guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
+            grammarLabel.text = "Speech recognition not available"
+            return
+        }
+
+        // Configure audio session
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            grammarLabel.text = "Audio session error"
+            return
+        }
+
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        guard let recognitionRequest = recognitionRequest else { return }
+
+        recognitionRequest.shouldReportPartialResults = true
+        if #available(iOS 16, *) {
+            recognitionRequest.addsPunctuation = true
+        }
+
+        let inputNode = audioEngine.inputNode
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            self.recognitionRequest?.append(buffer)
+        }
+
+        audioEngine.prepare()
+        do {
+            try audioEngine.start()
+        } catch {
+            grammarLabel.text = "Audio engine failed to start"
+            return
+        }
+
+        isListening = true
+        micButton.tintColor = .systemRed
+        micButton.setImage(UIImage(systemName: "mic.slash.fill"), for: .normal)
+        grammarLabel.text = "Listening..."
+
+        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+            guard let self = self else { return }
+
+            if let result = result {
+                let text = result.bestTranscription.formattedString
+
+                // Insert the latest recognized text
+                // For partial results, we track what's already been inserted
+                if result.isFinal {
+                    self.textDocumentProxy.insertText(text + " ")
+                    self.stopDictation()
+
+                    // Auto-polish if enabled
+                    if self.defaults?.bool(forKey: "autoCorrect") == true {
+                        self.grammarLabel.text = "Polishing..."
+                        Task {
+                            do {
+                                let corrected = try await self.correctGrammar(text)
+                                await MainActor.run {
+                                    // Delete original and insert corrected
+                                    for _ in 0..<(text.count + 1) {
+                                        self.textDocumentProxy.deleteBackward()
+                                    }
+                                    self.textDocumentProxy.insertText(corrected + " ")
+                                    self.grammarLabel.text = "Voxlen AI Grammar"
+                                }
+                            } catch {
+                                await MainActor.run {
+                                    self.grammarLabel.text = "Voxlen AI Grammar"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let error = error {
+                self.grammarLabel.text = "Error: \(error.localizedDescription)"
+                self.stopDictation()
+            }
+        }
+    }
+
+    private func stopDictation() {
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        isListening = false
+
+        DispatchQueue.main.async { [weak self] in
+            self?.micButton.tintColor = UIColor(red: 0.2, green: 0.4, blue: 1.0, alpha: 1.0)
+            self?.micButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
+            self?.grammarLabel.text = "Voxlen AI Grammar"
+        }
     }
 }
 

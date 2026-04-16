@@ -61,16 +61,39 @@ pub fn start_streaming(
     let stop_clone = stop_flag.clone();
 
     let handle = tokio::spawn(async move {
-        if let Err(e) = run_streaming_session(
-            &api_key,
-            &language,
-            auto_detect,
-            audio_receiver,
-            app_handle.clone(),
-            stop_clone.clone(),
-        ).await {
-            log::error!("Streaming session error: {}", e);
-            let _ = app_handle.emit("transcription-error", e.to_string());
+        let max_retries = 3;
+        let mut attempt = 0;
+
+        loop {
+            if stop_clone.load(Ordering::Relaxed) {
+                break;
+            }
+
+            match run_streaming_session(
+                &api_key,
+                &language,
+                auto_detect,
+                audio_receiver.clone(),
+                app_handle.clone(),
+                stop_clone.clone(),
+            ).await {
+                Ok(()) => break, // Clean shutdown
+                Err(e) => {
+                    attempt += 1;
+                    log::error!("Streaming session error (attempt {}/{}): {}", attempt, max_retries, e);
+
+                    if attempt >= max_retries || stop_clone.load(Ordering::Relaxed) {
+                        let _ = app_handle.emit("transcription-error", e.to_string());
+                        break;
+                    }
+
+                    // Exponential backoff: 1s, 2s, 4s
+                    let delay = std::time::Duration::from_secs(1 << (attempt - 1));
+                    log::info!("Reconnecting in {:?}...", delay);
+                    let _ = app_handle.emit("streaming-reconnecting", attempt);
+                    tokio::time::sleep(delay).await;
+                }
+            }
         }
     });
 

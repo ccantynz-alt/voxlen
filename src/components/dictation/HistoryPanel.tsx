@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   History,
   Clock,
@@ -7,146 +7,33 @@ import {
   Search,
   Calendar,
   Trash2,
-  Download,
-  ChevronDown,
-  ChevronRight,
-  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { formatDuration } from "@/lib/utils";
-import type { BackendSessionRecord } from "@/stores/dictation";
-import type { TranscriptionSegment } from "@/stores/dictation";
-import { downloadExport, type ExportFormat } from "@/lib/export";
-import { useSettingsStore } from "@/stores/settings";
-
-interface HistorySession {
-  id: string;
-  startedAt: Date;
-  endedAt: Date;
-  durationMs: number;
-  wordCount: number;
-  language: string | null;
-  segments: Array<{
-    id: string;
-    text: string;
-    correctedText: string | null;
-    confidence: number;
-    language: string | null;
-    timestampMs: number;
-    grammarApplied: boolean;
-  }>;
-}
-
-function fromBackend(record: BackendSessionRecord): HistorySession {
-  return {
-    id: record.id,
-    startedAt: new Date(record.started_at_ms),
-    endedAt: new Date(record.ended_at_ms),
-    durationMs: record.duration_ms,
-    wordCount: record.word_count,
-    language: record.language,
-    segments: record.segments.map((s) => ({
-      id: s.id,
-      text: s.text,
-      correctedText: s.corrected_text,
-      confidence: s.confidence,
-      language: s.language,
-      timestampMs: s.timestamp_ms,
-      grammarApplied: s.grammar_applied,
-    })),
-  };
-}
-
-function getPreview(session: HistorySession): string {
-  if (session.segments.length === 0) return "(empty session)";
-  const first = session.segments[0];
-  return (first.correctedText || first.text).split("\n")[0];
-}
-
-function sessionToSegments(session: HistorySession): TranscriptionSegment[] {
-  return session.segments.map((s) => ({
-    id: s.id,
-    text: s.text,
-    correctedText: s.correctedText ?? undefined,
-    timestamp: new Date(s.timestampMs),
-    confidence: s.confidence,
-    language: s.language ?? undefined,
-    isFinal: true,
-    grammarApplied: s.grammarApplied,
-  }));
-}
+import { useHistoryStore, loadHistory } from "@/stores/history";
 
 export function HistoryPanel() {
   const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sessions, setSessions] = useState<HistorySession[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const entries = useHistoryStore((s) => s.entries);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState<boolean>(false);
 
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchHistory = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const records = await invoke<BackendSessionRecord[]>("get_history");
-      setSessions(records.map(fromBackend));
-    } catch (e) {
-      // Non-Tauri or backend error — degrade gracefully.
-      setSessions([]);
-      setError(e instanceof Error ? e.message : "Failed to load history");
-    } finally {
-      setLoading(false);
-    }
+  // Load persisted history on mount
+  useEffect(() => {
+    loadHistory();
   }, []);
 
-  const runSearch = useCallback(async (query: string) => {
-    setError(null);
-    if (!query.trim()) {
-      fetchHistory();
-      return;
-    }
-    setLoading(true);
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const records = await invoke<BackendSessionRecord[]>("search_history", {
-        query,
-      });
-      setSessions(records.map(fromBackend));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Search failed");
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchHistory]);
+  const filteredHistory = entries.filter((entry) =>
+    entry.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
-
-  // Debounced search
-  useEffect(() => {
-    if (searchDebounceRef.current) {
-      clearTimeout(searchDebounceRef.current);
-    }
-    searchDebounceRef.current = setTimeout(() => {
-      runSearch(searchQuery);
-    }, 250);
-    return () => {
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    };
-  }, [searchQuery, runSearch]);
-
-  const handleCopy = async (session: HistorySession) => {
-    const text = session.segments.map((s) => s.correctedText || s.text).join(" ");
-    await navigator.clipboard.writeText(text);
-    setCopiedId(session.id);
+  const handleCopy = async (entry: typeof entries[0]) => {
+    await navigator.clipboard.writeText(entry.text);
+    setCopiedId(entry.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -193,8 +80,8 @@ export function HistoryPanel() {
             <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
               The <span className="italic text-brass-500">record</span>
             </h2>
-            <p className="text-[11px] text-surface-600 mt-0.5 leading-snug">
-              {loading ? "Loading…" : `${sessions.length} session${sessions.length === 1 ? "" : "s"} on file`}
+            <p className="text-xs text-surface-600">
+              {entries.length} sessions recorded
             </p>
           </div>
         </div>
@@ -277,104 +164,29 @@ export function HistoryPanel() {
             </p>
           </div>
         ) : (
-          sortedSessions.map((session) => {
-            const expanded = expandedId === session.id;
-            const preview = getPreview(session);
-            return (
-              <div
-                key={session.id}
-                className="group rounded-md bg-surface-50 border border-surface-300/60 hover:border-surface-400/60 shadow-inset-hairline transition-colors"
-              >
-                <button
-                  onClick={() =>
-                    setExpandedId(expanded ? null : session.id)
-                  }
-                  className="w-full text-left p-4"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2 text-[11px] text-surface-600 font-mono">
-                      {expanded ? (
-                        <ChevronDown className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
-                      ) : (
-                        <ChevronRight className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
-                      )}
-                      <Clock className="h-3 w-3" strokeWidth={1.75} />
-                      <span className="tabular-nums">
-                        {session.startedAt.toLocaleDateString()} &middot;{" "}
-                        {session.startedAt.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    <div
-                      className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopy(session)}
-                        className="h-7 px-2"
-                        title="Copy transcript"
-                      >
-                        {copiedId === session.id ? (
-                          <Check className="h-3 w-3 text-brass-500" strokeWidth={2} />
-                        ) : (
-                          <Copy className="h-3 w-3" strokeWidth={1.75} />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleExport(session, "txt")}
-                        className="h-7 px-2"
-                        title="Export as .txt"
-                      >
-                        <Download className="h-3 w-3" strokeWidth={1.75} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(session)}
-                        className="h-7 px-2"
-                        title="Delete session"
-                      >
-                        <Trash2 className="h-3 w-3 text-red-500" strokeWidth={1.75} />
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-[13.5px] text-surface-900 leading-relaxed line-clamp-2 font-sans">
-                    {preview}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2.5 font-mono">
-                    <span className="text-[10px] text-surface-600 tabular-nums">
-                      {formatDuration(session.durationMs)}
-                    </span>
-                    <span className="text-surface-400">&middot;</span>
-                    <span className="text-[10px] text-surface-600 tabular-nums">
-                      {session.wordCount} words
-                    </span>
-                    {session.language && (
-                      <>
-                        <span className="text-surface-400">&middot;</span>
-                        <span className="text-[10px] text-surface-600 uppercase tracking-wide-caps">
-                          {session.language}
-                        </span>
-                      </>
-                    )}
-                    {session.segments.some((s) => s.grammarApplied) && (
-                      <Badge variant="success" className="ml-1">
-                        Polished
-                      </Badge>
-                    )}
-                  </div>
-                </button>
-
-                {expanded && (
-                  <div className="px-4 pb-4 border-t border-surface-300/40 pt-3 space-y-2">
-                    {session.segments.length === 0 ? (
-                      <p className="text-[11px] italic text-surface-600 font-display">No segments in this session.</p>
+          filteredHistory.map((entry) => (
+            <div
+              key={entry.id}
+              className="group p-4 rounded-xl bg-surface-100 border border-surface-300/50 hover:border-surface-400/50 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2 text-xs text-surface-600">
+                  <Clock className="h-3 w-3" />
+                  {new Date(entry.timestamp).toLocaleDateString()} at{" "}
+                  {new Date(entry.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(entry)}
+                    className="h-7 px-2"
+                  >
+                    {copiedId === entry.id ? (
+                      <Check className="h-3 w-3 text-green-400" />
                     ) : (
                       session.segments.map((seg) => (
                         <div

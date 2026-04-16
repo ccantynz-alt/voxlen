@@ -791,7 +791,19 @@ function AdvancedSettings() {
           label="Launch at Login"
           description="Automatically start Marco Reid Voice when you log in"
           checked={settings.launchAtLogin}
-          onChange={(v) => settings.updateSetting("launchAtLogin", v)}
+          onChange={async (v) => {
+            settings.updateSetting("launchAtLogin", v);
+            try {
+              const { invoke } = await import("@tauri-apps/api/core");
+              if (v) {
+                await invoke("plugin:autostart|enable");
+              } else {
+                await invoke("plugin:autostart|disable");
+              }
+            } catch {
+              // Not in Tauri or plugin not available
+            }
+          }}
         />
       </SettingRow>
 

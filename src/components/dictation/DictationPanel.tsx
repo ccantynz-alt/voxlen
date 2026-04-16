@@ -21,6 +21,9 @@ import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
+import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
+import { useHistoryStore } from "@/stores/history";
+import { useFlywheelStore } from "@/stores/flywheel";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -62,6 +65,146 @@ export function DictationPanel() {
     };
   }, [status, incrementDuration]);
 
+  const setCurrentTranscript = useDictationStore((s) => s.setCurrentTranscript);
+
+  // Listen for audio level + transcription events from Tauri
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    async function setup() {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+
+        const unlistenLevel = await listen<number>("audio-level", (event) => {
+          setInputLevel(event.payload);
+          pushWaveformSample(event.payload);
+        });
+
+        // Final transcription results — with voice command processing
+        const unlistenTranscription = await listen<{
+          text: string;
+          is_final: boolean;
+          confidence: number;
+          language?: string;
+        }>("transcription", (event) => {
+          const result = event.payload;
+          if (result.is_final && result.text.trim()) {
+            let textToAdd = result.text;
+
+            // Process voice commands if enabled
+            const voiceCommandsEnabled = useSettingsStore.getState().voiceCommandsEnabled;
+            if (voiceCommandsEnabled) {
+              const cmdResult = processVoiceCommands(result.text);
+              if (cmdResult.matched && cmdResult.action) {
+                const commandOutput = executeVoiceCommand(cmdResult.action);
+                // If command produced text (punctuation, newline, etc.), apply it to remaining text
+                if (cmdResult.remainingText) {
+                  textToAdd = applyTextCommand(cmdResult.remainingText, commandOutput);
+                } else if (commandOutput) {
+                  // Pure command with output (e.g., "period" → ".")
+                  // Apply to the last segment's text
+                  const segments = useDictationStore.getState().segments;
+                  if (segments.length > 0) {
+                    const last = segments[segments.length - 1];
+                    const updated = applyTextCommand(last.correctedText || last.text, commandOutput);
+                    useDictationStore.getState().updateSegment(last.id, {
+                      text: updated,
+                      correctedText: undefined,
+                    });
+                  }
+                  setCurrentTranscript("");
+                  return; // Don't add a new segment
+                } else {
+                  // Command with no output and no remaining text (e.g., "stop listening", "delete that")
+                  setCurrentTranscript("");
+                  return;
+                }
+              }
+            }
+
+            const segmentId = crypto.randomUUID();
+            addSegment({
+              id: segmentId,
+              text: textToAdd,
+              timestamp: new Date(),
+              confidence: result.confidence,
+              language: result.language || undefined,
+              isFinal: true,
+              grammarApplied: false,
+            });
+            // Clear the partial transcript since we got a final result
+            setCurrentTranscript("");
+
+            // Auto-grammar: if enabled, polish the segment in the background
+            const { grammarEnabled, autoCorrect, grammarApiKey } = useSettingsStore.getState();
+            if (grammarEnabled && autoCorrect && grammarApiKey) {
+              import("@tauri-apps/api/core").then(({ invoke }) => {
+                const vocabList = useFlywheelStore.getState().getVocabularyList();
+                invoke<{ corrected: string; changes?: Array<{ original: string; corrected: string; category?: string }> }>("correct_grammar", { text: textToAdd, customVocabulary: vocabList })
+                  .then((grammarResult) => {
+                    if (grammarResult.corrected !== textToAdd) {
+                      useDictationStore.getState().updateSegment(segmentId, {
+                        correctedText: grammarResult.corrected,
+                        grammarApplied: true,
+                      });
+                      if (grammarResult.changes) {
+                        for (const change of grammarResult.changes) {
+                          useFlywheelStore.getState().recordCorrection(
+                            change.original,
+                            change.corrected,
+                            (change.category as "grammar" | "spelling" | "punctuation" | "style") || "grammar"
+                          );
+                        }
+                      }
+                      useFlywheelStore.getState().recordCorrectionFeedback(true);
+                    }
+                  })
+                  .catch(() => {
+                    // Grammar correction failed silently — don't block dictation
+                  });
+              }).catch(() => {});
+            }
+          }
+        });
+
+        // Streaming partial results (real-time word-by-word)
+        const unlistenPartial = await listen<{
+          text: string;
+          is_final: boolean;
+          confidence: number;
+        }>("streaming-partial", (event) => {
+          if (!event.payload.is_final && event.payload.text) {
+            setCurrentTranscript(event.payload.text);
+          }
+        });
+
+        // Speech activity events
+        const unlistenSpeechStarted = await listen("speech-started", () => {
+          // Visual feedback that speech detected
+          setStatus("listening");
+        });
+
+        const unlistenUtteranceEnd = await listen("utterance-end", () => {
+          // Brief processing indicator between utterances
+          setCurrentTranscript("");
+        });
+
+        unlisten = () => {
+          unlistenLevel();
+          unlistenTranscription();
+          unlistenPartial();
+          unlistenSpeechStarted();
+          unlistenUtteranceEnd();
+        };
+      } catch {
+        // Not in Tauri environment - use demo mode
+      }
+    }
+
+    setup();
+    return () => unlisten?.();
+  }, [setInputLevel, pushWaveformSample, addSegment, setCurrentTranscript, setStatus]);
+
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused") {
       sessionStartRef.current = new Date();
@@ -80,6 +223,26 @@ export function DictationPanel() {
         await invoke("stop_dictation");
       } catch {
         // Demo mode
+      }
+      // Save session to history if there are segments
+      const currentSegments = useDictationStore.getState().segments;
+      const currentDuration = useDictationStore.getState().sessionDuration;
+      if (currentSegments.length > 0) {
+        const fullText = currentSegments.map((s) => s.correctedText || s.text).join(" ");
+        const wc = fullText.split(/\s+/).filter(Boolean).length;
+        const hasGrammar = currentSegments.some((s) => s.grammarApplied);
+        useHistoryStore.getState().addEntry({
+          id: crypto.randomUUID(),
+          text: fullText,
+          duration: currentDuration * 1000,
+          wordCount: wc,
+          language: currentSegments[0].language || "en",
+          timestamp: new Date().toISOString(),
+          grammarCorrected: hasGrammar,
+        });
+
+        const engine = useSettingsStore.getState().sttEngine;
+        useFlywheelStore.getState().recordSession(wc, currentDuration, engine);
       }
       setStatus("idle");
     }

@@ -30,6 +30,8 @@ const stagger = {
 };
 
 export default function App() {
+  const [legalModal, setLegalModal] = useState<"privacy" | "terms" | null>(null);
+
   return (
     <div className="min-h-screen bg-[#09090b]">
       <Navbar />
@@ -40,7 +42,10 @@ export default function App() {
       <Pricing />
       <FAQ />
       <CTA />
-      <Footer />
+      <Footer onOpenLegal={setLegalModal} />
+      {legalModal && (
+        <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
+      )}
     </div>
   );
 }
@@ -110,7 +115,7 @@ function Hero() {
           >
             Real-time voice dictation with AI grammar correction that types into
             any application. Never interrupted by window switches. Works with
-            your external mic. 90+ languages.{" "}
+            your external mic. 20+ languages.{" "}
             <span className="text-white font-medium">
               100x cheaper than Grammarly.
             </span>
@@ -278,7 +283,7 @@ function Features() {
     },
     {
       icon: Globe,
-      title: "90+ Languages",
+      title: "20+ Languages",
       description: "Auto-detects what language you're speaking. Switch between languages mid-sentence. Full support for accents and dialects.",
       color: "text-cyan-400",
       bg: "bg-cyan-400/10",
@@ -556,7 +561,7 @@ function Pricing() {
                 "AI Grammar (Claude)",
                 "Text injection (any app)",
                 "Voice commands",
-                "90+ languages",
+                "20+ languages",
                 "iOS keyboard",
                 "Priority support",
               ].map((f) => (
@@ -614,7 +619,7 @@ function FAQ() {
   const faqs = [
     {
       q: "How is this different from Windows+H or Apple Dictation?",
-      a: "Those stop working the moment you switch apps or click somewhere else. Marco Reid Voice runs as a background service - it NEVER gets interrupted. Plus, it has AI grammar correction, works with your external mic, and supports 90+ languages.",
+      a: "Those stop working the moment you switch apps or click somewhere else. Voxlen runs as a background service - it NEVER gets interrupted. Plus, it has AI grammar correction, works with your external mic, and supports 20+ languages.",
     },
     {
       q: "How is this cheaper than Grammarly?",
@@ -692,7 +697,7 @@ function FAQ() {
   );
 }
 
-const GH_RELEASES = "https://github.com/ccantynz-alt/voice/releases/latest/download";
+const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
 const APP_VERSION = "1.0.0";
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
@@ -887,7 +892,7 @@ function CTA() {
           className="mt-8 text-center text-xs text-zinc-600"
         >
           <a
-            href="https://github.com/ccantynz-alt/voice/releases/latest"
+            href="https://github.com/ccantynz-alt/voxlen/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-marcoreid-400 transition-colors"
@@ -900,7 +905,7 @@ function CTA() {
   );
 }
 
-function Footer() {
+function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => void }) {
   return (
     <footer className="py-12 border-t border-white/5">
       <div className="max-w-6xl mx-auto px-6">
@@ -909,20 +914,208 @@ function Footer() {
             <div className="w-6 h-6 rounded bg-marcoreid-600 flex items-center justify-center">
               <Mic className="h-3 w-3 text-white" />
             </div>
-            <span className="text-sm font-bold">Marco Reid Voice</span>
-            <span className="text-xs text-zinc-600">v1.0.0</span>
+            <span className="text-sm font-bold">Voxlen</span>
+            <span className="text-xs text-zinc-600">v{APP_VERSION}</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-zinc-500">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors">Support</a>
-            <a href="#" className="hover:text-white transition-colors">GitHub</a>
+            <button onClick={() => onOpenLegal("privacy")} className="hover:text-white transition-colors">Privacy Policy</button>
+            <button onClick={() => onOpenLegal("terms")} className="hover:text-white transition-colors">Terms of Service</button>
+            <a href="mailto:support@voxlen.ai" className="hover:text-white transition-colors">Support</a>
+            <a href="https://github.com/ccantynz-alt/voxlen" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
           </div>
           <p className="text-xs text-zinc-600">
-            Built with pride. Made to help people.
+            &copy; {new Date().getFullYear()} Voxlen. All rights reserved.
           </p>
         </div>
       </div>
     </footer>
+  );
+}
+
+function LegalModal({ type, onClose }: { type: "privacy" | "terms"; onClose: () => void }) {
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handleEsc);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl bg-[#111114] border border-white/10 p-8 md:p-12"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+        >
+          &times;
+        </button>
+        {type === "privacy" ? <PrivacyContent /> : <TermsContent />}
+      </div>
+    </div>
+  );
+}
+
+function PrivacyContent() {
+  return (
+    <div className="max-w-none space-y-6">
+      <h1 className="text-2xl font-black">Privacy Policy</h1>
+      <p className="text-xs text-zinc-500">Last updated: April 2026</p>
+
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen ("we", "us", "our") is committed to protecting your privacy. This policy explains
+        how our voice dictation application handles your data. We designed Voxlen with
+        privacy-first principles, especially for professionals handling sensitive information.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">1. Data We Do NOT Collect</h2>
+      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+        <li><strong className="text-zinc-200">Audio recordings</strong> — We never store, log, or retain your voice audio. Audio is streamed to your chosen STT provider and immediately discarded after transcription.</li>
+        <li><strong className="text-zinc-200">Transcribed text</strong> — Your dictated text stays on your device. We never transmit transcription content to our servers.</li>
+        <li><strong className="text-zinc-200">Grammar-corrected content</strong> — Text sent for AI grammar correction goes directly to your chosen provider (Anthropic or OpenAI) using your own API key. We have no access to this content.</li>
+        <li><strong className="text-zinc-200">Documents or files</strong> — Voxlen never reads, scans, or accesses any files on your device beyond its own configuration.</li>
+      </ul>
+
+      <h2 className="text-lg font-bold mt-8">2. Data Processing Architecture</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen operates as a <strong>pass-through</strong> application. Your data flows directly between your device and your chosen API providers:
+      </p>
+      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly to Deepgram or OpenAI Whisper using your API key. In offline mode (Whisper Local), audio never leaves your device.</li>
+        <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent directly to Anthropic (Claude) or OpenAI using your API key. We have no intermediary server.</li>
+        <li><strong className="text-zinc-200">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
+      </ul>
+
+      <h2 className="text-lg font-bold mt-8">3. Confidentiality for Legal &amp; Accounting Professionals</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        We understand that attorneys, accountants, and other professionals using Voxlen may handle
+        privileged or confidential information. Voxlen is designed to respect these obligations:
+      </p>
+      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+        <li>No Voxlen-operated server ever receives your content</li>
+        <li>Session history is stored only on your local device and never synced to our infrastructure</li>
+        <li>Custom vocabulary and dictionaries remain local to your device</li>
+        <li>You control which third-party providers process your data through your own API keys</li>
+        <li>Offline mode ensures zero external data transmission</li>
+      </ul>
+
+      <h2 className="text-lg font-bold mt-8">4. Analytics &amp; Telemetry</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen collects minimal, anonymous usage telemetry to improve the product:
+      </p>
+      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+        <li>Application launch and feature usage counts (no content)</li>
+        <li>Crash reports with stack traces (no user content)</li>
+        <li>OS platform and app version</li>
+      </ul>
+      <p className="text-zinc-300 leading-relaxed">
+        You can disable all telemetry in Settings &gt; Privacy. When disabled, zero data is transmitted.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">5. Third-Party Services</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        When you provide API keys, data is processed according to each provider's privacy policy:
+      </p>
+      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+        <li>Deepgram — processes audio for transcription</li>
+        <li>OpenAI — processes audio (Whisper) or text (grammar correction)</li>
+        <li>Anthropic — processes text for grammar correction</li>
+      </ul>
+      <p className="text-zinc-300 leading-relaxed">
+        We recommend reviewing each provider's data retention policies. Both Anthropic and OpenAI
+        offer zero-retention API options suitable for handling sensitive content.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">6. Contact</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-voxlen-400 hover:underline">privacy@voxlen.ai</a>.
+      </p>
+    </div>
+  );
+}
+
+function TermsContent() {
+  return (
+    <div className="max-w-none space-y-6">
+      <h1 className="text-2xl font-black">Terms of Service</h1>
+      <p className="text-xs text-zinc-500">Last updated: April 2026</p>
+
+      <p className="text-zinc-300 leading-relaxed">
+        By downloading or using Voxlen, you agree to these terms. Please read them carefully.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">1. Service Description</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen is a desktop and mobile application that provides voice-to-text dictation with
+        AI-powered grammar correction and universal text injection. The application runs locally
+        on your device and connects to third-party APIs using your own credentials.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">2. API Keys &amp; Third-Party Services</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen requires you to provide your own API keys for speech-to-text and grammar correction
+        services. You are responsible for:
+      </p>
+      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+        <li>Keeping your API keys secure</li>
+        <li>Any costs incurred through third-party API usage</li>
+        <li>Complying with each provider's terms of service</li>
+      </ul>
+
+      <h2 className="text-lg font-bold mt-8">3. Subscription Plans</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen offers Free, Pro ($5.99/month), and Lifetime ($149 one-time) plans. The Free plan
+        includes basic dictation. Pro and Lifetime unlock all features. Subscriptions can be cancelled at
+        any time. We offer a 14-day free trial for Pro with no credit card required.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">4. Acceptable Use</h2>
+      <p className="text-zinc-300 leading-relaxed">You agree not to:</p>
+      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+        <li>Reverse-engineer, decompile, or disassemble the application</li>
+        <li>Use the application for any unlawful purpose</li>
+        <li>Redistribute, sublicense, or resell the application</li>
+        <li>Attempt to bypass subscription or usage limitations</li>
+      </ul>
+
+      <h2 className="text-lg font-bold mt-8">5. Intellectual Property</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen and its original content, features, and functionality are owned by Voxlen and are
+        protected by international copyright and trademark laws. Your transcribed content remains
+        entirely yours — we claim no rights over content you create using Voxlen.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">6. Disclaimer of Warranties</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen is provided "as is" without warranties of any kind. We do not guarantee that
+        transcriptions or grammar corrections will be error-free. You should review all output,
+        especially for legal, medical, or financial documents.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">7. Limitation of Liability</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        Voxlen shall not be liable for any indirect, incidental, special, consequential, or punitive
+        damages resulting from your use of the application, including but not limited to errors in
+        transcription or grammar correction.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">8. Changes to Terms</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        We may update these terms from time to time. Continued use of Voxlen after changes
+        constitutes acceptance of the new terms. We will notify users of significant changes
+        through the application.
+      </p>
+
+      <h2 className="text-lg font-bold mt-8">9. Contact</h2>
+      <p className="text-zinc-300 leading-relaxed">
+        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-voxlen-400 hover:underline">legal@voxlen.ai</a>.
+      </p>
+    </div>
   );
 }

@@ -10,18 +10,35 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
-import { useHistoryStore } from "@/stores/history";
-import { loadSettings, persistSettings } from "@/lib/settings";
-import { useTauriEvents } from "@/hooks/useTauriEvents";
-import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { usePersistedSettings } from "@/hooks/usePersistedSettings";
+import { loadFlywheel } from "@/stores/flywheel";
 
 type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
 export default function App() {
+  // Load saved settings from disk/localStorage on startup
+  usePersistedSettings();
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
-  const updateSettingsStore = useSettingsStore((s) => s.updateSettings);
+  const theme = useSettingsStore((s) => s.theme);
+
+  // Apply theme class to document root
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("dark", "light", "system");
+    if (theme === "light") {
+      root.classList.add("light");
+    } else if (theme === "system") {
+      root.classList.add("system");
+    }
+    // dark is the default (no class needed, :root vars apply)
+  }, [theme]);
+
+  // Load flywheel data on startup
+  useEffect(() => {
+    loadFlywheel();
+  }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
   // Hook handles its own cleanup and is safe outside Tauri.
@@ -182,6 +199,72 @@ export default function App() {
 
     init();
   }, [setDevices, showOnboarding]);
+
+  // Register global shortcuts
+  useEffect(() => {
+    if (showOnboarding) return;
+
+    async function registerShortcuts() {
+      try {
+        const { register } = await import(
+          "@tauri-apps/plugin-global-shortcut"
+        );
+
+        // Toggle dictation: Ctrl/Cmd+Shift+D
+        await register("CommandOrControl+Shift+D", (event) => {
+          if (event.state === "Pressed") {
+            const status = useDictationStore.getState().status;
+            if (status === "idle") {
+              useDictationStore.getState().setStatus("listening");
+            } else {
+              useDictationStore.getState().setStatus("idle");
+            }
+          }
+        });
+
+        // Push-to-talk: Ctrl/Cmd+Shift+Space — hold to dictate, release to stop
+        await register("CommandOrControl+Shift+Space", (event) => {
+          if (event.state === "Pressed") {
+            const status = useDictationStore.getState().status;
+            if (status === "idle") {
+              useDictationStore.getState().setStatus("listening");
+            }
+          } else if (event.state === "Released") {
+            const status = useDictationStore.getState().status;
+            if (status === "listening" || status === "processing") {
+              useDictationStore.getState().setStatus("idle");
+            }
+          }
+        });
+
+        // Grammar correction: Ctrl/Cmd+Shift+G — polish the current transcript
+        await register("CommandOrControl+Shift+G", async () => {
+          const segments = useDictationStore.getState().segments;
+          if (segments.length === 0) return;
+          const fullText = segments.map((s) => s.correctedText || s.text).join(" ");
+          try {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const result = await invoke<{
+              corrected: string;
+              changes: Array<{ original: string; corrected: string; reason: string }>;
+            }>("correct_grammar", { text: fullText });
+            // Update the last segment with the corrected full text
+            const lastSegment = segments[segments.length - 1];
+            useDictationStore.getState().updateSegment(lastSegment.id, {
+              correctedText: result.corrected,
+              grammarApplied: true,
+            });
+          } catch {
+            // Grammar correction not available
+          }
+        });
+      } catch {
+        // Not in Tauri environment
+      }
+    }
+
+    registerShortcuts();
+  }, [showOnboarding]);
 
   const handleOnboardingComplete = useCallback(async () => {
     // Save onboarding state
