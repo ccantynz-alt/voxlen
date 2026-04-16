@@ -68,11 +68,21 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: Print toolchain versions (for CI diagnostics)
+        run: |
+          node --version
+          npm --version
+          rustc --version
+          cargo --version
+
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Build frontend (standalone pre-check)
+        run: npm run build
+
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v0.5.20
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -81,10 +91,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CARGO_TERM_COLOR: always
+          RUST_BACKTRACE: '1'
         with:
           tagName: v__VERSION__
           releaseName: 'Marco Reid Voice v__VERSION__'
-          releaseBody: 'Marco Reid Voice v1.0.1 — voice input layer for the Marco Reid platform. Download the installer for your OS below. First-run note: Windows SmartScreen and macOS Gatekeeper will warn about an unknown publisher on first launch (the build is not code-signed yet). Click "More info → Run anyway" on Windows, or right-click → Open on Mac.'
+          releaseBody: 'Marco Reid Voice — voice input layer for the Marco Reid platform. Download the installer for your OS below. First-run note: Windows SmartScreen and macOS Gatekeeper will warn about an unknown publisher on first launch (the build is not code-signed yet). Click "More info → Run anyway" on Windows, or right-click → Open on Mac. Governed by the legal pack in `legal/`.'
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3] - 2026-04-16
+
+### Changed
+- CI: pinned `tauri-action` to `v0.5.20` for reproducible builds (was floating `@v0`).
+- CI: added pre-build diagnostics step (toolchain versions, standalone frontend compile) so build failures surface the real error rather than a wrapped exit code.
+- CI: set `RUST_BACKTRACE=1` + colour on for Cargo during the tauri-action invocation.
+- Generic release body text (was stale v1.0.1 reference).
+
 ## [1.0.2] - 2026-04-16
 
 ### Added
