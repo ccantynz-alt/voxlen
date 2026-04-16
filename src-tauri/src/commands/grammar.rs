@@ -62,7 +62,10 @@ fn get_config_store() -> &'static parking_lot::RwLock<GrammarConfig> {
 }
 
 #[tauri::command]
-pub async fn correct_grammar(text: String) -> Result<GrammarResult, String> {
+pub async fn correct_grammar(
+    text: String,
+    custom_vocabulary: Option<Vec<String>>,
+) -> Result<GrammarResult, String> {
     let config = get_config_store().read().clone();
 
     if !config.enabled {
@@ -79,9 +82,11 @@ pub async fn correct_grammar(text: String) -> Result<GrammarResult, String> {
         .as_ref()
         .ok_or("Grammar API key not configured")?;
 
+    let vocab = custom_vocabulary.unwrap_or_default();
+
     match config.provider {
-        GrammarProvider::Claude => correct_with_claude(&text, api_key, &config).await,
-        GrammarProvider::OpenAI => correct_with_openai(&text, api_key, &config).await,
+        GrammarProvider::Claude => correct_with_claude(&text, api_key, &config, &vocab).await,
+        GrammarProvider::OpenAI => correct_with_openai(&text, api_key, &config, &vocab).await,
     }
 }
 
@@ -89,6 +94,7 @@ async fn correct_with_claude(
     text: &str,
     api_key: &str,
     config: &GrammarConfig,
+    custom_vocabulary: &[String],
 ) -> Result<GrammarResult, String> {
     let style_instruction = match config.style {
         WritingStyle::Professional => "professional and polished",
@@ -96,6 +102,15 @@ async fn correct_with_claude(
         WritingStyle::Academic => "academic and formal",
         WritingStyle::Creative => "creative and expressive",
         WritingStyle::Technical => "technical and precise",
+    };
+
+    let vocab_instruction = if custom_vocabulary.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "\n- These are known custom vocabulary words (do NOT flag as spelling errors): {}",
+            custom_vocabulary.join(", ")
+        )
     };
 
     let prompt = format!(
@@ -106,7 +121,7 @@ Rules:
 - Fix spelling, grammar, and punctuation errors
 - Improve sentence structure where needed
 - Keep the original meaning intact
-- Do NOT add information or change the intent
+- Do NOT add information or change the intent{vocab}
 
 Respond ONLY with valid JSON in this exact format:
 {{"corrected": "the corrected text", "changes": [{{"original": "wrong", "corrected": "right", "reason": "why", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
@@ -119,6 +134,7 @@ Text to correct:
         } else {
             ""
         },
+        vocab = vocab_instruction,
         text = text
     );
 
@@ -185,6 +201,7 @@ async fn correct_with_openai(
     text: &str,
     api_key: &str,
     config: &GrammarConfig,
+    custom_vocabulary: &[String],
 ) -> Result<GrammarResult, String> {
     let style_instruction = match config.style {
         WritingStyle::Professional => "professional and polished",
@@ -194,14 +211,24 @@ async fn correct_with_openai(
         WritingStyle::Technical => "technical and precise",
     };
 
+    let vocab_instruction = if custom_vocabulary.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " Known vocabulary (not spelling errors): {}.",
+            custom_vocabulary.join(", ")
+        )
+    };
+
     let prompt = format!(
         r#"Correct this text to be {style}. Fix grammar, spelling, punctuation. Keep meaning intact.
-{preserve}
+{preserve}{vocab}
 Respond ONLY with JSON: {{"corrected": "text", "changes": [{{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
 
 Text: "{text}""#,
         style = style_instruction,
         preserve = if config.preserve_tone { "Preserve tone." } else { "" },
+        vocab = vocab_instruction,
         text = text
     );
 

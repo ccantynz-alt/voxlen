@@ -10,6 +10,7 @@ import { useAudioStore } from "@/stores/audio";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { usePersistedSettings } from "@/hooks/usePersistedSettings";
+import { loadFlywheel } from "@/stores/flywheel";
 
 type View = "dictation" | "grammar" | "history" | "settings";
 
@@ -32,6 +33,11 @@ export default function App() {
     }
     // dark is the default (no class needed, :root vars apply)
   }, [theme]);
+
+  // Load flywheel data on startup
+  useEffect(() => {
+    loadFlywheel();
+  }, []);
 
   // Check if first launch
   useEffect(() => {

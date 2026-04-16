@@ -22,6 +22,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
 import { useHistoryStore } from "@/stores/history";
+import { useFlywheelStore } from "@/stores/flywheel";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -133,13 +134,24 @@ export function DictationPanel() {
             const { grammarEnabled, autoCorrect, grammarApiKey } = useSettingsStore.getState();
             if (grammarEnabled && autoCorrect && grammarApiKey) {
               import("@tauri-apps/api/core").then(({ invoke }) => {
-                invoke<{ corrected: string }>("correct_grammar", { text: textToAdd })
+                const vocabList = useFlywheelStore.getState().getVocabularyList();
+                invoke<{ corrected: string; changes?: Array<{ original: string; corrected: string; category?: string }> }>("correct_grammar", { text: textToAdd, customVocabulary: vocabList })
                   .then((grammarResult) => {
                     if (grammarResult.corrected !== textToAdd) {
                       useDictationStore.getState().updateSegment(segmentId, {
                         correctedText: grammarResult.corrected,
                         grammarApplied: true,
                       });
+                      if (grammarResult.changes) {
+                        for (const change of grammarResult.changes) {
+                          useFlywheelStore.getState().recordCorrection(
+                            change.original,
+                            change.corrected,
+                            (change.category as "grammar" | "spelling" | "punctuation" | "style") || "grammar"
+                          );
+                        }
+                      }
+                      useFlywheelStore.getState().recordCorrectionFeedback(true);
                     }
                   })
                   .catch(() => {
@@ -221,6 +233,9 @@ export function DictationPanel() {
           timestamp: new Date().toISOString(),
           grammarCorrected: hasGrammar,
         });
+
+        const engine = useSettingsStore.getState().sttEngine;
+        useFlywheelStore.getState().recordSession(wc, currentDuration, engine);
       }
       setStatus("idle");
     }

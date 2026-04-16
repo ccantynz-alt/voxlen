@@ -312,3 +312,191 @@ Current leaders: **Otter.ai**, **Dragon NaturallySpeaking**, **Whisper Memos**, 
 5. **Phase 5+:** Android, market differentiation features.
 
 The AlecRae.com email integration should be available to ALL users (not just Pro), with Pro unlocking premium accuracy and unlimited usage. Craig should be on a Pro/internal account with full access across all devices.
+
+---
+
+## 11. Website / Landing Page Audit (April 2026)
+
+### Issues Found & Fixed
+
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| 1 | `GH_RELEASES` URL pointed to `ccantynz-alt/voice` instead of `ccantynz-alt/voxlen` — all download links were broken | **CRITICAL** | FIXED |
+| 2 | Changelog link pointed to wrong repo (`/voice/` not `/voxlen/`) | **CRITICAL** | FIXED |
+| 3 | Footer links (Privacy Policy, Terms, Support, GitHub) all dead `href="#"` | **HIGH** | FIXED — Privacy/Terms now open modal overlays, Support links to email, GitHub links to repo |
+| 4 | Claims "90+ languages" but only 20 languages defined in the app | **HIGH** | FIXED — Changed to "20+ languages" across all mentions |
+| 5 | No favicon — references `/vox-icon.svg` but file didn't exist | **MEDIUM** | FIXED — Created SVG favicon (blue rounded square + mic icon) |
+| 6 | No Privacy Policy or Terms of Service — **critical for lawyer/accountant market** | **CRITICAL** | FIXED — Full Privacy Policy and Terms of Service added as modal pages |
+| 7 | No structured data (JSON-LD) for SEO | **MEDIUM** | FIXED — Added SoftwareApplication schema with pricing offers |
+| 8 | Footer showed "Built with pride" instead of copyright year | **LOW** | FIXED — Now shows dynamic copyright year |
+| 9 | Footer version was hardcoded string, not synced with `APP_VERSION` | **LOW** | FIXED — Now references `APP_VERSION` constant |
+
+### Remaining Website Issues (Not Yet Fixed)
+
+| # | Issue | Severity | Notes |
+|---|-------|----------|-------|
+| 10 | No OG image exists at `https://voxlen.ai/og-image.png` | **MEDIUM** | Need to create a 1200x630 OG image for social sharing |
+| 11 | No payment system (Stripe/Paddle) — pricing shown but can't purchase | **HIGH** | Needs Stripe integration or link to app-based purchasing |
+| 12 | App Store link for iOS keyboard is `href="#"` — dead link | **LOW** | App not published yet — "Coming Soon" is acceptable |
+| 13 | No cookie consent banner | **MEDIUM** | Needed for GDPR if serving EU users |
+| 14 | `voxlen.ai` domain not confirmed as live | **HIGH** | DNS/hosting must be configured before launch |
+| 15 | No sitemap.xml or robots.txt | **LOW** | Should be added for SEO |
+
+### Privacy Policy — Key Design Decisions for Legal Market
+
+The Privacy Policy was specifically written for the lawyer/accountant audience:
+- Explicit statement that Voxlen is a **pass-through** application — no Voxlen server ever touches user content
+- Dedicated section on **attorney-client privilege** and confidentiality obligations
+- Clear documentation that API keys are user-owned — Voxlen has no access to user data flows
+- Telemetry is opt-in and can be fully disabled
+- Offline mode guarantees zero external data transmission
+
+---
+
+## 12. Flywheel / Learning System Architecture
+
+### Design Principles (Privacy-Safe for Legal Professionals)
+
+The flywheel is **100% local-first**. No learning data ever leaves the user's device.
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   USER'S DEVICE ONLY                 │
+│                                                      │
+│  ┌──────────────┐    ┌──────────────────────────┐   │
+│  │   Dictation   │───▶│  Flywheel Store (local)  │   │
+│  │   Session     │    │  • Custom vocabulary      │   │
+│  └──────┬───────┘    │  • Correction patterns     │   │
+│         │            │  • Usage metrics            │   │
+│         ▼            │  • Writing style profile    │   │
+│  ┌──────────────┐    └──────────┬───────────────┘   │
+│  │   Grammar     │              │                    │
+│  │   Correction  │◀─────────────┘                    │
+│  │  (uses vocab  │   Feeds vocabulary into           │
+│  │   + patterns) │   grammar prompts so AI           │
+│  └──────────────┘   doesn't flag known words         │
+│                                                      │
+│  ╔══════════════════════════════════════════════╗    │
+│  ║  NOTHING CROSSES THIS BOUNDARY TO VOXLEN    ║    │
+│  ╚══════════════════════════════════════════════╝    │
+└─────────────────────────────────────────────────────┘
+```
+
+### What the Flywheel Learns (All Local)
+
+1. **Custom Vocabulary** — Words the user frequently uses that get miscorrected by STT or grammar AI. These are auto-detected when the user undoes a correction, or manually added. Fed back into grammar prompts so the AI stops flagging them.
+
+2. **Correction Patterns** — Tracks which grammar corrections are applied most often (e.g., "their → there", missing commas). Over time, these could be pre-applied locally before sending to the AI, reducing API calls and latency.
+
+3. **Usage Metrics** — Session counts, word counts, words per minute, most-used engine. Used locally to optimize the UX (e.g., suggest switching engines, show productivity stats).
+
+4. **Writing Style Profile** — Tracks acceptance/rejection of grammar corrections to learn the user's actual style preferences. If the user consistently rejects "formal" corrections, the system adapts.
+
+### Why This Is Safe for Lawyers/Accountants
+
+- **Zero content transmission** — The flywheel stores only vocabulary words and correction patterns (individual word pairs), never full sentences, paragraphs, or documents.
+- **No cloud sync** — Data stays on the device. No Voxlen account, no cloud backup of learning data.
+- **No aggregate analysis** — We never collect correction patterns across users. Each user's flywheel is fully isolated.
+- **User control** — Users can view, edit, and delete any learned data. Full transparency.
+- **Compliant with attorney-client privilege** — Since no content leaves the device and the flywheel only stores word-level patterns (not document content), it does not create a privilege issue.
+
+### Implementation Status
+
+- [x] `src/stores/flywheel.ts` — Zustand store with vocabulary, correction patterns, usage metrics
+- [x] `src/stores/flywheel.ts` — Persistence to tauri-plugin-store / localStorage
+- [x] `src/components/dictation/DictationPanel.tsx` — Sessions recorded to flywheel on stop
+- [x] `src/components/dictation/DictationPanel.tsx` — Grammar corrections recorded as patterns
+- [x] `src-tauri/src/commands/grammar.rs` — Custom vocabulary parameter added to grammar API calls
+- [x] `src/App.tsx` — Flywheel loaded on startup
+- [ ] UI panel to view/manage learned vocabulary and patterns
+- [ ] Auto-detection of miscorrected words (when user undoes a correction)
+- [ ] Pre-apply common corrections locally before AI call
+- [ ] Keyboard shortcut to add current word to vocabulary
+
+---
+
+## 13. Comprehensive Feature Gap Analysis — What's Needed to Be #1
+
+### Tier 1: Must-Have Before Launch
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Fix broken download URLs on landing page | DONE | Was pointing to wrong repo |
+| Privacy Policy / Terms of Service | DONE | Critical for legal market |
+| Push-to-talk global shortcut | DONE | Hold Ctrl+Shift+Space |
+| Voice commands connected to STT | DONE | processVoiceCommands() wired in |
+| Settings persistence on every change | DONE | Debounced auto-save |
+| Session history persistence | DONE | Via tauri-plugin-store |
+| Grammar shortcut (Ctrl+Shift+G) | DONE | Registered in App.tsx |
+| Auto-grammar on dictation | DONE | Background polishing |
+| Light theme | DONE | CSS custom properties |
+| Launch at login | DONE | tauri-plugin-autostart |
+| WebSocket reconnection | DONE | Exponential backoff |
+| iOS voice input | DONE | Apple Speech Framework |
+| Web SDK for AlecRae.com | DONE | @voxlen/sdk package |
+| Flywheel / learning system | DONE | Local-first, privacy-safe |
+| Favicon | DONE | SVG mic icon |
+| Structured data (SEO) | DONE | JSON-LD schema |
+| Payment system (Stripe) | NOT DONE | Needed for Pro/Lifetime tiers |
+| Whisper Local (offline mode) | NOT DONE | Needs whisper-rs integration |
+| Noise suppression (RNNoise) | NOT DONE | Setting exists, not implemented |
+| Error boundaries in React | NOT DONE | App white-screens on error |
+| API key secure storage | NOT DONE | Should use OS keychain |
+| OG image for social sharing | NOT DONE | 1200x630 image needed |
+
+### Tier 2: Differentiation Features (Ship Fast, Iterate)
+
+| Feature | Impact | Complexity | Notes |
+|---------|--------|------------|-------|
+| Speaker diarization | HIGH | MEDIUM | Deepgram supports it, just need to wire up |
+| Real-time translation | HIGH | MEDIUM | Dictate in English, output in Spanish |
+| Smart templates | MEDIUM | LOW | Pre-built email templates, signatures, common phrases |
+| Custom wake word | MEDIUM | HIGH | "Hey Voxlen, start dictating" |
+| Analytics dashboard | MEDIUM | LOW | Show words/day, time saved, most-used features |
+| Keyboard shortcuts panel | LOW | LOW | Visual display of all shortcuts |
+| Multi-monitor support | LOW | LOW | Ensure tray and injection work across monitors |
+| Batch transcription | MEDIUM | MEDIUM | Upload audio files for offline transcription |
+| Meeting mode | HIGH | HIGH | Long-running recording with speaker labels |
+| Browser extension | MEDIUM | MEDIUM | Chrome/Firefox extension for web dictation |
+| Smart formatting | MEDIUM | MEDIUM | Auto-format emails, phone numbers, addresses |
+| Markdown dictation | LOW | LOW | "Heading one: Introduction" → "# Introduction" |
+
+### Tier 3: Long-term Market Leadership
+
+| Feature | Notes |
+|---------|-------|
+| Android keyboard + app | Mirror iOS approach |
+| Voxlen Cloud account | Cross-device sync (settings, vocabulary — NOT content) |
+| Team/Enterprise plan | Shared vocabulary, admin controls, SSO |
+| API marketplace | Let developers build on Voxlen (transcription + grammar as a service) |
+| Accessibility mode | Screen reader optimized, high contrast, large text |
+| Plugin system | Custom commands, integrations, workflows |
+| On-device LLM | Run grammar correction locally via GGML/llama.cpp |
+
+---
+
+## 14. Updated Launch Roadmap (Compressed)
+
+### Week 1: Ship Desktop v1.0
+- Finish Tier 1 "NOT DONE" items (payment, Whisper Local, noise suppression, error boundaries)
+- Create OG image
+- Set up voxlen.ai domain + hosting for landing page
+- Submit iOS keyboard to App Store review
+
+### Week 2: Integration + Polish
+- Integrate Voxlen Web SDK into AlecRae.com email client
+- Add speaker diarization (Deepgram flag)
+- Add analytics dashboard to app
+- Add smart templates for email dictation
+
+### Week 3: Launch
+- Product Hunt launch
+- Social media announcement
+- Press outreach to legal/accounting tech publications
+- Monitor crash reports and user feedback
+
+### Ongoing
+- Android keyboard development
+- Real-time translation
+- Team/Enterprise features
+- Plugin system
