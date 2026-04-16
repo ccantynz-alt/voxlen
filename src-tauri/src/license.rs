@@ -180,9 +180,63 @@ mod tests {
     }
 
     #[test]
+    fn rejects_bad_base64_payload() {
+        // Payload half contains chars that are not in the URL_SAFE alphabet.
+        assert!(verify("VOXLEN-!!!!.AAAA").is_err());
+    }
+
+    #[test]
+    fn rejects_bad_base64_signature() {
+        // Valid base64url payload, junk signature.
+        assert!(verify("VOXLEN-eyJ0aWVyIjoicHJvIn0.!!!!").is_err());
+    }
+
+    #[test]
     fn status_of_none_is_free() {
         let s = status(None);
         assert!(s.valid);
         assert_eq!(s.tier, Tier::Free);
+    }
+
+    #[test]
+    fn status_of_empty_string_is_free() {
+        let s = status(Some(""));
+        assert!(s.valid);
+        assert_eq!(s.tier, Tier::Free);
+    }
+
+    #[test]
+    fn status_of_whitespace_is_free() {
+        let s = status(Some("   \t\n"));
+        assert!(s.valid);
+        assert_eq!(s.tier, Tier::Free);
+    }
+
+    #[test]
+    fn status_of_garbage_is_marked_invalid() {
+        let s = status(Some("VOXLEN-garbage"));
+        assert!(!s.valid);
+        assert_eq!(s.tier, Tier::Free);
+        assert!(s.reason.is_some());
+    }
+
+    #[test]
+    fn tier_paid_discrimination() {
+        assert!(!Tier::Free.is_paid());
+        assert!(Tier::Pro.is_paid());
+        assert!(Tier::Professional.is_paid());
+        assert!(Tier::Lifetime.is_paid());
+    }
+
+    #[test]
+    fn tier_serde_roundtrip() {
+        // Payload is serialised with lowercase variants; make sure the wire
+        // format stays stable so the Node signer keeps working.
+        assert_eq!(serde_json::to_string(&Tier::Pro).unwrap(), "\"pro\"");
+        assert_eq!(serde_json::to_string(&Tier::Professional).unwrap(), "\"professional\"");
+        assert_eq!(serde_json::to_string(&Tier::Lifetime).unwrap(), "\"lifetime\"");
+        assert_eq!(serde_json::to_string(&Tier::Free).unwrap(), "\"free\"");
+        let parsed: Tier = serde_json::from_str("\"pro\"").unwrap();
+        assert_eq!(parsed, Tier::Pro);
     }
 }
