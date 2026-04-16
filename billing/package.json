@@ -1,0 +1,25 @@
+{
+  "name": "voxlen-billing",
+  "version": "0.1.0",
+  "description": "Stripe webhook + Ed25519 license signing for Voxlen. Issues signed licenses to customers after successful checkout.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "keygen": "tsx src/keygen.ts",
+    "sign": "tsx src/sign.ts",
+    "interop": "tsx src/interop_test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "stripe": "^17.0.0",
+    "resend": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

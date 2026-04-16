@@ -1,0 +1,11 @@
+{
+  "publicKeyHex": "f73e2a693b66614da297a97afd8b47eb3a774f2cb0310cf4fd3a7584b2dc2ad3",
+  "license": "VOXLEN-eyJ0aWVyIjoicHJvIiwiZW1haWwiOiJjZW9AZXhhbXBsZS5jb20iLCJpc3N1ZWQiOjE3NzYzODI2OTAsImV4cGlyZXMiOm51bGwsImlkIjoiZDE0MDE4YWMtYWJiZS00ZWQ1LWJmMmItODAzODc5MDkwOWVjIn0.3z45vc46kJnHEtjkzRodsDKUykdQkPyTZiVBpFZFihjppXxyj0_AB0fXvlrfjHbDcGPrkkdrc4bFJO41qkDvAg",
+  "payload": {
+    "tier": "pro",
+    "email": "ceo@example.com",
+    "issued": 1776382690,
+    "expires": null,
+    "id": "d14018ac-abbe-4ed5-bf2b-8038790909ec"
+  }
+}
