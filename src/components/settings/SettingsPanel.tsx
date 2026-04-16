@@ -188,7 +188,10 @@ export function SettingsPanel() {
   return (
     <div className="flex h-full">
       {/* Settings sidebar */}
-      <div className="w-48 border-r border-surface-300/50 py-3 px-2 space-y-0.5">
+      <div className="w-52 border-r border-surface-300/50 py-4 px-3 space-y-0.5 bg-surface-50/30">
+        <div className="px-1 pb-2">
+          <span className="label-caps">Settings</span>
+        </div>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = settings.activeTab === tab.id;
@@ -198,21 +201,32 @@ export function SettingsPanel() {
               key={tab.id}
               onClick={() => settings.setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm transition-all",
+                "group relative flex items-center gap-2.5 w-full pl-4 pr-3 py-2 rounded-md text-sm transition-all duration-200",
                 isActive
-                  ? "bg-marcoreid-600/10 text-marcoreid-400"
-                  : "text-surface-700 hover:bg-surface-200"
+                  ? "bg-marcoreid-900/40 text-surface-950"
+                  : "text-surface-700 hover:bg-surface-100/80 hover:text-surface-900"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="font-medium">{tab.label}</span>
+              {isActive && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-brass-400" />
+              )}
+              <Icon
+                className={cn(
+                  "h-4 w-4 shrink-0",
+                  isActive ? "text-brass-400" : "text-surface-600 group-hover:text-surface-800"
+                )}
+                strokeWidth={isActive ? 2.25 : 1.75}
+              />
+              <span className={cn("font-medium tracking-tight", isActive && "text-surface-950")}>
+                {tab.label}
+              </span>
             </button>
           );
         })}
       </div>
 
       {/* Settings content */}
-      <div className="flex-1 p-6 overflow-y-auto">{renderContent()}</div>
+      <div className="flex-1 p-8 overflow-y-auto">{renderContent()}</div>
     </div>
   );
 }
@@ -225,11 +239,16 @@ function SectionHeader({
   description?: string;
 }) {
   return (
-    <div className="mb-4">
-      <h3 className="text-sm font-semibold text-surface-950">{title}</h3>
+    <div className="mb-5">
+      <h3 className="font-display text-[18px] font-medium tracking-tight-display text-surface-950 leading-tight">
+        {title}
+      </h3>
       {description && (
-        <p className="text-xs text-surface-600 mt-0.5">{description}</p>
+        <p className="text-[12px] text-surface-600 mt-1 leading-relaxed max-w-md">
+          {description}
+        </p>
       )}
+      <div className="divider-brass w-16 mt-3" />
     </div>
   );
 }
@@ -328,8 +347,8 @@ function ShortcutRecorder({
   return (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-surface-900">{label}</p>
-        <p className="text-xs text-surface-600">{description}</p>
+        <p className="text-sm font-medium text-surface-900 tracking-tight">{label}</p>
+        <p className="text-[11px] text-surface-600 mt-0.5 leading-snug">{description}</p>
       </div>
       <button
         ref={inputRef}
@@ -338,16 +357,16 @@ function ShortcutRecorder({
           setKeys(new Set());
         }}
         className={cn(
-          "px-3 py-1.5 rounded-lg border text-xs font-mono transition-all min-w-[140px] text-center",
+          "px-3 py-1.5 rounded-md border text-[11px] font-mono transition-all min-w-[140px] text-center shadow-inset-hairline",
           recording
-            ? "bg-voxlen-600/10 border-voxlen-400 text-voxlen-400 animate-pulse"
-            : "bg-surface-200 border-surface-300 text-surface-800 hover:border-surface-400"
+            ? "bg-brass-400/10 border-brass-400/50 text-brass-500 animate-pulse-soft"
+            : "bg-surface-50 border-surface-300/70 text-surface-800 hover:border-surface-400"
         )}
       >
         {recording
           ? keys.size > 0
             ? Array.from(keys).join(" + ")
-            : "Press keys..."
+            : "Press keys…"
           : displayValue}
       </button>
     </div>
@@ -641,21 +660,21 @@ function ShortcutSettings() {
         />
       </SettingRow>
 
-      <div className="rounded-lg bg-surface-200/50 p-4 mt-2">
-        <h4 className="text-xs font-semibold text-surface-800 mb-2">
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-2">
+        <h4 className="label-caps mb-3 block">
           Available Voice Commands
         </h4>
-        <div className="grid grid-cols-2 gap-1.5 text-[11px] text-surface-600">
-          <span>&quot;new line&quot; - Insert line break</span>
-          <span>&quot;new paragraph&quot; - Double line break</span>
-          <span>&quot;period&quot; / &quot;full stop&quot;</span>
-          <span>&quot;comma&quot; / &quot;question mark&quot;</span>
-          <span>&quot;delete that&quot; - Remove last</span>
-          <span>&quot;undo&quot; - Undo last action</span>
-          <span>&quot;select all&quot; - Select all text</span>
-          <span>&quot;copy that&quot; - Copy to clipboard</span>
-          <span>&quot;stop listening&quot; - End dictation</span>
-          <span>&quot;caps on/off&quot; - Toggle caps</span>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-surface-700 font-mono">
+          <span><span className="text-brass-500/80">&ldquo;</span>new line<span className="text-brass-500/80">&rdquo;</span> &mdash; line break</span>
+          <span><span className="text-brass-500/80">&ldquo;</span>new paragraph<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>period<span className="text-brass-500/80">&rdquo;</span> / <span className="text-brass-500/80">&ldquo;</span>full stop<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>comma<span className="text-brass-500/80">&rdquo;</span> / <span className="text-brass-500/80">&ldquo;</span>question mark<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>delete that<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>undo<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>select all<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>copy that<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>stop listening<span className="text-brass-500/80">&rdquo;</span></span>
+          <span><span className="text-brass-500/80">&ldquo;</span>caps on/off<span className="text-brass-500/80">&rdquo;</span></span>
         </div>
       </div>
     </div>
@@ -817,16 +836,31 @@ function PrivacySettings() {
         />
       </SettingRow>
 
-      <div className="rounded-lg bg-surface-200/50 p-4 mt-4">
-        <h4 className="text-xs font-semibold text-surface-800 mb-2">
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-4">
+        <h4 className="label-caps mb-3 block">
           Privacy Guarantee
         </h4>
-        <ul className="space-y-1.5 text-xs text-surface-600">
-          <li>Audio is never stored on our servers</li>
-          <li>Use Whisper Local for fully offline operation</li>
-          <li>API keys are stored locally on your device</li>
-          <li>No data is shared with third parties</li>
-          <li>You can delete all local data at any time</li>
+        <ul className="space-y-1.5 text-[12px] text-surface-700 leading-relaxed">
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Audio is never stored on our servers.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Use Whisper Local for fully offline operation.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            API keys are stored locally on your device.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            No data is shared with third parties.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            You can delete all local data at any time.
+          </li>
         </ul>
       </div>
     </div>

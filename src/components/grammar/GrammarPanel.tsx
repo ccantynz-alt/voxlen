@@ -63,30 +63,31 @@ export function GrammarPanel() {
   };
 
   const categoryColors: Record<string, string> = {
-    grammar: "text-blue-400 bg-blue-400/10",
-    spelling: "text-red-400 bg-red-400/10",
-    punctuation: "text-amber-400 bg-amber-400/10",
-    style: "text-purple-400 bg-purple-400/10",
+    grammar: "text-marcoreid-500 bg-marcoreid-500/10 border border-marcoreid-500/20",
+    spelling: "text-red-500 bg-red-500/10 border border-red-500/20",
+    punctuation: "text-amber-500 bg-amber-500/10 border border-amber-500/20",
+    style: "text-brass-500 bg-brass-400/10 border border-brass-400/25",
   };
 
   return (
-    <div className="flex flex-col h-full p-6 gap-6">
-      {/* Header */}
+    <div className="flex flex-col h-full p-8 gap-6">
+      {/* Header — editorial header with brass mark. */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-marcoreid-500 to-purple-600">
-            <SpellCheck className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-3.5">
+          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
+            <SpellCheck className="h-4 w-4 text-brass-300" strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-surface-950">
-              AI Grammar Engine
+            <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
+              Grammar <span className="italic text-brass-500">Engine</span>
             </h2>
-            <p className="text-xs text-surface-600">
-              Powered by AI - better than Grammarly, fraction of the cost
+            <p className="text-[11px] text-surface-600 mt-0.5 leading-snug">
+              An AI-polished draft, in the register you choose.
             </p>
           </div>
         </div>
         <Select
+          label="Register"
           value={writingStyle}
           onChange={(v) =>
             updateSetting(
@@ -101,42 +102,44 @@ export function GrammarPanel() {
             { value: "creative", label: "Creative" },
             { value: "technical", label: "Technical" },
           ]}
-          className="w-40"
+          className="w-44"
         />
       </div>
+
+      <div className="divider-brass" />
 
       {/* Editor area */}
       <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
         {/* Input */}
-        <div className="flex flex-col rounded-xl bg-surface-100 border border-surface-300/50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-300/50">
-            <span className="text-xs font-medium text-surface-700">
-              Original Text
+        <div className="flex flex-col rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-300/50 bg-surface-50/60">
+            <span className="label-caps">
+              Original
             </span>
-            <span className="text-[10px] text-surface-600 font-mono">
+            <span className="text-[10px] text-surface-600 font-mono tabular-nums">
               {inputText.split(/\s+/).filter(Boolean).length} words
             </span>
           </div>
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Paste or type text to polish..."
-            className="flex-1 w-full p-4 bg-transparent text-sm text-surface-900 placeholder:text-surface-600 resize-none focus:outline-none leading-relaxed"
+            placeholder="Paste or type text to polish…"
+            className="flex-1 w-full p-5 bg-transparent text-[14px] text-surface-900 placeholder:text-surface-600/70 resize-none focus:outline-none leading-relaxed font-sans"
           />
         </div>
 
         {/* Output */}
-        <div className="flex flex-col rounded-xl bg-surface-100 border border-surface-300/50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-300/50">
+        <div className="flex flex-col rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-300/50 bg-surface-50/60">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-surface-700">
-                Corrected
+              <span className="label-caps">
+                Polished
               </span>
               {score !== null && (
                 <Badge
                   variant={score >= 0.9 ? "success" : score >= 0.7 ? "warning" : "error"}
                 >
-                  {Math.round(score * 100)}% score
+                  {Math.round(score * 100)}%
                 </Badge>
               )}
             </div>
@@ -145,25 +148,25 @@ export function GrammarPanel() {
               size="sm"
               onClick={handleCopy}
               disabled={!correctedText}
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-[11px]"
             >
               {copied ? (
-                <Check className="h-3 w-3 text-green-400" />
+                <Check className="h-3 w-3 text-brass-500" strokeWidth={2} />
               ) : (
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3 w-3" strokeWidth={1.75} />
               )}
             </Button>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto">
+          <div className="flex-1 p-5 overflow-y-auto">
             {correctedText ? (
-              <p className="text-sm text-surface-950 leading-relaxed whitespace-pre-wrap">
+              <p className="text-[14px] text-surface-950 leading-relaxed whitespace-pre-wrap font-sans">
                 {correctedText}
               </p>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <Sparkles className="h-8 w-8 text-surface-500 mb-2" />
-                <p className="text-xs text-surface-600">
-                  Corrected text will appear here
+                <Sparkles className="h-5 w-5 text-brass-500/50 mb-3" strokeWidth={1.5} />
+                <p className="font-display italic text-[13px] text-surface-600 tracking-tight-display">
+                  Polished text will appear here.
                 </p>
               </div>
             )}
@@ -173,30 +176,30 @@ export function GrammarPanel() {
 
       {/* Changes list */}
       {changes.length > 0 && (
-        <div className="rounded-xl bg-surface-100 border border-surface-300/50 p-4 max-h-40 overflow-y-auto">
-          <h3 className="text-xs font-medium text-surface-700 mb-3">
-            Changes ({changes.length})
+        <div className="rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline p-4 max-h-40 overflow-y-auto">
+          <h3 className="label-caps mb-3 block">
+            Changes &mdash; {changes.length}
           </h3>
           <div className="space-y-2">
             {changes.map((change, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 text-xs animate-fade-in"
+                className="flex items-center gap-3 text-[11px] animate-fade-in"
               >
                 <span
                   className={cn(
-                    "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                    "px-2 py-0.5 rounded-full text-[9px] font-medium uppercase tracking-wide-caps",
                     categoryColors[change.category] || categoryColors.grammar
                   )}
                 >
                   {change.category}
                 </span>
-                <span className="text-red-400 line-through">
+                <span className="text-red-500/80 line-through font-mono">
                   {change.original}
                 </span>
-                <ArrowRight className="h-3 w-3 text-surface-600 shrink-0" />
-                <span className="text-green-400">{change.corrected}</span>
-                <span className="text-surface-600 truncate">
+                <ArrowRight className="h-3 w-3 text-brass-500/70 shrink-0" strokeWidth={1.75} />
+                <span className="text-surface-950 font-medium">{change.corrected}</span>
+                <span className="text-surface-600 truncate italic">
                   {change.reason}
                 </span>
               </div>
@@ -213,10 +216,10 @@ export function GrammarPanel() {
           onClick={handleCorrect}
           loading={isProcessing}
           disabled={!inputText.trim()}
-          className="min-w-[200px]"
+          className="min-w-[220px]"
         >
-          <Wand2 className="h-4 w-4" />
-          {isProcessing ? "Polishing..." : "Polish Text"}
+          <Wand2 className="h-4 w-4" strokeWidth={1.75} />
+          {isProcessing ? "Polishing…" : "Polish"}
         </Button>
       </div>
     </div>

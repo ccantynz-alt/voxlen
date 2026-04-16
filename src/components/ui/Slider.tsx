@@ -31,21 +31,21 @@ export function Slider({
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <label className="text-xs font-medium text-surface-700">
+            <label className="text-[10px] font-medium uppercase tracking-wide-caps text-surface-600">
               {label}
             </label>
           )}
           {showValue && (
-            <span className="text-xs font-mono text-surface-600">
+            <span className="text-[11px] font-mono tabular-nums text-surface-800">
               {formatValue ? formatValue(value) : value}
             </span>
           )}
         </div>
       )}
       <div className="relative h-5 flex items-center">
-        <div className="absolute h-1.5 w-full rounded-full bg-surface-300">
+        <div className="absolute h-1 w-full rounded-full bg-surface-200 shadow-inset-hairline">
           <div
-            className="absolute h-full rounded-full bg-marcoreid-600 transition-all"
+            className="absolute h-full rounded-full bg-gradient-to-r from-marcoreid-700 to-brass-500/70 transition-all"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -62,8 +62,8 @@ export function Slider({
           )}
         />
         <div
-          className="absolute h-4 w-4 rounded-full bg-white shadow-md border-2 border-marcoreid-600 pointer-events-none transition-all"
-          style={{ left: `calc(${percentage}% - 8px)` }}
+          className="absolute h-3.5 w-3.5 rounded-full bg-surface-50 shadow-elevation border border-marcoreid-800 pointer-events-none transition-all"
+          style={{ left: `calc(${percentage}% - 7px)` }}
         />
       </div>
     </div>

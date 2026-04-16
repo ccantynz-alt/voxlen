@@ -128,32 +128,32 @@ export function AdminPanel() {
   const allGranted = grantedCount === totalCount;
 
   return (
-    <div className="flex flex-col h-full p-6 gap-6 overflow-y-auto">
+    <div className="flex flex-col h-full p-8 gap-6 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <div
             className={cn(
-              "flex items-center justify-center w-12 h-12 rounded-xl",
+              "flex items-center justify-center w-10 h-10 rounded-md shadow-elevation shadow-inset-hairline",
               allGranted
-                ? "bg-green-500/10"
-                : "bg-amber-500/10"
+                ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900"
+                : "bg-gradient-to-br from-marcoreid-800 to-marcoreid-950"
             )}
           >
             {allGranted ? (
-              <ShieldCheck className="h-6 w-6 text-green-400" />
+              <ShieldCheck className="h-4 w-4 text-brass-300" strokeWidth={2} />
             ) : (
-              <ShieldAlert className="h-6 w-6 text-amber-400" />
+              <ShieldAlert className="h-4 w-4 text-amber-400" strokeWidth={2} />
             )}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-surface-950">
-              Admin & Permissions
+            <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
+              Permissions <span className="italic text-brass-500">&amp; access</span>
             </h2>
-            <p className="text-xs text-surface-600">
+            <p className="text-[11px] text-surface-600 mt-0.5 leading-snug font-mono tabular-nums">
               {loading
-                ? "Checking permissions..."
-                : `${grantedCount}/${totalCount} permissions granted`}
+                ? "Checking…"
+                : `${grantedCount} of ${totalCount} granted`}
             </p>
           </div>
         </div>
@@ -163,37 +163,40 @@ export function AdminPanel() {
           onClick={checkPermissions}
           disabled={loading}
         >
-          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} strokeWidth={1.75} />
           Refresh
         </Button>
       </div>
+
+      <div className="divider-brass" />
 
       {/* Admin status banner */}
       {status && (
         <div
           className={cn(
-            "rounded-xl p-4 border",
+            "rounded-md p-4 border shadow-inset-hairline",
             status.is_admin
-              ? "bg-green-500/5 border-green-500/20"
-              : "bg-amber-500/5 border-amber-500/20"
+              ? "bg-brass-400/8 border-brass-400/25"
+              : "bg-amber-500/8 border-amber-500/25"
           )}
         >
           <div className="flex items-center gap-3">
             <Shield
               className={cn(
-                "h-5 w-5",
-                status.is_admin ? "text-green-400" : "text-amber-400"
+                "h-4 w-4",
+                status.is_admin ? "text-brass-500" : "text-amber-500"
               )}
+              strokeWidth={1.75}
             />
             <div>
-              <p className="text-sm font-medium text-surface-900">
+              <p className="text-[13px] font-medium text-surface-900 tracking-tight">
                 {status.is_admin
-                  ? "Admin Access Granted"
-                  : "Limited Access"}
+                  ? "Administrator access"
+                  : "Limited access"}
               </p>
-              <p className="text-xs text-surface-600 mt-0.5">
+              <p className="text-[11px] text-surface-600 mt-0.5 leading-snug">
                 {status.is_admin
-                  ? "You have full administrator privileges on this system."
+                  ? "Full administrator privileges on this system."
                   : "Some features may require elevated permissions."}
               </p>
             </div>
@@ -208,15 +211,15 @@ export function AdminPanel() {
 
       {/* Permissions list */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-surface-950 mb-3">
-          System Permissions
+        <h3 className="label-caps mb-3 block">
+          System permissions
         </h3>
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="h-16 rounded-xl bg-surface-100 animate-pulse"
+                className="h-16 rounded-md bg-surface-100/60 animate-pulse-soft"
               />
             ))}
           </div>
@@ -226,31 +229,32 @@ export function AdminPanel() {
             return (
               <div
                 key={perm.key}
-                className="flex items-center gap-4 p-4 rounded-xl bg-surface-100 border border-surface-300/50"
+                className="flex items-center gap-4 p-4 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline"
               >
                 <div
                   className={cn(
-                    "flex items-center justify-center w-10 h-10 rounded-lg",
-                    perm.granted ? "bg-green-500/10" : "bg-red-500/10"
+                    "flex items-center justify-center w-9 h-9 rounded-md",
+                    perm.granted ? "bg-brass-400/10 border border-brass-400/25" : "bg-red-500/10 border border-red-500/25"
                   )}
                 >
                   <Icon
                     className={cn(
-                      "h-5 w-5",
-                      perm.granted ? "text-green-400" : "text-red-400"
+                      "h-4 w-4",
+                      perm.granted ? "text-brass-500" : "text-red-500"
                     )}
+                    strokeWidth={1.75}
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-surface-900">
+                  <p className="text-[13px] font-medium text-surface-900 tracking-tight">
                     {perm.name}
                   </p>
-                  <p className="text-xs text-surface-600">{perm.description}</p>
+                  <p className="text-[11px] text-surface-600 leading-snug mt-0.5">{perm.description}</p>
                 </div>
                 {perm.granted ? (
-                  <CheckCircle className="h-5 w-5 text-green-400" />
+                  <CheckCircle className="h-4 w-4 text-brass-500" strokeWidth={1.75} />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-400" />
+                  <XCircle className="h-4 w-4 text-red-500" strokeWidth={1.75} />
                 )}
               </div>
             );
@@ -261,14 +265,14 @@ export function AdminPanel() {
       {/* Missing dependencies */}
       {status && status.missing_dependencies.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-surface-950 mb-3">
-            Missing Dependencies
+          <h3 className="label-caps mb-3 block">
+            Missing dependencies
           </h3>
-          <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 space-y-2">
+          <div className="rounded-md bg-red-500/8 border border-red-500/25 shadow-inset-hairline p-4 space-y-2">
             {status.missing_dependencies.map((dep, i) => (
               <div key={i} className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                <span className="text-sm text-surface-800">{dep}</span>
+                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" strokeWidth={1.75} />
+                <span className="text-[12px] text-surface-800 font-mono">{dep}</span>
               </div>
             ))}
           </div>
@@ -278,17 +282,17 @@ export function AdminPanel() {
       {/* Suggestions */}
       {status && status.suggestions.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-surface-950 mb-3">
-            How to Fix
+          <h3 className="label-caps mb-3 block">
+            How to resolve
           </h3>
           <div className="space-y-2">
             {status.suggestions.map((suggestion, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 p-3 rounded-lg bg-surface-200/50"
+                className="flex items-start gap-3 p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline"
               >
-                <ExternalLink className="h-4 w-4 text-voxlen-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-surface-800">{suggestion}</p>
+                <ExternalLink className="h-3.5 w-3.5 text-brass-500 mt-0.5 shrink-0" strokeWidth={1.75} />
+                <p className="text-[12px] text-surface-800 leading-relaxed">{suggestion}</p>
               </div>
             ))}
           </div>
@@ -304,13 +308,13 @@ export function AdminPanel() {
             disabled={requesting}
           >
             {requesting ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <RefreshCw className="h-4 w-4 animate-spin" strokeWidth={1.75} />
             ) : (
-              <ShieldCheck className="h-4 w-4" />
+              <ShieldCheck className="h-4 w-4" strokeWidth={1.75} />
             )}
             {requesting
-              ? "Requesting..."
-              : "Request Missing Permissions"}
+              ? "Requesting…"
+              : "Request missing permissions"}
           </Button>
         </div>
       )}
