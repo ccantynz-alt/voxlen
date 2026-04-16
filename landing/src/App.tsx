@@ -46,6 +46,87 @@ export default function App() {
       {legalModal && (
         <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
       )}
+      <CookieBanner onOpenPrivacy={() => setLegalModal("privacy")} />
+    </div>
+  );
+}
+
+/**
+ * GDPR cookie banner. The landing site only sets first-party preference
+ * cookies today, but reserves the right to enable analytics with consent.
+ * The banner stores the decision in localStorage under `voxlen_cookie_consent`
+ * so returning visitors aren't nagged.
+ */
+function CookieBanner({ onOpenPrivacy }: { onOpenPrivacy: () => void }) {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("voxlen_cookie_consent");
+      if (!saved) setShow(true);
+    } catch {
+      // Private-mode or disabled storage — skip banner rather than spam.
+    }
+  }, []);
+
+  const decide = (decision: "accepted" | "rejected") => {
+    try {
+      localStorage.setItem(
+        "voxlen_cookie_consent",
+        JSON.stringify({ decision, decidedAt: new Date().toISOString(), version: 1 }),
+      );
+    } catch {
+      // Non-fatal — honour the click either way.
+    }
+    setShow(false);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-50 p-4 md:p-6 pointer-events-none">
+      <div
+        role="dialog"
+        aria-labelledby="cookie-banner-title"
+        className="pointer-events-auto max-w-4xl mx-auto rounded-xl border border-white/10 bg-[#0c0c0f]/95 backdrop-blur-xl shadow-2xl shadow-black/50 p-5 md:p-6"
+      >
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-1">
+            <h3 id="cookie-banner-title" className="text-sm font-semibold text-white mb-1">
+              Cookies &amp; preferences
+            </h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              We use strictly-necessary cookies to run this site. We'd also like your consent
+              to set analytics cookies that help us improve the product. You can change your
+              mind any time. See our{" "}
+              <button
+                type="button"
+                onClick={onOpenPrivacy}
+                className="underline text-zinc-200 hover:text-white"
+              >
+                Privacy Policy
+              </button>
+              .
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => decide("rejected")}
+              className="h-9 px-4 rounded-lg border border-white/10 text-sm text-zinc-300 hover:text-white hover:border-white/20 transition-colors"
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              onClick={() => decide("accepted")}
+              className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium hover:bg-marcoreid-700 transition-colors"
+            >
+              Accept
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
