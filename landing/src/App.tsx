@@ -299,9 +299,9 @@ function Features() {
       bg: "bg-orange-400/10",
     },
     {
-      icon: Cpu,
-      title: "Offline Mode",
-      description: "Run Whisper locally for complete privacy. Your audio never leaves your device. Perfect for sensitive documents.",
+      icon: Shield,
+      title: "Zero-Retention Privacy",
+      description: "Your audio streams device-to-provider on zero-retention endpoints — never routed through or stored by Voxlen. Designed for privileged information.",
       color: "text-emerald-400",
       bg: "bg-emerald-400/10",
     },
@@ -426,7 +426,7 @@ function Comparison() {
     { name: "Grammarly", price: "$12/mo", realtime: false, neverInterrupts: false, grammar: true, anyApp: false, offline: false, extMic: false },
     { name: "Dragon", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false },
-    { name: "Marco Reid Voice", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
+    { name: "Marco Reid Voice", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: false, extMic: true, highlight: true },
   ];
 
   return (
@@ -720,7 +720,7 @@ function FAQ() {
     },
     {
       q: "Do I need an internet connection?",
-      a: "Not always. Marco Reid Voice includes a fully offline mode that runs entirely on your device — ideal for flights or sensitive work. Our cloud models give higher accuracy and lower latency, but you always have the choice.",
+      a: "Yes. Marco Reid Voice currently uses cloud speech models (Deepgram Nova-2 and OpenAI Whisper) for best-in-class accuracy and latency. Audio streams directly from your device to the provider on zero-retention endpoints — never through Voxlen servers. A fully on-device mode is on the roadmap.",
     },
     {
       q: "Does it work with my external USB microphone?",
@@ -1090,7 +1090,7 @@ function PrivacyContent() {
         your device and the underlying AI providers — never through Voxlen-operated servers:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly from your device to the speech-to-text provider on zero-retention endpoints. In offline mode, audio never leaves your device.</li>
+        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly from your device to the speech-to-text provider on zero-retention endpoints. Never routed through Voxlen servers.</li>
         <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent directly from your device to the grammar AI provider (Anthropic or OpenAI) on zero-retention endpoints. We have no intermediary server.</li>
         <li><strong className="text-zinc-200">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
         <li><strong className="text-zinc-200">API credentials:</strong> Voxlen provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
