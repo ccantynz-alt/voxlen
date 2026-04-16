@@ -1,6 +1,6 @@
 [package]
 name = "marco-reid-voice"
-version = "1.0.3"
+version = "1.0.4"
 description = "Marco Reid Voice - native voice input layer for the Marco Reid platform"
 authors = ["Marco Reid"]
 edition = "2021"

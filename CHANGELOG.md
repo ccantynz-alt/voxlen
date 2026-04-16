@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4] - 2026-04-16
+
+### Changed
+- CI: replaced `tauri-action` with explicit `npm run tauri -- build` + `softprops/action-gh-release@v2`. Cargo/vite failures now surface directly in the workflow log instead of being wrapped inside `tauri-action`'s "Command … failed with exit code 1".
+- CI: upload build artifacts on every run (including failed runs) via `actions/upload-artifact@v4`, with 7-day retention, so debugging a red build no longer requires re-running.
+- CI: x86_64-apple-darwin now builds on `macos-13` (native Intel) rather than cross-compiling from the Apple Silicon `macos-latest` runner.
+
 ## [1.0.3] - 2026-04-16
 
 ### Changed
