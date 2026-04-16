@@ -7,7 +7,9 @@ import {
   Palette,
   Shield,
   Zap,
+  KeyRound,
 } from "lucide-react";
+import { LicenseSettings } from "./LicenseSettings";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
@@ -26,6 +28,7 @@ const tabs = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "advanced", label: "Advanced", icon: Zap },
   { id: "privacy", label: "Privacy", icon: Shield },
+  { id: "license", label: "License", icon: KeyRound },
 ];
 
 // Persist settings whenever they change
@@ -180,6 +183,8 @@ export function SettingsPanel() {
         return <AdvancedSettings />;
       case "privacy":
         return <PrivacySettings />;
+      case "license":
+        return <LicenseSettings />;
       default:
         return <AudioSettings />;
     }

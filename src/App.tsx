@@ -15,6 +15,7 @@ import { usePersistedSettings, saveSettings } from "@/hooks/usePersistedSettings
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
+import { useEntitlementStore } from "@/stores/entitlement";
 
 type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
@@ -41,6 +42,12 @@ export default function App() {
   // Load flywheel data on startup
   useEffect(() => {
     loadFlywheel();
+  }, []);
+
+  // Load license / entitlement status on startup so gated features know
+  // which tier the user is on before any command is invoked.
+  useEffect(() => {
+    useEntitlementStore.getState().refresh();
   }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
