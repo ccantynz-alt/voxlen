@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - 'release-**'
   workflow_dispatch:
 
 permissions:
@@ -82,7 +84,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'Marco Reid Voice v__VERSION__'
-          releaseBody: 'Marco Reid Voice v1.0.0 — voice input layer for the Marco Reid platform. Download the installer for your OS below. First-run note: Windows SmartScreen and macOS Gatekeeper will warn about an unknown publisher on first launch (the build is not code-signed yet). Click "More info → Run anyway" on Windows, or right-click → Open on Mac.'
+          releaseBody: 'Marco Reid Voice v1.0.1 — voice input layer for the Marco Reid platform. Download the installer for your OS below. First-run note: Windows SmartScreen and macOS Gatekeeper will warn about an unknown publisher on first launch (the build is not code-signed yet). Click "More info → Run anyway" on Windows, or right-click → Open on Mac.'
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
