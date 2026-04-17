@@ -268,7 +268,11 @@ export default function App() {
 
   // Show onboarding wizard for first-time users
   if (showOnboarding) {
-    return <OnboardingWizard onComplete={handleOnboardingComplete} />;
+    return (
+      <ErrorBoundary>
+        <OnboardingWizard onComplete={handleOnboardingComplete} />
+      </ErrorBoundary>
+    );
   }
 
   return (
