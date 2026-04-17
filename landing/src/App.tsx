@@ -760,7 +760,7 @@ function FAQ() {
 }
 
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
-const APP_VERSION = "1.0.5";
+const APP_VERSION = "1.0.7";
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
@@ -787,29 +787,29 @@ const DOWNLOADS: Record<
   "mac-arm": {
     label: "Download for macOS",
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
-    file: `MarcoReidVoice_${APP_VERSION}_aarch64.dmg`,
+    file: `Marco Reid Voice_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   "mac-intel": {
     label: "Download for macOS",
-    subLabel: "Intel (x86_64)",
-    file: `MarcoReidVoice_${APP_VERSION}_x64.dmg`,
-    size: "~19 MB",
+    subLabel: "Intel (x86_64) — build on request",
+    file: `Marco Reid Voice_${APP_VERSION}_aarch64.dmg`,
+    size: "~18 MB",
     icon: "apple",
   },
   windows: {
     label: "Download for Windows",
     subLabel: "Windows 10/11 (x64)",
-    file: `MarcoReidVoice_${APP_VERSION}_x64_en-US.msi`,
+    file: `Marco Reid Voice_${APP_VERSION}_x64_en-US.msi`,
     size: "~22 MB",
     icon: "monitor",
   },
   linux: {
     label: "Download for Linux",
     subLabel: "AppImage (x86_64)",
-    file: `marcoreidvoice_${APP_VERSION}_amd64.AppImage`,
-    size: "~24 MB",
+    file: `Marco Reid Voice_${APP_VERSION}_amd64.AppImage`,
+    size: "~80 MB",
     icon: "monitor",
   },
 };
@@ -849,7 +849,7 @@ function CTA() {
           {primary && (
             <motion.div variants={fadeUp} className="flex justify-center mb-4">
               <a
-                href={`${GH_RELEASES}/${primary.file}`}
+                href={`${GH_RELEASES}/${encodeURIComponent(primary.file)}`}
                 className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
               >
                 <PrimaryIcon className="h-7 w-7" />
@@ -885,7 +885,7 @@ function CTA() {
                 <motion.a
                   key={key}
                   variants={fadeUp}
-                  href={`${GH_RELEASES}/${d.file}`}
+                  href={`${GH_RELEASES}/${encodeURIComponent(d.file)}`}
                   className={`group relative p-5 rounded-xl border transition-all ${
                     isDetected
                       ? "bg-marcoreid-600/5 border-marcoreid-600/40 hover:border-marcoreid-600/60"
