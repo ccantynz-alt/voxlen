@@ -94,8 +94,6 @@ impl SttEngine {
                 cloud::whisper_transcribe(&wav_data, &config).await
             }
             SttEngineType::WhisperLocal => {
-                // TODO: Integrate whisper-rs (whisper.cpp Rust bindings) for true on-device inference.
-                // For now, return a clear error rather than silently falling through to cloud.
                 anyhow::bail!(
                     "Whisper Local is not yet available. Please select Deepgram or Whisper Cloud in Settings > Speech Engine. \
                      Local on-device inference (whisper.cpp) is coming in a future update."
@@ -115,7 +113,6 @@ fn encode_wav(samples: &[f32], sample_rate: u32) -> anyhow::Result<Vec<u8>> {
     };
     let mut writer = hound::WavWriter::new(&mut cursor, spec)?;
 
-    // Convert to mono if needed and write as 16-bit PCM
     for &sample in samples {
         let clamped = sample.clamp(-1.0, 1.0);
         let int_sample = (clamped * i16::MAX as f32) as i16;
@@ -137,6 +134,12 @@ pub(crate) async fn transcribe_audio(
     match config.engine {
         SttEngineType::DeepgramCloud => cloud::deepgram_transcribe(&wav_data, &config).await,
         SttEngineType::WhisperCloud => cloud::whisper_transcribe(&wav_data, &config).await,
+        SttEngineType::WhisperLocal => {
+            anyhow::bail!(
+                "Whisper Local is not yet available. Please select Deepgram or Whisper Cloud in Settings > Speech Engine. \
+                 Local on-device inference (whisper.cpp) is coming in a future update."
+            )
+        }
     }
 }
 
