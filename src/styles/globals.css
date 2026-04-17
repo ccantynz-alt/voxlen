@@ -4,53 +4,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dark theme (default) */
+/* Dark theme (default) — RGB channels for Tailwind opacity modifier support */
 :root {
-  --surface-0: #09090b;
-  --surface-50: #0c0c0f;
-  --surface-100: #111114;
-  --surface-200: #18181b;
-  --surface-300: #1f1f23;
-  --surface-400: #27272a;
-  --surface-500: #3f3f46;
-  --surface-600: #52525b;
-  --surface-700: #71717a;
-  --surface-800: #a1a1aa;
-  --surface-900: #d4d4d8;
-  --surface-950: #fafafa;
+  --surface-0: 9 9 11;
+  --surface-50: 12 12 15;
+  --surface-100: 17 17 20;
+  --surface-200: 24 24 27;
+  --surface-300: 31 31 35;
+  --surface-400: 39 39 42;
+  --surface-500: 63 63 70;
+  --surface-600: 82 82 91;
+  --surface-700: 113 113 122;
+  --surface-800: 161 161 170;
+  --surface-900: 212 212 216;
+  --surface-950: 250 250 250;
 }
 
 /* Light theme */
 .light {
-  --surface-0: #ffffff;
-  --surface-50: #fafafa;
-  --surface-100: #f4f4f5;
-  --surface-200: #e4e4e7;
-  --surface-300: #d4d4d8;
-  --surface-400: #a1a1aa;
-  --surface-500: #71717a;
-  --surface-600: #52525b;
-  --surface-700: #3f3f46;
-  --surface-800: #27272a;
-  --surface-900: #18181b;
-  --surface-950: #09090b;
+  --surface-0: 255 255 255;
+  --surface-50: 250 250 250;
+  --surface-100: 244 244 245;
+  --surface-200: 228 228 231;
+  --surface-300: 212 212 216;
+  --surface-400: 161 161 170;
+  --surface-500: 113 113 122;
+  --surface-600: 82 82 91;
+  --surface-700: 63 63 70;
+  --surface-800: 39 39 42;
+  --surface-900: 24 24 27;
+  --surface-950: 9 9 11;
 }
 
 /* System preference: auto-apply light when OS is light and class="system" */
 @media (prefers-color-scheme: light) {
   .system {
-    --surface-0: #ffffff;
-    --surface-50: #fafafa;
-    --surface-100: #f4f4f5;
-    --surface-200: #e4e4e7;
-    --surface-300: #d4d4d8;
-    --surface-400: #a1a1aa;
-    --surface-500: #71717a;
-    --surface-600: #52525b;
-    --surface-700: #3f3f46;
-    --surface-800: #27272a;
-    --surface-900: #18181b;
-    --surface-950: #09090b;
+    --surface-0: 255 255 255;
+    --surface-50: 250 250 250;
+    --surface-100: 244 244 245;
+    --surface-200: 228 228 231;
+    --surface-300: 212 212 216;
+    --surface-400: 161 161 170;
+    --surface-500: 113 113 122;
+    --surface-600: 82 82 91;
+    --surface-700: 63 63 70;
+    --surface-800: 39 39 42;
+    --surface-900: 24 24 27;
+    --surface-950: 9 9 11;
   }
 }
 
