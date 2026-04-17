@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Voxlen uses speech recognition to transcribe your voice into text in any app.</string>
+	<string>Marco Reid Voice uses speech recognition to transcribe your voice into text in any app.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Voxlen needs microphone access to listen to your voice for dictation.</string>
+	<string>Marco Reid Voice needs microphone access for real-time voice dictation.</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>
