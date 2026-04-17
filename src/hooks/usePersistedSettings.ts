@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useSettingsStore, type AppSettings } from "@/stores/settings";
+import { useSettingsStore, hydrateSecrets, type AppSettings } from "@/stores/settings";
 
 export function usePersistedSettings() {
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -28,7 +28,7 @@ export function usePersistedSettings() {
       }
     }
 
-    loadSettings();
+    loadSettings().then(() => hydrateSecrets());
   }, [updateSettings]);
 }
 

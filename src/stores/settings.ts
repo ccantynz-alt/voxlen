@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getSecret, setSecret } from "@/lib/keyring";
 
 export interface AppSettings {
   // Audio
@@ -107,24 +108,22 @@ const defaultSettings: AppSettings = {
   legalAcceptedAt: null,
 };
 
-// Debounced persistence — saves settings after changes settle
+// Debounced persistence — saves settings after changes settle.
+// API keys go to OS keychain; everything else to tauri-plugin-store.
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 function schedulePersist() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     const state = useSettingsStore.getState();
-    // Extract only AppSettings keys (not UI state like activeTab/isLoaded)
     const toSave: Partial<AppSettings> = {
       preferredDeviceId: state.preferredDeviceId,
       inputGain: state.inputGain,
       noiseSuppression: state.noiseSuppression,
       sttEngine: state.sttEngine,
-      sttApiKey: state.sttApiKey,
       sttLanguage: state.sttLanguage,
       autoDetectLanguage: state.autoDetectLanguage,
       customVocabulary: state.customVocabulary,
       grammarEnabled: state.grammarEnabled,
-      grammarApiKey: state.grammarApiKey,
       grammarProvider: state.grammarProvider,
       writingStyle: state.writingStyle,
       autoCorrect: state.autoCorrect,
@@ -158,7 +157,22 @@ function schedulePersist() {
         // Ignore
       }
     }
+
+    // Persist API keys to OS keychain
+    if (state.sttApiKey) await setSecret("sttApiKey", state.sttApiKey);
+    if (state.grammarApiKey) await setSecret("grammarApiKey", state.grammarApiKey);
   }, 500);
+}
+
+export async function hydrateSecrets(): Promise<void> {
+  const sttApiKey = await getSecret("sttApiKey");
+  const grammarApiKey = await getSecret("grammarApiKey");
+  const updates: Partial<AppSettings> = {};
+  if (sttApiKey) updates.sttApiKey = sttApiKey;
+  if (grammarApiKey) updates.grammarApiKey = grammarApiKey;
+  if (Object.keys(updates).length > 0) {
+    useSettingsStore.setState(updates);
+  }
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({

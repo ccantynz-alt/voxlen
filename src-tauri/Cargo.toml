@@ -39,6 +39,7 @@ env_logger = "0.11"
 anyhow = "1"
 thiserror = "2"
 parking_lot = "0.12"
+keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
 crossbeam-channel = "0.5"
 bytemuck = { version = "1", features = ["derive"] }
 futures-util = "0.3"

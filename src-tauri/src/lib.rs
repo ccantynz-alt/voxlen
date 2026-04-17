@@ -160,6 +160,10 @@ pub fn run() {
             // Permission commands
             commands::permissions::check_permissions,
             commands::permissions::request_admin_permissions,
+            // Secure keyring commands
+            commands::keyring::keyring_get,
+            commands::keyring::keyring_set,
+            commands::keyring::keyring_delete,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

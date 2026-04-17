@@ -55,7 +55,8 @@ jobs:
             libjavascriptcoregtk-4.1-dev \
             pkg-config \
             xdotool \
-            xclip
+            xclip \
+            libsecret-1-dev
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

@@ -2,6 +2,7 @@ pub mod audio;
 pub mod dictation;
 pub mod grammar;
 pub mod history;
+pub mod keyring;
 pub mod permissions;
 pub mod settings;
 pub mod stt;
