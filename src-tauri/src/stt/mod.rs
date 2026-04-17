@@ -28,6 +28,7 @@ pub struct WordResult {
 pub enum SttEngineType {
     DeepgramCloud,
     WhisperCloud,
+    WhisperLocal,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

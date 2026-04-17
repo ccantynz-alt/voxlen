@@ -1,0 +1,3 @@
+-keep class com.marcoreid.voice.keyboard.** { *; }
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.marcoreid.voice.keyboard.SettingsActivity"
+    android:isDefault="false">
+    <subtype
+        android:label="English (US)"
+        android:imeSubtypeLocale="en_US"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Spanish"
+        android:imeSubtypeLocale="es"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="French"
+        android:imeSubtypeLocale="fr"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="German"
+        android:imeSubtypeLocale="de"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Portuguese"
+        android:imeSubtypeLocale="pt"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Italian"
+        android:imeSubtypeLocale="it"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Japanese"
+        android:imeSubtypeLocale="ja"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Korean"
+        android:imeSubtypeLocale="ko"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Chinese"
+        android:imeSubtypeLocale="zh"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Arabic"
+        android:imeSubtypeLocale="ar"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Hindi"
+        android:imeSubtypeLocale="hi"
+        android:imeSubtypeMode="keyboard" />
+    <subtype
+        android:label="Russian"
+        android:imeSubtypeLocale="ru"
+        android:imeSubtypeMode="keyboard" />
+</input-method>

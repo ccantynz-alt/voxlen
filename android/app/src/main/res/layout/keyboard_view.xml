@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#E8EAED">
+
+    <!-- Grammar bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:background="@android:color/white"
+        android:elevation="1dp">
+
+        <TextView
+            android:id="@+id/grammar_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Marco Reid Voice"
+            android:textSize="12sp"
+            android:textColor="#6B7280" />
+
+        <ImageButton
+            android:id="@+id/mic_button"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Voice dictation"
+            android:layout_marginEnd="8dp"
+            android:padding="6dp" />
+
+        <Button
+            android:id="@+id/polish_button"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="Polish"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:backgroundTint="#7345D1"
+            android:textColor="@android:color/white"
+            android:minWidth="0dp"
+            android:paddingHorizontal="12dp"
+            style="@style/Widget.MaterialComponents.Button" />
+    </LinearLayout>
+
+    <!-- Partial transcript preview -->
+    <TextView
+        android:id="@+id/partial_label"
+        android:layout_width="match_parent"
+        android:layout_height="22dp"
+        android:gravity="center"
+        android:textSize="13sp"
+        android:textStyle="italic"
+        android:textColor="#9CA3AF"
+        android:visibility="gone"
+        android:paddingHorizontal="12dp" />
+
+    <!-- Keyboard rows container -->
+    <LinearLayout
+        android:id="@+id/keyboard_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="3dp"
+        android:paddingVertical="4dp" />
+
+</LinearLayout>

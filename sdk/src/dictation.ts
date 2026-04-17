@@ -67,12 +67,13 @@ export class VoxlenDictation {
       return;
     }
 
-    this.recognition = new SpeechRecognition();
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.lang = this.config.language || "en-US";
+    const rec = new SpeechRecognition();
+    this.recognition = rec;
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = this.config.language || "en-US";
 
-    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+    rec.onresult = (event: SpeechRecognitionEvent) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0].transcript;
@@ -88,20 +89,19 @@ export class VoxlenDictation {
       }
     };
 
-    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    rec.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error !== "no-speech") {
         this.config.onError?.(new Error(`Speech recognition error: ${event.error}`));
       }
     };
 
-    this.recognition.onend = () => {
-      // Auto-restart if still supposed to be listening (Web Speech stops after silence)
+    rec.onend = () => {
       if (this.isListening && this.recognition) {
         this.recognition.start();
       }
     };
 
-    this.recognition.start();
+    rec.start();
   }
 
   // ---------- Deepgram WebSocket (premium, requires API key) ----------
