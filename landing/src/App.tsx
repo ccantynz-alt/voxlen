@@ -312,6 +312,13 @@ function Features() {
       color: "text-pink-400",
       bg: "bg-pink-400/10",
     },
+    {
+      icon: Keyboard,
+      title: "Android Keyboard",
+      description: "Full custom keyboard for Android with Deepgram Nova-2 streaming STT, AI grammar polish, haptic feedback, and dark mode. Replace your stock keyboard with professional-grade dictation.",
+      color: "text-green-400",
+      bg: "bg-green-400/10",
+    },
   ];
 
   return (
