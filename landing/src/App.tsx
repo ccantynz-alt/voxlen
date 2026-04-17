@@ -308,7 +308,7 @@ function Features() {
     {
       icon: Smartphone,
       title: "iOS Keyboard",
-      description: "Install the Marco Reid Voice keyboard on iPhone or Android. AI grammar correction in every text field — iMessage, WhatsApp, email, everywhere.",
+      description: "Deepgram Nova-2 powered voice dictation with AI grammar correction. Works in every app — iMessage, WhatsApp, Mail, Notes, everywhere. 20+ languages. 95%+ accuracy.",
       color: "text-pink-400",
       bg: "bg-pink-400/10",
     },
@@ -753,7 +753,7 @@ function FAQ() {
 }
 
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.5";
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
@@ -921,32 +921,23 @@ function CTA() {
             <Smartphone className="h-7 w-7 text-marcoreid-400" />
           </div>
           <div className="flex-1 text-center md:text-left">
-            <div className="text-lg font-bold text-white mb-1">Marco Reid Voice Keyboard — iPhone, iPad &amp; Android</div>
+            <div className="text-lg font-bold text-white mb-1">Voice Keyboard for iPhone &amp; iPad</div>
             <div className="text-sm text-zinc-400">
-              AI grammar correction in every text field — iMessage, Mail, Notes, Safari, WhatsApp, Gmail, everywhere.
+              Deepgram-powered dictation that actually understands you. AI grammar correction in every text field. Free to download, bring your own API key.
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex flex-col items-center gap-2 shrink-0">
             <a
               href="#"
-              className="h-12 px-5 rounded-xl bg-black border border-white/10 text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/5 transition-colors"
+              className="h-12 px-6 rounded-xl bg-black border border-white/10 text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/5 transition-colors"
             >
               <Apple className="h-5 w-5" />
               <div className="text-left leading-tight">
-                <div className="text-[10px] text-zinc-400">Coming soon on</div>
+                <div className="text-[10px] text-zinc-400">Coming soon on the</div>
                 <div>App Store</div>
               </div>
             </a>
-            <a
-              href="#"
-              className="h-12 px-5 rounded-xl bg-black border border-white/10 text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/5 transition-colors"
-            >
-              <Smartphone className="h-5 w-5" />
-              <div className="text-left leading-tight">
-                <div className="text-[10px] text-zinc-400">Coming soon on</div>
-                <div>Google Play</div>
-              </div>
-            </a>
+            <span className="text-xs text-marcoreid-400 font-medium">Get notified when it launches</span>
           </div>
         </motion.div>
 

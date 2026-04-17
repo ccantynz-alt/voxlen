@@ -15,9 +15,18 @@ struct MarcoReidVoiceApp: App {
 struct ContentView: View {
     @EnvironmentObject var settings: SettingsManager
 
+    private var keysConfigured: Bool {
+        !settings.apiKey.isEmpty && !settings.deepgramApiKey.isEmpty
+    }
+
+    private var partialKeysConfigured: Bool {
+        !settings.apiKey.isEmpty || !settings.deepgramApiKey.isEmpty
+    }
+
     var body: some View {
         NavigationView {
             List {
+                // MARK: - Header
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -35,6 +44,23 @@ struct ContentView: View {
                                 Text("AI-Powered Grammar Correction")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            // Status indicator
+                            if keysConfigured {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.green)
+                            } else if partialKeysConfigured {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.orange)
+                            } else {
+                                Image(systemName: "xmark.seal.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.red)
                             }
                         }
                         .padding(.vertical, 8)
@@ -56,10 +82,30 @@ struct ContentView: View {
                             .background(Color.orange.opacity(0.1))
                             .cornerRadius(10)
                         }
+
+                        // API key status summary
+                        if !keysConfigured {
+                            HStack {
+                                Image(systemName: "key.fill")
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading) {
+                                    Text("API Keys Required")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                    Text(apiKeyStatusMessage)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .cornerRadius(10)
+                        }
                     }
                 }
 
-                Section("Grammar AI") {
+                // MARK: - Grammar AI
+                Section {
                     Toggle("Auto-Correct Grammar", isOn: $settings.autoCorrectEnabled)
 
                     Picker("Writing Style", selection: $settings.writingStyle) {
@@ -71,9 +117,52 @@ struct ContentView: View {
                     }
 
                     Toggle("Preserve My Tone", isOn: $settings.preserveTone)
+                } header: {
+                    Label("Grammar AI", systemImage: "brain.head.profile")
                 }
 
-                Section("AI Provider") {
+                // MARK: - Voice Dictation
+                Section {
+                    Picker("STT Engine", selection: $settings.sttEngine) {
+                        Text("Deepgram Nova-2").tag(STTEngine.deepgram)
+                        Text("Apple Speech").tag(STTEngine.apple)
+                    }
+
+                    if settings.sttEngine == .deepgram {
+                        SecureField("Deepgram API Key", text: $settings.deepgramApiKey)
+                            .textContentType(.password)
+                    }
+
+                    Picker("Language", selection: $settings.language) {
+                        Text("English").tag("en")
+                        Text("Spanish").tag("es")
+                        Text("French").tag("fr")
+                        Text("German").tag("de")
+                        Text("Portuguese").tag("pt")
+                        Text("Italian").tag("it")
+                        Text("Dutch").tag("nl")
+                        Text("Japanese").tag("ja")
+                        Text("Korean").tag("ko")
+                        Text("Chinese").tag("zh")
+                        Text("Arabic").tag("ar")
+                        Text("Hindi").tag("hi")
+                        Text("Russian").tag("ru")
+                        Text("Polish").tag("pl")
+                        Text("Turkish").tag("tr")
+                        Text("Swedish").tag("sv")
+                        Text("Norwegian").tag("no")
+                        Text("Danish").tag("da")
+                        Text("Finnish").tag("fi")
+                        Text("Indonesian").tag("id")
+                    }
+                } header: {
+                    Label("Voice Dictation", systemImage: "waveform")
+                } footer: {
+                    Text("Deepgram Nova-2 provides superior accuracy. Get your API key at console.deepgram.com")
+                }
+
+                // MARK: - AI Provider
+                Section {
                     Picker("Provider", selection: $settings.aiProvider) {
                         Text("Claude (Anthropic)").tag(AIProvider.claude)
                         Text("OpenAI GPT").tag(AIProvider.openai)
@@ -81,29 +170,86 @@ struct ContentView: View {
 
                     SecureField("API Key", text: $settings.apiKey)
                         .textContentType(.password)
+                } header: {
+                    Label("AI Provider", systemImage: "cpu")
                 }
 
-                Section("Features") {
+                // MARK: - Features
+                Section {
                     Toggle("Auto-Punctuation", isOn: $settings.autoPunctuation)
                     Toggle("Smart Capitalization", isOn: $settings.smartCapitalization)
                     Toggle("Emoji Suggestions", isOn: $settings.emojiSuggestions)
+                } header: {
+                    Label("Features", systemImage: "sparkles")
                 }
 
-                Section("About") {
+                // MARK: - What's New
+                Section {
+                    WhatsNewRow(icon: "waveform.badge.mic", text: "Deepgram Nova-2 voice engine — 95%+ accuracy")
+                    WhatsNewRow(icon: "globe", text: "20+ language support")
+                    WhatsNewRow(icon: "hand.tap.fill", text: "Haptic feedback on every key")
+                    WhatsNewRow(icon: "ipad.landscape", text: "iPad optimized layout")
+                } header: {
+                    Label("What's New", systemImage: "star.fill")
+                }
+
+                // MARK: - About
+                Section {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text("2.0.0")
                             .foregroundColor(.secondary)
                     }
-                    Link("Privacy Policy", destination: URL(string: "https://marcoreid.com/privacy")!)
-                    Link("Support", destination: URL(string: "https://marcoreid.com/support")!)
+                    Link(destination: URL(string: "https://marcoreid.com/privacy")!) {
+                        HStack {
+                            Image(systemName: "hand.raised.fill")
+                                .foregroundColor(.blue)
+                            Text("Privacy Policy")
+                        }
+                    }
+                    Link(destination: URL(string: "https://marcoreid.com/support")!) {
+                        HStack {
+                            Image(systemName: "questionmark.circle.fill")
+                                .foregroundColor(.blue)
+                            Text("Support")
+                        }
+                    }
+                } header: {
+                    Label("About", systemImage: "info.circle")
                 }
             }
             .navigationTitle("Marco Reid Voice")
         }
     }
+
+    private var apiKeyStatusMessage: String {
+        if settings.apiKey.isEmpty && settings.deepgramApiKey.isEmpty {
+            return "Set your AI Provider and Deepgram API keys below to enable all features."
+        } else if settings.apiKey.isEmpty {
+            return "Set your AI Provider API key to enable grammar correction."
+        } else {
+            return "Set your Deepgram API key to enable voice dictation."
+        }
+    }
 }
+
+struct WhatsNewRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .frame(width: 24)
+            Text(text)
+                .font(.subheadline)
+        }
+    }
+}
+
+// MARK: - Enums
 
 enum WritingStyle: String, CaseIterable {
     case professional, casual, academic, creative, technical
@@ -112,6 +258,12 @@ enum WritingStyle: String, CaseIterable {
 enum AIProvider: String, CaseIterable {
     case claude, openai
 }
+
+enum STTEngine: String, CaseIterable {
+    case deepgram, apple
+}
+
+// MARK: - Settings Manager
 
 class SettingsManager: ObservableObject {
     private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")!
@@ -141,6 +293,15 @@ class SettingsManager: ObservableObject {
     @Published var emojiSuggestions: Bool {
         didSet { defaults.set(emojiSuggestions, forKey: "emojiSuggestions") }
     }
+    @Published var sttEngine: STTEngine {
+        didSet { defaults.set(sttEngine.rawValue, forKey: "sttEngine") }
+    }
+    @Published var deepgramApiKey: String {
+        didSet { defaults.set(deepgramApiKey, forKey: "deepgramApiKey") }
+    }
+    @Published var language: String {
+        didSet { defaults.set(language, forKey: "language") }
+    }
 
     init() {
         self.autoCorrectEnabled = defaults.bool(forKey: "autoCorrect")
@@ -151,5 +312,8 @@ class SettingsManager: ObservableObject {
         self.autoPunctuation = defaults.object(forKey: "autoPunctuation") == nil ? true : defaults.bool(forKey: "autoPunctuation")
         self.smartCapitalization = defaults.object(forKey: "smartCapitalization") == nil ? true : defaults.bool(forKey: "smartCapitalization")
         self.emojiSuggestions = defaults.bool(forKey: "emojiSuggestions")
+        self.sttEngine = STTEngine(rawValue: defaults.string(forKey: "sttEngine") ?? "deepgram") ?? .deepgram
+        self.deepgramApiKey = defaults.string(forKey: "deepgramApiKey") ?? ""
+        self.language = defaults.string(forKey: "language") ?? "en"
     }
 }

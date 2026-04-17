@@ -1,29 +1,53 @@
 import UIKit
-import Speech
 import AVFoundation
 
-class KeyboardViewController: UIInputViewController {
+class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate {
+
+    // MARK: - UI Elements
 
     private var keyboardView: UIStackView!
     private var grammarBar: UIView!
     private var grammarLabel: UILabel!
+    private var partialLabel: UILabel!
     private var polishButton: UIButton!
     private var micButton: UIButton!
-    private let defaults = UserDefaults(suiteName: "group.com.voxlen.keyboard")
+    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")
 
-    // Current state
+    // MARK: - State
+
     private var isShifted = false
     private var isCapsLock = false
     private var isNumberMode = false
-
-    // Speech recognition
-    private var speechRecognizer: SFSpeechRecognizer?
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var recognitionTask: SFSpeechRecognitionTask?
-    private let audioEngine = AVAudioEngine()
     private var isListening = false
 
-    // Standard QWERTY layout
+    // MARK: - Haptics
+
+    private let haptic = UIImpactFeedbackGenerator(style: .light)
+    private let hapticMedium = UIImpactFeedbackGenerator(style: .medium)
+
+    // MARK: - Deepgram STT
+
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var webSocketSession: URLSession?
+    private let audioEngine = AVAudioEngine()
+    private var insertedCharCount = 0
+    private var currentUtterance = ""
+
+    // MARK: - Layout
+
+    private var isIPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    private var keyFontSize: CGFloat { isIPad ? 26 : 22 }
+    private var keySpacing: CGFloat { isIPad ? 6 : 4 }
+    private var edgePadding: CGFloat { isIPad ? 12 : 3 }
+    private var barHeight: CGFloat { isIPad ? 44 : 36 }
+    private var specialKeyWidth: CGFloat { isIPad ? 52 : 36 }
+    private var returnKeyWidth: CGFloat { isIPad ? 96 : 72 }
+    private var toggleKeyWidth: CGFloat { isIPad ? 60 : 44 }
+
+    private let brandColor = UIColor(red: 0.45, green: 0.27, blue: 0.82, alpha: 1.0)
+
+    // MARK: - Keyboard Layout Data
+
     private let letterRows: [[String]] = [
         ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
         ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
@@ -36,29 +60,44 @@ class KeyboardViewController: UIInputViewController {
         [".", ",", "?", "!", "'"]
     ]
 
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        haptic.prepare()
+        hapticMedium.prepare()
         setupKeyboard()
     }
 
-    private func setupKeyboard() {
-        view.backgroundColor = UIColor(red: 0.82, green: 0.84, blue: 0.86, alpha: 1.0)
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if isListening { stopDictation() }
+    }
 
-        // Grammar suggestion bar
+    // MARK: - Keyboard Setup
+
+    private func setupKeyboard() {
+        view.backgroundColor = .secondarySystemBackground
+
+        // Grammar bar
         grammarBar = UIView()
-        grammarBar.backgroundColor = UIColor.systemBackground
+        grammarBar.backgroundColor = .systemBackground
         grammarBar.translatesAutoresizingMaskIntoConstraints = false
 
+        let separator = UIView()
+        separator.backgroundColor = .separator
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        grammarBar.addSubview(separator)
+
         grammarLabel = UILabel()
-        grammarLabel.text = "Marco Reid Voice AI Grammar"
+        grammarLabel.text = "Marco Reid Voice"
         grammarLabel.font = .systemFont(ofSize: 12, weight: .medium)
         grammarLabel.textColor = .secondaryLabel
         grammarLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        // Mic button for voice dictation
         micButton = UIButton(type: .system)
         micButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
-        micButton.tintColor = UIColor(red: 0.2, green: 0.4, blue: 1.0, alpha: 1.0)
+        micButton.tintColor = brandColor
         micButton.addTarget(self, action: #selector(toggleDictation), for: .touchUpInside)
         micButton.translatesAutoresizingMaskIntoConstraints = false
 
@@ -66,7 +105,7 @@ class KeyboardViewController: UIInputViewController {
         polishButton.setTitle("Polish", for: .normal)
         polishButton.setImage(UIImage(systemName: "wand.and.stars"), for: .normal)
         polishButton.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
-        polishButton.tintColor = UIColor(red: 0.2, green: 0.4, blue: 1.0, alpha: 1.0)
+        polishButton.tintColor = brandColor
         polishButton.addTarget(self, action: #selector(polishText), for: .touchUpInside)
         polishButton.translatesAutoresizingMaskIntoConstraints = false
 
@@ -74,7 +113,37 @@ class KeyboardViewController: UIInputViewController {
         grammarBar.addSubview(micButton)
         grammarBar.addSubview(polishButton)
 
+        // Partial transcript label
+        partialLabel = UILabel()
+        partialLabel.text = ""
+        partialLabel.font = .italicSystemFont(ofSize: 13)
+        partialLabel.textColor = .tertiaryLabel
+        partialLabel.textAlignment = .center
+        partialLabel.alpha = 0
+        partialLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        // Keyboard rows
+        keyboardView = UIStackView()
+        keyboardView.axis = .vertical
+        keyboardView.spacing = keySpacing
+        keyboardView.distribution = .fillEqually
+        keyboardView.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(grammarBar)
+        view.addSubview(partialLabel)
+        view.addSubview(keyboardView)
+
         NSLayoutConstraint.activate([
+            grammarBar.topAnchor.constraint(equalTo: view.topAnchor),
+            grammarBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            grammarBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            grammarBar.heightAnchor.constraint(equalToConstant: barHeight),
+
+            separator.leadingAnchor.constraint(equalTo: grammarBar.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: grammarBar.trailingAnchor),
+            separator.bottomAnchor.constraint(equalTo: grammarBar.bottomAnchor),
+            separator.heightAnchor.constraint(equalToConstant: 0.5),
+
             grammarLabel.leadingAnchor.constraint(equalTo: grammarBar.leadingAnchor, constant: 12),
             grammarLabel.centerYAnchor.constraint(equalTo: grammarBar.centerYAnchor),
             micButton.trailingAnchor.constraint(equalTo: polishButton.leadingAnchor, constant: -12),
@@ -82,32 +151,22 @@ class KeyboardViewController: UIInputViewController {
             micButton.widthAnchor.constraint(equalToConstant: 32),
             polishButton.trailingAnchor.constraint(equalTo: grammarBar.trailingAnchor, constant: -12),
             polishButton.centerYAnchor.constraint(equalTo: grammarBar.centerYAnchor),
-        ])
 
-        // Keyboard rows
-        keyboardView = UIStackView()
-        keyboardView.axis = .vertical
-        keyboardView.spacing = 6
-        keyboardView.distribution = .fillEqually
-        keyboardView.translatesAutoresizingMaskIntoConstraints = false
+            partialLabel.topAnchor.constraint(equalTo: grammarBar.bottomAnchor, constant: 2),
+            partialLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            partialLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            partialLabel.heightAnchor.constraint(equalToConstant: 20),
 
-        view.addSubview(grammarBar)
-        view.addSubview(keyboardView)
-
-        NSLayoutConstraint.activate([
-            grammarBar.topAnchor.constraint(equalTo: view.topAnchor),
-            grammarBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            grammarBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            grammarBar.heightAnchor.constraint(equalToConstant: 36),
-
-            keyboardView.topAnchor.constraint(equalTo: grammarBar.bottomAnchor, constant: 4),
-            keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 3),
-            keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -3),
+            keyboardView.topAnchor.constraint(equalTo: partialLabel.bottomAnchor, constant: 2),
+            keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: edgePadding),
+            keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -edgePadding),
             keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -4),
         ])
 
         buildKeyboardLayout()
     }
+
+    // MARK: - Build Keyboard Layout
 
     private func buildKeyboardLayout() {
         keyboardView.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -117,17 +176,16 @@ class KeyboardViewController: UIInputViewController {
         for (index, row) in rows.enumerated() {
             let rowStack = UIStackView()
             rowStack.axis = .horizontal
-            rowStack.spacing = 4
+            rowStack.spacing = keySpacing
             rowStack.distribution = .fillEqually
 
-            // Add shift key on the left of last letter row
             if index == 2 && !isNumberMode {
                 let shiftKey = createSpecialKey(
                     title: nil,
                     image: UIImage(systemName: isShifted || isCapsLock ? "shift.fill" : "shift"),
                     action: #selector(shiftTapped)
                 )
-                shiftKey.widthAnchor.constraint(equalToConstant: 36).isActive = true
+                shiftKey.widthAnchor.constraint(equalToConstant: specialKeyWidth).isActive = true
                 rowStack.addArrangedSubview(shiftKey)
             }
 
@@ -137,24 +195,23 @@ class KeyboardViewController: UIInputViewController {
                 rowStack.addArrangedSubview(button)
             }
 
-            // Add backspace on the right of last row
             if index == 2 {
                 let deleteKey = createSpecialKey(
                     title: nil,
                     image: UIImage(systemName: "delete.left"),
                     action: #selector(deleteTapped)
                 )
-                deleteKey.widthAnchor.constraint(equalToConstant: 36).isActive = true
+                deleteKey.widthAnchor.constraint(equalToConstant: specialKeyWidth).isActive = true
                 rowStack.addArrangedSubview(deleteKey)
             }
 
             keyboardView.addArrangedSubview(rowStack)
         }
 
-        // Bottom row: number toggle, globe, space, return
+        // Bottom row
         let bottomRow = UIStackView()
         bottomRow.axis = .horizontal
-        bottomRow.spacing = 4
+        bottomRow.spacing = keySpacing
         bottomRow.distribution = .fill
 
         let numberToggle = createSpecialKey(
@@ -162,14 +219,14 @@ class KeyboardViewController: UIInputViewController {
             image: nil,
             action: #selector(numberToggleTapped)
         )
-        numberToggle.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        numberToggle.widthAnchor.constraint(equalToConstant: toggleKeyWidth).isActive = true
 
         let globeKey = createSpecialKey(
             title: nil,
             image: UIImage(systemName: "globe"),
             action: #selector(handleInputModeList(from:with:))
         )
-        globeKey.widthAnchor.constraint(equalToConstant: 36).isActive = true
+        globeKey.widthAnchor.constraint(equalToConstant: specialKeyWidth).isActive = true
 
         let spaceKey = createKeyButton(title: "space")
         spaceKey.setTitle("space", for: .normal)
@@ -180,9 +237,9 @@ class KeyboardViewController: UIInputViewController {
             image: nil,
             action: #selector(returnTapped)
         )
-        returnKey.backgroundColor = UIColor(red: 0.2, green: 0.4, blue: 1.0, alpha: 1.0)
+        returnKey.backgroundColor = brandColor
         returnKey.setTitleColor(.white, for: .normal)
-        returnKey.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        returnKey.widthAnchor.constraint(equalToConstant: returnKeyWidth).isActive = true
 
         bottomRow.addArrangedSubview(numberToggle)
         bottomRow.addArrangedSubview(globeKey)
@@ -192,17 +249,19 @@ class KeyboardViewController: UIInputViewController {
         keyboardView.addArrangedSubview(bottomRow)
     }
 
+    // MARK: - Key Button Factories
+
     private func createKeyButton(title: String) -> UIButton {
         let button = UIButton(type: .system)
         button.setTitle(title, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 22, weight: .regular)
+        button.titleLabel?.font = .systemFont(ofSize: keyFontSize, weight: .regular)
         button.setTitleColor(.label, for: .normal)
-        button.backgroundColor = .white
+        button.backgroundColor = .systemBackground
         button.layer.cornerRadius = 5
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOffset = CGSize(width: 0, height: 1)
         button.layer.shadowRadius = 0.5
-        button.layer.shadowOpacity = 0.25
+        button.layer.shadowOpacity = 0.2
         button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
         return button
     }
@@ -217,12 +276,12 @@ class KeyboardViewController: UIInputViewController {
             button.setImage(image, for: .normal)
         }
         button.tintColor = .label
-        button.backgroundColor = UIColor(white: 0.68, alpha: 1.0)
+        button.backgroundColor = .tertiarySystemBackground
         button.layer.cornerRadius = 5
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOffset = CGSize(width: 0, height: 1)
         button.layer.shadowRadius = 0.5
-        button.layer.shadowOpacity = 0.25
+        button.layer.shadowOpacity = 0.2
         button.addTarget(self, action: action, for: .touchUpInside)
         return button
     }
@@ -231,19 +290,23 @@ class KeyboardViewController: UIInputViewController {
 
     @objc private func keyTapped(_ sender: UIButton) {
         guard let title = sender.titleLabel?.text else { return }
+        haptic.impactOccurred()
+
+        // Brief scale pop
+        UIView.animate(withDuration: 0.08, animations: {
+            sender.transform = CGAffineTransform(scaleX: 1.15, y: 1.15)
+        }) { _ in
+            UIView.animate(withDuration: 0.08) {
+                sender.transform = .identity
+            }
+        }
 
         if title == "space" {
             textDocumentProxy.insertText(" ")
-
-            // Auto-correct after space if enabled
-            if defaults?.bool(forKey: "autoCorrect") == true {
-                checkAndCorrectLastWord()
-            }
         } else {
             textDocumentProxy.insertText(title)
         }
 
-        // Turn off shift after one key press (unless caps lock)
         if isShifted && !isCapsLock {
             isShifted = false
             buildKeyboardLayout()
@@ -251,6 +314,7 @@ class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func shiftTapped() {
+        hapticMedium.impactOccurred()
         if isShifted {
             if isCapsLock {
                 isCapsLock = false
@@ -265,46 +329,331 @@ class KeyboardViewController: UIInputViewController {
     }
 
     @objc private func deleteTapped() {
+        hapticMedium.impactOccurred()
         textDocumentProxy.deleteBackward()
     }
 
     @objc private func returnTapped() {
+        haptic.impactOccurred()
         textDocumentProxy.insertText("\n")
     }
 
     @objc private func numberToggleTapped() {
+        haptic.impactOccurred()
         isNumberMode = !isNumberMode
         buildKeyboardLayout()
     }
 
+    // MARK: - Voice Dictation
+
+    @objc private func toggleDictation() {
+        hapticMedium.impactOccurred()
+        if isListening {
+            stopDictation()
+        } else {
+            startDictation()
+        }
+    }
+
+    private func startDictation() {
+        let engine = defaults?.string(forKey: "sttEngine") ?? "deepgram"
+        let deepgramKey = defaults?.string(forKey: "deepgramApiKey") ?? ""
+
+        if engine == "deepgram" && !deepgramKey.isEmpty {
+            startDeepgramDictation(apiKey: deepgramKey)
+        } else {
+            startAppleDictation()
+        }
+    }
+
+    // MARK: - Deepgram WebSocket STT
+
+    private func startDeepgramDictation(apiKey: String) {
+        let lang = defaults?.string(forKey: "language") ?? "en"
+        let urlStr = "wss://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&smart_format=true&language=\(lang)&interim_results=true&endpointing=300&encoding=linear16&sample_rate=16000&channels=1"
+
+        guard let url = URL(string: urlStr) else {
+            grammarLabel.text = "Invalid Deepgram URL"
+            return
+        }
+
+        let config = URLSessionConfiguration.default
+        webSocketSession = URLSession(configuration: config, delegate: self, delegateQueue: .main)
+
+        var request = URLRequest(url: url)
+        request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        webSocketTask = webSocketSession?.webSocketTask(with: request)
+        webSocketTask?.resume()
+
+        // Start audio capture
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            grammarLabel.text = "Audio session error"
+            return
+        }
+
+        let inputNode = audioEngine.inputNode
+        let nativeFormat = inputNode.outputFormat(forBus: 0)
+
+        // Convert to 16kHz mono Linear16
+        guard let targetFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true) else {
+            grammarLabel.text = "Audio format error"
+            return
+        }
+
+        guard let converter = AVAudioConverter(from: nativeFormat, to: targetFormat) else {
+            grammarLabel.text = "Audio converter error"
+            return
+        }
+
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: nativeFormat) { [weak self] buffer, _ in
+            guard let self = self else { return }
+
+            let frameCount = AVAudioFrameCount(1024)
+            guard let convertedBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: frameCount) else { return }
+
+            var error: NSError?
+            let status = converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
+                outStatus.pointee = .haveData
+                return buffer
+            }
+
+            guard status != .error, error == nil else { return }
+
+            let audioData = Data(
+                bytes: convertedBuffer.int16ChannelData![0],
+                count: Int(convertedBuffer.frameLength) * 2
+            )
+
+            self.webSocketTask?.send(.data(audioData)) { _ in }
+        }
+
+        audioEngine.prepare()
+        do {
+            try audioEngine.start()
+        } catch {
+            grammarLabel.text = "Audio engine failed"
+            return
+        }
+
+        isListening = true
+        insertedCharCount = 0
+        currentUtterance = ""
+        setMicListeningState(true)
+        listenForDeepgramMessages()
+    }
+
+    private func listenForDeepgramMessages() {
+        webSocketTask?.receive { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    self.handleDeepgramResponse(text)
+                default:
+                    break
+                }
+                self.listenForDeepgramMessages()
+
+            case .failure:
+                if self.isListening {
+                    DispatchQueue.main.async {
+                        self.stopDictation()
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleDeepgramResponse(_ json: String) {
+        guard let data = json.data(using: .utf8),
+              let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let channel = parsed["channel"] as? [String: Any],
+              let alternatives = channel["alternatives"] as? [[String: Any]],
+              let first = alternatives.first,
+              let transcript = first["transcript"] as? String,
+              !transcript.isEmpty else {
+            return
+        }
+
+        let isFinal = parsed["is_final"] as? Bool ?? false
+        let speechFinal = parsed["speech_final"] as? Bool ?? false
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+
+            if isFinal {
+                // Delete any previously inserted partial text for this utterance
+                for _ in 0..<self.insertedCharCount {
+                    self.textDocumentProxy.deleteBackward()
+                }
+
+                let textToInsert = transcript + " "
+                self.textDocumentProxy.insertText(textToInsert)
+                self.insertedCharCount = textToInsert.count
+                self.currentUtterance += transcript + " "
+
+                // Hide partial label
+                UIView.animate(withDuration: 0.15) {
+                    self.partialLabel.alpha = 0
+                }
+
+                if speechFinal {
+                    // Auto-polish the complete utterance
+                    let fullUtterance = self.currentUtterance.trimmingCharacters(in: .whitespaces)
+                    self.insertedCharCount = 0
+                    self.currentUtterance = ""
+
+                    if self.defaults?.bool(forKey: "autoCorrect") == true && !fullUtterance.isEmpty {
+                        self.autoPolishUtterance(fullUtterance)
+                    }
+                }
+            } else {
+                // Show partial transcript in real-time
+                self.partialLabel.text = transcript
+                UIView.animate(withDuration: 0.1) {
+                    self.partialLabel.alpha = 1
+                }
+            }
+        }
+    }
+
+    private func autoPolishUtterance(_ text: String) {
+        grammarLabel.text = "Polishing..."
+        Task {
+            do {
+                let corrected = try await correctGrammar(text)
+                await MainActor.run {
+                    for _ in 0..<(text.count + 1) {
+                        self.textDocumentProxy.deleteBackward()
+                    }
+                    self.textDocumentProxy.insertText(corrected + " ")
+                    self.grammarLabel.text = "Marco Reid Voice"
+                }
+            } catch {
+                await MainActor.run {
+                    self.grammarLabel.text = "Marco Reid Voice"
+                }
+            }
+        }
+    }
+
+    // MARK: - Apple Speech Fallback
+
+    private func startAppleDictation() {
+        // Minimal fallback using Apple Speech framework
+        // Requires: import Speech (add at top if using this path)
+        grammarLabel.text = "Set Deepgram key for best results"
+
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            grammarLabel.text = "Audio session error"
+            return
+        }
+
+        isListening = true
+        setMicListeningState(true)
+
+        // For Apple fallback, prompt user to configure Deepgram
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.grammarLabel.text = "Tap Polish to correct grammar"
+            self?.stopDictation()
+        }
+    }
+
+    // MARK: - Stop Dictation
+
+    private func stopDictation() {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+        }
+
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+        webSocketSession?.invalidateAndCancel()
+        webSocketSession = nil
+
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+
+        isListening = false
+        insertedCharCount = 0
+        currentUtterance = ""
+        setMicListeningState(false)
+
+        UIView.animate(withDuration: 0.15) {
+            self.partialLabel.alpha = 0
+        }
+    }
+
+    private func setMicListeningState(_ listening: Bool) {
+        if listening {
+            micButton.tintColor = .systemRed
+            micButton.setImage(UIImage(systemName: "mic.slash.fill"), for: .normal)
+            grammarLabel.text = "Listening..."
+
+            // Pulse animation
+            UIView.animate(withDuration: 0.8, delay: 0, options: [.repeat, .autoreverse, .allowUserInteraction]) {
+                self.micButton.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
+            }
+        } else {
+            micButton.layer.removeAllAnimations()
+            micButton.transform = .identity
+            micButton.tintColor = brandColor
+            micButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
+            grammarLabel.text = "Marco Reid Voice"
+        }
+    }
+
+    // MARK: - URLSessionWebSocketDelegate
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        // Connected
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        if isListening {
+            DispatchQueue.main.async { [weak self] in
+                self?.stopDictation()
+            }
+        }
+    }
+
+    // MARK: - Grammar Correction (Polish)
+
     @objc private func polishText() {
-        // Get the current text from the text field
         guard let text = textDocumentProxy.documentContextBeforeInput,
               !text.isEmpty else { return }
 
+        hapticMedium.impactOccurred()
         grammarLabel.text = "Polishing..."
         polishButton.isEnabled = false
 
-        // Find the last sentence or paragraph to polish
         let textToPolish = extractLastSentence(from: text)
 
         Task {
             do {
                 let corrected = try await correctGrammar(textToPolish)
-
                 await MainActor.run {
-                    // Delete the original text
                     for _ in 0..<textToPolish.count {
                         textDocumentProxy.deleteBackward()
                     }
-                    // Insert corrected text
                     textDocumentProxy.insertText(corrected)
 
                     grammarLabel.text = "Polished!"
                     polishButton.isEnabled = true
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                        self?.grammarLabel.text = "Marco Reid Voice AI Grammar"
+                        self?.grammarLabel.text = "Marco Reid Voice"
                     }
                 }
             } catch {
@@ -317,18 +666,12 @@ class KeyboardViewController: UIInputViewController {
     }
 
     private func extractLastSentence(from text: String) -> String {
-        // Find the last sentence boundary
         let sentenceEnders: [Character] = [".", "!", "?", "\n"]
         if let lastEnder = text.dropLast().lastIndex(where: { sentenceEnders.contains($0) }) {
             let startIndex = text.index(after: lastEnder)
             return String(text[startIndex...]).trimmingCharacters(in: .whitespaces)
         }
         return text
-    }
-
-    private func checkAndCorrectLastWord() {
-        // Lightweight auto-correction for the last word
-        // Full grammar correction uses the Polish button
     }
 
     // MARK: - AI Grammar Correction
@@ -369,7 +712,6 @@ class KeyboardViewController: UIInputViewController {
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -381,7 +723,6 @@ class KeyboardViewController: UIInputViewController {
         let content = (json?["content"] as? [[String: Any]])?.first
         let corrected = content?["text"] as? String ?? text
 
-        // Remove quotes if the model wrapped the response
         return corrected
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
@@ -406,7 +747,6 @@ class KeyboardViewController: UIInputViewController {
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -423,146 +763,9 @@ class KeyboardViewController: UIInputViewController {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
     }
-
-    // MARK: - Voice Dictation (Apple Speech Framework)
-
-    @objc private func toggleDictation() {
-        if isListening {
-            stopDictation()
-        } else {
-            startDictation()
-        }
-    }
-
-    private func startDictation() {
-        // Request authorization
-        SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                switch status {
-                case .authorized:
-                    self.beginRecognition()
-                case .denied, .restricted:
-                    self.grammarLabel.text = "Speech access denied — check Settings"
-                case .notDetermined:
-                    self.grammarLabel.text = "Requesting speech permission..."
-                @unknown default:
-                    break
-                }
-            }
-        }
-    }
-
-    private func beginRecognition() {
-        // Cancel any existing task
-        recognitionTask?.cancel()
-        recognitionTask = nil
-
-        let locale = Locale(identifier: defaults?.string(forKey: "language") ?? "en-US")
-        speechRecognizer = SFSpeechRecognizer(locale: locale)
-
-        guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
-            grammarLabel.text = "Speech recognition not available"
-            return
-        }
-
-        // Configure audio session
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            grammarLabel.text = "Audio session error"
-            return
-        }
-
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { return }
-
-        recognitionRequest.shouldReportPartialResults = true
-        if #available(iOS 16, *) {
-            recognitionRequest.addsPunctuation = true
-        }
-
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            self.recognitionRequest?.append(buffer)
-        }
-
-        audioEngine.prepare()
-        do {
-            try audioEngine.start()
-        } catch {
-            grammarLabel.text = "Audio engine failed to start"
-            return
-        }
-
-        isListening = true
-        micButton.tintColor = .systemRed
-        micButton.setImage(UIImage(systemName: "mic.slash.fill"), for: .normal)
-        grammarLabel.text = "Listening..."
-
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            guard let self = self else { return }
-
-            if let result = result {
-                let text = result.bestTranscription.formattedString
-
-                // Insert the latest recognized text
-                // For partial results, we track what's already been inserted
-                if result.isFinal {
-                    self.textDocumentProxy.insertText(text + " ")
-                    self.stopDictation()
-
-                    // Auto-polish if enabled
-                    if self.defaults?.bool(forKey: "autoCorrect") == true {
-                        self.grammarLabel.text = "Polishing..."
-                        Task {
-                            do {
-                                let corrected = try await self.correctGrammar(text)
-                                await MainActor.run {
-                                    // Delete original and insert corrected
-                                    for _ in 0..<(text.count + 1) {
-                                        self.textDocumentProxy.deleteBackward()
-                                    }
-                                    self.textDocumentProxy.insertText(corrected + " ")
-                                    self.grammarLabel.text = "Voxlen AI Grammar"
-                                }
-                            } catch {
-                                await MainActor.run {
-                                    self.grammarLabel.text = "Voxlen AI Grammar"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if let error = error {
-                self.grammarLabel.text = "Error: \(error.localizedDescription)"
-                self.stopDictation()
-            }
-        }
-    }
-
-    private func stopDictation() {
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        isListening = false
-
-        DispatchQueue.main.async { [weak self] in
-            self?.micButton.tintColor = UIColor(red: 0.2, green: 0.4, blue: 1.0, alpha: 1.0)
-            self?.micButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
-            self?.grammarLabel.text = "Voxlen AI Grammar"
-        }
-    }
 }
+
+// MARK: - Errors
 
 enum GrammarError: Error {
     case noApiKey
