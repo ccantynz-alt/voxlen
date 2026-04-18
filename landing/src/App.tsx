@@ -760,7 +760,7 @@ function FAQ() {
 }
 
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
-const APP_VERSION = "1.0.7";
+const APP_VERSION = "1.0.8";
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
@@ -787,28 +787,28 @@ const DOWNLOADS: Record<
   "mac-arm": {
     label: "Download for macOS",
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
-    file: `Marco.Reid.Voice_${APP_VERSION}_aarch64.dmg`,
+    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   "mac-intel": {
     label: "Download for macOS",
     subLabel: "Intel (x86_64) — build on request",
-    file: `Marco.Reid.Voice_${APP_VERSION}_aarch64.dmg`,
+    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   windows: {
     label: "Download for Windows",
     subLabel: "Windows 10/11 (x64)",
-    file: `Marco.Reid.Voice_${APP_VERSION}_x64_en-US.msi`,
+    file: `Voxlen_${APP_VERSION}_x64_en-US.msi`,
     size: "~5 MB",
     icon: "monitor",
   },
   linux: {
     label: "Download for Linux",
     subLabel: "AppImage (x86_64)",
-    file: `Marco.Reid.Voice_${APP_VERSION}_amd64.AppImage`,
+    file: `Voxlen_${APP_VERSION}_amd64.AppImage`,
     size: "~80 MB",
     icon: "monitor",
   },

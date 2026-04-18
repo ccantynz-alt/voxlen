@@ -138,12 +138,12 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         {/* Brand footer */}
         <div className="px-1 pt-3 mt-1">
           <div className="divider-brass mb-2" />
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-display text-[11px] text-surface-700 tracking-tight-display">
-              Marco Reid
+          <div className="flex items-baseline leading-none">
+            <span className="font-display text-[11px] text-surface-700 tracking-tight-display leading-none">
+              Vox
             </span>
-            <span className="font-display text-[11px] italic text-brass-500/80">
-              Voice
+            <span className="font-display text-[11px] italic text-brass-500/80 leading-none">
+              len
             </span>
           </div>
           <span className="text-[10px] text-surface-600 font-mono block mt-0.5">

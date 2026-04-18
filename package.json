@@ -1,7 +1,7 @@
 {
   "name": "marco-reid-voice",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Marco Reid Voice - the platform input layer for Marco Reid. Voice-first dictation and commands for legal and accounting professionals across desktop, mobile, and web.",
   "type": "module",
   "scripts": {
