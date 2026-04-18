@@ -297,3 +297,9 @@ pub fn set_grammar_config(config: GrammarConfig) -> Result<(), String> {
     *get_config_store().write() = config;
     Ok(())
 }
+
+/// Non-command variant for in-process setters (e.g. applying persisted
+/// settings to the engine at startup and on `update_settings`).
+pub fn set_grammar_config_internal(config: GrammarConfig) {
+    *get_config_store().write() = config;
+}

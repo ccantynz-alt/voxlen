@@ -171,7 +171,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     switch (step) {
       case 0: return true;
       case 1: return !!selectedDeviceId;
-      case 2: return !!settings.sttApiKey;
+      case 2: return !!settings.sttApiKey && apiKeyValid === true;
       case 3: return true;
       default: return true;
     }
