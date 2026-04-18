@@ -58,7 +58,7 @@ function Navbar() {
           <div className="w-8 h-8 rounded-lg bg-marcoreid-600 flex items-center justify-center">
             <Mic className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">Marco Reid Voice</span>
+          <span className="text-lg font-bold tracking-tight">Voxlen</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
           <a href="#features" className="hover:text-white transition-colors">Features</a>
@@ -184,7 +184,7 @@ function Hero() {
                 <div className="w-5 h-5 rounded bg-marcoreid-600 flex items-center justify-center">
                   <Mic className="h-3 w-3 text-white" />
                 </div>
-                <span className="text-xs font-semibold text-zinc-300">Marco Reid Voice</span>
+                <span className="text-xs font-semibold text-zinc-300">Voxlen</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-medium">
                   Listening
                 </span>
@@ -273,7 +273,7 @@ function Features() {
     {
       icon: Shield,
       title: "Never Interrupted",
-      description: "Unlike Windows+H or Apple Dictation, Marco Reid Voice NEVER stops when you switch apps. Runs as a background service with its own audio pipeline.",
+      description: "Unlike Windows+H or Apple Dictation, Voxlen NEVER stops when you switch apps. Runs as a background service with its own audio pipeline.",
       color: "text-green-400",
       bg: "bg-green-400/10",
     },
@@ -433,7 +433,7 @@ function Comparison() {
     { name: "Grammarly", price: "$12/mo", realtime: false, neverInterrupts: false, grammar: true, anyApp: false, offline: false, extMic: false },
     { name: "Dragon", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false },
-    { name: "Marco Reid Voice", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
+    { name: "Voxlen", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
   ];
 
   return (
@@ -450,7 +450,7 @@ function Comparison() {
             Comparison
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            See why Marco Reid Voice wins.
+            See why Voxlen wins.
           </motion.h2>
         </motion.div>
 
@@ -677,11 +677,11 @@ function FAQ() {
   const faqs = [
     {
       q: "How is this different from Windows+H or Apple Dictation?",
-      a: "Those stop working the moment you switch apps or click somewhere else. Marco Reid Voice runs as a background service — it NEVER gets interrupted. Plus, it has AI grammar correction, works with your external mic, and supports 20+ languages.",
+      a: "Those stop working the moment you switch apps or click somewhere else. Voxlen runs as a background service — it NEVER gets interrupted. Plus, it has AI grammar correction, works with your external mic, and supports 20+ languages.",
     },
     {
       q: "Why is this better than Grammarly?",
-      a: "Grammarly is a typing-focused tool that killed their voice features — and their grammar engine is weaker than the frontier AI models we use. Marco Reid Voice is built on Claude, the most capable language AI available, and combines real-time dictation with grammar correction in a single product. It is more advanced and more accurate, and it works everywhere you type — not just inside Grammarly's browser extension.",
+      a: "Grammarly is a typing-focused tool that killed their voice features — and their grammar engine is weaker than the frontier AI models we use. Voxlen is built on Claude, the most capable language AI available, and combines real-time dictation with grammar correction in a single product. It is more advanced and more accurate, and it works everywhere you type — not just inside Grammarly's browser extension.",
     },
     {
       q: "Do I need to set up API keys or separate accounts?",
@@ -693,11 +693,11 @@ function FAQ() {
     },
     {
       q: "Do I need an internet connection?",
-      a: "Not always. Marco Reid Voice includes a fully offline mode that runs entirely on your device — ideal for flights or sensitive work. Our cloud models give higher accuracy and lower latency, but you always have the choice.",
+      a: "Not always. Voxlen includes a fully offline mode that runs entirely on your device — ideal for flights or sensitive work. Our cloud models give higher accuracy and lower latency, but you always have the choice.",
     },
     {
       q: "Does it work with my external USB microphone?",
-      a: "Yes. Marco Reid Voice auto-detects external mics (Razer, Blue Yeti, Rode, HyperX, etc.) and prioritizes them over your built-in laptop mic. You will get a warning if you are accidentally using the internal mic.",
+      a: "Yes. Voxlen auto-detects external mics (Razer, Blue Yeti, Rode, HyperX, etc.) and prioritizes them over your built-in laptop mic. You will get a warning if you are accidentally using the internal mic.",
     },
     {
       q: "Is my audio private? I handle privileged information.",
@@ -760,7 +760,7 @@ function FAQ() {
 }
 
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
-const APP_VERSION = "1.0.7";
+const APP_VERSION = "1.0.8";
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
@@ -787,28 +787,28 @@ const DOWNLOADS: Record<
   "mac-arm": {
     label: "Download for macOS",
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
-    file: `Marco.Reid.Voice_${APP_VERSION}_aarch64.dmg`,
+    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   "mac-intel": {
     label: "Download for macOS",
     subLabel: "Intel (x86_64) — build on request",
-    file: `Marco.Reid.Voice_${APP_VERSION}_aarch64.dmg`,
+    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   windows: {
     label: "Download for Windows",
     subLabel: "Windows 10/11 (x64)",
-    file: `Marco.Reid.Voice_${APP_VERSION}_x64_en-US.msi`,
+    file: `Voxlen_${APP_VERSION}_x64_en-US.msi`,
     size: "~5 MB",
     icon: "monitor",
   },
   linux: {
     label: "Download for Linux",
     subLabel: "AppImage (x86_64)",
-    file: `Marco.Reid.Voice_${APP_VERSION}_amd64.AppImage`,
+    file: `Voxlen_${APP_VERSION}_amd64.AppImage`,
     size: "~80 MB",
     icon: "monitor",
   },
