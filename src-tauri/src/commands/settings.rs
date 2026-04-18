@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_store::StoreExt;
+
+use crate::stt::{SttConfig, SttEngineType, SttState};
+use crate::commands::grammar::{
+    set_grammar_config_internal, GrammarConfig, GrammarProvider, WritingStyle,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -117,18 +122,91 @@ pub fn get_settings() -> Result<AppSettings, String> {
 }
 
 #[tauri::command]
-pub fn update_settings(app: AppHandle, settings: AppSettings) -> Result<(), String> {
+pub fn update_settings(
+    app: AppHandle,
+    stt_state: State<'_, SttState>,
+    settings: AppSettings,
+) -> Result<(), String> {
     *get_settings_store().write() = settings.clone();
     persist_settings(&app, &settings)?;
+    apply_settings_to_engines(&stt_state.0, &settings);
     Ok(())
 }
 
 #[tauri::command]
-pub fn reset_settings(app: AppHandle) -> Result<AppSettings, String> {
+pub fn reset_settings(
+    app: AppHandle,
+    stt_state: State<'_, SttState>,
+) -> Result<AppSettings, String> {
     let defaults = AppSettings::default();
     *get_settings_store().write() = defaults.clone();
     persist_settings(&app, &defaults)?;
+    apply_settings_to_engines(&stt_state.0, &defaults);
     Ok(defaults)
+}
+
+/// Callable from `setup()` — looks up managed state and pushes the currently
+/// loaded settings into the STT + grammar engines. No-op if state is missing.
+pub fn apply_loaded_settings_to_engines(app: &AppHandle) {
+    let settings = get_settings_store().read().clone();
+    if let Some(stt_state) = app.try_state::<SttState>() {
+        apply_settings_to_engines(&stt_state.0, &settings);
+    }
+}
+
+/// Map an `AppSettings` snapshot onto the in-process STT + grammar engine
+/// config stores. Without this, API keys stored by the frontend never reach
+/// the transcription / correction paths and every dictation fails with
+/// "API key not configured".
+fn apply_settings_to_engines(
+    stt_engine_arc: &std::sync::Arc<parking_lot::RwLock<crate::stt::SttEngine>>,
+    s: &AppSettings,
+) {
+    let stt_engine_type = match s.stt_engine.as_str() {
+        "deepgram" | "deepgram_cloud" => SttEngineType::DeepgramCloud,
+        "whisper_local" => SttEngineType::WhisperLocal,
+        _ => SttEngineType::WhisperCloud,
+    };
+
+    let model = match stt_engine_type {
+        SttEngineType::DeepgramCloud => "nova-2".to_string(),
+        SttEngineType::WhisperCloud => "whisper-1".to_string(),
+        SttEngineType::WhisperLocal => "base".to_string(),
+    };
+
+    let stt_config = SttConfig {
+        engine: stt_engine_type,
+        language: s.stt_language.clone(),
+        auto_detect_language: s.auto_detect_language,
+        api_key: s.stt_api_key.clone().filter(|k| !k.is_empty()),
+        model,
+        punctuate: s.auto_punctuate,
+        smart_format: s.smart_format,
+        profanity_filter: false,
+        custom_vocabulary: s.custom_vocabulary.clone(),
+    };
+    stt_engine_arc.read().set_config(stt_config);
+
+    let grammar_provider = match s.grammar_provider.as_str() {
+        "openai" => GrammarProvider::OpenAI,
+        _ => GrammarProvider::Claude,
+    };
+    let writing_style = match s.writing_style.as_str() {
+        "casual" => WritingStyle::Casual,
+        "academic" => WritingStyle::Academic,
+        "creative" => WritingStyle::Creative,
+        "technical" => WritingStyle::Technical,
+        _ => WritingStyle::Professional,
+    };
+    let grammar_config = GrammarConfig {
+        enabled: s.grammar_enabled,
+        api_key: s.grammar_api_key.clone().filter(|k| !k.is_empty()),
+        provider: grammar_provider,
+        style: writing_style,
+        auto_correct: s.auto_correct,
+        preserve_tone: true,
+    };
+    set_grammar_config_internal(grammar_config);
 }
 
 /// Load settings from disk into the in-memory cache. Called once during app

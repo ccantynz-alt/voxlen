@@ -21,6 +21,7 @@
     "store:default",
     "shell:default",
     "dialog:default",
-    "fs:default"
+    "fs:default",
+    "autostart:default"
   ]
 }
