@@ -1,4 +1,4 @@
-name: Build & Release Marco Reid Voice
+name: Build & Release Voxlen
 
 on:
   push:
