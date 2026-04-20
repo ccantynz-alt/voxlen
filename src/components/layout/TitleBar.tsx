@@ -58,12 +58,12 @@ export function TitleBar() {
         <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-inset-hairline">
           <Mic className="h-3.5 w-3.5 text-brass-300" strokeWidth={2} />
         </div>
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-baseline leading-none">
           <span className="font-display text-[15px] font-medium text-surface-900 tracking-tight-display leading-none">
-            Marco Reid
+            Vox
           </span>
           <span className="font-display text-[15px] italic text-brass-400 leading-none">
-            Voice
+            len
           </span>
         </div>
         <div className="h-4 w-px bg-surface-300/70 mx-1" />

@@ -612,7 +612,7 @@ function ShortcutSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Global Shortcuts"
-        description="These shortcuts work from any application, even when Marco Reid Voice is minimized."
+        description="These shortcuts work from any application, even when Voxlen is minimized."
       />
 
       <SettingRow>
@@ -762,7 +762,7 @@ function AdvancedSettings() {
             {
               value: "buffer",
               label: "Buffer Only",
-              description: "Text stays in Marco Reid Voice - copy manually",
+              description: "Text stays in Voxlen - copy manually",
             },
           ]}
         />
@@ -771,7 +771,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Start Minimized"
-          description="Launch Marco Reid Voice minimized to the system tray"
+          description="Launch Voxlen minimized to the system tray"
           checked={settings.startMinimized}
           onChange={(v) => settings.updateSetting("startMinimized", v)}
         />
@@ -780,7 +780,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Minimize to Tray"
-          description="Keep Marco Reid Voice running in the system tray when closed"
+          description="Keep Voxlen running in the system tray when closed"
           checked={settings.minimizeToTray}
           onChange={(v) => settings.updateSetting("minimizeToTray", v)}
         />
@@ -789,7 +789,7 @@ function AdvancedSettings() {
       <SettingRow>
         <Switch
           label="Launch at Login"
-          description="Automatically start Marco Reid Voice when you log in"
+          description="Automatically start Voxlen when you log in"
           checked={settings.launchAtLogin}
           onChange={async (v) => {
             settings.updateSetting("launchAtLogin", v);
@@ -827,7 +827,7 @@ function PrivacySettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Privacy"
-        description="Your data, your control. Marco Reid Voice can work fully offline with local models."
+        description="Your data, your control. Voxlen can work fully offline with local models."
       />
 
       <SettingRow>
@@ -842,7 +842,7 @@ function PrivacySettings() {
       <SettingRow>
         <Switch
           label="Usage Analytics"
-          description="Help us improve Marco Reid Voice with anonymous usage data"
+          description="Help us improve Voxlen with anonymous usage data"
           checked={settings.telemetryEnabled}
           onChange={(v) => settings.updateSetting("telemetryEnabled", v)}
         />

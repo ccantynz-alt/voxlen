@@ -1,4 +1,4 @@
-# Marco Reid Voice
+# Voxlen
 
 AI-powered voice dictation and grammar correction for macOS, Windows, and Linux, with a companion iOS keyboard.
 
@@ -6,9 +6,9 @@ AI-powered voice dictation and grammar correction for macOS, Windows, and Linux,
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)](#installation)
 [![iOS Keyboard](https://img.shields.io/badge/iOS-Keyboard%20Extension-black.svg)](./ios)
 
-## What is Marco Reid Voice
+## What is Voxlen
 
-Marco Reid Voice is a desktop voice dictation tool that transcribes your speech in real time and injects the result into whatever application you are using. It pairs a low-latency streaming speech-to-text engine with an optional AI grammar pass, so the text that lands in your editor, chat client, or email is already cleaned up. An iOS keyboard extension brings the same grammar assistance to mobile typing.
+Voxlen is a desktop voice dictation tool that transcribes your speech in real time and injects the result into whatever application you are using. It pairs a low-latency streaming speech-to-text engine with an optional AI grammar pass, so the text that lands in your editor, chat client, or email is already cleaned up. An iOS keyboard extension brings the same grammar assistance to mobile typing.
 
 ## Features
 
@@ -70,7 +70,7 @@ npm run tauri build        # produce a release bundle for the host platform
 
 ## Configuration
 
-Marco Reid Voice needs API keys for its cloud providers. Enter them in **Settings** (or during the first-run Onboarding Wizard). Keys are persisted locally via `tauri-plugin-store`.
+Voxlen needs API keys for its cloud providers. Enter them in **Settings** (or during the first-run Onboarding Wizard). Keys are persisted locally via `tauri-plugin-store`.
 
 | Provider   | Used for              | Where to get a key                                   |
 | ---------- | --------------------- | ---------------------------------------------------- |
@@ -103,7 +103,7 @@ Contributions are welcome. Please read [docs/CONTRIBUTING.md](./docs/CONTRIBUTIN
 
 ## Licence and legal
 
-Marco Reid Voice is a proprietary commercial product. Use of the Software
+Voxlen is a proprietary commercial product. Use of the Software
 is governed by the [End User Licence Agreement](./legal/EULA.md), the
 [Terms of Service](./legal/TERMS.md), the
 [Privacy Policy](./legal/PRIVACY_POLICY.md), the
@@ -111,7 +111,7 @@ is governed by the [End User Licence Agreement](./legal/EULA.md), the
 customers, the [Data Processing Addendum](./legal/DPA.md). The index of all
 legal documents is in [`legal/README.md`](./legal/README.md).
 
-Open-source components that Marco Reid Voice incorporates are listed,
+Open-source components that Voxlen incorporates are listed,
 together with their licences, in
 [`legal/THIRD_PARTY_NOTICES.md`](./legal/THIRD_PARTY_NOTICES.md). Those
 components remain subject to their original licences.

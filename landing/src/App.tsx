@@ -450,7 +450,7 @@ function Comparison() {
             Comparison
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            See why Marco Reid Voice wins.
+            See why we win.
           </motion.h2>
         </motion.div>
 
@@ -759,10 +759,38 @@ function FAQ() {
   );
 }
 
-const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
+const GH_OWNER = "ccantynz-alt";
+const GH_REPO = "voxlen";
+const GH_RELEASES = `https://github.com/${GH_OWNER}/${GH_REPO}/releases/latest/download`;
+const GH_API_LATEST = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases/latest`;
 const APP_VERSION = "1.0.8";
 
 type Platform = "mac-arm" | "windows" | "linux" | "unknown";
+
+type ReleaseAsset = { name: string; browser_download_url: string };
+
+function pickAssetFor(platform: Exclude<Platform, "unknown">, assets: ReleaseAsset[]): ReleaseAsset | null {
+  const lowered = assets.map((a) => ({ ...a, lower: a.name.toLowerCase() }));
+  const find = (pred: (a: { name: string; lower: string; browser_download_url: string }) => boolean) =>
+    lowered.find(pred) ?? null;
+  switch (platform) {
+    case "mac-arm":
+      return find((a) => a.lower.endsWith(".dmg") && (a.lower.includes("aarch64") || a.lower.includes("arm64")))
+        ?? find((a) => a.lower.endsWith(".dmg"));
+    case "mac-intel":
+      return find((a) => a.lower.endsWith(".dmg") && (a.lower.includes("x64") || a.lower.includes("x86_64") || a.lower.includes("intel")))
+        ?? find((a) => a.lower.endsWith(".dmg"));
+    case "windows":
+      return find((a) => a.lower.endsWith(".msi") && (a.lower.includes("x64") || a.lower.includes("x86_64")))
+        ?? find((a) => a.lower.endsWith(".msi"))
+        ?? find((a) => a.lower.endsWith(".exe") && a.lower.includes("setup"))
+        ?? find((a) => a.lower.endsWith(".exe"));
+    case "linux":
+      return find((a) => a.lower.endsWith(".appimage") && (a.lower.includes("amd64") || a.lower.includes("x86_64")))
+        ?? find((a) => a.lower.endsWith(".appimage"))
+        ?? find((a) => a.lower.endsWith(".deb"));
+  }
+}
 
 function detectPlatform(): Platform {
   if (typeof window === "undefined") return "unknown";
@@ -783,32 +811,51 @@ const DOWNLOADS: Record<
   "mac-arm": {
     label: "Download for macOS",
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
-    file: `MarcoReidVoice_${APP_VERSION}_aarch64.dmg`,
+    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   windows: {
     label: "Download for Windows",
     subLabel: "Windows 10/11 (x64)",
-    file: `MarcoReidVoice_${APP_VERSION}_x64_en-US.msi`,
-    size: "~22 MB",
+    file: `Voxlen_${APP_VERSION}_x64_en-US.msi`,
+    size: "~5 MB",
     icon: "monitor",
   },
   linux: {
     label: "Download for Linux",
     subLabel: "AppImage (x86_64)",
-    file: `marcoreidvoice_${APP_VERSION}_amd64.AppImage`,
-    size: "~24 MB",
+    file: `Voxlen_${APP_VERSION}_amd64.AppImage`,
+    size: "~80 MB",
     icon: "monitor",
   },
 };
 
 function CTA() {
   const [platform, setPlatform] = useState<Platform>("unknown");
+  const [liveAssets, setLiveAssets] = useState<ReleaseAsset[] | null>(null);
 
   useEffect(() => {
     setPlatform(detectPlatform());
+    const ac = new AbortController();
+    fetch(GH_API_LATEST, { signal: ac.signal, headers: { Accept: "application/vnd.github+json" } })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`GitHub API ${r.status}`))))
+      .then((json: { assets?: ReleaseAsset[] }) => {
+        if (Array.isArray(json.assets)) setLiveAssets(json.assets);
+      })
+      .catch(() => {
+        // Network blocked or rate-limited: fall back to hardcoded filenames below.
+      });
+    return () => ac.abort();
   }, []);
+
+  const hrefFor = (key: Exclude<Platform, "unknown">): string => {
+    if (liveAssets) {
+      const picked = pickAssetFor(key, liveAssets);
+      if (picked) return picked.browser_download_url;
+    }
+    return `${GH_RELEASES}/${encodeURIComponent(DOWNLOADS[key].file)}`;
+  };
 
   const primary = platform !== "unknown" ? DOWNLOADS[platform] : null;
   const PrimaryIcon = primary?.icon === "apple" ? Apple : Monitor;
@@ -838,7 +885,7 @@ function CTA() {
           {primary && (
             <motion.div variants={fadeUp} className="flex justify-center mb-4">
               <a
-                href={`${GH_RELEASES}/${primary.file}`}
+                href={hrefFor(platform as Exclude<Platform, "unknown">)}
                 className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
               >
                 <PrimaryIcon className="h-7 w-7" />
@@ -874,7 +921,7 @@ function CTA() {
                 <motion.a
                   key={key}
                   variants={fadeUp}
-                  href={`${GH_RELEASES}/${d.file}`}
+                  href={hrefFor(key)}
                   className={`group relative p-5 rounded-xl border transition-all ${
                     isDetected
                       ? "bg-marcoreid-600/5 border-marcoreid-600/40 hover:border-marcoreid-600/60"

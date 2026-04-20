@@ -140,7 +140,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: Marco Reid Voice v${{ steps.version.outputs.version }}
           body: |
-            Marco Reid Voice v${{ steps.version.outputs.version }} — voice input layer for the Marco Reid platform.
+            Marco Reid Voice v${{ steps.version.outputs.version }} — AI-powered voice dictation for professionals.
 
             Download the installer for your OS below.
 

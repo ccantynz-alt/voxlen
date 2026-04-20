@@ -171,7 +171,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     switch (step) {
       case 0: return true;
       case 1: return !!selectedDeviceId;
-      case 2: return !!settings.sttApiKey;
+      case 2: return !!settings.sttApiKey && apiKeyValid === true;
       case 3: return true;
       default: return true;
     }
@@ -184,12 +184,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
           <Mic className="h-4 w-4 text-brass-300" strokeWidth={2} />
         </div>
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-baseline leading-none">
           <span className="font-display text-[17px] font-medium text-surface-900 tracking-tight-display leading-none">
-            Marco Reid
+            Vox
           </span>
           <span className="font-display text-[17px] italic text-brass-400 leading-none">
-            Voice
+            len
           </span>
         </div>
         <div className="divider-brass w-20" />
@@ -481,7 +481,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             </div>
 
             <p className="text-[11px] text-surface-600 leading-snug">
-              These shortcuts work from any app — even when Marco Reid Voice is minimised.
+              These shortcuts work from any app — even when Voxlen is minimised.
             </p>
 
             {/* Legal acceptance — required before first use. */}
@@ -489,7 +489,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <div>
                 <p className="label-caps mb-2">Before you begin</p>
                 <p className="text-[12px] text-surface-800 leading-relaxed">
-                  Marco Reid Voice is a professional tool. Please read and accept the
+                  Voxlen is a professional tool. Please read and accept the
                   terms below. You can review them again any time from Settings.
                 </p>
               </div>
