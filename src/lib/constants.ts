@@ -1,5 +1,5 @@
-export const APP_NAME = "Voxlen";
-export const APP_VERSION = "1.0.8";
+export const APP_NAME = "Marco Reid Voice";
+export const APP_VERSION = "1.0.9";
 export const APP_DESCRIPTION = "AI-powered voice dictation for professionals";
 
 export const SUPPORTED_LANGUAGES = [
