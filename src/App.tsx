@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ShortcutsCheatsheet } from "@/components/layout/ShortcutsCheatsheet";
 import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
@@ -292,6 +293,7 @@ export default function App() {
         />
         <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
       </div>
+      <ShortcutsCheatsheet />
     </div>
   );
 }
