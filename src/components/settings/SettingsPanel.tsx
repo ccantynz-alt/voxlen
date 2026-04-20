@@ -535,6 +535,86 @@ function SttSettings() {
           />
         </SettingRow>
       )}
+
+      <SettingRow>
+        <CustomVocabularyEditor />
+      </SettingRow>
+    </div>
+  );
+}
+
+function CustomVocabularyEditor() {
+  const vocabulary = useSettingsStore((s) => s.customVocabulary);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const [draft, setDraft] = useState("");
+
+  const add = () => {
+    const term = draft.trim();
+    if (!term) return;
+    if (vocabulary.includes(term)) {
+      setDraft("");
+      return;
+    }
+    updateSetting("customVocabulary", [...vocabulary, term]);
+    setDraft("");
+  };
+
+  const remove = (term: string) => {
+    updateSetting(
+      "customVocabulary",
+      vocabulary.filter((t) => t !== term)
+    );
+  };
+
+  return (
+    <div>
+      <p className="text-sm font-medium text-surface-900 tracking-tight">
+        Custom Vocabulary
+      </p>
+      <p className="text-[11px] text-surface-600 mt-0.5 leading-snug mb-3">
+        Boost recognition of names, legal terms, medication names, and
+        industry-specific jargon. Sent with every Deepgram request; no
+        document content ever leaves your device.
+      </p>
+
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          placeholder='e.g. "Alecrae", "Estoppel", "NetSuite"'
+          className="flex-1 rounded-md border border-surface-300/70 bg-surface-50 px-3 py-1.5 text-sm text-surface-900 shadow-inset-hairline focus:border-brass-400 focus:outline-none focus:ring-1 focus:ring-brass-400/40"
+        />
+        <Button size="sm" variant="secondary" onClick={add} disabled={!draft.trim()}>
+          Add
+        </Button>
+      </div>
+
+      {vocabulary.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {vocabulary.map((term) => (
+            <span
+              key={term}
+              className="group inline-flex items-center gap-1.5 rounded-full bg-surface-100/80 border border-surface-300/70 px-2.5 py-0.5 text-[11px] font-mono text-surface-800 shadow-inset-hairline"
+            >
+              {term}
+              <button
+                onClick={() => remove(term)}
+                className="text-surface-500 hover:text-red-500 transition-colors"
+                aria-label={`Remove ${term}`}
+              >
+                &times;
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
