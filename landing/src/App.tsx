@@ -666,7 +666,7 @@ function Pricing() {
           Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
           All AI costs (speech-to-text and grammar correction) are included — your subscription
           covers everything. Audio still streams directly from your device to AI providers and is
-          never routed through or stored by Voxlen.
+          never routed through or stored by Marco Reid.
         </p>
       </div>
     </section>
@@ -701,7 +701,7 @@ function FAQ() {
     },
     {
       q: "Is my audio private? I handle privileged information.",
-      a: "Yes. Even though we provide the AI infrastructure as part of your subscription, your audio and transcripts are NEVER routed through or stored on Voxlen-operated servers. Audio streams directly from your device to the AI provider using zero-retention endpoints and is discarded immediately after transcription. On the Professional plan, we enable the strictest zero-retention guarantees from every AI provider. Offline mode means nothing leaves your device at all. This is a hard architectural rule we will never compromise.",
+      a: "Yes. Even though we provide the AI infrastructure as part of your subscription, your audio and transcripts are NEVER routed through or stored on Marco Reid Voice-operated servers. Audio streams directly from your device to the AI provider using zero-retention endpoints and is discarded immediately after transcription. On the Professional plan, we enable the strictest zero-retention guarantees from every AI provider. Offline mode means nothing leaves your device at all. This is a hard architectural rule we will never compromise.",
     },
     {
       q: "Can my firm get a team plan?",
@@ -760,20 +760,16 @@ function FAQ() {
 }
 
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
-const APP_VERSION = "1.0.5";
+const APP_VERSION = "1.0.8";
 
-type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
+type Platform = "mac-arm" | "windows" | "linux" | "unknown";
 
 function detectPlatform(): Platform {
   if (typeof window === "undefined") return "unknown";
   const ua = window.navigator.userAgent;
   const platform = window.navigator.platform || "";
   if (/Mac/i.test(platform) || /Mac/i.test(ua)) {
-    // Best-effort Apple Silicon detection
-    if (/ARM|Apple/i.test(ua) || (window.navigator as Navigator & { userAgentData?: { architecture?: string } }).userAgentData?.architecture === "arm") {
-      return "mac-arm";
-    }
-    return "mac-arm"; // Default modern Macs to ARM; Intel users can pick manually
+    return "mac-arm";
   }
   if (/Win/i.test(platform) || /Windows/i.test(ua)) return "windows";
   if (/Linux/i.test(platform) || /Linux/i.test(ua)) return "linux";
@@ -789,13 +785,6 @@ const DOWNLOADS: Record<
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
     file: `MarcoReidVoice_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
-    icon: "apple",
-  },
-  "mac-intel": {
-    label: "Download for macOS",
-    subLabel: "Intel (x86_64)",
-    file: `MarcoReidVoice_${APP_VERSION}_x64.dmg`,
-    size: "~19 MB",
     icon: "apple",
   },
   windows: {
@@ -979,17 +968,17 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
             <div className="w-6 h-6 rounded bg-marcoreid-600 flex items-center justify-center">
               <Mic className="h-3 w-3 text-white" />
             </div>
-            <span className="text-sm font-bold">Voxlen</span>
+            <span className="text-sm font-bold">Marco Reid Voice</span>
             <span className="text-xs text-zinc-600">v{APP_VERSION}</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-zinc-500">
             <button onClick={() => onOpenLegal("privacy")} className="hover:text-white transition-colors">Privacy Policy</button>
             <button onClick={() => onOpenLegal("terms")} className="hover:text-white transition-colors">Terms of Service</button>
-            <a href="mailto:support@voxlen.ai" className="hover:text-white transition-colors">Support</a>
+            <a href="mailto:support@marcoreid.com" className="hover:text-white transition-colors">Support</a>
             <a href="https://github.com/ccantynz-alt/voxlen" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
           </div>
           <p className="text-xs text-zinc-600">
-            &copy; {new Date().getFullYear()} Voxlen. All rights reserved.
+            &copy; {new Date().getFullYear()} Marco Reid. All rights reserved.
           </p>
         </div>
       </div>
@@ -1034,8 +1023,8 @@ function PrivacyContent() {
       <p className="text-xs text-zinc-500">Last updated: April 2026</p>
 
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen ("we", "us", "our") is committed to protecting your privacy. This policy explains
-        how our voice dictation application handles your data. We designed Voxlen with
+        Marco Reid Voice ("we", "us", "our") is committed to protecting your privacy. This policy explains
+        how our voice dictation application handles your data. We designed Marco Reid Voice with
         privacy-first principles, especially for professionals handling sensitive information.
       </p>
 
@@ -1044,29 +1033,29 @@ function PrivacyContent() {
         <li><strong className="text-zinc-200">Audio recordings</strong> — We never store, log, or retain your voice audio. Audio is streamed to your chosen STT provider and immediately discarded after transcription.</li>
         <li><strong className="text-zinc-200">Transcribed text</strong> — Your dictated text stays on your device. We never transmit transcription content to our servers.</li>
         <li><strong className="text-zinc-200">Grammar-corrected content</strong> — Text sent for AI grammar correction goes directly to your chosen provider (Anthropic or OpenAI) using your own API key. We have no access to this content.</li>
-        <li><strong className="text-zinc-200">Documents or files</strong> — Voxlen never reads, scans, or accesses any files on your device beyond its own configuration.</li>
+        <li><strong className="text-zinc-200">Documents or files</strong> — Marco Reid Voice never reads, scans, or accesses any files on your device beyond its own configuration.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">2. Data Processing Architecture</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen operates as a <strong>pass-through</strong> application. Even though paid plans
+        Marco Reid Voice operates as a <strong>pass-through</strong> application. Even though paid plans
         include AI infrastructure as part of your subscription, your data flows directly between
-        your device and the underlying AI providers — never through Voxlen-operated servers:
+        your device and the underlying AI providers — never through Marco Reid Voice-operated servers:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
         <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly from your device to the speech-to-text provider on zero-retention endpoints. In offline mode, audio never leaves your device.</li>
         <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent directly from your device to the grammar AI provider (Anthropic or OpenAI) on zero-retention endpoints. We have no intermediary server.</li>
         <li><strong className="text-zinc-200">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
-        <li><strong className="text-zinc-200">API credentials:</strong> Voxlen provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
+        <li><strong className="text-zinc-200">API credentials:</strong> Marco Reid Voice provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">3. Confidentiality for Legal &amp; Accounting Professionals</h2>
       <p className="text-zinc-300 leading-relaxed">
-        We understand that attorneys, accountants, and other professionals using Voxlen may handle
-        privileged or confidential information. Voxlen is designed to respect these obligations:
+        We understand that attorneys, accountants, and other professionals using Marco Reid Voice may handle
+        privileged or confidential information. Marco Reid Voice is designed to respect these obligations:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li>No Voxlen-operated server ever receives your content — this is a hard architectural rule</li>
+        <li>No Marco Reid Voice-operated server ever receives your content — this is a hard architectural rule</li>
         <li>Session history is stored only on your local device and never synced to our infrastructure</li>
         <li>Custom vocabulary and dictionaries remain local to your device</li>
         <li>All AI provider traffic uses zero-retention endpoints</li>
@@ -1076,7 +1065,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">4. Analytics &amp; Telemetry</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen collects minimal, anonymous usage telemetry to improve the product:
+        Marco Reid Voice collects minimal, anonymous usage telemetry to improve the product:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
         <li>Application launch and feature usage counts (no content)</li>
@@ -1089,7 +1078,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">5. Third-Party Services</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen includes AI infrastructure as part of your paid subscription. Your audio and text
+        Marco Reid Voice includes AI infrastructure as part of your paid subscription. Your audio and text
         are processed by our underlying AI providers on zero-retention endpoints:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
@@ -1105,7 +1094,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">6. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-voxlen-400 hover:underline">privacy@voxlen.ai</a>.
+        For privacy inquiries, contact us at <a href="mailto:privacy@marcoreid.com" className="text-marcoreid-400 hover:underline">privacy@marcoreid.com</a>.
       </p>
     </div>
   );
@@ -1118,12 +1107,12 @@ function TermsContent() {
       <p className="text-xs text-zinc-500">Last updated: April 2026</p>
 
       <p className="text-zinc-300 leading-relaxed">
-        By downloading or using Voxlen, you agree to these terms. Please read them carefully.
+        By downloading or using Marco Reid Voice, you agree to these terms. Please read them carefully.
       </p>
 
       <h2 className="text-lg font-bold mt-8">1. Service Description</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen is a desktop and mobile application that provides voice-to-text dictation with
+        Marco Reid Voice is a desktop and mobile application that provides voice-to-text dictation with
         AI-powered grammar correction and universal text injection. The application runs locally
         on your device and connects to third-party APIs using your own credentials.
       </p>
@@ -1132,14 +1121,14 @@ function TermsContent() {
       <p className="text-zinc-300 leading-relaxed">
         Paid plans include all AI infrastructure (speech-to-text and grammar correction) as part of
         your subscription. You do not need to provide your own API keys. Audio streams directly
-        from your device to the relevant AI providers on zero-retention endpoints — Voxlen
-        provisions the credentials, but your content never passes through Voxlen-operated
+        from your device to the relevant AI providers on zero-retention endpoints — Marco Reid Voice
+        provisions the credentials, but your content never passes through Marco Reid Voice-operated
         infrastructure. Advanced users may optionally supply their own API keys.
       </p>
 
       <h2 className="text-lg font-bold mt-8">3. Subscription Plans</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen offers Free, Pro ($29/month), Professional ($79/month for legal and accounting
+        Marco Reid Voice offers Free, Pro ($29/month), Professional ($79/month for legal and accounting
         teams), and Lifetime ($599 one-time) plans. The Free plan includes limited dictation. Paid
         plans unlock all features and include all AI costs. Subscriptions can be cancelled at any
         time. We offer a 14-day free trial for Pro and Professional with no credit card required.
@@ -1156,35 +1145,35 @@ function TermsContent() {
 
       <h2 className="text-lg font-bold mt-8">5. Intellectual Property</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen and its original content, features, and functionality are owned by Voxlen and are
+        Marco Reid Voice and its original content, features, and functionality are owned by Marco Reid Voice and are
         protected by international copyright and trademark laws. Your transcribed content remains
-        entirely yours — we claim no rights over content you create using Voxlen.
+        entirely yours — we claim no rights over content you create using Marco Reid Voice.
       </p>
 
       <h2 className="text-lg font-bold mt-8">6. Disclaimer of Warranties</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen is provided "as is" without warranties of any kind. We do not guarantee that
+        Marco Reid Voice is provided "as is" without warranties of any kind. We do not guarantee that
         transcriptions or grammar corrections will be error-free. You should review all output,
         especially for legal, medical, or financial documents.
       </p>
 
       <h2 className="text-lg font-bold mt-8">7. Limitation of Liability</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen shall not be liable for any indirect, incidental, special, consequential, or punitive
+        Marco Reid Voice shall not be liable for any indirect, incidental, special, consequential, or punitive
         damages resulting from your use of the application, including but not limited to errors in
         transcription or grammar correction.
       </p>
 
       <h2 className="text-lg font-bold mt-8">8. Changes to Terms</h2>
       <p className="text-zinc-300 leading-relaxed">
-        We may update these terms from time to time. Continued use of Voxlen after changes
+        We may update these terms from time to time. Continued use of Marco Reid Voice after changes
         constitutes acceptance of the new terms. We will notify users of significant changes
         through the application.
       </p>
 
       <h2 className="text-lg font-bold mt-8">9. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-voxlen-400 hover:underline">legal@voxlen.ai</a>.
+        For questions about these terms, contact us at <a href="mailto:legal@marcoreid.com" className="text-marcoreid-400 hover:underline">legal@marcoreid.com</a>.
       </p>
     </div>
   );

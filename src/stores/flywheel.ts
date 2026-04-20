@@ -207,7 +207,7 @@ export async function loadFlywheel(): Promise<void> {
     });
   } catch {
     try {
-      const saved = localStorage.getItem("voxlen_flywheel");
+      const saved = localStorage.getItem("marcoreid_flywheel");
       if (saved) {
         const parsed = JSON.parse(saved);
         useFlywheelStore.setState({
@@ -238,7 +238,7 @@ async function persistFlywheel(): Promise<void> {
     await store.save();
   } catch {
     try {
-      localStorage.setItem("voxlen_flywheel", JSON.stringify(data));
+      localStorage.setItem("marcoreid_flywheel", JSON.stringify(data));
     } catch {
       // Ignore
     }

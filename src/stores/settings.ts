@@ -152,7 +152,7 @@ function schedulePersist() {
       await store.save();
     } catch {
       try {
-        localStorage.setItem("voxlen_settings", JSON.stringify(toSave));
+        localStorage.setItem("marcoreid_settings", JSON.stringify(toSave));
       } catch {
         // Ignore
       }
