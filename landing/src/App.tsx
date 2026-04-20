@@ -46,6 +46,63 @@ export default function App() {
       {legalModal && (
         <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
       )}
+      <CookieConsent onOpenLegal={setLegalModal} />
+    </div>
+  );
+}
+
+function CookieConsent({ onOpenLegal }: { onOpenLegal: (type: "privacy") => void }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    try {
+      const accepted = localStorage.getItem("voxlen_cookie_consent");
+      if (!accepted) setVisible(true);
+    } catch {
+      setVisible(true);
+    }
+  }, []);
+
+  const accept = () => {
+    try {
+      localStorage.setItem("voxlen_cookie_consent", new Date().toISOString());
+    } catch {
+      // Storage disabled — just hide banner for the session
+    }
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-live="polite"
+      aria-label="Cookie notice"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-3xl rounded-xl border border-white/10 bg-[#0f0f14]/95 backdrop-blur-xl shadow-2xl"
+    >
+      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <p className="text-sm text-zinc-300 flex-1">
+          We use only essential storage to keep your preferences on this site. No tracking, no ads, no cross-site cookies. See our{" "}
+          <button
+            type="button"
+            onClick={() => onOpenLegal("privacy")}
+            className="text-marcoreid-400 hover:text-marcoreid-300 underline underline-offset-2"
+          >
+            Privacy Policy
+          </button>{" "}
+          for details.
+        </p>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={accept}
+            className="flex-1 sm:flex-none h-9 px-4 rounded-lg bg-marcoreid-600 hover:bg-marcoreid-700 text-white text-sm font-medium transition-colors"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

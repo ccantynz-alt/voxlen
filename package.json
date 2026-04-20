@@ -1,8 +1,8 @@
 {
-  "name": "marco-reid-voice",
+  "name": "voxlen",
   "private": true,
   "version": "1.0.8",
-  "description": "Marco Reid Voice - the platform input layer for Marco Reid. Voice-first dictation and commands for legal and accounting professionals across desktop, mobile, and web.",
+  "description": "Voxlen - AI-powered voice dictation and grammar for legal and accounting professionals, across desktop, iOS, and web.",
   "type": "module",
   "scripts": {
     "dev": "vite",
