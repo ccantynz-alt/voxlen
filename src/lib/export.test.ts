@@ -6,12 +6,16 @@ function seg(
   text: string,
   correctedText?: string,
   ts = new Date("2026-04-20T10:00:00Z"),
-  grammarApplied = false
+  grammarApplied = false,
+  translatedText?: string,
+  translatedToLanguage?: string
 ): TranscriptionSegment {
   return {
     id: "id-" + text,
     text,
     correctedText,
+    translatedText,
+    translatedToLanguage,
     timestamp: ts,
     confidence: 0.92,
     isFinal: true,
@@ -62,5 +66,24 @@ describe("exportTranscript", () => {
     // @ts-expect-error - intentionally wrong
     const out = exportTranscript([seg("ok")], "docx");
     expect(out.filename).toMatch(/\.txt$/);
+  });
+
+  it("md: renders translations as blockquote under the segment", () => {
+    const out = exportTranscript(
+      [seg("hello", undefined, undefined, false, "hola", "es")],
+      "md"
+    );
+    expect(out.content).toContain("hello");
+    expect(out.content).toContain("> hola (es)");
+  });
+
+  it("json: exposes translatedText + translatedToLanguage", () => {
+    const out = exportTranscript(
+      [seg("hi", undefined, undefined, false, "bonjour", "fr")],
+      "json"
+    );
+    const parsed = JSON.parse(out.content);
+    expect(parsed.segments[0].translatedText).toBe("bonjour");
+    expect(parsed.segments[0].translatedToLanguage).toBe("fr");
   });
 });
