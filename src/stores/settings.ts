@@ -13,6 +13,7 @@ export interface AppSettings {
   sttLanguage: string;
   autoDetectLanguage: boolean;
   customVocabulary: string[];
+  speakerDiarization: boolean;
 
   // Grammar
   grammarEnabled: boolean;
@@ -75,6 +76,7 @@ const defaultSettings: AppSettings = {
   sttLanguage: "en",
   autoDetectLanguage: true,
   customVocabulary: [],
+  speakerDiarization: false,
 
   grammarEnabled: true,
   grammarApiKey: "",
@@ -123,6 +125,7 @@ function schedulePersist() {
       sttLanguage: state.sttLanguage,
       autoDetectLanguage: state.autoDetectLanguage,
       customVocabulary: state.customVocabulary,
+      speakerDiarization: state.speakerDiarization,
       grammarEnabled: state.grammarEnabled,
       grammarProvider: state.grammarProvider,
       writingStyle: state.writingStyle,

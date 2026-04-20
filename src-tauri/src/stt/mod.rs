@@ -42,6 +42,10 @@ pub struct SttConfig {
     pub smart_format: bool,
     pub profanity_filter: bool,
     pub custom_vocabulary: Vec<String>,
+    /// When true (Deepgram only), request speaker diarization and
+    /// prefix output with speaker labels like "[Speaker 1]: ...".
+    #[serde(default)]
+    pub speaker_diarization: bool,
 }
 
 impl Default for SttConfig {
@@ -56,6 +60,7 @@ impl Default for SttConfig {
             smart_format: true,
             profanity_filter: false,
             custom_vocabulary: Vec::new(),
+            speaker_diarization: false,
         }
     }
 }

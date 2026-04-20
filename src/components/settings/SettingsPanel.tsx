@@ -59,6 +59,7 @@ function useSettingsPersistence() {
           preserveTone: settings.preserveTone,
           autoPunctuate: settings.autoPunctuate,
           smartFormat: settings.smartFormat,
+          speakerDiarization: settings.speakerDiarization,
           voiceCommandsEnabled: settings.voiceCommandsEnabled,
           injectionMode: settings.injectionMode,
           shortcutToggle: settings.shortcutToggle,
@@ -498,6 +499,15 @@ function SttSettings() {
           description="Intelligently format numbers, dates, addresses, etc."
           checked={settings.smartFormat}
           onChange={(v) => settings.updateSetting("smartFormat", v)}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Switch
+          label="Speaker Diarization"
+          description="Label each speaker separately in multi-person recordings (Deepgram only)."
+          checked={settings.speakerDiarization}
+          onChange={(v) => settings.updateSetting("speakerDiarization", v)}
         />
       </SettingRow>
     </div>
