@@ -11,6 +11,11 @@ export interface TranscriptionSegment {
   id: string;
   text: string;
   correctedText?: string;
+  /** Translation of this segment into `translatedToLanguage`.
+   *  Independent from `correctedText` so grammar polish and translation
+   *  can coexist on the same segment. */
+  translatedText?: string;
+  translatedToLanguage?: string;
   timestamp: Date;
   confidence: number;
   language?: string;

@@ -1209,7 +1209,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">6. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-voxlen-400 hover:underline">privacy@voxlen.ai</a>.
+        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-marcoreid-400 hover:underline">privacy@voxlen.ai</a>.
       </p>
     </div>
   );
@@ -1288,7 +1288,7 @@ function TermsContent() {
 
       <h2 className="text-lg font-bold mt-8">9. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-voxlen-400 hover:underline">legal@voxlen.ai</a>.
+        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-marcoreid-400 hover:underline">legal@voxlen.ai</a>.
       </p>
     </div>
   );

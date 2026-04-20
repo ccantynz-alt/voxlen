@@ -160,7 +160,8 @@ export function useTauriEvents(): void {
                   );
                   if (translation?.translated) {
                     useDictationStore.getState().updateSegment(segmentId, {
-                      correctedText: translation.translated,
+                      translatedText: translation.translated,
+                      translatedToLanguage: settings.translationTargetLanguage,
                     });
                   }
                 } catch {

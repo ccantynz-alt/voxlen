@@ -195,7 +195,7 @@ export function HistoryPanel() {
                   onClick={() =>
                     setExpandedId(expandedId === entry.id ? null : entry.id)
                   }
-                  className="text-xs text-voxlen-500 hover:text-voxlen-400 mt-1 flex items-center gap-1"
+                  className="text-xs text-marcoreid-500 hover:text-marcoreid-400 mt-1 flex items-center gap-1"
                 >
                   {expandedId === entry.id ? (
                     <>
