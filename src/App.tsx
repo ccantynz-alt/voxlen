@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
+import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { AdminPanel } from "@/components/settings/AdminPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
@@ -16,7 +17,7 @@ import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
 
-type View = "dictation" | "grammar" | "history" | "settings" | "admin";
+type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin";
 
 export default function App() {
   // Load saved settings from disk/localStorage on startup
@@ -240,6 +241,12 @@ export default function App() {
         return (
           <ErrorBoundary label="History">
             <HistoryPanel />
+          </ErrorBoundary>
+        );
+      case "flywheel":
+        return (
+          <ErrorBoundary label="Flywheel">
+            <FlywheelPanel />
           </ErrorBoundary>
         );
       case "settings":
