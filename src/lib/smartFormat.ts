@@ -32,37 +32,30 @@ const DIGIT_WORDS: Record<string, string> = {
 
 /** Collapse runs of three or more spoken digits into a numeric string. */
 function collapseDigitRuns(input: string): string {
-  const tokens = input.split(/(\s+)/); // keep whitespace tokens
-  let out = "";
+  const words = input.split(/\s+/);
+  const out: string[] = [];
   let run: string[] = [];
 
   const flush = () => {
     if (run.length >= 3) {
-      out += run.map((t) => DIGIT_WORDS[t.toLowerCase()]).join("");
+      out.push(run.map((t) => DIGIT_WORDS[t.toLowerCase()]).join(""));
     } else {
-      out += run.join(" ");
+      out.push(...run);
     }
     run = [];
   };
 
-  for (const tok of tokens) {
-    const key = tok.trim().replace(/[.,!?;:]+$/g, "").toLowerCase();
+  for (const word of words) {
+    const key = word.replace(/[.,!?;:]+$/g, "").toLowerCase();
     if (key && DIGIT_WORDS[key] !== undefined) {
-      run.push(tok.trim());
-    } else if (tok.trim() === "") {
-      // whitespace separator — keep collecting run
-      continue;
+      run.push(word);
     } else {
-      if (run.length) {
-        flush();
-        out += " ";
-      }
-      out += tok;
+      if (run.length) flush();
+      out.push(word);
     }
   }
   if (run.length) flush();
-  // Tidy double spaces introduced by the join
-  return out.replace(/ +/g, " ");
+  return out.join(" ");
 }
 
 /** Email addresses spoken as "X at Y dot Z". */
@@ -81,9 +74,10 @@ function formatUrls(input: string): string {
   // "w w w" / "www" → "www"
   let out = input.replace(/\bw\s+w\s+w\b/gi, "www");
 
-  // "https colon slash slash" → "https://"
-  out = out.replace(/\bhttps?\s+colon\s+slash\s+slash\b/gi, (m) =>
-    m.split(/\s+/)[0].toLowerCase() + "://"
+  // "https colon slash slash" → "https://" (swallow trailing whitespace so
+  // the next host token sits flush against the scheme).
+  out = out.replace(/\b(https?)\s+colon\s+slash\s+slash\s*/gi, (_m, scheme) =>
+    scheme.toLowerCase() + "://"
   );
 
   // "hostname dot tld" runs — hostname-ish tokens separated by "dot"
