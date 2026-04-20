@@ -128,8 +128,9 @@ export function useTauriEvents(): void {
             const capsLock = useDictationStore.getState().capsLock;
             const finalText = capsLock ? shaped.toUpperCase() : shaped;
 
+            const segmentId = crypto.randomUUID();
             dictation.addSegment({
-              id: crypto.randomUUID(),
+              id: segmentId,
               text: finalText,
               timestamp: new Date(),
               confidence: result.confidence,
@@ -138,6 +139,35 @@ export function useTauriEvents(): void {
               grammarApplied: false,
             });
             dictation.setCurrentTranscript("");
+
+            // Optional real-time translation. We drop this into `correctedText`
+            // so the original transcription is preserved and the UI can still
+            // show both if needed.
+            if (
+              settings.translationEnabled &&
+              settings.translationTargetLanguage &&
+              settings.translationTargetLanguage !== (result.language ?? "")
+            ) {
+              (async () => {
+                try {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  const translation = await invoke<{ translated: string }>(
+                    "translate_text",
+                    {
+                      text: finalText,
+                      targetLanguage: settings.translationTargetLanguage,
+                    }
+                  );
+                  if (translation?.translated) {
+                    useDictationStore.getState().updateSegment(segmentId, {
+                      correctedText: translation.translated,
+                    });
+                  }
+                } catch {
+                  // Non-Tauri or translation failure — leave segment as-is.
+                }
+              })();
+            }
           }
         );
 

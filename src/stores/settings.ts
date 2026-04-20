@@ -28,6 +28,10 @@ export interface AppSettings {
   smartFormat: boolean;
   voiceCommandsEnabled: boolean;
 
+  // Translation
+  translationEnabled: boolean;
+  translationTargetLanguage: string;
+
   // Text injection
   injectionMode: "keyboard" | "clipboard" | "buffer";
 
@@ -89,6 +93,9 @@ const defaultSettings: AppSettings = {
   smartFormat: true,
   voiceCommandsEnabled: true,
 
+  translationEnabled: false,
+  translationTargetLanguage: "en",
+
   injectionMode: "keyboard",
 
   shortcutToggle: "CommandOrControl+Shift+D",
@@ -134,6 +141,8 @@ function schedulePersist() {
       autoPunctuate: state.autoPunctuate,
       smartFormat: state.smartFormat,
       voiceCommandsEnabled: state.voiceCommandsEnabled,
+      translationEnabled: state.translationEnabled,
+      translationTargetLanguage: state.translationTargetLanguage,
       injectionMode: state.injectionMode,
       shortcutToggle: state.shortcutToggle,
       shortcutPushToTalk: state.shortcutPushToTalk,

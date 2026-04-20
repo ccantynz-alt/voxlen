@@ -61,6 +61,8 @@ function useSettingsPersistence() {
           smartFormat: settings.smartFormat,
           speakerDiarization: settings.speakerDiarization,
           voiceCommandsEnabled: settings.voiceCommandsEnabled,
+          translationEnabled: settings.translationEnabled,
+          translationTargetLanguage: settings.translationTargetLanguage,
           injectionMode: settings.injectionMode,
           shortcutToggle: settings.shortcutToggle,
           shortcutPushToTalk: settings.shortcutPushToTalk,
@@ -510,6 +512,29 @@ function SttSettings() {
           onChange={(v) => settings.updateSetting("speakerDiarization", v)}
         />
       </SettingRow>
+
+      <SettingRow>
+        <Switch
+          label="Real-Time Translation"
+          description="Translate transcribed text into the selected language using your grammar API key."
+          checked={settings.translationEnabled}
+          onChange={(v) => settings.updateSetting("translationEnabled", v)}
+        />
+      </SettingRow>
+
+      {settings.translationEnabled && (
+        <SettingRow>
+          <Select
+            label="Translate Into"
+            value={settings.translationTargetLanguage}
+            onChange={(v) => settings.updateSetting("translationTargetLanguage", v)}
+            options={SUPPORTED_LANGUAGES.map((l) => ({
+              value: l.code,
+              label: `${l.flag} ${l.name}`,
+            }))}
+          />
+        </SettingRow>
+      )}
     </div>
   );
 }

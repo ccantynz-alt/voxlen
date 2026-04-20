@@ -7,4 +7,5 @@ pub mod permissions;
 pub mod settings;
 pub mod stt;
 pub mod text_injection;
+pub mod translate;
 pub mod window;
