@@ -3,6 +3,7 @@ import { useAudioStore } from "@/stores/audio";
 import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
+import { applySmartFormat } from "@/lib/smartFormat";
 
 interface TranscriptionEvent {
   text: string;
@@ -121,9 +122,11 @@ export function useTauriEvents(): void {
               }
             }
 
-            // Regular transcription: honor capsLock.
+            // Regular transcription: apply smart formatting (if enabled)
+            // and honour capsLock.
+            const shaped = settings.smartFormat ? applySmartFormat(text) : text;
             const capsLock = useDictationStore.getState().capsLock;
-            const finalText = capsLock ? text.toUpperCase() : text;
+            const finalText = capsLock ? shaped.toUpperCase() : shaped;
 
             dictation.addSegment({
               id: crypto.randomUUID(),
