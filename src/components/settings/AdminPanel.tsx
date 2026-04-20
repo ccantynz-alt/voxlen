@@ -339,7 +339,7 @@ export function AdminPanel() {
           })}
         </div>
         <p className="text-[10.5px] text-surface-600 leading-snug mt-2 italic font-display">
-          Governed by the laws of New Zealand. Questions: legal@marcoreid.com.
+          Governed by the laws of New Zealand. Questions: legal@voxlen.ai.
         </p>
       </div>
 
