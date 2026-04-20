@@ -1,8 +1,26 @@
 {
-  "name": "marco-reid-voice",
+  "name": "voxlen",
   "private": true,
   "version": "1.0.8",
-  "description": "Marco Reid Voice - the platform input layer for Marco Reid. Voice-first dictation and commands for legal and accounting professionals across desktop, mobile, and web.",
+  "description": "Voxlen — AI-powered voice dictation with universal text injection and grammar correction. Built for legal and accounting professionals across desktop, mobile, and web.",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ccantynz-alt/voxlen.git"
+  },
+  "homepage": "https://voxlen.ai",
+  "bugs": {
+    "url": "https://github.com/ccantynz-alt/voxlen/issues"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "browserslist": [
+    ">0.5%",
+    "last 2 versions",
+    "not dead",
+    "not op_mini all"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -2,6 +2,13 @@ import React from "react";
 import { AlertTriangle, RefreshCw, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
+function reportBoundaryError(error: Error, info: React.ErrorInfo): void {
+  // In dev we surface through the browser's error reporter so stack traces and
+  // source maps work. In prod this is a no-op until a real telemetry hook lands.
+  const reporter = (globalThis as unknown as { console?: Console }).console;
+  reporter?.error?.("ErrorBoundary caught an error:", error, info);
+}
+
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   /** Optional label shown in the fallback UI (e.g. "Dictation"). */
@@ -27,8 +34,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     this.setState({ error, info });
-    // eslint-disable-next-line no-console
-    console.error("ErrorBoundary caught an error:", error, info);
+    reportBoundaryError(error, info);
   }
 
   handleReload = (): void => {

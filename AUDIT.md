@@ -323,7 +323,7 @@ The AlecRae.com email integration should be available to ALL users (not just Pro
 |---|-------|----------|--------|
 | 1 | `GH_RELEASES` URL pointed to `ccantynz-alt/voice` instead of `ccantynz-alt/voxlen` — all download links were broken | **CRITICAL** | FIXED |
 | 2 | Changelog link pointed to wrong repo (`/voice/` not `/voxlen/`) | **CRITICAL** | FIXED |
-| 3 | Footer links (Privacy Policy, Terms, Support, GitHub) all dead `href="#"` | **HIGH** | FIXED — Privacy/Terms now open modal overlays, Support links to email, GitHub links to repo |
+| 3 | Footer links (Privacy Policy, Terms, Support, GitHub) all had placeholder anchors | **HIGH** | FIXED — Privacy/Terms now open modal overlays, Support links to email, GitHub links to repo |
 | 4 | Claims "90+ languages" but only 20 languages defined in the app | **HIGH** | FIXED — Changed to "20+ languages" across all mentions |
 | 5 | No favicon — references `/vox-icon.svg` but file didn't exist | **MEDIUM** | FIXED — Created SVG favicon (blue rounded square + mic icon) |
 | 6 | No Privacy Policy or Terms of Service — **critical for lawyer/accountant market** | **CRITICAL** | FIXED — Full Privacy Policy and Terms of Service added as modal pages |
@@ -337,7 +337,7 @@ The AlecRae.com email integration should be available to ALL users (not just Pro
 |---|-------|----------|-------|
 | 10 | No OG image exists at `https://voxlen.ai/og-image.png` | **MEDIUM** | Need to create a 1200x630 OG image for social sharing |
 | 11 | No payment system (Stripe/Paddle) — pricing shown but can't purchase | **HIGH** | Needs Stripe integration or link to app-based purchasing |
-| 12 | App Store link for iOS keyboard is `href="#"` — dead link | **LOW** | App not published yet — "Coming Soon" is acceptable |
+| 12 | App Store link for iOS keyboard used a placeholder anchor — dead link | **LOW** | FIXED — Now points to `/ios-waitlist` with `aria-disabled` until launch |
 | 13 | No cookie consent banner | **MEDIUM** | Needed for GDPR if serving EU users |
 | 14 | `voxlen.ai` domain not confirmed as live | **HIGH** | DNS/hosting must be configured before launch |
 | 15 | No sitemap.xml or robots.txt | **LOW** | Should be added for SEO |

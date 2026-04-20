@@ -2,6 +2,24 @@ import { VoxlenDictation } from "./dictation";
 import { VoxlenGrammar } from "./grammar";
 import type { VoxlenConfig, DictationEvent } from "./types";
 
+type InsertionRef =
+  | { kind: "input"; element: HTMLInputElement | HTMLTextAreaElement; start: number; length: number }
+  | { kind: "node"; node: Text };
+
+const SVG_ATTRS =
+  'width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+  ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+
+const MIC_ICON_SVG =
+  `<svg ${SVG_ATTRS}>` +
+  '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>' +
+  '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>' +
+  '<line x1="12" x2="12" y1="19" y2="22"/>' +
+  "</svg>";
+
+const STOP_ICON_SVG =
+  `<svg ${SVG_ATTRS}><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+
 /**
  * Voxlen Web SDK — main entry point.
  *
@@ -20,7 +38,7 @@ import type { VoxlenConfig, DictationEvent } from "./types";
  *
  * // Or use programmatically
  * voxlen.startDictation();
- * voxlen.on('transcript', (e) => console.log(e.text));
+ * voxlen.on('transcript', (e) => handleTranscript(e.text));
  * ```
  */
 export class VoxlenSDK {
@@ -129,19 +147,17 @@ export class VoxlenSDK {
 
     this.emit("transcript", event);
 
-    // Insert text into the target element
+    let insertion: InsertionRef | null = null;
     if (this.targetElement) {
-      this.insertText(event.text + " ");
+      insertion = this.insertText(event.text + " ");
     }
 
-    // Auto-correct if enabled
     if (this.config.autoCorrect && (this.config.grammarApiKey || this.config.openaiApiKey)) {
       this.grammar
         .correct(event.text)
         .then((result) => {
-          if (result.corrected !== event.text && this.targetElement) {
-            // Replace the last inserted text with corrected version
-            this.replaceLastInsertedText(event.text + " ", result.corrected + " ");
+          if (result.corrected !== event.text && insertion) {
+            this.replaceInsertion(insertion, result.corrected + " ");
           }
           this.emit("grammar-result", result);
         })
@@ -149,57 +165,62 @@ export class VoxlenSDK {
     }
   }
 
-  private insertText(text: string): void {
-    if (!this.targetElement) return;
+  private insertText(text: string): InsertionRef | null {
+    if (!this.targetElement) return null;
 
     if (
       this.targetElement instanceof HTMLTextAreaElement ||
       this.targetElement instanceof HTMLInputElement
     ) {
       const el = this.targetElement;
-      const start = el.selectionStart || el.value.length;
-      const end = el.selectionEnd || el.value.length;
+      const start = el.selectionStart ?? el.value.length;
+      const end = el.selectionEnd ?? el.value.length;
       el.value = el.value.substring(0, start) + text + el.value.substring(end);
       el.selectionStart = el.selectionEnd = start + text.length;
       el.dispatchEvent(new Event("input", { bubbles: true }));
-    } else if (this.targetElement.contentEditable === "true") {
-      // contenteditable (e.g., rich text email composer)
+      return { kind: "input", element: el, start, length: text.length };
+    }
+
+    if (this.targetElement.contentEditable === "true") {
+      const node = document.createTextNode(text);
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         range.deleteContents();
-        range.insertNode(document.createTextNode(text));
+        range.insertNode(node);
         range.collapse(false);
       } else {
-        this.targetElement.textContent += text;
+        this.targetElement.appendChild(node);
       }
       this.targetElement.dispatchEvent(new Event("input", { bubbles: true }));
+      return { kind: "node", node };
     }
+
+    return null;
   }
 
-  private replaceLastInsertedText(original: string, replacement: string): void {
+  private replaceInsertion(insertion: InsertionRef, replacement: string): void {
     if (!this.targetElement) return;
 
-    if (
-      this.targetElement instanceof HTMLTextAreaElement ||
-      this.targetElement instanceof HTMLInputElement
-    ) {
-      const el = this.targetElement;
-      const idx = el.value.lastIndexOf(original);
-      if (idx >= 0) {
-        el.value = el.value.substring(0, idx) + replacement + el.value.substring(idx + original.length);
-        el.selectionStart = el.selectionEnd = idx + replacement.length;
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    } else if (this.targetElement.contentEditable === "true") {
-      const content = this.targetElement.textContent || "";
-      const idx = content.lastIndexOf(original);
-      if (idx >= 0) {
-        this.targetElement.textContent =
-          content.substring(0, idx) + replacement + content.substring(idx + original.length);
-        this.targetElement.dispatchEvent(new Event("input", { bubbles: true }));
-      }
+    if (insertion.kind === "input") {
+      const el = insertion.element;
+      if (el !== this.targetElement || !el.isConnected) return;
+      const { start, length } = insertion;
+      if (start + length > el.value.length) return;
+      const before = el.value.substring(0, start);
+      const after = el.value.substring(start + length);
+      el.value = before + replacement + after;
+      el.selectionStart = el.selectionEnd = start + replacement.length;
+      insertion.length = replacement.length;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
     }
+
+    // contenteditable: the original text node is still a reliable anchor.
+    const { node } = insertion;
+    if (!node.isConnected) return;
+    node.nodeValue = replacement;
+    this.targetElement.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   private getElementText(): string {
@@ -214,9 +235,13 @@ export class VoxlenSDK {
   }
 
   private createMicButton(element: HTMLElement): void {
-    // Ensure parent has relative positioning
+    if (!element.isConnected) {
+      this.emit("error", new Error("Target element is not in the DOM"));
+      return;
+    }
+
     const parent = element.parentElement;
-    if (parent) {
+    if (parent && parent.isConnected) {
       const position = getComputedStyle(parent).position;
       if (position === "static") {
         parent.style.position = "relative";
@@ -226,7 +251,7 @@ export class VoxlenSDK {
     this.micButton = document.createElement("button");
     this.micButton.type = "button";
     this.micButton.setAttribute("aria-label", "Toggle Voxlen voice dictation");
-    this.micButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>`;
+    this.micButton.innerHTML = MIC_ICON_SVG;
 
     // Positioning
     const pos = this.config.buttonPosition || "top-right";
@@ -261,8 +286,7 @@ export class VoxlenSDK {
       }
     });
 
-    // Insert relative to the element
-    if (parent) {
+    if (parent && parent.isConnected) {
       parent.appendChild(this.micButton);
     } else {
       element.appendChild(this.micButton);
@@ -276,12 +300,12 @@ export class VoxlenSDK {
       this.micButton.style.backgroundColor = "#ef4444";
       this.micButton.style.color = "#ffffff";
       this.micButton.style.boxShadow = "0 0 0 3px rgba(239,68,68,0.3)";
-      this.micButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+      this.micButton.innerHTML = STOP_ICON_SVG;
     } else {
       this.micButton.style.backgroundColor = "#ffffff";
       this.micButton.style.color = "#3366ff";
       this.micButton.style.boxShadow = "0 1px 3px rgba(0,0,0,0.12)";
-      this.micButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>`;
+      this.micButton.innerHTML = MIC_ICON_SVG;
     }
   }
 }

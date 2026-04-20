@@ -88,8 +88,10 @@ export default function App() {
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let lastSerialized = "";
+    let cancelled = false;
 
     const unsub = useSettingsStore.subscribe((state) => {
+      if (cancelled) return;
       // Strip transient UI-only fields.
       const {
         isLoaded: _isLoaded,
@@ -108,12 +110,18 @@ export default function App() {
 
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
+        timeoutId = null;
+        if (cancelled) return;
         saveSettings(appSettings);
       }, 300);
     });
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       unsub();
     };
   }, []);

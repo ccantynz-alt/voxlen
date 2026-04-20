@@ -1,20 +1,12 @@
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
-}
-
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
+/**
+ * Ambient declarations for the Web Speech API.
+ *
+ * TypeScript's lib.dom ships the result / alternative / result-list interfaces
+ * but does NOT yet declare the top-level `SpeechRecognition` constructor or
+ * its events. We declare just those here — and the webkit-prefixed alias used
+ * by older Safari builds — while leaving everything that lib.dom already
+ * provides alone to avoid duplicate-declaration errors.
+ */
 
 interface SpeechRecognitionEvent extends Event {
   readonly resultIndex: number;
@@ -38,7 +30,12 @@ interface SpeechRecognition extends EventTarget {
   abort(): void;
 }
 
-declare var SpeechRecognition: {
+declare const SpeechRecognition: {
+  new (): SpeechRecognition;
+  prototype: SpeechRecognition;
+};
+
+declare const webkitSpeechRecognition: {
   new (): SpeechRecognition;
   prototype: SpeechRecognition;
 };
