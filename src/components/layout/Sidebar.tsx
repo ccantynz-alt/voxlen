@@ -4,7 +4,9 @@ import {
   SpellCheck,
   History,
   ShieldCheck,
+  Brain,
 } from "lucide-react";
+import { APP_VERSION } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -30,6 +32,12 @@ const navItems = [
     label: "History",
     icon: History,
     description: "Past sessions",
+  },
+  {
+    id: "flywheel",
+    label: "Flywheel",
+    icon: Brain,
+    description: "Local learning",
   },
 ];
 
@@ -147,7 +155,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
             </span>
           </div>
           <span className="text-[10px] text-surface-600 font-mono block mt-0.5">
-            v1.0.0
+            v{APP_VERSION}
           </span>
         </div>
       </div>

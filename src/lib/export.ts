@@ -63,6 +63,10 @@ function formatAsMarkdown(segments: TranscriptionSegment[]): string {
     const text = s.correctedText || s.text;
     const grammarTag = s.grammarApplied ? " *(AI polished)*" : "";
     lines.push(`**[${time}]** ${text}${grammarTag}`);
+    if (s.translatedText) {
+      const lang = s.translatedToLanguage ? ` (${s.translatedToLanguage})` : "";
+      lines.push(`> ${s.translatedText}${lang}`);
+    }
     lines.push("");
   });
 
@@ -79,6 +83,8 @@ function formatAsJson(segments: TranscriptionSegment[]): string {
         id: s.id,
         text: s.text,
         correctedText: s.correctedText || null,
+        translatedText: s.translatedText || null,
+        translatedToLanguage: s.translatedToLanguage || null,
         timestamp: s.timestamp.toISOString(),
         confidence: s.confidence,
         language: s.language || null,

@@ -46,6 +46,63 @@ export default function App() {
       {legalModal && (
         <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
       )}
+      <CookieConsent onOpenLegal={setLegalModal} />
+    </div>
+  );
+}
+
+function CookieConsent({ onOpenLegal }: { onOpenLegal: (type: "privacy") => void }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    try {
+      const accepted = localStorage.getItem("voxlen_cookie_consent");
+      if (!accepted) setVisible(true);
+    } catch {
+      setVisible(true);
+    }
+  }, []);
+
+  const accept = () => {
+    try {
+      localStorage.setItem("voxlen_cookie_consent", new Date().toISOString());
+    } catch {
+      // Storage disabled — just hide banner for the session
+    }
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-live="polite"
+      aria-label="Cookie notice"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-3xl rounded-xl border border-white/10 bg-[#0f0f14]/95 backdrop-blur-xl shadow-2xl"
+    >
+      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <p className="text-sm text-zinc-300 flex-1">
+          We use only essential storage to keep your preferences on this site. No tracking, no ads, no cross-site cookies. See our{" "}
+          <button
+            type="button"
+            onClick={() => onOpenLegal("privacy")}
+            className="text-marcoreid-400 hover:text-marcoreid-300 underline underline-offset-2"
+          >
+            Privacy Policy
+          </button>{" "}
+          for details.
+        </p>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={accept}
+            className="flex-1 sm:flex-none h-9 px-4 rounded-lg bg-marcoreid-600 hover:bg-marcoreid-700 text-white text-sm font-medium transition-colors"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -761,9 +818,9 @@ function FAQ() {
 
 const GH_OWNER = "ccantynz-alt";
 const GH_REPO = "voxlen";
-const GH_RELEASES = `https://github.com/${GH_OWNER}/${GH_REPO}/releases/latest/download`;
+const GH_RELEASES_PAGE = `https://github.com/${GH_OWNER}/${GH_REPO}/releases/latest`;
 const GH_API_LATEST = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases/latest`;
-const APP_VERSION = "1.0.8";
+const APP_VERSION = "1.0.9";
 
 type Platform = "mac-arm" | "windows" | "linux" | "unknown";
 
@@ -806,26 +863,29 @@ function detectPlatform(): Platform {
 
 const DOWNLOADS: Record<
   Exclude<Platform, "unknown">,
-  { label: string; subLabel: string; file: string; size: string; icon: "apple" | "monitor" }
+  { label: string; subLabel: string; size: string; icon: "apple" | "monitor" }
 > = {
   "mac-arm": {
     label: "Download for macOS",
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
-    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
+    size: "~18 MB",
+    icon: "apple",
+  },
+  "mac-intel": {
+    label: "Download for macOS",
+    subLabel: "Intel (x86_64) — build on request",
     size: "~18 MB",
     icon: "apple",
   },
   windows: {
     label: "Download for Windows",
     subLabel: "Windows 10/11 (x64)",
-    file: `Voxlen_${APP_VERSION}_x64_en-US.msi`,
     size: "~5 MB",
     icon: "monitor",
   },
   linux: {
     label: "Download for Linux",
     subLabel: "AppImage (x86_64)",
-    file: `Voxlen_${APP_VERSION}_amd64.AppImage`,
     size: "~80 MB",
     icon: "monitor",
   },
@@ -849,12 +909,16 @@ function CTA() {
     return () => ac.abort();
   }, []);
 
+  // Never return a guessed filename URL. If we have the live asset list and
+  // a match for this platform, link direct; otherwise fall back to the
+  // releases page so the user always lands on *something* that exists.
+  // This is the difference between a red 404 and a working page.
   const hrefFor = (key: Exclude<Platform, "unknown">): string => {
     if (liveAssets) {
       const picked = pickAssetFor(key, liveAssets);
       if (picked) return picked.browser_download_url;
     }
-    return `${GH_RELEASES}/${encodeURIComponent(DOWNLOADS[key].file)}`;
+    return GH_RELEASES_PAGE;
   };
 
   const primary = platform !== "unknown" ? DOWNLOADS[platform] : null;
@@ -1141,7 +1205,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">6. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For privacy inquiries, contact us at <a href="mailto:privacy@marcoreid.com" className="text-marcoreid-400 hover:underline">privacy@marcoreid.com</a>.
+        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-marcoreid-400 hover:underline">privacy@voxlen.ai</a>.
       </p>
     </div>
   );
@@ -1220,7 +1284,7 @@ function TermsContent() {
 
       <h2 className="text-lg font-bold mt-8">9. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For questions about these terms, contact us at <a href="mailto:legal@marcoreid.com" className="text-marcoreid-400 hover:underline">legal@marcoreid.com</a>.
+        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-marcoreid-400 hover:underline">legal@voxlen.ai</a>.
       </p>
     </div>
   );

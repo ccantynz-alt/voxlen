@@ -161,6 +161,8 @@ pub fn run() {
             commands::grammar::correct_grammar,
             commands::grammar::get_grammar_config,
             commands::grammar::set_grammar_config,
+            // Translation
+            commands::translate::translate_text,
             // Text injection commands
             commands::text_injection::inject_text,
             commands::text_injection::get_injection_mode,

@@ -13,6 +13,7 @@ export interface AppSettings {
   sttLanguage: string;
   autoDetectLanguage: boolean;
   customVocabulary: string[];
+  speakerDiarization: boolean;
 
   // Grammar
   grammarEnabled: boolean;
@@ -26,6 +27,10 @@ export interface AppSettings {
   autoPunctuate: boolean;
   smartFormat: boolean;
   voiceCommandsEnabled: boolean;
+
+  // Translation
+  translationEnabled: boolean;
+  translationTargetLanguage: string;
 
   // Text injection
   injectionMode: "keyboard" | "clipboard" | "buffer";
@@ -75,6 +80,7 @@ const defaultSettings: AppSettings = {
   sttLanguage: "en",
   autoDetectLanguage: true,
   customVocabulary: [],
+  speakerDiarization: false,
 
   grammarEnabled: true,
   grammarApiKey: "",
@@ -86,6 +92,9 @@ const defaultSettings: AppSettings = {
   autoPunctuate: true,
   smartFormat: true,
   voiceCommandsEnabled: true,
+
+  translationEnabled: false,
+  translationTargetLanguage: "en",
 
   injectionMode: "keyboard",
 
@@ -123,6 +132,7 @@ function schedulePersist() {
       sttLanguage: state.sttLanguage,
       autoDetectLanguage: state.autoDetectLanguage,
       customVocabulary: state.customVocabulary,
+      speakerDiarization: state.speakerDiarization,
       grammarEnabled: state.grammarEnabled,
       grammarProvider: state.grammarProvider,
       writingStyle: state.writingStyle,
@@ -131,6 +141,8 @@ function schedulePersist() {
       autoPunctuate: state.autoPunctuate,
       smartFormat: state.smartFormat,
       voiceCommandsEnabled: state.voiceCommandsEnabled,
+      translationEnabled: state.translationEnabled,
+      translationTargetLanguage: state.translationTargetLanguage,
       injectionMode: state.injectionMode,
       shortcutToggle: state.shortcutToggle,
       shortcutPushToTalk: state.shortcutPushToTalk,

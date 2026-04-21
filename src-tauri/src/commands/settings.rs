@@ -20,6 +20,8 @@ pub struct AppSettings {
     pub stt_language: String,
     pub auto_detect_language: bool,
     pub custom_vocabulary: Vec<String>,
+    #[serde(default)]
+    pub speaker_diarization: bool,
 
     // Grammar
     pub grammar_enabled: bool,
@@ -66,6 +68,7 @@ impl Default for AppSettings {
             stt_language: "en".to_string(),
             auto_detect_language: true,
             custom_vocabulary: Vec::new(),
+            speaker_diarization: false,
 
             grammar_enabled: true,
             grammar_api_key: None,
@@ -184,6 +187,7 @@ fn apply_settings_to_engines(
         smart_format: s.smart_format,
         profanity_filter: false,
         custom_vocabulary: s.custom_vocabulary.clone(),
+        speaker_diarization: s.speaker_diarization,
     };
     stt_engine_arc.read().set_config(stt_config);
 

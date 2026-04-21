@@ -3,6 +3,7 @@ import { useAudioStore } from "@/stores/audio";
 import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
+import { applySmartFormat } from "@/lib/smartFormat";
 
 interface TranscriptionEvent {
   text: string;
@@ -121,12 +122,15 @@ export function useTauriEvents(): void {
               }
             }
 
-            // Regular transcription: honor capsLock.
+            // Regular transcription: apply smart formatting (if enabled)
+            // and honour capsLock.
+            const shaped = settings.smartFormat ? applySmartFormat(text) : text;
             const capsLock = useDictationStore.getState().capsLock;
-            const finalText = capsLock ? text.toUpperCase() : text;
+            const finalText = capsLock ? shaped.toUpperCase() : shaped;
 
+            const segmentId = crypto.randomUUID();
             dictation.addSegment({
-              id: crypto.randomUUID(),
+              id: segmentId,
               text: finalText,
               timestamp: new Date(),
               confidence: result.confidence,
@@ -135,6 +139,36 @@ export function useTauriEvents(): void {
               grammarApplied: false,
             });
             dictation.setCurrentTranscript("");
+
+            // Optional real-time translation. We drop this into `correctedText`
+            // so the original transcription is preserved and the UI can still
+            // show both if needed.
+            if (
+              settings.translationEnabled &&
+              settings.translationTargetLanguage &&
+              settings.translationTargetLanguage !== (result.language ?? "")
+            ) {
+              (async () => {
+                try {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  const translation = await invoke<{ translated: string }>(
+                    "translate_text",
+                    {
+                      text: finalText,
+                      targetLanguage: settings.translationTargetLanguage,
+                    }
+                  );
+                  if (translation?.translated) {
+                    useDictationStore.getState().updateSegment(segmentId, {
+                      translatedText: translation.translated,
+                      translatedToLanguage: settings.translationTargetLanguage,
+                    });
+                  }
+                } catch {
+                  // Non-Tauri or translation failure — leave segment as-is.
+                }
+              })();
+            }
           }
         );
 

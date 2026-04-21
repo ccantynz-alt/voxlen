@@ -96,7 +96,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marco-reid-voice-${{ matrix.platform }}-${{ matrix.target || 'host' }}
+          name: voxlen-${{ matrix.platform }}-${{ matrix.target || 'host' }}
           path: ${{ matrix.bundle_glob }}
           if-no-files-found: ignore
           retention-days: 7

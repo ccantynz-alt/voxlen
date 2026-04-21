@@ -17,6 +17,7 @@ export interface BackendAppSettings {
   stt_language: string;
   auto_detect_language: boolean;
   custom_vocabulary: string[];
+  speaker_diarization: boolean;
 
   // Grammar
   grammar_enabled: boolean;
@@ -67,6 +68,7 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
     stt_language: s.sttLanguage,
     auto_detect_language: s.autoDetectLanguage,
     custom_vocabulary: s.customVocabulary,
+    speaker_diarization: s.speakerDiarization,
 
     grammar_enabled: s.grammarEnabled,
     grammar_api_key: s.grammarApiKey,
@@ -116,6 +118,7 @@ export function fromBackendSettings(
   if (s.stt_language !== undefined) out.sttLanguage = s.stt_language;
   if (s.auto_detect_language !== undefined) out.autoDetectLanguage = s.auto_detect_language;
   if (s.custom_vocabulary !== undefined) out.customVocabulary = s.custom_vocabulary;
+  if (s.speaker_diarization !== undefined) out.speakerDiarization = s.speaker_diarization;
 
   if (s.grammar_enabled !== undefined) out.grammarEnabled = s.grammar_enabled;
   if (s.grammar_api_key !== undefined) out.grammarApiKey = s.grammar_api_key;
@@ -158,7 +161,7 @@ export async function persistSettings(settings: AppSettings): Promise<void> {
   } catch {
     // Non-Tauri environment — best-effort localStorage fallback.
     try {
-      localStorage.setItem("marcoreid_settings", JSON.stringify(settings));
+      localStorage.setItem("voxlen_settings", JSON.stringify(settings));
     } catch {
       // Ignore
     }
@@ -176,7 +179,7 @@ export async function loadSettings(): Promise<Partial<AppSettings> | undefined> 
     return fromBackendSettings(backend);
   } catch {
     try {
-      const raw = localStorage.getItem("marcoreid_settings");
+      const raw = localStorage.getItem("voxlen_settings");
       if (raw) return JSON.parse(raw) as Partial<AppSettings>;
     } catch {
       // Ignore
