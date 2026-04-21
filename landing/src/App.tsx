@@ -818,9 +818,9 @@ function FAQ() {
 
 const GH_OWNER = "ccantynz-alt";
 const GH_REPO = "voxlen";
-const GH_RELEASES = `https://github.com/${GH_OWNER}/${GH_REPO}/releases/latest/download`;
+const GH_RELEASES_PAGE = `https://github.com/${GH_OWNER}/${GH_REPO}/releases/latest`;
 const GH_API_LATEST = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases/latest`;
-const APP_VERSION = "1.0.8";
+const APP_VERSION = "1.0.9";
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
@@ -867,33 +867,29 @@ function detectPlatform(): Platform {
 
 const DOWNLOADS: Record<
   Exclude<Platform, "unknown">,
-  { label: string; subLabel: string; file: string; size: string; icon: "apple" | "monitor" }
+  { label: string; subLabel: string; size: string; icon: "apple" | "monitor" }
 > = {
   "mac-arm": {
     label: "Download for macOS",
     subLabel: "Apple Silicon (M1/M2/M3/M4)",
-    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   "mac-intel": {
     label: "Download for macOS",
     subLabel: "Intel (x86_64) — build on request",
-    file: `Voxlen_${APP_VERSION}_aarch64.dmg`,
     size: "~18 MB",
     icon: "apple",
   },
   windows: {
     label: "Download for Windows",
     subLabel: "Windows 10/11 (x64)",
-    file: `Voxlen_${APP_VERSION}_x64_en-US.msi`,
     size: "~5 MB",
     icon: "monitor",
   },
   linux: {
     label: "Download for Linux",
     subLabel: "AppImage (x86_64)",
-    file: `Voxlen_${APP_VERSION}_amd64.AppImage`,
     size: "~80 MB",
     icon: "monitor",
   },
@@ -917,12 +913,16 @@ function CTA() {
     return () => ac.abort();
   }, []);
 
+  // Never return a guessed filename URL. If we have the live asset list and
+  // a match for this platform, link direct; otherwise fall back to the
+  // releases page so the user always lands on *something* that exists.
+  // This is the difference between a red 404 and a working page.
   const hrefFor = (key: Exclude<Platform, "unknown">): string => {
     if (liveAssets) {
       const picked = pickAssetFor(key, liveAssets);
       if (picked) return picked.browser_download_url;
     }
-    return `${GH_RELEASES}/${encodeURIComponent(DOWNLOADS[key].file)}`;
+    return GH_RELEASES_PAGE;
   };
 
   const primary = platform !== "unknown" ? DOWNLOADS[platform] : null;
