@@ -81,7 +81,7 @@ function useSettingsPersistence() {
       } catch {
         try {
           localStorage.setItem(
-            "voxlen_settings",
+            "marcoreid_settings",
             JSON.stringify({
               preferredDeviceId: settings.preferredDeviceId,
               sttEngine: settings.sttEngine,
@@ -801,7 +801,7 @@ function AppearanceSettings() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <SectionHeader title="Appearance" description="Customize how Voxlen looks." />
+      <SectionHeader title="Appearance" description="Customize how Marco Reid Voice looks." />
 
       <SettingRow>
         <Select

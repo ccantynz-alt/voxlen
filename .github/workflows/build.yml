@@ -1,4 +1,4 @@
-name: Build & Release Voxlen
+name: Build & Release Marco Reid Voice
 
 on:
   push:
@@ -138,9 +138,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: Voxlen v${{ steps.version.outputs.version }}
+          name: Marco Reid Voice v${{ steps.version.outputs.version }}
           body: |
-            Voxlen v${{ steps.version.outputs.version }} — AI-powered voice dictation for professionals.
+            Marco Reid Voice v${{ steps.version.outputs.version }} — AI-powered voice dictation for professionals.
 
             Download the installer for your OS below.
 
