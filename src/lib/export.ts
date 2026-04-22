@@ -48,7 +48,7 @@ function formatAsText(segments: TranscriptionSegment[]): string {
 
 function formatAsMarkdown(segments: TranscriptionSegment[]): string {
   const lines = [
-    "# Voxlen Transcript",
+    "# Marco Reid Voice Transcript",
     "",
     `**Date:** ${new Date().toLocaleDateString()}`,
     `**Words:** ${segments.reduce((c, s) => c + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length, 0)}`,
@@ -63,6 +63,10 @@ function formatAsMarkdown(segments: TranscriptionSegment[]): string {
     const text = s.correctedText || s.text;
     const grammarTag = s.grammarApplied ? " *(AI polished)*" : "";
     lines.push(`**[${time}]** ${text}${grammarTag}`);
+    if (s.translatedText) {
+      const lang = s.translatedToLanguage ? ` (${s.translatedToLanguage})` : "";
+      lines.push(`> ${s.translatedText}${lang}`);
+    }
     lines.push("");
   });
 
@@ -73,12 +77,14 @@ function formatAsJson(segments: TranscriptionSegment[]): string {
   return JSON.stringify(
     {
       version: "1.0",
-      app: "Voxlen",
+      app: "Marco Reid Voice",
       exported: new Date().toISOString(),
       segments: segments.map((s) => ({
         id: s.id,
         text: s.text,
         correctedText: s.correctedText || null,
+        translatedText: s.translatedText || null,
+        translatedToLanguage: s.translatedToLanguage || null,
         timestamp: s.timestamp.toISOString(),
         confidence: s.confidence,
         language: s.language || null,

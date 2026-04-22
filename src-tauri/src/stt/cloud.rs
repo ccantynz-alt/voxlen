@@ -101,6 +101,10 @@ pub async fn deepgram_transcribe(
         url.push_str(&format!("&keywords={}", urlencoding(word)));
     }
 
+    if config.speaker_diarization {
+        url.push_str("&diarize=true");
+    }
+
     let client = reqwest::Client::new();
     let response = client
         .post(&url)
@@ -118,8 +122,44 @@ pub async fn deepgram_transcribe(
     let result: serde_json::Value = response.json().await?;
 
     let channel = &result["results"]["channels"][0]["alternatives"][0];
-    let text = channel["transcript"].as_str().unwrap_or("").to_string();
+    let plain_text = channel["transcript"].as_str().unwrap_or("").to_string();
     let confidence = channel["confidence"].as_f64().unwrap_or(0.0) as f32;
+
+    // When diarization is enabled, re-assemble the transcript with speaker
+    // labels by grouping consecutive words that share the same `speaker`.
+    let text = if config.speaker_diarization {
+        if let Some(word_arr) = channel["words"].as_array() {
+            let mut out = String::new();
+            let mut current_speaker: Option<i64> = None;
+            for w in word_arr {
+                let spk = w["speaker"].as_i64();
+                let token = w["punctuated_word"]
+                    .as_str()
+                    .or_else(|| w["word"].as_str())
+                    .unwrap_or("");
+                if token.is_empty() {
+                    continue;
+                }
+                if spk != current_speaker {
+                    if !out.is_empty() {
+                        out.push('\n');
+                    }
+                    if let Some(s) = spk {
+                        out.push_str(&format!("[Speaker {}] ", s + 1));
+                    }
+                    current_speaker = spk;
+                } else if !out.is_empty() && !out.ends_with(' ') && !out.ends_with('\n') {
+                    out.push(' ');
+                }
+                out.push_str(token);
+            }
+            if out.is_empty() { plain_text } else { out }
+        } else {
+            plain_text
+        }
+    } else {
+        plain_text
+    };
 
     let language = result["results"]["channels"][0]["detected_language"]
         .as_str()

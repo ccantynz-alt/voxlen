@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Voxlen",
+        "title": "Marco Reid Voice",
         "width": 1100,
         "height": 720,
         "minWidth": 800,
@@ -30,7 +30,7 @@
     "trayIcon": {
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true,
-      "tooltip": "Voxlen"
+      "tooltip": "Marco Reid Voice"
     },
     "security": {
       "csp": null
@@ -48,8 +48,8 @@
     ],
     "category": "Productivity",
     "shortDescription": "AI-powered voice dictation for professionals",
-    "longDescription": "Voxlen is the most advanced AI voice dictation desktop app. Speak naturally to dictate legal letters, court filings, demand letters, tax advisories, and audit opinions — with real-time Claude enhancement, matter-aware context, custom vocabulary, and injection into any application.",
-    "copyright": "Copyright 2026 Voxlen",
+    "longDescription": "Marco Reid Voice is the most advanced AI voice dictation desktop app. Speak naturally to dictate legal letters, court filings, demand letters, tax advisories, and audit opinions — with real-time Claude enhancement, matter-aware context, custom vocabulary, and injection into any application.",
+    "copyright": "Copyright 2026 Marco Reid",
     "macOS": {
       "entitlements": "Entitlements.plist",
       "minimumSystemVersion": "12.0",

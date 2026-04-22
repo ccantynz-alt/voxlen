@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ShortcutsCheatsheet } from "@/components/layout/ShortcutsCheatsheet";
 import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
+import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { AdminPanel } from "@/components/settings/AdminPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
@@ -16,7 +18,7 @@ import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
 
-type View = "dictation" | "grammar" | "history" | "settings" | "admin";
+type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin";
 
 export default function App() {
   // Load saved settings from disk/localStorage on startup
@@ -66,12 +68,12 @@ export default function App() {
         }
       } catch {
         // Not in Tauri - check localStorage
-        const completed = localStorage.getItem("marcoreid_onboarding_complete");
+        const completed = localStorage.getItem("voxlen_onboarding_complete");
         setShowOnboarding(!completed);
 
         // Load saved settings from localStorage
         try {
-          const saved = localStorage.getItem("voxlen_settings");
+          const saved = localStorage.getItem("marcoreid_settings");
           if (saved) {
             useSettingsStore.getState().updateSettings(JSON.parse(saved));
           }
@@ -202,7 +204,7 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("marcoreid_onboarding_complete", "true");
+      localStorage.setItem("voxlen_onboarding_complete", "true");
     }
 
     // Save current settings through the persistence pipeline
@@ -240,6 +242,12 @@ export default function App() {
         return (
           <ErrorBoundary label="History">
             <HistoryPanel />
+          </ErrorBoundary>
+        );
+      case "flywheel":
+        return (
+          <ErrorBoundary label="Flywheel">
+            <FlywheelPanel />
           </ErrorBoundary>
         );
       case "settings":
@@ -285,6 +293,7 @@ export default function App() {
         />
         <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
       </div>
+      <ShortcutsCheatsheet />
     </div>
   );
 }

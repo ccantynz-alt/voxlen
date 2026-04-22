@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
-import { Copy, Check, Wand2 } from "lucide-react";
+import { Copy, Check, Wand2, Languages } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -111,21 +111,36 @@ export function TranscriptView({
                   <span className="text-[10px] text-surface-600 font-mono tabular-nums mt-1 shrink-0">
                     {formatTimestamp(segment.timestamp)}
                   </span>
-                  <p
-                    className={cn(
-                      "leading-relaxed",
-                      segment.correctedText
-                        ? "text-surface-950"
-                        : "text-surface-900"
+                  <div className="flex-1">
+                    <p
+                      className={cn(
+                        "leading-relaxed",
+                        segment.correctedText
+                          ? "text-surface-950"
+                          : "text-surface-900"
+                      )}
+                    >
+                      {segment.correctedText || segment.text}
+                      {segment.grammarApplied && (
+                        <span className="inline-flex ml-1.5 align-middle">
+                          <Wand2 className="h-3 w-3 text-brass-500" strokeWidth={1.75} />
+                        </span>
+                      )}
+                    </p>
+                    {segment.translatedText && (
+                      <p className="mt-1 text-[0.92em] italic text-surface-700 leading-relaxed font-display flex items-baseline gap-1.5">
+                        <Languages className="h-3 w-3 text-brass-500 shrink-0 self-center" strokeWidth={1.75} />
+                        <span>
+                          {segment.translatedText}
+                          {segment.translatedToLanguage && (
+                            <span className="ml-1.5 text-[10px] uppercase tracking-wider text-surface-500 font-mono not-italic">
+                              {segment.translatedToLanguage}
+                            </span>
+                          )}
+                        </span>
+                      </p>
                     )}
-                  >
-                    {segment.correctedText || segment.text}
-                    {segment.grammarApplied && (
-                      <span className="inline-flex ml-1.5 align-middle">
-                        <Wand2 className="h-3 w-3 text-brass-500" strokeWidth={1.75} />
-                      </span>
-                    )}
-                  </p>
+                  </div>
                 </div>
               </div>
             ))}

@@ -51,7 +51,7 @@ export async function loadHistory(): Promise<void> {
     }
   } catch {
     try {
-      const saved = localStorage.getItem("voxlen_history");
+      const saved = localStorage.getItem("marcoreid_history");
       if (saved) {
         const parsed = JSON.parse(saved) as HistoryEntry[];
         useHistoryStore.setState({ entries: parsed });
@@ -70,7 +70,7 @@ async function persistHistory(entries: HistoryEntry[]): Promise<void> {
     await store.save();
   } catch {
     try {
-      localStorage.setItem("voxlen_history", JSON.stringify(entries));
+      localStorage.setItem("marcoreid_history", JSON.stringify(entries));
     } catch {
       // Ignore
     }
