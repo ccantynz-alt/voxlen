@@ -32,7 +32,7 @@ impl AudioProcessor {
         let stt_engine = self.stt_engine.clone();
         let status = self.status.clone();
 
-        tokio::spawn(async move {
+        tauri::async_runtime::spawn(async move {
             let mut accumulated_samples: Vec<f32> = Vec::new();
             let mut sample_rate = 16000u32;
 

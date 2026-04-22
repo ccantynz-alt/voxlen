@@ -760,7 +760,7 @@ function FAQ() {
 }
 
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
-const APP_VERSION = "1.0.8";
+const APP_VERSION = "1.0.9";
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
