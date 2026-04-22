@@ -816,38 +816,10 @@ function FAQ() {
   );
 }
 
-const GH_OWNER = "ccantynz-alt";
-const GH_REPO = "voxlen";
-const GH_RELEASES_PAGE = `https://github.com/${GH_OWNER}/${GH_REPO}/releases/latest`;
-const GH_API_LATEST = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/releases/latest`;
+const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
 const APP_VERSION = "1.0.9";
 
-type Platform = "mac-arm" | "windows" | "linux" | "unknown";
-
-type ReleaseAsset = { name: string; browser_download_url: string };
-
-function pickAssetFor(platform: Exclude<Platform, "unknown">, assets: ReleaseAsset[]): ReleaseAsset | null {
-  const lowered = assets.map((a) => ({ ...a, lower: a.name.toLowerCase() }));
-  const find = (pred: (a: { name: string; lower: string; browser_download_url: string }) => boolean) =>
-    lowered.find(pred) ?? null;
-  switch (platform) {
-    case "mac-arm":
-      return find((a) => a.lower.endsWith(".dmg") && (a.lower.includes("aarch64") || a.lower.includes("arm64")))
-        ?? find((a) => a.lower.endsWith(".dmg"));
-    case "mac-intel":
-      return find((a) => a.lower.endsWith(".dmg") && (a.lower.includes("x64") || a.lower.includes("x86_64") || a.lower.includes("intel")))
-        ?? find((a) => a.lower.endsWith(".dmg"));
-    case "windows":
-      return find((a) => a.lower.endsWith(".msi") && (a.lower.includes("x64") || a.lower.includes("x86_64")))
-        ?? find((a) => a.lower.endsWith(".msi"))
-        ?? find((a) => a.lower.endsWith(".exe") && a.lower.includes("setup"))
-        ?? find((a) => a.lower.endsWith(".exe"));
-    case "linux":
-      return find((a) => a.lower.endsWith(".appimage") && (a.lower.includes("amd64") || a.lower.includes("x86_64")))
-        ?? find((a) => a.lower.endsWith(".appimage"))
-        ?? find((a) => a.lower.endsWith(".deb"));
-  }
-}
+type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
 function detectPlatform(): Platform {
   if (typeof window === "undefined") return "unknown";

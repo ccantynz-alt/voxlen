@@ -1,8 +1,8 @@
 [package]
 name = "marco-reid-voice"
-version = "1.0.8"
-description = "Voxlen - AI voice dictation for legal and accounting professionals"
-authors = ["Voxlen"]
+version = "1.0.9"
+description = "Marco Reid Voice - native voice input layer for the Marco Reid platform"
+authors = ["Marco Reid"]
 edition = "2021"
 rust-version = "1.77.2"
 
