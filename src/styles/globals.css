@@ -57,6 +57,11 @@
 @layer base {
   :root {
     --marcoreid-font-size: 14px;
+    --app-font-size: 14px;
+  }
+
+  html {
+    font-size: var(--app-font-size);
   }
 
   * {

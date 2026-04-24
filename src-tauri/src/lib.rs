@@ -48,6 +48,9 @@ pub fn run() {
             let stt_state = stt::SttState::new(stt_engine);
             let stt_engine_arc = stt_state.0.clone();
             app.manage(stt_state);
+            app.manage(commands::dictation::StreamingSessionState(
+                parking_lot::Mutex::new(None),
+            ));
 
             // Push the just-loaded settings into the STT + grammar engines so
             // API keys flow all the way through before the user's first hotkey.
@@ -68,12 +71,12 @@ pub fn run() {
             app.manage(text_injection::InjectorState::new(injector));
 
             // Build system tray menu
-            let show_item = MenuItem::with_id(app, "show", "Show Marco Reid Voice", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Show Voxlen", true, None::<&str>)?;
             let dictate_item = MenuItem::with_id(app, "dictate", "Start Dictation", true, None::<&str>)?;
             let grammar_item = MenuItem::with_id(app, "grammar", "Grammar Panel", true, None::<&str>)?;
             let separator = MenuItem::with_id(app, "sep", "────────────", false, None::<&str>)?;
             let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Marco Reid Voice", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Voxlen", true, None::<&str>)?;
 
             let menu = Menu::with_items(
                 app,
@@ -89,7 +92,7 @@ pub fn run() {
             )?;
 
             let _tray = TrayIconBuilder::new()
-                .tooltip("Marco Reid Voice — AI voice dictation for legal and accounting professionals")
+                .tooltip("Voxlen — AI voice dictation for legal and accounting professionals")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(move |app, event| {
@@ -138,7 +141,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            log::info!("Marco Reid Voice initialized successfully");
+            log::info!("Voxlen initialized successfully");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -198,5 +201,5 @@ pub fn run() {
             }
         })
         .run(tauri::generate_context!())
-        .expect("error while running Marco Reid Voice");
+        .expect("error while running Voxlen");
 }

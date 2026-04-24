@@ -27,6 +27,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
   const theme = useSettingsStore((s) => s.theme);
+  const fontSize = useSettingsStore((s) => s.fontSize);
 
   // Apply theme class to document root
   useEffect(() => {
@@ -39,6 +40,11 @@ export default function App() {
     }
     // dark is the default (no class needed, :root vars apply)
   }, [theme]);
+
+  // Apply font size as a CSS variable so all rem-based text scales uniformly.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--app-font-size", `${fontSize}px`);
+  }, [fontSize]);
 
   // Load flywheel data on startup
   useEffect(() => {

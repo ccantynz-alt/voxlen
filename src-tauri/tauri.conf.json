@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Marco Reid Voice",
+        "title": "Voxlen",
         "width": 1100,
         "height": 720,
         "minWidth": 800,
@@ -33,7 +33,7 @@
       "tooltip": "Marco Reid Voice"
     },
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.deepgram.com https://api.openai.com https://api.anthropic.com wss://api.deepgram.com; font-src 'self' data:"
     }
   },
   "bundle": {
