@@ -13,6 +13,8 @@ pub struct GrammarConfig {
     pub voxlen_api_key: Option<String>,
     #[serde(default)]
     pub voxlen_context: Option<String>,
+    #[serde(default)]
+    pub voxlen_tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,6 +43,7 @@ impl Default for GrammarConfig {
             preserve_tone: true,
             voxlen_api_key: None,
             voxlen_context: None,
+            voxlen_tenant_id: None,
         }
     }
 }
@@ -312,10 +315,14 @@ async fn correct_with_voxlen_proxy(
     custom_vocabulary: &[String],
 ) -> Result<GrammarResult, String> {
     let client = reqwest::Client::new();
-    let response = client
+    let mut req = client
         .post("https://api.voxlen.com/v1/grammar")
         .header("Authorization", format!("Bearer {}", voxlen_key))
-        .header("content-type", "application/json")
+        .header("content-type", "application/json");
+    if let Some(tid) = config.voxlen_tenant_id.as_deref().filter(|s| !s.is_empty()) {
+        req = req.header("X-Tenant-ID", tid);
+    }
+    let response = req
         .json(&serde_json::json!({
             "text": text,
             "style": format!("{:?}", config.style).to_lowercase(),

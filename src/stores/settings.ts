@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getSecret, setSecret } from "@/lib/keyring";
+import { getSecret, setSecret, deleteSecret } from "@/lib/keyring";
 
 export interface AppSettings {
   // Audio
@@ -184,10 +184,13 @@ function schedulePersist() {
       }
     }
 
-    // Persist API keys to OS keychain
+    // Persist API keys to OS keychain (delete when cleared)
     if (state.sttApiKey) await setSecret("sttApiKey", state.sttApiKey);
+    else await deleteSecret("sttApiKey").catch(() => {});
     if (state.grammarApiKey) await setSecret("grammarApiKey", state.grammarApiKey);
+    else await deleteSecret("grammarApiKey").catch(() => {});
     if (state.voxlenApiKey) await setSecret("voxlenApiKey", state.voxlenApiKey);
+    else await deleteSecret("voxlenApiKey").catch(() => {});
   }, 500);
 }
 

@@ -19,12 +19,13 @@ async fn voxlen_proxy_transcribe(
         .text("diarize", config.speaker_diarization.to_string());
 
     let client = reqwest::Client::new();
-    let response = client
+    let mut req = client
         .post("https://api.voxlen.com/v1/stt")
-        .header("Authorization", format!("Bearer {}", voxlen_key))
-        .multipart(form)
-        .send()
-        .await?;
+        .header("Authorization", format!("Bearer {}", voxlen_key));
+    if let Some(tid) = config.voxlen_tenant_id.as_deref().filter(|s| !s.is_empty()) {
+        req = req.header("X-Tenant-ID", tid);
+    }
+    let response = req.multipart(form).send().await?;
 
     if !response.status().is_success() {
         let error_text = response.text().await?;

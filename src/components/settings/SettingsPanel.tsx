@@ -1012,6 +1012,112 @@ function AdvancedSettings() {
   );
 }
 
+interface UsageData {
+  plan: string;
+  period_start: string;
+  period_end: string;
+  stt_minutes_used: number;
+  stt_minutes_included: number;
+  grammar_corrections_used: number;
+  grammar_corrections_included: number;
+}
+
+function UsageMeter({ apiKey }: { apiKey: string }) {
+  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://api.voxlen.com/v1/usage", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: UsageData) => {
+        if (!cancelled) { setUsage(data); setLoading(false); }
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [apiKey]);
+
+  if (loading || !usage) return null;
+
+  const planLabel =
+    usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1);
+  const isFree = usage.plan.toLowerCase() === "free";
+
+  const sttPct =
+    usage.stt_minutes_included === -1
+      ? 0
+      : Math.min(100, (usage.stt_minutes_used / usage.stt_minutes_included) * 100);
+
+  const grammarPct =
+    usage.grammar_corrections_included === -1
+      ? 0
+      : Math.min(100, (usage.grammar_corrections_used / usage.grammar_corrections_included) * 100);
+
+  return (
+    <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
+          Usage this month
+        </span>
+        <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#7345d1]/15 text-[#7345d1] font-semibold">
+          {planLabel}
+        </span>
+      </div>
+
+      {/* STT minutes */}
+      <div>
+        <div className="flex justify-between text-[11px] text-surface-600 mb-1">
+          <span>Dictation minutes</span>
+          <span>
+            {usage.stt_minutes_used.toFixed(1)}&thinsp;/&thinsp;
+            {usage.stt_minutes_included === -1 ? "∞" : `${usage.stt_minutes_included} min`}
+          </span>
+        </div>
+        {usage.stt_minutes_included !== -1 && (
+          <div className="h-1.5 rounded-full bg-surface-200/60 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${sttPct}%`, background: "#7345d1" }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Grammar corrections */}
+      <div>
+        <div className="flex justify-between text-[11px] text-surface-600 mb-1">
+          <span>Grammar corrections</span>
+          <span>
+            {usage.grammar_corrections_used}&thinsp;/&thinsp;
+            {usage.grammar_corrections_included === -1 ? "∞" : usage.grammar_corrections_included}
+          </span>
+        </div>
+        {usage.grammar_corrections_included !== -1 && (
+          <div className="h-1.5 rounded-full bg-surface-200/60 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${grammarPct}%`, background: "#7345d1" }}
+            />
+          </div>
+        )}
+      </div>
+
+      {isFree && (
+        <a
+          href="https://voxlen.ai/#pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-[11px] font-semibold text-[#7345d1] hover:text-[#5c35b0] transition-colors pt-1"
+        >
+          Upgrade plan →
+        </a>
+      )}
+    </div>
+  );
+}
+
 function VoxlenApiSettings() {
   const settings = useSettingsStore();
   const [verifying, setVerifying] = useState(false);
@@ -1075,25 +1181,28 @@ function VoxlenApiSettings() {
     <div className="space-y-5 max-w-lg">
       {/* Connected state */}
       {isConnected ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center">
-              <span className="text-emerald-400 text-lg">✓</span>
+        <>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                <span className="text-emerald-400 text-lg">✓</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-surface-900">Voxlen Account Connected</p>
+                <p className="text-[11px] text-surface-600">
+                  Transcription and grammar AI powered by Voxlen. No provider keys needed.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-surface-900">Voxlen Account Connected</p>
-              <p className="text-[11px] text-surface-600">
-                Transcription and grammar AI powered by Voxlen. No provider keys needed.
-              </p>
-            </div>
+            <button
+              onClick={disconnect}
+              className="text-[11px] text-surface-500 hover:text-red-400 transition-colors"
+            >
+              Disconnect account
+            </button>
           </div>
-          <button
-            onClick={disconnect}
-            className="text-[11px] text-surface-500 hover:text-red-400 transition-colors"
-          >
-            Disconnect account
-          </button>
-        </div>
+          <UsageMeter apiKey={settings.voxlenApiKey} />
+        </>
       ) : (
         /* Not connected */
         <div className="rounded-xl border border-surface-300/60 bg-surface-50/40 p-5 space-y-4">

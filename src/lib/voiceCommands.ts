@@ -1,4 +1,5 @@
 import { useDictationStore } from "@/stores/dictation";
+import { useClauseStore } from "@/stores/clauses";
 
 export interface VoiceCommandResult {
   matched: boolean;
@@ -70,6 +71,29 @@ const EXTENDED_COMMANDS: Array<{
   { patterns: ["log two hours", "log 120 minutes"], action: "log_120_min" },
   { patterns: ["log fifteen minutes", "log 15 minutes"], action: "log_15_min" },
   { patterns: ["log six minutes", "log 6 minutes"], action: "log_6_min" },
+  // Session control
+  { patterns: ["clear", "clear all", "clear session", "start over"], action: "clear_session" },
+  { patterns: ["pause dictation", "pause recording"], action: "pause" },
+  { patterns: ["resume dictation", "resume recording"], action: "resume" },
+  // Clause insertion (dynamic — resolved at execution time via clause store)
+  { patterns: ["insert indemnity clause"], action: "insert_clause:insert indemnity clause" },
+  { patterns: ["insert limitation of liability"], action: "insert_clause:insert limitation of liability" },
+  { patterns: ["insert confidentiality clause"], action: "insert_clause:insert confidentiality clause" },
+  { patterns: ["insert governing law england"], action: "insert_clause:insert governing law england" },
+  { patterns: ["insert governing law australia"], action: "insert_clause:insert governing law australia" },
+  { patterns: ["insert governing law new york"], action: "insert_clause:insert governing law new york" },
+  { patterns: ["insert force majeure"], action: "insert_clause:insert force majeure" },
+  { patterns: ["insert ip assignment"], action: "insert_clause:insert ip assignment" },
+  { patterns: ["insert gdpr data processing clause"], action: "insert_clause:insert gdpr data processing clause" },
+  { patterns: ["insert entire agreement"], action: "insert_clause:insert entire agreement" },
+  { patterns: ["insert severability"], action: "insert_clause:insert severability" },
+  { patterns: ["insert no assignment clause"], action: "insert_clause:insert no assignment clause" },
+  { patterns: ["insert engagement terms"], action: "insert_clause:insert engagement terms" },
+  { patterns: ["insert accountant liability cap"], action: "insert_clause:insert accountant liability cap" },
+  { patterns: ["insert without prejudice"], action: "insert_clause:insert without prejudice" },
+  // Billable time — start/stop billing
+  { patterns: ["start billing", "start timer", "start billable time"], action: "billing_start" },
+  { patterns: ["stop billing", "stop timer", "stop billable time"], action: "billing_stop" },
   // Navigation
   { patterns: ["review uncertain words", "check uncertain", "show uncertain"], action: "review_uncertain" },
 ];
@@ -170,9 +194,30 @@ export function executeVoiceCommand(action: string): string | null {
       // This is a signal to the UI layer — return a marker string
       return "__LOG_TIME__";
     }
+    case "clear_session":
+      useDictationStore.getState().clearSession();
+      return null;
+    case "pause":
+      useDictationStore.getState().setStatus("paused");
+      return null;
+    case "resume":
+      useDictationStore.getState().setStatus("listening");
+      return null;
+    case "billing_start":
+    case "billing_stop":
+      return null; // UI concern — handled by caller
     case "review_uncertain":
       return null; // UI concern
     default:
+      // Dynamic clause insertion: action = "insert_clause:<trigger>"
+      if (action.startsWith("insert_clause:")) {
+        const trigger = action.slice("insert_clause:".length);
+        const clause = useClauseStore.getState().findByTrigger(trigger);
+        if (clause) {
+          useClauseStore.getState().markUsed(clause.id);
+          return "\n\n" + clause.text + "\n\n";
+        }
+      }
       return null;
   }
 }

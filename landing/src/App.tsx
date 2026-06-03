@@ -1148,7 +1148,9 @@ function CTA() {
             Ready to ditch typing?
           </motion.h2>
           <motion.p variants={fadeUp} className="text-lg text-zinc-400 mb-10">
-            Free forever. No credit card. Under 2 minutes to first word.
+            {hasRelease === false
+              ? `Be first to know when Voxlen launches${platform !== "unknown" ? ` on ${platform === "mac-arm" || platform === "mac-intel" ? "Mac" : platform === "windows" ? "Windows" : platform === "linux" ? "Linux" : platform}` : ""}.`
+              : "Free forever. No credit card. Under 2 minutes to first word."}
           </motion.p>
 
           {/* Primary auto-detected button — or early access if no release yet */}
@@ -1198,6 +1200,41 @@ function CTA() {
             ([key, d]) => {
               const Icon = d.icon === "apple" ? Apple : Monitor;
               const isDetected = key === platform;
+              const platformLabel = d.label.replace("Download for ", "");
+              if (hasRelease === false) {
+                return (
+                  <motion.div
+                    key={key}
+                    variants={fadeUp}
+                    className={`relative p-5 rounded-xl border transition-all ${
+                      isDetected
+                        ? "bg-marcoreid-600/5 border-marcoreid-600/40"
+                        : "bg-white/[0.02] border-white/5"
+                    }`}
+                  >
+                    {isDetected && (
+                      <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-marcoreid-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                        Detected
+                      </div>
+                    )}
+                    <div className="flex items-start justify-between mb-3">
+                      <div
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          isDetected ? "bg-marcoreid-600/20 text-marcoreid-400" : "bg-white/5 text-zinc-400"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-white mb-1">{platformLabel}</div>
+                    <div className="text-xs text-zinc-500 mb-3">{d.subLabel}</div>
+                    <p className="text-xs text-zinc-500 mb-3">
+                      Be first to know when Voxlen launches on {platformLabel}.
+                    </p>
+                    <WaitlistForm platform={platformLabel} />
+                  </motion.div>
+                );
+              }
               return (
                 <motion.a
                   key={key}
@@ -1224,7 +1261,7 @@ function CTA() {
                     </div>
                     <Download className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 group-hover:translate-y-0.5 transition-all" />
                   </div>
-                  <div className="text-sm font-semibold text-white mb-1">{d.label.replace("Download for ", "")}</div>
+                  <div className="text-sm font-semibold text-white mb-1">{platformLabel}</div>
                   <div className="text-xs text-zinc-500 mb-3">{d.subLabel}</div>
                   <div className="text-[10px] text-zinc-600 font-mono">{d.size}</div>
                 </motion.a>
@@ -1302,11 +1339,19 @@ function WaitlistForm({ platform }: { platform: string }) {
     if (!email.trim() || !email.includes("@")) { setStatus("error"); return; }
     // Store locally — backend integration point for Voxlen API when ready
     try {
-      const key = `voxlen_waitlist_${platform.toLowerCase()}`;
-      const existing = JSON.parse(localStorage.getItem(key) || "[]") as string[];
+      // Store in unified key (array of {email, platform} objects)
+      type WaitlistEntry = { email: string; platform: string };
+      const unified = JSON.parse(localStorage.getItem("voxlen_waitlist") || "[]") as WaitlistEntry[];
+      if (!unified.some((e) => e.email === email && e.platform === platform)) {
+        unified.push({ email, platform });
+        localStorage.setItem("voxlen_waitlist", JSON.stringify(unified));
+      }
+      // Also store in per-platform key for convenience
+      const perPlatformKey = `voxlen_waitlist_${platform.toLowerCase()}`;
+      const existing = JSON.parse(localStorage.getItem(perPlatformKey) || "[]") as string[];
       if (!existing.includes(email)) {
         existing.push(email);
-        localStorage.setItem(key, JSON.stringify(existing));
+        localStorage.setItem(perPlatformKey, JSON.stringify(existing));
       }
     } catch { /* ignore */ }
     setStatus("submitted");
