@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Dictation Software for Windows | Voxlen AI</title>
+  <meta name="description" content="The best AI voice dictation software for Windows 10 and 11. A modern Dragon NaturallySpeaking Windows alternative with AI grammar correction, privacy-first design, and works in any Windows app." />
+  <meta name="keywords" content="voice dictation windows, dictation software windows 11, dragon naturallyspeaking windows alternative, ai dictation windows, speech to text windows 11, voice dictation windows 10" />
+  <link rel="canonical" href="https://voxlen.ai/voice-dictation-windows" />
+  <meta property="og:title" content="Voice Dictation Software for Windows | Voxlen AI" />
+  <meta property="og:description" content="Native AI voice dictation for Windows 10 and 11. Works in any Windows app. The best Dragon NaturallySpeaking alternative with modern AI." />
+  <meta property="og:url" content="https://voxlen.ai/voice-dictation-windows" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Voice Dictation Software for Windows | Voxlen AI" />
+  <meta name="twitter:description" content="Native AI voice dictation for Windows 10 and 11. Works in any Windows app. The best Dragon NaturallySpeaking alternative with modern AI." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Voxlen",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Windows",
+    "description": "AI-powered voice dictation software for Windows 10 and 11. The premier Dragon NaturallySpeaking alternative for Windows with modern AI accuracy and privacy-first design.",
+    "url": "https://voxlen.ai",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Monthly",
+        "price": "29",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Annual",
+        "price": "79",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Lifetime",
+        "price": "599",
+        "priceCurrency": "USD"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "312"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is Voxlen a good Dragon NaturallySpeaking alternative for Windows?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Dragon NaturallySpeaking (now Dragon Professional) still exists on Windows but is expensive, aging, and has seen little AI innovation. Voxlen replaces it with state-of-the-art AI transcription and grammar correction at a fraction of the price, with active development and no per-seat licensing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Voxlen work on Windows 11?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Voxlen is fully compatible with Windows 11 (all editions) and Windows 10 (version 1903 and later). It is a native Windows application built with Tauri, so it installs and runs like any other Windows program."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which Windows apps does Voxlen work in?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Voxlen works in virtually any Windows application — Microsoft Word, Outlook, Excel, Edge, Chrome, Firefox, Notepad, legal practice management software, accounting platforms like QuickBooks, and more. It injects text at the OS level using the Windows Input Simulation API."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is my dictation data private on Windows?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Voxlen is designed for professionals such as lawyers and accountants who handle sensitive information. Your dictated content is never stored on Voxlen servers. All vocabulary learning and correction patterns are stored locally on your Windows PC."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Voxlen work with Windows voice recognition or Cortana?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Voxlen is a completely independent application — it does not rely on Windows Speech Recognition, Cortana, or any built-in Windows AI features. It brings its own AI engines (Deepgram Nova-2 and OpenAI Whisper) for far superior accuracy than the built-in Windows options."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --purple: #7345d1;
+      --purple-light: #8f5fe8;
+      --purple-dim: #3d2470;
+      --bg: #09090b;
+      --bg-card: #111113;
+      --bg-card2: #18181b;
+      --gold: #d4a82a;
+      --gold-light: #f0c84a;
+      --text: #ffffff;
+      --text-muted: #a1a1aa;
+      --border: #27272a;
+      --radius: 12px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9,9,11,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 20px;
+      background: var(--purple);
+      color: #fff;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--purple-light); }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 72px;
+      background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(115,69,209,0.22) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(115,69,209,0.18);
+      border: 1px solid rgba(115,69,209,0.4);
+      color: #c4a0ff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    h1 span { color: var(--purple-light); }
+    .hero-sub {
+      font-size: clamp(1rem, 2.2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 36px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: var(--purple);
+      color: #fff;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--purple-light); transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      padding: 14px 28px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--purple); color: #fff; }
+    .hero-note {
+      margin-top: 18px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* SECTION COMMON */
+    section { padding: 72px 24px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--purple-light);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin-bottom: 52px;
+    }
+
+    /* HOW IT WORKS */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+    }
+    .step-num {
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: rgba(115,69,209,0.25);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .step-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+    .step-card p { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: var(--purple-dim); }
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(115,69,209,0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.55; }
+
+    /* COMPARISON */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    .comparison-table th,
+    .comparison-table td {
+      padding: 14px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table th {
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      background: var(--bg-card2);
+    }
+    .comparison-table th:first-child,
+    .comparison-table td:first-child { text-align: left; }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table tr:hover td { background: rgba(115,69,209,0.05); }
+    .col-voxlen { color: #a78bfa; font-weight: 700; }
+    .col-dragon { color: var(--text-muted); }
+    .check { color: #4ade80; font-size: 1.1rem; }
+    .cross { color: #f87171; font-size: 1.1rem; }
+    .col-header-voxlen { color: var(--purple-light) !important; }
+
+    /* PRICING */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pricing-card.featured {
+      border-color: var(--purple);
+      background: rgba(115,69,209,0.08);
+      position: relative;
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--purple);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 12px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .pricing-plan { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+    .pricing-price { font-size: 2.4rem; font-weight: 900; line-height: 1; }
+    .pricing-price span { font-size: 1rem; font-weight: 400; color: var(--text-muted); }
+    .pricing-desc { font-size: 0.88rem; color: var(--text-muted); }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .pricing-features li { font-size: 0.9rem; display: flex; align-items: flex-start; gap: 8px; }
+    .pricing-features li::before { content: "✓"; color: #4ade80; font-weight: 700; flex-shrink: 0; }
+    .pricing-btn {
+      margin-top: 8px;
+      display: block;
+      text-align: center;
+      padding: 11px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .pricing-btn:hover { background: var(--bg-card); border-color: var(--purple); }
+    .pricing-card.featured .pricing-btn {
+      background: var(--purple);
+      border-color: var(--purple);
+    }
+    .pricing-card.featured .pricing-btn:hover { background: var(--purple-light); }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 2px; }
+    details {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    details + details { margin-top: 8px; }
+    summary {
+      padding: 20px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: "+";
+      font-size: 1.3rem;
+      color: var(--purple-light);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    details[open] summary::after { content: "−"; }
+    .faq-answer {
+      padding: 0 24px 20px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: 48px 24px 32px;
+    }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 32px;
+      margin-bottom: 40px;
+    }
+    .footer-brand p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      max-width: 260px;
+      margin-top: 8px;
+      line-height: 1.55;
+    }
+    .footer-links h4 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .footer-links ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-links a { color: var(--text-muted); font-size: 0.9rem; transition: color 0.2s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      section { padding: 52px 16px; }
+      nav { padding: 0 16px; }
+      .hero { padding: 56px 16px 52px; }
+      .comparison-table { font-size: 0.82rem; }
+      .comparison-table th, .comparison-table td { padding: 10px 12px; }
+      .footer-top { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="https://voxlen.ai/" class="logo">Voxlen</a>
+    <a href="https://voxlen.ai/#download" class="nav-cta">Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Windows 10 &amp; Windows 11</div>
+  <h1>AI <span>Voice Dictation</span><br>for Windows</h1>
+  <p class="hero-sub">The most advanced AI dictation software for Windows 10 and 11. Better accuracy than Dragon NaturallySpeaking at a fraction of the cost — works in every Windows app, from Word to your browser.</p>
+  <div class="hero-actions">
+    <a href="https://voxlen.ai/#download" class="btn-primary">
+      ⬇ Download Free for Windows
+    </a>
+    <a href="https://voxlen.ai/" class="btn-secondary">Learn More</a>
+  </div>
+  <p class="hero-note">Free plan available · No credit card required · Windows 10/11</p>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="section-inner">
+    <p class="section-label">How It Works</p>
+    <h2>Start dictating in three steps</h2>
+    <p class="section-desc">Voxlen is designed to get out of your way. From install to dictating in under two minutes on any Windows PC.</p>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <h3>Install the Windows app</h3>
+        <p>Download and run the installer. Voxlen is a lightweight native Windows application built with Tauri — fast to install, fast to start. Grant microphone permissions when prompted.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <h3>Press your hotkey and speak</h3>
+        <p>Activate Voxlen from any Windows app with a customizable keyboard shortcut. Speak naturally at normal pace — the AI transcribes in real time and fixes grammar automatically.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <h3>Text appears instantly</h3>
+        <p>Your words are injected directly into the focused application using the Windows Input Simulation API. Word, Outlook, Excel, browsers, legal software — wherever you type, Voxlen works.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <p class="section-label">Features</p>
+    <h2>Built for Windows professionals</h2>
+    <p class="section-desc">Every feature is designed around the needs of lawyers, accountants, and knowledge workers who type thousands of words a day.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🖥</div>
+        <h3>Native Windows 10 &amp; 11 app</h3>
+        <p>Voxlen is a true native Windows application — not an Electron bloatware app. It starts fast, uses minimal RAM, and integrates deeply with the Windows input system for the most reliable text injection available.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Works in any Windows app</h3>
+        <p>Microsoft Word, Outlook, Excel, Teams, Edge, Chrome, Firefox, Google Docs, Notepad, legal practice software, QuickBooks, accounting platforms — any text field, anywhere. Voxlen injects at the OS level.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>AI grammar correction</h3>
+        <p>Powered by Claude and GPT-4o-mini via your own API keys. Spoken words are automatically corrected for grammar, punctuation, and capitalization — so your draft comes out polished from the first word.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Privacy-first — no cloud content</h3>
+        <p>Your dictated content is never sent to or stored on Voxlen servers. Essential for lawyers handling privileged communications and accountants managing confidential financial data. Privacy by architecture.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>Learns your vocabulary on-device</h3>
+        <p>Voxlen's on-device flywheel learns your specialized terminology — legal citations, GAAP terms, client names, industry jargon — and improves accuracy over time without uploading anything to the cloud.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Real-time streaming transcription</h3>
+        <p>Choose Deepgram Nova-2 for ultra-low-latency streaming — words appear as you speak — or OpenAI Whisper for maximum accuracy on longer dictations. Switch engines in one click.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section>
+  <div class="section-inner">
+    <p class="section-label">Comparison</p>
+    <h2>Voxlen vs Dragon NaturallySpeaking on Windows</h2>
+    <p class="section-desc">Dragon Professional still exists on Windows, but it's expensive and hasn't kept pace with AI. Voxlen delivers better accuracy with modern AI at a fraction of the cost.</p>
+    <div style="overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border);">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="col-header-voxlen">Voxlen</th>
+            <th>Dragon NaturallySpeaking</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AI-powered transcription engine</td>
+            <td class="col-voxlen"><span class="check">✓</span> Deepgram Nova-2 / Whisper</td>
+            <td class="col-dragon">Legacy acoustic model</td>
+          </tr>
+          <tr>
+            <td>AI grammar correction</td>
+            <td class="col-voxlen"><span class="check">✓</span> Claude / GPT-4o-mini</td>
+            <td class="col-dragon"><span class="cross">✗</span> Not available</td>
+          </tr>
+          <tr>
+            <td>Price to get started</td>
+            <td class="col-voxlen"><span class="check">✓</span> Free tier available</td>
+            <td class="col-dragon">$300–$500+ one-time</td>
+          </tr>
+          <tr>
+            <td>Works in any Windows app</td>
+            <td class="col-voxlen"><span class="check">✓</span> Universal OS-level injection</td>
+            <td class="col-dragon">Limited app compatibility</td>
+          </tr>
+          <tr>
+            <td>No cloud storage of your content</td>
+            <td class="col-voxlen"><span class="check">✓</span> On-device only</td>
+            <td class="col-dragon">Nuance / Microsoft cloud</td>
+          </tr>
+          <tr>
+            <td>On-device vocabulary learning</td>
+            <td class="col-voxlen"><span class="check">✓</span> AI flywheel</td>
+            <td class="col-dragon">Basic word lists</td>
+          </tr>
+          <tr>
+            <td>Lightweight &amp; fast startup</td>
+            <td class="col-voxlen"><span class="check">✓</span> Native Tauri app</td>
+            <td class="col-dragon">Heavy legacy software</td>
+          </tr>
+          <tr>
+            <td>Actively developed with AI features</td>
+            <td class="col-voxlen"><span class="check">✓</span> Continuously updated</td>
+            <td class="col-dragon">Infrequent updates</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <p class="section-label">Pricing</p>
+    <h2>Simple, honest pricing</h2>
+    <p class="section-desc">Start free. Upgrade when you're ready. Far cheaper than Dragon — and far more capable.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <p class="pricing-plan">Free</p>
+        <p class="pricing-price">$0</p>
+        <p class="pricing-desc">Get started with no commitment.</p>
+        <ul class="pricing-features">
+          <li>60 minutes / month</li>
+          <li>Deepgram Nova-2 transcription</li>
+          <li>Works in any Windows app</li>
+          <li>Basic vocabulary learning</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn">Download Free</a>
+      </div>
+      <div class="pricing-card featured" style="position:relative;">
+        <span class="pricing-badge">Most Popular</span>
+        <p class="pricing-plan">Pro Monthly</p>
+        <p class="pricing-price">$29 <span>/ month</span></p>
+        <p class="pricing-desc">For professionals who dictate daily.</p>
+        <ul class="pricing-features">
+          <li>Unlimited transcription</li>
+          <li>AI grammar correction</li>
+          <li>Advanced vocabulary flywheel</li>
+          <li>Priority support</li>
+          <li>All STT engines</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn">Start Pro Trial</a>
+      </div>
+      <div class="pricing-card">
+        <p class="pricing-plan">Pro Annual</p>
+        <p class="pricing-price">$79 <span>/ year</span></p>
+        <p class="pricing-desc">Save 77% vs monthly billing.</p>
+        <ul class="pricing-features">
+          <li>Everything in Pro Monthly</li>
+          <li>Best value plan</li>
+          <li>Annual billing</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn">Get Annual</a>
+      </div>
+      <div class="pricing-card" style="border-color: var(--gold);">
+        <p class="pricing-plan" style="color: var(--gold);">Lifetime</p>
+        <p class="pricing-price" style="color: var(--gold-light);">$599</p>
+        <p class="pricing-desc">Pay once, own it forever. For power users.</p>
+        <ul class="pricing-features">
+          <li>All Pro features forever</li>
+          <li>All future updates included</li>
+          <li>No recurring payments</li>
+          <li>Priority lifetime support</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn" style="border-color: var(--gold); color: var(--gold);">Get Lifetime</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section>
+  <div class="section-inner">
+    <p class="section-label">FAQ</p>
+    <h2>Frequently asked questions</h2>
+    <p class="section-desc">Everything you need to know about Voxlen for Windows.</p>
+    <div class="faq-list">
+      <details>
+        <summary>Is Voxlen a good Dragon NaturallySpeaking alternative for Windows?</summary>
+        <div class="faq-answer">Yes. Dragon NaturallySpeaking (Dragon Professional) still exists on Windows but is expensive ($300–$500+), relies on aging acoustic models, and lacks modern AI features. Voxlen replaces it with state-of-the-art AI transcription (Deepgram Nova-2) and AI grammar correction (Claude / GPT-4o-mini) at a fraction of the price, with active development and a free tier to get started.</div>
+      </details>
+      <details>
+        <summary>Does Voxlen work on Windows 11?</summary>
+        <div class="faq-answer">Yes. Voxlen is fully compatible with Windows 11 (Home, Pro, Enterprise, Education — all editions) and Windows 10 (version 1903 and later). It is a native Windows application, so it installs and behaves like any standard Windows program with no unusual dependencies.</div>
+      </details>
+      <details>
+        <summary>Which Windows apps does Voxlen work in?</summary>
+        <div class="faq-answer">Voxlen works in virtually any Windows application — Microsoft Word, Outlook, Excel, Microsoft Teams, Edge, Chrome, Firefox, Notepad, legal practice management platforms, QuickBooks, Xero, and more. It injects text at the OS level using the Windows Input Simulation API, so anywhere you can type, Voxlen can dictate.</div>
+      </details>
+      <details>
+        <summary>Is my dictation data private on Windows?</summary>
+        <div class="faq-answer">Yes. Voxlen is designed for professionals such as lawyers and accountants who handle sensitive, confidential information. Your dictated content is never uploaded to or stored on Voxlen servers. All vocabulary learning and correction patterns are stored locally on your Windows PC. Privacy is a core architectural guarantee, not an afterthought.</div>
+      </details>
+      <details>
+        <summary>Does Voxlen work with Windows Speech Recognition or Cortana?</summary>
+        <div class="faq-answer">Voxlen is a completely independent application — it does not rely on Windows Speech Recognition, Cortana, or any built-in Windows AI features. It brings its own AI engines (Deepgram Nova-2 and OpenAI Whisper) which deliver far superior accuracy to anything built into Windows, especially for professional terminology.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section style="text-align: center; padding: 80px 24px; background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(115,69,209,0.2) 0%, transparent 70%);">
+  <h2 style="margin-bottom: 16px;">Replace Dragon on Windows — for free</h2>
+  <p style="color: var(--text-muted); margin-bottom: 32px; max-width: 480px; margin-left: auto; margin-right: auto;">Thousands of Windows professionals have already switched to Voxlen. Start with the free plan — no credit card required, no commitment.</p>
+  <a href="https://voxlen.ai/#download" class="btn-primary" style="font-size: 1.1rem; padding: 16px 40px;">⬇ Download Voxlen for Windows Free</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="https://voxlen.ai/" class="logo" style="font-size:1.3rem;">Voxlen</a>
+        <p>The most advanced AI voice dictation software for Windows and Mac. Built for professionals who demand accuracy and privacy.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="https://voxlen.ai/">Home</a></li>
+          <li><a href="https://voxlen.ai/#download">Download</a></li>
+          <li><a href="https://voxlen.ai/voice-dictation-mac">Mac</a></li>
+          <li><a href="https://voxlen.ai/voice-dictation-windows">Windows</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://voxlen.ai/">About</a></li>
+          <li><a href="https://voxlen.ai/">Privacy Policy</a></li>
+          <li><a href="https://voxlen.ai/">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2025 Voxlen. All rights reserved.</span>
+      <span>Voice dictation software for Windows &amp; Mac professionals.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

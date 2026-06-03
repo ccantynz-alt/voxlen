@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Dictation for iPhone & iPad | AI Keyboard — Voxlen</title>
+  <meta name="description" content="Voxlen adds AI voice dictation to every app on your iPhone and iPad via a custom keyboard extension. Legal clause library, AI grammar correction, and offline mode. Free trial." />
+  <meta name="keywords" content="voice dictation iphone, dictation app iphone, voice to text iphone, ipad dictation software, ai keyboard iphone, voice dictation for lawyers iphone" />
+  <link rel="canonical" href="https://voxlen.ai/voice-dictation-iphone" />
+  <meta property="og:title" content="Voice Dictation for iPhone & iPad | Voxlen AI" />
+  <meta property="og:description" content="AI voice dictation keyboard for iPhone and iPad. Works in every app — email, notes, documents, legal software. Includes clause library and offline mode." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://voxlen.ai/voice-dictation-iphone" />
+  <meta property="og:image" content="https://voxlen.ai/og-image.png" />
+  <link rel="icon" type="image/svg+xml" href="/vox-icon.svg" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Voxlen for iPhone",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "iOS",
+    "description": "AI-powered voice dictation keyboard extension for iPhone and iPad. Works in every app with real-time transcription, AI grammar correction, and legal clause library.",
+    "url": "https://voxlen.ai/voice-dictation-iphone",
+    "offers": [
+      {"@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD"},
+      {"@type": "Offer", "name": "Pro", "price": "29", "priceCurrency": "USD"},
+      {"@type": "Offer", "name": "Professional", "price": "79", "priceCurrency": "USD"},
+      {"@type": "Offer", "name": "Lifetime", "price": "599", "priceCurrency": "USD"}
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How does Voxlen voice dictation work on iPhone?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Voxlen installs as a custom keyboard extension on iPhone and iPad. Once enabled in Settings → General → Keyboard → Keyboards, the Voxlen keyboard appears in any app. Tap the microphone button to start dictating — Voxlen transcribes in real time using Deepgram Nova-3, then applies AI grammar correction via Claude before inserting the text."}
+      },
+      {
+        "@type": "Question",
+        "name": "Does Voxlen work in every iPhone app?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes. Because Voxlen is a system-level keyboard extension, it works in any app that accepts text input — Mail, Notes, Safari, Word, Outlook, LexisNexis, Clio, iManage, and thousands more. You do not need to copy-paste; the text is typed directly."}
+      },
+      {
+        "@type": "Question",
+        "name": "Is there an offline voice dictation mode for iPhone?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes. Voxlen's Privileged Mode uses on-device Whisper transcription — audio never leaves your iPhone. This is essential for lawyers handling client-privileged information or confidential financial data. Available on the Professional plan."}
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use iPhone voice dictation for legal documents?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes. Voxlen for iPhone includes the same legal clause library as the desktop app — just say 'insert indemnity clause' and it appears. It also recognises 26 Latin legal phrases, formats legal citations, and applies legal-specific grammar rules."}
+      },
+      {
+        "@type": "Question",
+        "name": "Does Voxlen sync between iPhone and Mac?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes. Your Voxlen account syncs your custom vocabulary, clause library, and settings across all your devices — iPhone, iPad, Mac, and Windows PC. Dictation history is stored locally on each device for privacy."}
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #09090b; color: #fff; line-height: 1.6; }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    /* Nav */
+    nav { border-bottom: 1px solid #27272a; padding: 16px 0; }
+    nav .inner { display: flex; align-items: center; justify-content: space-between; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .logo { font-size: 1.4rem; font-weight: 800; color: #7345d1; }
+    .btn-primary { background: #7345d1; color: #fff; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; transition: background 0.2s; }
+    .btn-primary:hover { background: #5c35b0; }
+    /* Hero */
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .platform-badge { display: inline-flex; align-items: center; gap: 8px; background: #18181b; border: 1px solid #3f3f46; border-radius: 100px; padding: 6px 16px; font-size: 0.85rem; color: #a1a1aa; margin-bottom: 28px; }
+    .platform-badge span { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; }
+    h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; line-height: 1.1; margin-bottom: 20px; }
+    h1 em { font-style: normal; color: #7345d1; }
+    .hero p { font-size: 1.15rem; color: #a1a1aa; max-width: 600px; margin: 0 auto 36px; }
+    .hero-ctas { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-secondary { background: transparent; border: 1px solid #3f3f46; color: #fff; padding: 10px 24px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; }
+    /* How it works */
+    section { padding: 72px 0; }
+    section + section { border-top: 1px solid #18181b; }
+    h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 12px; }
+    .section-sub { color: #a1a1aa; font-size: 1.05rem; margin-bottom: 48px; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 32px; }
+    .step { text-align: center; }
+    .step-num { width: 48px; height: 48px; background: #7345d1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; margin: 0 auto 16px; }
+    .step h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .step p { color: #a1a1aa; font-size: 0.95rem; }
+    /* Features */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .feature-card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 28px; }
+    .feature-icon { font-size: 2rem; margin-bottom: 16px; }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { color: #a1a1aa; font-size: 0.9rem; }
+    /* Pricing */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+    .plan { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 28px; }
+    .plan.featured { border-color: #7345d1; background: #1a1024; }
+    .plan-name { font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: #a1a1aa; margin-bottom: 12px; }
+    .plan-name.gold { color: #d4a82a; }
+    .plan-price { font-size: 2rem; font-weight: 900; margin-bottom: 4px; }
+    .plan-price span { font-size: 1rem; font-weight: 400; color: #71717a; }
+    .plan-desc { color: #a1a1aa; font-size: 0.88rem; margin-bottom: 20px; }
+    .plan ul { list-style: none; }
+    .plan ul li { color: #d4d4d8; font-size: 0.88rem; padding: 4px 0; padding-left: 20px; position: relative; }
+    .plan ul li::before { content: "✓"; position: absolute; left: 0; color: #7345d1; font-weight: 700; }
+    /* FAQ */
+    .faq-list { max-width: 720px; }
+    .faq-item { border-bottom: 1px solid #27272a; padding: 24px 0; }
+    .faq-item h3 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+    .faq-item p { color: #a1a1aa; font-size: 0.93rem; }
+    /* Footer */
+    footer { border-top: 1px solid #27272a; padding: 40px 0; }
+    footer .inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; }
+    footer p { color: #71717a; font-size: 0.88rem; }
+    footer nav a { color: #71717a; font-size: 0.88rem; margin-left: 24px; }
+    footer nav a:hover { color: #fff; }
+    @media (max-width: 600px) {
+      .hero-ctas { flex-direction: column; align-items: center; }
+      footer .inner { flex-direction: column; align-items: flex-start; }
+      footer nav a { margin-left: 0; margin-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="inner">
+      <a href="https://voxlen.ai/" class="logo">Voxlen</a>
+      <a href="https://voxlen.ai/#download" class="btn-primary">Free Trial</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <section class="hero" style="border:none; padding-top:80px;">
+      <div class="platform-badge"><span></span> Available on iOS 16+</div>
+      <h1>AI Voice Dictation<br>for <em>iPhone & iPad</em></h1>
+      <p>Voxlen installs as a system keyboard on your iPhone and iPad — tap the mic in any app, speak, and professional AI-polished text appears. Legal clauses, accounting terms, and 20+ languages included.</p>
+      <div class="hero-ctas">
+        <a href="https://voxlen.ai/#download" class="btn-primary">Download Free</a>
+        <a href="https://voxlen.ai/#features" class="btn-secondary">See Features</a>
+      </div>
+    </section>
+
+    <section>
+      <h2>How It Works on iPhone</h2>
+      <p class="section-sub">Three steps from install to dictating in every app.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Install the Keyboard</h3>
+          <p>Download Voxlen from the App Store. Enable the Voxlen keyboard in iPhone Settings → General → Keyboard → Keyboards.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Tap Mic in Any App</h3>
+          <p>Switch to the Voxlen keyboard in any app — Mail, Notes, Word, Outlook, Clio. Tap the microphone and start speaking naturally.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>AI Polishes the Text</h3>
+          <p>Deepgram Nova-3 transcribes in real time. Claude AI corrects grammar and applies legal or accounting formatting. The polished text is typed directly.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Built for Professional Use</h2>
+      <p class="section-sub">Everything lawyers and accountants need on their iPhone.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⌨️</div>
+          <h3>Works in Every App</h3>
+          <p>As a system keyboard, Voxlen works wherever you type — email, documents, messaging, legal software, and web browsers.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚖️</div>
+          <h3>Legal Clause Library</h3>
+          <p>Say "insert indemnity clause" and the full clause appears instantly. 15+ pre-built legal clauses ready to use, with custom clause support.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Privileged Mode (Offline)</h3>
+          <p>Enable offline mode for sensitive matters — audio is transcribed on-device using Whisper and never sent to any server. Essential for privileged communications.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>AI Grammar Correction</h3>
+          <p>Claude AI automatically corrects grammar, removes filler words, and formats text appropriately for legal correspondence or financial reports.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌍</div>
+          <h3>20+ Languages</h3>
+          <p>Dictate in English, French, Spanish, German, Japanese, and 15+ more languages. Automatic language detection switches seamlessly mid-session.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Syncs with Desktop</h3>
+          <p>Your custom vocabulary, clauses, and settings sync across iPhone, iPad, Mac, and Windows. Start dictating on your iPhone, finish on your Mac.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Pricing</h2>
+      <p class="section-sub">All plans include iPhone and iPad access.</p>
+      <div class="pricing-grid">
+        <div class="plan">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0</div>
+          <div class="plan-desc">Get started with AI dictation.</div>
+          <ul>
+            <li>50 min/month transcription</li>
+            <li>Basic grammar correction</li>
+            <li>Works in all apps</li>
+            <li>5 custom vocabulary terms</li>
+          </ul>
+        </div>
+        <div class="plan featured">
+          <div class="plan-name gold">Pro</div>
+          <div class="plan-price">$29<span>/mo</span></div>
+          <div class="plan-desc">Full AI dictation for professionals.</div>
+          <ul>
+            <li>Unlimited transcription</li>
+            <li>Claude AI grammar correction</li>
+            <li>Legal clause library</li>
+            <li>Unlimited custom vocabulary</li>
+            <li>All languages</li>
+          </ul>
+        </div>
+        <div class="plan">
+          <div class="plan-name">Professional</div>
+          <div class="plan-price">$79<span>/mo</span></div>
+          <div class="plan-desc">For law firms and accounting teams.</div>
+          <ul>
+            <li>Everything in Pro</li>
+            <li>Privileged Mode (offline)</li>
+            <li>SSO / team management</li>
+            <li>Priority support</li>
+            <li>Custom clause library</li>
+          </ul>
+        </div>
+        <div class="plan">
+          <div class="plan-name gold">Lifetime</div>
+          <div class="plan-price">$599</div>
+          <div class="plan-desc">Pay once, use forever.</div>
+          <ul>
+            <li>All Pro features forever</li>
+            <li>All future updates included</li>
+            <li>No subscription required</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-list">
+        <div class="faq-item">
+          <h3>How does Voxlen voice dictation work on iPhone?</h3>
+          <p>Voxlen installs as a custom keyboard extension on iPhone and iPad. Once enabled in Settings → General → Keyboard → Keyboards, the Voxlen keyboard appears in any app. Tap the microphone button to start dictating — Voxlen transcribes in real time using Deepgram Nova-3, then applies AI grammar correction via Claude before inserting text directly.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Does Voxlen work in every iPhone app?</h3>
+          <p>Yes. Because Voxlen is a system-level keyboard extension, it works in any app that accepts text input — Mail, Notes, Safari, Word, Outlook, LexisNexis, Clio, iManage, and thousands more. No copy-pasting required — text is typed directly where your cursor is.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Is there an offline voice dictation mode for iPhone?</h3>
+          <p>Yes. Voxlen's Privileged Mode uses on-device Whisper transcription — audio never leaves your iPhone. This is essential for lawyers handling client-privileged information or confidential financial data. Available on the Professional plan.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Can I use iPhone voice dictation for legal documents?</h3>
+          <p>Yes. Voxlen for iPhone includes the same legal clause library as the desktop app — say "insert indemnity clause" and it appears. It also recognises 26 Latin legal phrases, formats legal citations, and applies legal-specific grammar rules automatically.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Does Voxlen sync between iPhone and Mac?</h3>
+          <p>Yes. Your Voxlen account syncs custom vocabulary, clause library, and settings across all devices — iPhone, iPad, Mac, and Windows PC. Dictation history is stored locally on each device for privacy.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="inner">
+      <p>© 2026 Voxlen. All rights reserved.</p>
+      <nav>
+        <a href="https://voxlen.ai/">Home</a>
+        <a href="https://voxlen.ai/privacy">Privacy</a>
+        <a href="https://voxlen.ai/terms">Terms</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
