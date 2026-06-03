@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import {
   Mic,
   MicOff,
@@ -11,6 +11,7 @@ import {
   FileText,
   Zap,
   Keyboard,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -189,9 +190,30 @@ export function DictationPanel() {
     clearSession();
   }, [clearSession]);
 
+  const voxlenContext = useSettingsStore((s) => s.voxlenContext);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const [contextOpen, setContextOpen] = useState(false);
+
   const isActive = status === "listening" || status === "processing";
   const showControls = isActive || status === "paused";
   const hasContent = segments.length > 0;
+
+  const CONTEXTS = [
+    { value: "", label: "General" },
+    { value: "legal_general", label: "Legal" },
+    { value: "legal_contract", label: "Contract" },
+    { value: "legal_case_note", label: "Case Note" },
+    { value: "legal_court_filing", label: "Court Filing" },
+    { value: "legal_deposition", label: "Deposition" },
+    { value: "legal_correspondence", label: "Legal Letter" },
+    { value: "accounting_general", label: "Accounting" },
+    { value: "accounting_tax", label: "Tax" },
+    { value: "accounting_audit", label: "Audit" },
+    { value: "accounting_memo", label: "Memo" },
+    { value: "accounting_correspondence", label: "Accounting Letter" },
+  ];
+
+  const currentContext = CONTEXTS.find((c) => c.value === voxlenContext) ?? CONTEXTS[0];
 
   return (
     <div className="flex flex-col h-full">
@@ -254,6 +276,39 @@ export function DictationPanel() {
               <Badge variant="warning" className="mt-2 text-[9px]">
                 CAPS ON
               </Badge>
+            )}
+          </div>
+
+          {/* Context selector */}
+          <div className="relative">
+            <button
+              onClick={() => setContextOpen((o) => !o)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-surface-300/60 bg-surface-50/70 text-[11px] font-medium text-surface-700 hover:border-brass-400/50 hover:text-surface-900 transition-all shadow-inset-hairline"
+            >
+              <span className="text-brass-500/80 text-[9px] uppercase tracking-widest mr-0.5">Context</span>
+              {currentContext.label}
+              <ChevronDown className="h-3 w-3 text-surface-500" strokeWidth={1.75} />
+            </button>
+            {contextOpen && (
+              <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-50 w-52 rounded-lg border border-surface-300/60 bg-surface-50 shadow-elevation py-1">
+                {CONTEXTS.map((ctx) => (
+                  <button
+                    key={ctx.value}
+                    onClick={() => {
+                      updateSetting("voxlenContext", ctx.value);
+                      setContextOpen(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-[11px] transition-colors",
+                      ctx.value === voxlenContext
+                        ? "bg-marcoreid-900/20 text-surface-950 font-semibold"
+                        : "text-surface-700 hover:bg-surface-100"
+                    )}
+                  >
+                    {ctx.label}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
