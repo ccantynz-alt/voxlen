@@ -50,7 +50,7 @@ describe("updateClient", () => {
 describe("archiveClient", () => {
   it("sets archived=true on the target client", () => {
     const store = useClientsStore.getState();
-    const id = store.addClient({ name: "To Archive", billableRate: 0 });
+    const id = store.addClient({ name: "To Archive", billableRate: 0, color: "" });
     useClientsStore.getState().archiveClient(id);
     const { clients } = useClientsStore.getState();
     expect(clients[0].archived).toBe(true);
@@ -58,7 +58,7 @@ describe("archiveClient", () => {
 
   it("clears activeClientId when the active client is archived", () => {
     const store = useClientsStore.getState();
-    const id = store.addClient({ name: "Active", billableRate: 0 });
+    const id = store.addClient({ name: "Active", billableRate: 0, color: "" });
     useClientsStore.setState({ activeClientId: id });
     useClientsStore.getState().archiveClient(id);
     expect(useClientsStore.getState().activeClientId).toBeNull();
@@ -66,8 +66,8 @@ describe("archiveClient", () => {
 
   it("leaves activeClientId unchanged when a different client is archived", () => {
     const store = useClientsStore.getState();
-    const id1 = store.addClient({ name: "Client A", billableRate: 0 });
-    const id2 = store.addClient({ name: "Client B", billableRate: 0 });
+    const id1 = store.addClient({ name: "Client A", billableRate: 0, color: "" });
+    const id2 = store.addClient({ name: "Client B", billableRate: 0, color: "" });
     useClientsStore.setState({ activeClientId: id1 });
     useClientsStore.getState().archiveClient(id2);
     expect(useClientsStore.getState().activeClientId).toBe(id1);
@@ -77,7 +77,7 @@ describe("archiveClient", () => {
 describe("addEntry and getTotalBillable", () => {
   it("addEntry stores the entry and getTotalBillable sums billableAmount", () => {
     const store = useClientsStore.getState();
-    const clientId = store.addClient({ name: "Law Firm", billableRate: 500 });
+    const clientId = store.addClient({ name: "Law Firm", billableRate: 500, color: "" });
     const base = { clientId, date: Date.now(), durationSeconds: 3600, wordCount: 500 };
     store.addEntry({ ...base, billableAmount: 500 });
     store.addEntry({ ...base, billableAmount: 250 });
@@ -87,8 +87,8 @@ describe("addEntry and getTotalBillable", () => {
 
   it("getTotalBillable ignores entries from other clients", () => {
     const store = useClientsStore.getState();
-    const id1 = store.addClient({ name: "Client 1", billableRate: 0 });
-    const id2 = store.addClient({ name: "Client 2", billableRate: 0 });
+    const id1 = store.addClient({ name: "Client 1", billableRate: 0, color: "" });
+    const id2 = store.addClient({ name: "Client 2", billableRate: 0, color: "" });
     const base = { date: Date.now(), durationSeconds: 1800, wordCount: 200 };
     store.addEntry({ ...base, clientId: id1, billableAmount: 100 });
     store.addEntry({ ...base, clientId: id2, billableAmount: 999 });
@@ -99,7 +99,7 @@ describe("addEntry and getTotalBillable", () => {
 describe("getTotalHours", () => {
   it("converts durationSeconds to hours correctly", () => {
     const store = useClientsStore.getState();
-    const clientId = store.addClient({ name: "Accountant", billableRate: 300 });
+    const clientId = store.addClient({ name: "Accountant", billableRate: 300, color: "" });
     store.addEntry({ clientId, date: Date.now(), durationSeconds: 3600, wordCount: 400, billableAmount: 300 });
     store.addEntry({ clientId, date: Date.now(), durationSeconds: 1800, wordCount: 200, billableAmount: 150 });
     const hours = useClientsStore.getState().getTotalHours(clientId);
@@ -108,7 +108,7 @@ describe("getTotalHours", () => {
 
   it("returns 0 when there are no entries", () => {
     const store = useClientsStore.getState();
-    const clientId = store.addClient({ name: "Empty", billableRate: 0 });
+    const clientId = store.addClient({ name: "Empty", billableRate: 0, color: "" });
     expect(useClientsStore.getState().getTotalHours(clientId)).toBe(0);
   });
 });
