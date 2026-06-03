@@ -8,6 +8,11 @@ pub struct GrammarConfig {
     pub style: WritingStyle,
     pub auto_correct: bool,
     pub preserve_tone: bool,
+    /// When set, grammar correction is proxied through api.voxlen.com.
+    #[serde(default)]
+    pub voxlen_api_key: Option<String>,
+    #[serde(default)]
+    pub voxlen_context: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +39,8 @@ impl Default for GrammarConfig {
             style: WritingStyle::Professional,
             auto_correct: true,
             preserve_tone: true,
+            voxlen_api_key: None,
+            voxlen_context: None,
         }
     }
 }
@@ -77,12 +84,21 @@ pub async fn correct_grammar(
         });
     }
 
+    let vocab = custom_vocabulary.unwrap_or_default();
+
+    // Prefer Voxlen proxy (no user API key needed) over direct provider calls
+    if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        return correct_with_voxlen_proxy(
+            &text, voxlen_key,
+            config.voxlen_context.as_deref(),
+            &config, &vocab
+        ).await;
+    }
+
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or("Grammar API key not configured")?;
-
-    let vocab = custom_vocabulary.unwrap_or_default();
+        .ok_or("No API key configured. Sign in to your Voxlen account in Settings, or add your Anthropic/OpenAI API key.")?;
 
     match config.provider {
         GrammarProvider::Claude => correct_with_claude(&text, api_key, &config, &vocab).await,
@@ -284,6 +300,61 @@ Text: "{text}""#,
             })
             .unwrap_or_default(),
         score: grammar_result["score"].as_f64().unwrap_or(1.0) as f32,
+    })
+}
+
+/// Proxy grammar correction through api.voxlen.com — no provider key needed.
+async fn correct_with_voxlen_proxy(
+    text: &str,
+    voxlen_key: &str,
+    context: Option<&str>,
+    config: &GrammarConfig,
+    custom_vocabulary: &[String],
+) -> Result<GrammarResult, String> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://api.voxlen.com/v1/grammar")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .header("content-type", "application/json")
+        .json(&serde_json::json!({
+            "text": text,
+            "style": format!("{:?}", config.style).to_lowercase(),
+            "context": context.unwrap_or("general"),
+            "custom_vocabulary": custom_vocabulary,
+            "preserve_tone": config.preserve_tone,
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Voxlen API error: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Voxlen grammar API returned {}: {}", status, body));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Voxlen grammar response: {}", e))?;
+
+    Ok(GrammarResult {
+        original: text.to_string(),
+        corrected: result["corrected"].as_str().unwrap_or(text).to_string(),
+        changes: result["changes"]
+            .as_array()
+            .map(|arr| {
+                arr.iter()
+                    .map(|c| GrammarChange {
+                        original: c["original"].as_str().unwrap_or("").to_string(),
+                        corrected: c["corrected"].as_str().unwrap_or("").to_string(),
+                        reason: c["reason"].as_str().unwrap_or("").to_string(),
+                        category: c["category"].as_str().unwrap_or("grammar").to_string(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+        score: result["score"].as_f64().unwrap_or(1.0) as f32,
     })
 }
 

@@ -209,7 +209,7 @@ export async function hydrateSecrets(): Promise<void> {
 export const useSettingsStore = create<SettingsState>((set) => ({
   ...defaultSettings,
   isLoaded: false,
-  activeTab: "general",
+  activeTab: "voxlen-api",
 
   updateSetting: (key, value) => {
     set({ [key]: value });

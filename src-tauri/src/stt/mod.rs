@@ -46,21 +46,29 @@ pub struct SttConfig {
     /// prefix output with speaker labels like "[Speaker 1]: ...".
     #[serde(default)]
     pub speaker_diarization: bool,
+    /// When set, all STT calls are proxied through api.voxlen.com
+    /// so the user does not need their own provider API keys.
+    #[serde(default)]
+    pub voxlen_api_key: Option<String>,
+    #[serde(default)]
+    pub voxlen_context: Option<String>,
 }
 
 impl Default for SttConfig {
     fn default() -> Self {
         Self {
-            engine: SttEngineType::WhisperCloud,
+            engine: SttEngineType::DeepgramCloud,
             language: "en".to_string(),
             auto_detect_language: true,
             api_key: None,
-            model: "whisper-1".to_string(),
+            model: "nova-3".to_string(),
             punctuate: true,
             smart_format: true,
             profanity_filter: false,
             custom_vocabulary: Vec::new(),
             speaker_diarization: false,
+            voxlen_api_key: None,
+            voxlen_context: None,
         }
     }
 }

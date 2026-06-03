@@ -20,6 +20,7 @@ import { useAudioStore } from "@/stores/audio";
 import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
 
 const tabs = [
+  { id: "voxlen-api", label: "Account", icon: Globe },
   { id: "audio", label: "Audio", icon: Mic },
   { id: "stt", label: "Speech Engine", icon: Cpu },
   { id: "grammar", label: "Grammar AI", icon: SpellCheck },
@@ -27,7 +28,6 @@ const tabs = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "advanced", label: "Advanced", icon: Zap },
   { id: "privacy", label: "Privacy", icon: Shield },
-  { id: "voxlen-api", label: "Voxlen API", icon: Globe },
 ];
 
 // Persist settings whenever they change
@@ -464,15 +464,24 @@ function SttSettings() {
         />
       </SettingRow>
 
-      <SettingRow>
-        <Input
-          label="API Key"
-          type="password"
-          value={settings.sttApiKey}
-          onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-          placeholder="Enter your API key..."
-        />
-      </SettingRow>
+      {settings.voxlenApiKey ? (
+        <SettingRow>
+          <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/30 px-4 py-3 text-sm text-purple-300">
+            <span className="text-green-400">✓</span>
+            Transcription powered by your Voxlen account — no provider API key needed.
+          </div>
+        </SettingRow>
+      ) : (
+        <SettingRow>
+          <Input
+            label="API Key (optional — not needed with Voxlen account)"
+            type="password"
+            value={settings.sttApiKey}
+            onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
+            placeholder="Add your own Deepgram / OpenAI key, or sign in via Voxlen tab"
+          />
+        </SettingRow>
+      )}
 
       <SettingRow>
         <Switch
@@ -674,21 +683,30 @@ function GrammarSettings() {
         />
       </SettingRow>
 
-      <SettingRow>
-        <Input
-          label="AI API Key"
-          type="password"
-          value={settings.grammarApiKey}
-          onChange={(e) =>
-            settings.updateSetting("grammarApiKey", e.target.value)
-          }
-          placeholder={
-            settings.grammarProvider === "claude"
-              ? "sk-ant-..."
-              : "sk-..."
-          }
-        />
-      </SettingRow>
+      {settings.voxlenApiKey ? (
+        <SettingRow>
+          <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/30 px-4 py-3 text-sm text-purple-300">
+            <span className="text-green-400">✓</span>
+            Grammar AI powered by your Voxlen account — no provider API key needed.
+          </div>
+        </SettingRow>
+      ) : (
+        <SettingRow>
+          <Input
+            label="AI API Key (optional — not needed with Voxlen account)"
+            type="password"
+            value={settings.grammarApiKey}
+            onChange={(e) =>
+              settings.updateSetting("grammarApiKey", e.target.value)
+            }
+            placeholder={
+              settings.grammarProvider === "claude"
+                ? "sk-ant-... (or sign in via Voxlen tab)"
+                : "sk-... (or sign in via Voxlen tab)"
+            }
+          />
+        </SettingRow>
+      )}
 
       <SettingRow>
         <Select
