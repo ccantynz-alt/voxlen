@@ -20,6 +20,7 @@ import { usePersistedSettings, saveSettings } from "@/hooks/usePersistedSettings
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
+import { loadCustomClauses } from "@/stores/clauses";
 import { ToastContainer } from "@/components/ui/Toast";
 
 type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin" | "clauses" | "analytics" | "clients";
@@ -47,6 +48,7 @@ export default function App() {
   // Load flywheel data on startup
   useEffect(() => {
     loadFlywheel();
+    loadCustomClauses();
   }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).

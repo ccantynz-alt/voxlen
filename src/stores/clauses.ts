@@ -21,8 +21,10 @@ interface ClauseStore {
   clauses: Clause[];
   templates: DocumentTemplate[];
   recentlyUsed: string[]; // clause IDs
+  customClauseIds: string[]; // IDs of user-added clauses
   addClause: (clause: Clause) => void;
   removeClause: (id: string) => void;
+  updateClause: (id: string, updates: Partial<Omit<Clause, "id">>) => void;
   markUsed: (id: string) => void;
   findByTrigger: (text: string) => Clause | undefined;
   findTemplatByTrigger: (text: string) => DocumentTemplate | undefined;
@@ -193,14 +195,30 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
   clauses: BUILT_IN_CLAUSES,
   templates: BUILT_IN_TEMPLATES,
   recentlyUsed: [],
+  customClauseIds: [],
 
-  addClause: (clause) =>
-    set((state) => ({ clauses: [...state.clauses, clause] })),
+  addClause: (clause) => {
+    set((state) => ({
+      clauses: [...state.clauses, clause],
+      customClauseIds: [...state.customClauseIds, clause.id],
+    }));
+    persistCustomClauses(get());
+  },
 
-  removeClause: (id) =>
+  removeClause: (id) => {
     set((state) => ({
       clauses: state.clauses.filter((c) => c.id !== id),
-    })),
+      customClauseIds: state.customClauseIds.filter((x) => x !== id),
+    }));
+    persistCustomClauses(get());
+  },
+
+  updateClause: (id, updates) => {
+    set((state) => ({
+      clauses: state.clauses.map((c) => c.id === id ? { ...c, ...updates } : c),
+    }));
+    persistCustomClauses(get());
+  },
 
   markUsed: (id) =>
     set((state) => ({
@@ -225,3 +243,47 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
     );
   },
 }));
+
+function persistCustomClauses(state: ClauseStore): void {
+  const customClauses = state.clauses.filter((c) => state.customClauseIds.includes(c.id));
+  (async () => {
+    try {
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("clauses.json");
+      await store.set("custom_clauses", customClauses);
+      await store.save();
+    } catch {
+      try {
+        localStorage.setItem("voxlen_custom_clauses", JSON.stringify(customClauses));
+      } catch {
+        // ignore
+      }
+    }
+  })();
+}
+
+export async function loadCustomClauses(): Promise<void> {
+  try {
+    let saved: Clause[] | null = null;
+    try {
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("clauses.json");
+      saved = (await store.get<Clause[]>("custom_clauses")) ?? null;
+    } catch {
+      const raw = localStorage.getItem("voxlen_custom_clauses");
+      if (raw) saved = JSON.parse(raw) as Clause[];
+    }
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      const ids = saved.map((c) => c.id);
+      useClauseStore.setState((state) => ({
+        clauses: [
+          ...state.clauses.filter((c) => !ids.includes(c.id)),
+          ...saved!,
+        ],
+        customClauseIds: ids,
+      }));
+    }
+  } catch {
+    // ignore
+  }
+}

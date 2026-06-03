@@ -3,7 +3,7 @@ import { useClauseStore, Clause } from "@/stores/clauses";
 import { useDictationStore } from "@/stores/dictation";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { Search, FileText, Copy, Check } from "lucide-react";
+import { Search, FileText, Copy, Check, Plus, Pencil, Trash2, X } from "lucide-react";
 
 const CATEGORY_LABELS: Record<string, string> = {
   contract: "Contract",
@@ -25,14 +25,32 @@ const CATEGORY_COLORS: Record<string, string> = {
   general: "bg-surface-500/10 text-surface-400",
 };
 
+type ClauseFormState = {
+  title: string;
+  category: Clause["category"];
+  voiceTrigger: string;
+  text: string;
+};
+
+const EMPTY_FORM: ClauseFormState = {
+  title: "",
+  category: "general",
+  voiceTrigger: "",
+  text: "",
+};
+
 export function ClauseLibrary() {
-  const { clauses, templates, recentlyUsed, markUsed } = useClauseStore();
+  const { clauses, templates, recentlyUsed, customClauseIds, markUsed, addClause, removeClause, updateClause } = useClauseStore();
   const appendToLastSegment = useDictationStore((s) => s.appendToLastSegment);
   const addSegment = useDictationStore((s) => s.addSegment);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"clauses" | "templates">("clauses");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<ClauseFormState>(EMPTY_FORM);
+  const [formError, setFormError] = useState("");
 
   const filtered = clauses.filter((c) => {
     const matchesSearch =
@@ -86,18 +104,51 @@ export function ClauseLibrary() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const openNew = () => {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setFormError("");
+    setShowForm(true);
+  };
+
+  const openEdit = (clause: Clause) => {
+    setForm({ title: clause.title, category: clause.category, voiceTrigger: clause.voiceTrigger, text: clause.text });
+    setEditingId(clause.id);
+    setFormError("");
+    setShowForm(true);
+  };
+
+  const submitForm = () => {
+    if (!form.title.trim()) { setFormError("Title is required."); return; }
+    if (!form.text.trim()) { setFormError("Clause text is required."); return; }
+    if (!form.voiceTrigger.trim()) { setFormError("Voice trigger is required."); return; }
+    if (editingId) {
+      updateClause(editingId, { title: form.title.trim(), category: form.category, voiceTrigger: form.voiceTrigger.trim().toLowerCase(), text: form.text.trim() });
+    } else {
+      addClause({ id: crypto.randomUUID(), title: form.title.trim(), category: form.category, voiceTrigger: form.voiceTrigger.trim().toLowerCase(), text: form.text.trim(), tags: [] });
+    }
+    setShowForm(false);
+    setEditingId(null);
+  };
+
   const categories = ["all", ...Array.from(new Set(clauses.map((c) => c.category)))];
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-surface-300/50">
-        <h2 className="font-display text-[15px] font-semibold text-surface-950 tracking-tight-display">
-          Clause Library
-        </h2>
-        <p className="text-[11px] text-surface-600 mt-0.5">
-          Voice-insert standard legal &amp; accounting clauses
-        </p>
+      <div className="px-5 py-4 border-b border-surface-300/50 flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-[15px] font-semibold text-surface-950 tracking-tight-display">
+            Clause Library
+          </h2>
+          <p className="text-[11px] text-surface-600 mt-0.5">
+            Voice-insert standard legal &amp; accounting clauses
+          </p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={openNew}>
+          <Plus className="h-3 w-3" strokeWidth={2} />
+          New Clause
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -201,6 +252,24 @@ export function ClauseLibrary() {
                         <Copy className="h-3 w-3" strokeWidth={1.75} />
                       )}
                     </button>
+                    {customClauseIds.includes(clause.id) && (
+                      <>
+                        <button
+                          onClick={() => openEdit(clause)}
+                          title="Edit clause"
+                          className="p-1.5 rounded hover:bg-surface-200 text-surface-500 hover:text-brass-500 transition-colors"
+                        >
+                          <Pencil className="h-3 w-3" strokeWidth={1.75} />
+                        </button>
+                        <button
+                          onClick={() => removeClause(clause.id)}
+                          title="Delete clause"
+                          className="p-1.5 rounded hover:bg-surface-200 text-surface-500 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" strokeWidth={1.75} />
+                        </button>
+                      </>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -251,6 +320,73 @@ export function ClauseLibrary() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* Add/Edit Clause Modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md mx-4 rounded-xl bg-surface-50 border border-surface-300/60 shadow-elevation-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-[14px] font-semibold text-surface-950">
+                {editingId ? "Edit Clause" : "New Custom Clause"}
+              </h3>
+              <button onClick={() => setShowForm(false)} className="text-surface-500 hover:text-surface-900">
+                <X className="h-4 w-4" strokeWidth={1.75} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-medium text-surface-700 mb-1 block">Title</label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Limitation of Liability"
+                  className="w-full rounded-md border border-surface-300/70 bg-surface-100 px-3 py-1.5 text-[12px] text-surface-950 focus:outline-none focus:border-brass-400"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-surface-700 mb-1 block">Category</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as Clause["category"] }))}
+                  className="w-full rounded-md border border-surface-300/70 bg-surface-100 px-3 py-1.5 text-[12px] text-surface-950 focus:outline-none focus:border-brass-400"
+                >
+                  {(["general","contract","liability","ip","employment","gdpr","accounting"] as Clause["category"][]).map((c) => (
+                    <option key={c} value={c}>{CATEGORY_LABELS[c] ?? c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-surface-700 mb-1 block">Voice Trigger</label>
+                <input
+                  value={form.voiceTrigger}
+                  onChange={(e) => setForm((f) => ({ ...f, voiceTrigger: e.target.value }))}
+                  placeholder='e.g. "insert limitation clause"'
+                  className="w-full rounded-md border border-surface-300/70 bg-surface-100 px-3 py-1.5 text-[12px] text-surface-950 focus:outline-none focus:border-brass-400"
+                />
+                <p className="text-[10px] text-surface-500 mt-0.5">Say this phrase to insert the clause automatically.</p>
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-surface-700 mb-1 block">Clause Text</label>
+                <textarea
+                  value={form.text}
+                  onChange={(e) => setForm((f) => ({ ...f, text: e.target.value }))}
+                  placeholder="Enter the full clause text..."
+                  rows={5}
+                  className="w-full rounded-md border border-surface-300/70 bg-surface-100 px-3 py-1.5 text-[12px] text-surface-950 focus:outline-none focus:border-brass-400 resize-none"
+                />
+              </div>
+              {formError && <p className="text-[11px] text-red-400">{formError}</p>}
+              <div className="flex gap-2 pt-1">
+                <Button variant="primary" size="sm" onClick={submitForm} className="flex-1">
+                  {editingId ? "Save Changes" : "Add Clause"}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
