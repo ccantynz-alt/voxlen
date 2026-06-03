@@ -82,7 +82,7 @@ const defaultSettings: AppSettings = {
   inputGain: 1.0,
   noiseSuppression: true,
 
-  sttEngine: "whisper_cloud",
+  sttEngine: "deepgram",
   sttApiKey: "",
   sttLanguage: "en",
   autoDetectLanguage: true,

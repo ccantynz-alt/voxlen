@@ -91,7 +91,7 @@ impl Default for AppSettings {
             input_gain: 1.0,
             noise_suppression: true,
 
-            stt_engine: "whisper_cloud".to_string(),
+            stt_engine: "deepgram".to_string(),
             stt_api_key: None,
             stt_language: "en".to_string(),
             auto_detect_language: true,
