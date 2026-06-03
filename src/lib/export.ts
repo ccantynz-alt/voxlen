@@ -49,7 +49,7 @@ function formatAsText(segments: TranscriptionSegment[]): string {
 
 function formatAsMarkdown(segments: TranscriptionSegment[]): string {
   const lines = [
-    "# Marco Reid Voice Transcript",
+    "# Voxlen Transcript",
     "",
     `**Date:** ${new Date().toLocaleDateString()}`,
     `**Words:** ${segments.reduce((c, s) => c + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length, 0)}`,
@@ -78,7 +78,7 @@ function formatAsJson(segments: TranscriptionSegment[]): string {
   return JSON.stringify(
     {
       version: "1.0",
-      app: "Marco Reid Voice",
+      app: "Voxlen",
       exported: new Date().toISOString(),
       segments: segments.map((s) => ({
         id: s.id,

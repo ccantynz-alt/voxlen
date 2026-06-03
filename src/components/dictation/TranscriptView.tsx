@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
-import { Copy, Check, Wand2, Languages } from "lucide-react";
+import { Copy, Check, Wand2, Languages, Pencil, Trash2, Replace } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -19,8 +19,17 @@ export function TranscriptView({
   const currentTranscript = useDictationStore((s) => s.currentTranscript);
   const status = useDictationStore((s) => s.status);
   const fontSize = useSettingsStore((s) => s.fontSize);
+  const updateSegment = useDictationStore((s) => s.updateSegment);
+  const removeSegment = useDictationStore((s) => s.removeSegment);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = React.useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const editRef = useRef<HTMLTextAreaElement>(null);
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [findValue, setFindValue] = useState("");
+  const [replaceValue, setReplaceValue] = useState("");
+  const [replaceCount, setReplaceCount] = useState<number | null>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -32,6 +41,48 @@ export function TranscriptView({
   const fullText = segments
     .map((s) => s.correctedText || s.text)
     .join(" ");
+
+  const startEdit = useCallback((id: string, text: string) => {
+    setEditingId(id);
+    setEditValue(text);
+    setTimeout(() => {
+      editRef.current?.focus();
+      editRef.current?.select();
+    }, 0);
+  }, []);
+
+  const commitEdit = useCallback(() => {
+    if (!editingId) return;
+    const trimmed = editValue.trim();
+    if (trimmed) {
+      updateSegment(editingId, { correctedText: trimmed, grammarApplied: false });
+    }
+    setEditingId(null);
+  }, [editingId, editValue, updateSegment]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+  }, []);
+
+  const deleteSegment = useCallback((id: string) => {
+    removeSegment(id);
+  }, [removeSegment]);
+
+  const handleReplaceAll = useCallback(() => {
+    if (!findValue.trim()) return;
+    const segs = useDictationStore.getState().segments;
+    let count = 0;
+    segs.forEach((seg) => {
+      const base = seg.correctedText ?? seg.text;
+      if (base.includes(findValue)) {
+        const next = base.split(findValue).join(replaceValue);
+        updateSegment(seg.id, { correctedText: next });
+        count++;
+      }
+    });
+    setReplaceCount(count);
+    if (count > 0) setFindValue("");
+  }, [findValue, replaceValue, updateSegment]);
 
   const handleCopy = async () => {
     try {
@@ -73,6 +124,18 @@ export function TranscriptView({
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => { setFindReplaceOpen((o) => !o); setReplaceCount(null); }}
+              className="h-7 px-2 text-[11px]"
+              title="Find & Replace"
+            >
+              <Replace className="h-3 w-3" strokeWidth={1.75} />
+              Replace
+            </Button>
+          )}
+          {hasContent && (
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleCopy}
               className="h-7 px-2 text-[11px]"
             >
@@ -86,6 +149,46 @@ export function TranscriptView({
           )}
         </div>
       </div>
+
+      {/* Find & Replace bar */}
+      {findReplaceOpen && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-surface-300/50 bg-surface-100/60 flex-wrap">
+          <input
+            autoFocus
+            type="text"
+            placeholder="Find…"
+            value={findValue}
+            onChange={(e) => { setFindValue(e.target.value); setReplaceCount(null); }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleReplaceAll(); if (e.key === "Escape") setFindReplaceOpen(false); }}
+            className="h-6 rounded border border-surface-300/60 bg-surface-50 px-2 text-[11px] text-surface-900 outline-none focus:border-brass-400 w-32 shrink-0"
+          />
+          <input
+            type="text"
+            placeholder="Replace with…"
+            value={replaceValue}
+            onChange={(e) => setReplaceValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleReplaceAll(); if (e.key === "Escape") setFindReplaceOpen(false); }}
+            className="h-6 rounded border border-surface-300/60 bg-surface-50 px-2 text-[11px] text-surface-900 outline-none focus:border-brass-400 w-32 shrink-0"
+          />
+          <button
+            onClick={handleReplaceAll}
+            className="h-6 px-2 text-[11px] rounded bg-brass-500/20 text-brass-600 hover:bg-brass-500/30 font-medium transition-colors shrink-0"
+          >
+            Replace All
+          </button>
+          {replaceCount !== null && (
+            <span className="text-[10px] text-surface-600">
+              {replaceCount > 0 ? `Replaced in ${replaceCount} segment${replaceCount !== 1 ? "s" : ""}` : "No matches"}
+            </span>
+          )}
+          <button
+            onClick={() => setFindReplaceOpen(false)}
+            className="ml-auto text-[10px] text-surface-500 hover:text-surface-700 transition-colors shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Transcript content */}
       <div
@@ -111,41 +214,91 @@ export function TranscriptView({
                   <span className="text-[10px] text-surface-600 font-mono tabular-nums mt-1 shrink-0">
                     {formatTimestamp(segment.timestamp)}
                   </span>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     {segment.speakerLabel && (
                       <span className="text-[10px] font-mono uppercase tracking-wider text-brass-500 mb-0.5 block">
                         {segment.speakerLabel}
                       </span>
                     )}
-                    <p
-                      className={cn(
-                        "leading-relaxed",
-                        segment.correctedText
-                          ? "text-surface-950"
-                          : "text-surface-900"
-                      )}
-                    >
-                      {segment.words && !segment.correctedText
-                        ? segment.words.map((w, i) => (
-                            <span
-                              key={i}
-                              title={`Confidence: ${Math.round(w.confidence * 100)}%`}
-                              className={cn(
-                                w.confidence < 0.75
-                                  ? "bg-amber-400/20 text-amber-700 dark:text-amber-300 rounded px-0.5 cursor-help"
-                                  : ""
-                              )}
-                            >
-                              {w.punctuatedWord || w.word}{i < segment.words!.length - 1 ? " " : ""}
-                            </span>
-                          ))
-                        : (segment.correctedText || segment.text)}
-                      {segment.grammarApplied && (
-                        <span className="inline-flex ml-1.5 align-middle">
-                          <Wand2 className="h-3 w-3 text-brass-500" strokeWidth={1.75} />
+                    {editingId === segment.id ? (
+                      <div className="flex flex-col gap-1.5">
+                        <textarea
+                          ref={editRef}
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); }
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                          className="w-full resize-none rounded border border-brass-400/50 bg-surface-100 px-2 py-1 text-surface-950 leading-relaxed outline-none focus:border-brass-500 focus:ring-1 focus:ring-brass-500/30"
+                          style={{ fontSize: "inherit" }}
+                          rows={Math.max(2, Math.ceil(editValue.length / 60))}
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={commitEdit}
+                            className="text-[10px] px-2 py-0.5 rounded bg-brass-500/20 text-brass-600 hover:bg-brass-500/30 font-medium transition-colors"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="text-[10px] px-2 py-0.5 rounded text-surface-500 hover:text-surface-700 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <span className="text-[9px] text-surface-500 ml-1">Enter to save · Esc to cancel</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p
+                        className={cn(
+                          "leading-relaxed cursor-text",
+                          segment.correctedText
+                            ? "text-surface-950"
+                            : "text-surface-900"
+                        )}
+                        title="Double-click to edit"
+                        onDoubleClick={() => startEdit(segment.id, segment.correctedText ?? segment.text)}
+                      >
+                        {segment.words && !segment.correctedText
+                          ? segment.words.map((w, i) => (
+                              <span
+                                key={i}
+                                title={`Confidence: ${Math.round(w.confidence * 100)}%`}
+                                className={cn(
+                                  w.confidence < 0.75
+                                    ? "bg-amber-400/20 text-amber-700 dark:text-amber-300 rounded px-0.5 cursor-help"
+                                    : ""
+                                )}
+                              >
+                                {w.punctuatedWord || w.word}{i < segment.words!.length - 1 ? " " : ""}
+                              </span>
+                            ))
+                          : (segment.correctedText || segment.text)}
+                        {segment.grammarApplied && (
+                          <span className="inline-flex ml-1.5 align-middle">
+                            <Wand2 className="h-3 w-3 text-brass-500" strokeWidth={1.75} />
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-0.5 ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity align-middle">
+                          <button
+                            onClick={() => startEdit(segment.id, segment.correctedText ?? segment.text)}
+                            className="p-0.5 rounded text-surface-400 hover:text-brass-500 transition-colors"
+                            title="Edit segment"
+                          >
+                            <Pencil className="h-2.5 w-2.5" strokeWidth={2} />
+                          </button>
+                          <button
+                            onClick={() => deleteSegment(segment.id)}
+                            className="p-0.5 rounded text-surface-400 hover:text-red-400 transition-colors"
+                            title="Delete segment"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" strokeWidth={2} />
+                          </button>
                         </span>
-                      )}
-                    </p>
+                      </p>
+                    )}
                     {segment.translatedText && (
                       <p className="mt-1 text-[0.92em] italic text-surface-700 leading-relaxed font-display flex items-baseline gap-1.5">
                         <Languages className="h-3 w-3 text-brass-500 shrink-0 self-center" strokeWidth={1.75} />
