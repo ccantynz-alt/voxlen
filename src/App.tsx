@@ -10,6 +10,7 @@ import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { AdminPanel } from "@/components/settings/AdminPanel";
 import { ClauseLibrary } from "@/components/clauses/ClauseLibrary";
 import { AnalyticsPanel } from "@/components/analytics/AnalyticsPanel";
+import { ClientsPanel } from "@/components/clients/ClientsPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
@@ -20,7 +21,7 @@ import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
 
-type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin" | "clauses" | "analytics";
+type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin" | "clauses" | "analytics" | "clients";
 
 export default function App() {
   // Load saved settings from disk/localStorage on startup
@@ -274,6 +275,12 @@ export default function App() {
         return (
           <ErrorBoundary label="Analytics">
             <AnalyticsPanel />
+          </ErrorBoundary>
+        );
+      case "clients":
+        return (
+          <ErrorBoundary label="Clients">
+            <ClientsPanel />
           </ErrorBoundary>
         );
     }
