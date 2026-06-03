@@ -1,7 +1,8 @@
-import { Minus, Square, X, Mic } from "lucide-react";
+import { Minus, Square, X, Mic, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { useDictationStore } from "@/stores/dictation";
+import { useSettingsStore } from "@/stores/settings";
 
 declare global {
   interface Window {
@@ -20,6 +21,7 @@ declare global {
 
 export function TitleBar() {
   const status = useDictationStore((s) => s.status);
+  const privilegedMode = useSettingsStore((s) => s.privilegedMode);
 
   const handleMinimize = async () => {
     try {
@@ -85,6 +87,12 @@ export function TitleBar() {
           {status === "paused" && "Paused"}
           {status === "error" && "Error"}
         </Badge>
+        {privilegedMode && (
+          <div className="flex items-center gap-1 ml-2 text-emerald-600">
+            <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2} />
+            <span className="text-[10px] font-mono uppercase tracking-wider">Privileged</span>
+          </div>
+        )}
       </div>
 
       {/* Right: Window controls — refined hover, no neon. */}

@@ -112,6 +112,11 @@ export function TranscriptView({
                     {formatTimestamp(segment.timestamp)}
                   </span>
                   <div className="flex-1">
+                    {segment.speakerLabel && (
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-brass-500 mb-0.5 block">
+                        {segment.speakerLabel}
+                      </span>
+                    )}
                     <p
                       className={cn(
                         "leading-relaxed",
@@ -120,7 +125,21 @@ export function TranscriptView({
                           : "text-surface-900"
                       )}
                     >
-                      {segment.correctedText || segment.text}
+                      {segment.words && !segment.correctedText
+                        ? segment.words.map((w, i) => (
+                            <span
+                              key={i}
+                              title={`Confidence: ${Math.round(w.confidence * 100)}%`}
+                              className={cn(
+                                w.confidence < 0.75
+                                  ? "bg-amber-400/20 text-amber-700 dark:text-amber-300 rounded px-0.5 cursor-help"
+                                  : ""
+                              )}
+                            >
+                              {w.punctuatedWord || w.word}{i < segment.words!.length - 1 ? " " : ""}
+                            </span>
+                          ))
+                        : (segment.correctedText || segment.text)}
                       {segment.grammarApplied && (
                         <span className="inline-flex ml-1.5 align-middle">
                           <Wand2 className="h-3 w-3 text-brass-500" strokeWidth={1.75} />

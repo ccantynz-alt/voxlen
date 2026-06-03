@@ -79,7 +79,7 @@ pub async fn deepgram_transcribe(
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Deepgram API key not configured"))?;
 
-    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-2");
+    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3");
 
     if config.punctuate {
         url.push_str("&punctuate=true");

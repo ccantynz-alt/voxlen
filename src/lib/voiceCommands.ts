@@ -19,6 +19,10 @@ const COMMAND_MAP: Record<string, (text: string) => string> = {
   insert_dash: () => " — ",
   insert_open_quote: () => '"',
   insert_close_quote: () => '"',
+  insert_open_paren: () => "(",
+  insert_close_paren: () => ")",
+  legal_new_section: () => "\n\n",
+  legal_new_clause: () => "\n\n",
 };
 
 const EXTENDED_COMMANDS: Array<{
@@ -45,6 +49,17 @@ const EXTENDED_COMMANDS: Array<{
   { patterns: ["caps off", "no caps"], action: "caps_off" },
   { patterns: ["tab", "tab key"], action: "insert_tab" },
   { patterns: ["space", "spacebar"], action: "insert_space" },
+  // Legal document structure
+  { patterns: ["new section", "new heading"], action: "legal_new_section" },
+  { patterns: ["new clause", "next clause"], action: "legal_new_clause" },
+  { patterns: ["open bracket", "open parenthesis"], action: "insert_open_paren" },
+  { patterns: ["close bracket", "close parenthesis"], action: "insert_close_paren" },
+  { patterns: ["number one", "number two", "number three", "number four", "number five"], action: "legal_numbered_item" },
+  { patterns: ["sub clause one", "sub clause two", "sub clause three"], action: "legal_sub_clause" },
+  // Billable time
+  { patterns: ["log time", "add to timesheet", "record time"], action: "log_time" },
+  // Navigation
+  { patterns: ["review uncertain words", "check uncertain", "show uncertain"], action: "review_uncertain" },
 ];
 
 export function processVoiceCommands(text: string): VoiceCommandResult {
@@ -133,6 +148,14 @@ export function executeVoiceCommand(action: string): string | null {
       return "\t";
     case "insert_space":
       return " ";
+    case "legal_numbered_item":
+      return null; // Handled by caller context
+    case "legal_sub_clause":
+      return "\n    ";
+    case "log_time":
+      return null; // Handled by flywheel integration
+    case "review_uncertain":
+      return null; // UI concern
     default:
       return null;
   }
