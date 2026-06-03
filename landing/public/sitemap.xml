@@ -129,6 +129,26 @@
     <priority>0.7</priority>
   </url>
 
+  <!-- New SEO pages — AI dictation, best voice to text, voice dictation for lawyers -->
+  <url>
+    <loc>https://voxlen.ai/ai-dictation-software</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://voxlen.ai/best-voice-to-text-software</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://voxlen.ai/voice-dictation-for-lawyers</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
   <!-- Platform pages -->
   <url>
     <loc>https://voxlen.ai/voice-dictation-mac</loc>
