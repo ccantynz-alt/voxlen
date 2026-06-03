@@ -10,6 +10,14 @@ interface TranscriptionEvent {
   is_final: boolean;
   confidence: number;
   language?: string;
+  words?: Array<{
+    word: string;
+    start: number;
+    end: number;
+    confidence: number;
+    punctuated_word: string;
+    speaker?: number;
+  }>;
 }
 
 interface StreamingPartialEvent {
@@ -80,6 +88,17 @@ export function useTauriEvents(): void {
                     language: result.language,
                     isFinal: true,
                     grammarApplied: false,
+                    words: result.words?.map(w => ({
+                      word: w.word,
+                      start: w.start,
+                      end: w.end,
+                      confidence: w.confidence,
+                      punctuatedWord: w.punctuated_word,
+                      speaker: w.speaker,
+                    })),
+                    speakerLabel: result.words?.find(w => w.speaker !== undefined)
+                      ? `Speaker ${(result.words!.find(w => w.speaker !== undefined)!.speaker! + 1)}`
+                      : undefined,
                   });
                 }
 
@@ -137,6 +156,17 @@ export function useTauriEvents(): void {
               language: result.language,
               isFinal: true,
               grammarApplied: false,
+              words: result.words?.map(w => ({
+                word: w.word,
+                start: w.start,
+                end: w.end,
+                confidence: w.confidence,
+                punctuatedWord: w.punctuated_word,
+                speaker: w.speaker,
+              })),
+              speakerLabel: result.words?.find(w => w.speaker !== undefined)
+                ? `Speaker ${(result.words!.find(w => w.speaker !== undefined)!.speaker! + 1)}`
+                : undefined,
             });
             dictation.setCurrentTranscript("");
 

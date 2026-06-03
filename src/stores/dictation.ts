@@ -7,6 +7,15 @@ export type DictationStatus =
   | "paused"
   | "error";
 
+export interface SegmentWord {
+  word: string;
+  start: number;
+  end: number;
+  confidence: number;
+  punctuatedWord: string;
+  speaker?: number;
+}
+
 export interface TranscriptionSegment {
   id: string;
   text: string;
@@ -21,6 +30,8 @@ export interface TranscriptionSegment {
   language?: string;
   isFinal: boolean;
   grammarApplied: boolean;
+  words?: SegmentWord[];
+  speakerLabel?: string;
 }
 
 /**

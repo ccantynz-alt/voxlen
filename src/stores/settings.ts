@@ -52,6 +52,7 @@ export interface AppSettings {
   // Privacy
   telemetryEnabled: boolean;
   saveTranscripts: boolean;
+  privilegedMode: boolean;
 
   // Legal
   legalAcceptedVersion: string | null;
@@ -112,6 +113,7 @@ const defaultSettings: AppSettings = {
 
   telemetryEnabled: false,
   saveTranscripts: true,
+  privilegedMode: false,
 
   legalAcceptedVersion: null,
   legalAcceptedAt: null,
