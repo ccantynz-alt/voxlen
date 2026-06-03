@@ -11,7 +11,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     private var partialLabel: UILabel!
     private var polishButton: UIButton!
     private var micButton: UIButton!
-    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")
+    private let defaults = UserDefaults(suiteName: "group.ai.voxlen")
 
     // MARK: - State
 
@@ -90,7 +90,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
         grammarBar.addSubview(separator)
 
         grammarLabel = UILabel()
-        grammarLabel.text = "Marco Reid Voice"
+        grammarLabel.text = "Voxlen"
         grammarLabel.font = .systemFont(ofSize: 12, weight: .medium)
         grammarLabel.textColor = .secondaryLabel
         grammarLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -534,11 +534,11 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
                         self.textDocumentProxy.deleteBackward()
                     }
                     self.textDocumentProxy.insertText(corrected + " ")
-                    self.grammarLabel.text = "Marco Reid Voice"
+                    self.grammarLabel.text = "Voxlen"
                 }
             } catch {
                 await MainActor.run {
-                    self.grammarLabel.text = "Marco Reid Voice"
+                    self.grammarLabel.text = "Voxlen"
                 }
             }
         }
@@ -610,7 +610,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
             micButton.transform = .identity
             micButton.tintColor = brandColor
             micButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
-            grammarLabel.text = "Marco Reid Voice"
+            grammarLabel.text = "Voxlen"
         }
     }
 
@@ -653,7 +653,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
                     polishButton.isEnabled = true
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                        self?.grammarLabel.text = "Marco Reid Voice"
+                        self?.grammarLabel.text = "Voxlen"
                     }
                 }
             } catch {

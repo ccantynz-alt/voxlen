@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct MarcoReidVoiceApp: App {
+struct VoxlenApp: App {
     @StateObject private var settingsManager = SettingsManager()
 
     var body: some Scene {
@@ -32,16 +32,16 @@ struct ContentView: View {
                         HStack {
                             Image(systemName: "mic.fill")
                                 .font(.system(size: 32))
-                                .foregroundColor(.blue)
+                                .foregroundColor(Color(red: 0.45, green: 0.27, blue: 0.82))
                                 .frame(width: 56, height: 56)
-                                .background(Color.blue.opacity(0.1))
+                                .background(Color(red: 0.45, green: 0.27, blue: 0.82).opacity(0.1))
                                 .cornerRadius(12)
 
                             VStack(alignment: .leading) {
-                                Text("Marco Reid Voice Keyboard")
+                                Text("Voxlen")
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                Text("AI-Powered Grammar Correction")
+                                Text("AI Voice Dictation for Professionals")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -73,7 +73,7 @@ struct ContentView: View {
                                     Text("Keyboard Not Enabled")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
-                                    Text("Go to Settings > General > Keyboard > Keyboards > Add New Keyboard > Marco Reid Voice")
+                                    Text("Go to Settings > General > Keyboard > Keyboards > Add New Keyboard > Voxlen")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -124,7 +124,7 @@ struct ContentView: View {
                 // MARK: - Voice Dictation
                 Section {
                     Picker("STT Engine", selection: $settings.sttEngine) {
-                        Text("Deepgram Nova-2").tag(STTEngine.deepgram)
+                        Text("Deepgram Nova-3").tag(STTEngine.deepgram)
                         Text("Apple Speech").tag(STTEngine.apple)
                     }
 
@@ -158,7 +158,7 @@ struct ContentView: View {
                 } header: {
                     Label("Voice Dictation", systemImage: "waveform")
                 } footer: {
-                    Text("Deepgram Nova-2 provides superior accuracy. Get your API key at console.deepgram.com")
+                    Text("Deepgram Nova-3 provides best-in-class accuracy. Get your API key at console.deepgram.com")
                 }
 
                 // MARK: - AI Provider
@@ -185,10 +185,10 @@ struct ContentView: View {
 
                 // MARK: - What's New
                 Section {
-                    WhatsNewRow(icon: "waveform.badge.mic", text: "Deepgram Nova-2 voice engine — 95%+ accuracy")
+                    WhatsNewRow(icon: "waveform.badge.mic", text: "Deepgram Nova-3 — industry-leading accuracy")
+                    WhatsNewRow(icon: "doc.text", text: "Legal & accounting smart formatting")
                     WhatsNewRow(icon: "globe", text: "20+ language support")
-                    WhatsNewRow(icon: "hand.tap.fill", text: "Haptic feedback on every key")
-                    WhatsNewRow(icon: "ipad.landscape", text: "iPad optimized layout")
+                    WhatsNewRow(icon: "ipad.landscape", text: "iPad optimised layout")
                 } header: {
                     Label("What's New", systemImage: "star.fill")
                 }
@@ -201,17 +201,24 @@ struct ContentView: View {
                         Text("2.0.0")
                             .foregroundColor(.secondary)
                     }
-                    Link(destination: URL(string: "https://marcoreid.com/privacy")!) {
+                    Link(destination: URL(string: "https://voxlen.ai/privacy")!) {
                         HStack {
                             Image(systemName: "hand.raised.fill")
-                                .foregroundColor(.blue)
+                                .foregroundColor(.purple)
                             Text("Privacy Policy")
                         }
                     }
-                    Link(destination: URL(string: "https://marcoreid.com/support")!) {
+                    Link(destination: URL(string: "https://voxlen.ai/terms")!) {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(.purple)
+                            Text("Terms of Service")
+                        }
+                    }
+                    Link(destination: URL(string: "https://voxlen.ai/support")!) {
                         HStack {
                             Image(systemName: "questionmark.circle.fill")
-                                .foregroundColor(.blue)
+                                .foregroundColor(.purple)
                             Text("Support")
                         }
                     }
@@ -219,7 +226,7 @@ struct ContentView: View {
                     Label("About", systemImage: "info.circle")
                 }
             }
-            .navigationTitle("Marco Reid Voice")
+            .navigationTitle("Voxlen")
         }
     }
 
@@ -241,7 +248,7 @@ struct WhatsNewRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(Color(red: 0.45, green: 0.27, blue: 0.82))
                 .frame(width: 24)
             Text(text)
                 .font(.subheadline)
@@ -266,7 +273,7 @@ enum STTEngine: String, CaseIterable {
 // MARK: - Settings Manager
 
 class SettingsManager: ObservableObject {
-    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")!
+    private let defaults = UserDefaults(suiteName: "group.ai.voxlen")!
 
     @Published var isKeyboardEnabled: Bool = false
     @Published var autoCorrectEnabled: Bool {
