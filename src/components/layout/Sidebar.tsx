@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Brain,
   BookOpen,
+  BarChart3,
 } from "lucide-react";
 import { APP_VERSION } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,12 @@ const navItems = [
     label: "Flywheel",
     icon: Brain,
     description: "Local learning",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    description: "Usage stats",
   },
 ];
 
