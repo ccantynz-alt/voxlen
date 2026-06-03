@@ -27,6 +27,7 @@ import { useHistoryStore } from "@/stores/history";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore } from "@/stores/clients";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
+import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -240,8 +241,13 @@ export function DictationPanel() {
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const [contextOpen, setContextOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+
+  const sttLanguage = useSettingsStore((s) => s.sttLanguage);
+  const autoDetectLanguage = useSettingsStore((s) => s.autoDetectLanguage);
+  const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === sttLanguage) ?? SUPPORTED_LANGUAGES[0];
   const activeClientId = useClientsStore((s) => s.activeClientId);
   const allClients = useClientsStore((s) => s.clients.filter((c) => !c.archived));
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
@@ -406,6 +412,53 @@ export function DictationPanel() {
                     )}
                   >
                     {ctx.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Language selector */}
+          <div className="relative">
+            <button
+              onClick={() => setLangOpen((o) => !o)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-surface-300/60 bg-surface-50/70 text-[11px] font-medium text-surface-700 hover:border-brass-400/50 hover:text-surface-900 transition-all shadow-inset-hairline"
+              title={autoDetectLanguage ? "Auto-detect language" : currentLang.name}
+            >
+              <span className="text-base leading-none">{autoDetectLanguage ? "🌐" : currentLang.flag}</span>
+              <span className="hidden sm:inline">{autoDetectLanguage ? "Auto" : currentLang.code.toUpperCase()}</span>
+              <ChevronDown className="h-3 w-3 text-surface-500" strokeWidth={1.75} />
+            </button>
+            {langOpen && (
+              <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-50 w-52 rounded-lg border border-surface-300/60 bg-surface-50 shadow-elevation py-1 max-h-64 overflow-y-auto">
+                <button
+                  onClick={() => {
+                    updateSetting("autoDetectLanguage", true);
+                    setLangOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center gap-2",
+                    autoDetectLanguage ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                  )}
+                >
+                  <span>🌐</span> Auto-detect
+                </button>
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      updateSetting("sttLanguage", lang.code);
+                      updateSetting("autoDetectLanguage", false);
+                      setLangOpen(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center gap-2",
+                      !autoDetectLanguage && lang.code === sttLanguage
+                        ? "bg-marcoreid-900/20 text-surface-950 font-semibold"
+                        : "text-surface-700 hover:bg-surface-100"
+                    )}
+                  >
+                    <span>{lang.flag}</span> {lang.name}
                   </button>
                 ))}
               </div>
