@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
   "productName": "Voxlen",
   "version": "1.0.9",
-  "identifier": "com.marcoreid.voice",
+  "identifier": "ai.voxlen",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Marco Reid Voice",
+        "title": "Voxlen",
         "width": 1100,
         "height": 720,
         "minWidth": 800,
@@ -30,7 +30,7 @@
     "trayIcon": {
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true,
-      "tooltip": "Marco Reid Voice"
+      "tooltip": "Voxlen"
     },
     "security": {
       "csp": null
@@ -48,8 +48,8 @@
     ],
     "category": "Productivity",
     "shortDescription": "AI-powered voice dictation for professionals",
-    "longDescription": "Marco Reid Voice is the most advanced AI voice dictation desktop app. Speak naturally to dictate legal letters, court filings, demand letters, tax advisories, and audit opinions — with real-time Claude enhancement, matter-aware context, custom vocabulary, and injection into any application.",
-    "copyright": "Copyright 2026 Marco Reid",
+    "longDescription": "Voxlen is the most advanced AI voice dictation desktop app for lawyers and accountants. Speak naturally to dictate legal letters, court filings, demand letters, tax advisories, and audit opinions — with real-time Claude AI grammar correction, matter-aware context, custom vocabulary, and injection into any application.",
+    "copyright": "Copyright 2026 Voxlen",
     "macOS": {
       "entitlements": "Entitlements.plist",
       "minimumSystemVersion": "12.0",
