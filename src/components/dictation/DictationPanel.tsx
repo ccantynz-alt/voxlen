@@ -393,6 +393,20 @@ export function DictationPanel() {
             </div>
           )}
 
+          {/* Live billing ticker — shown when recording with active client */}
+          {isActive && activeClient && (() => {
+            const rate = activeClient.billableRate > 0 ? activeClient.billableRate : (useSettingsStore.getState().billableRatePerHour ?? 0);
+            if (rate <= 0) return null;
+            const elapsed = sessionDuration; // seconds
+            const amount = (elapsed / 3600) * rate;
+            return (
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brass-500/10 border border-brass-400/30 text-[11px] font-mono text-brass-600 tabular-nums">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-brass-500 animate-pulse" />
+                £{amount.toFixed(2)}
+              </div>
+            );
+          })()}
+
           {/* Context selector */}
           <div className="relative">
             <button
