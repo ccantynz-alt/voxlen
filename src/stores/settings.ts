@@ -56,6 +56,9 @@ export interface AppSettings {
   legalMode: boolean; // enables Latin phrase recognition + legal smart format
   jurisdiction: "uk" | "us" | "australia" | "canada" | "nz" | "global";
   billableRatePerHour: number;
+  voxlenApiKey: string;
+  voxlenContext: string; // VoxlenContext value
+  voxlenTenantId: string;
 
   // Legal
   legalAcceptedVersion: string | null;
@@ -120,6 +123,9 @@ const defaultSettings: AppSettings = {
   legalMode: false,
   jurisdiction: "global",
   billableRatePerHour: 0,
+  voxlenApiKey: "",
+  voxlenContext: "legal_general",
+  voxlenTenantId: "",
 
   legalAcceptedVersion: null,
   legalAcceptedAt: null,

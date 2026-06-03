@@ -30,6 +30,7 @@ export class VoxlenSDK {
   private targetElement: HTMLElement | null = null;
   private micButton: HTMLButtonElement | null = null;
   private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
+  private _apiClient: any = null;
 
   constructor(config: VoxlenConfig = {}) {
     this.config = {
@@ -112,6 +113,41 @@ export class VoxlenSDK {
   off(event: string, callback: (...args: any[]) => void): void {
     const list = this.listeners.get(event) || [];
     this.listeners.set(event, list.filter((cb) => cb !== callback));
+  }
+
+  /** Access the Voxlen API client directly (requires voxlenApiKey) */
+  get api(): import("./api-client").VoxlenApiClient | null {
+    if (!this.config.voxlenApiKey) return null;
+    if (!this._apiClient) {
+      import("./api-client").then(({ VoxlenApiClient }) => {
+        this._apiClient = new VoxlenApiClient({
+          voxlenApiKey: this.config.voxlenApiKey!,
+          voxlenApiBase: this.config.voxlenApiBase,
+          tenantId: this.config.tenantId,
+        });
+      });
+    }
+    return this._apiClient ?? null;
+  }
+
+  /** Transcribe a recorded audio file via Voxlen API */
+  async transcribeFile(audio: Blob): Promise<import("./types").TranscribeResponse | null> {
+    if (!this.config.voxlenApiKey) {
+      this.config.onError?.(new Error("voxlenApiKey required for file transcription"));
+      return null;
+    }
+    const { VoxlenApiClient } = await import("./api-client");
+    const client = new VoxlenApiClient({
+      voxlenApiKey: this.config.voxlenApiKey,
+      voxlenApiBase: this.config.voxlenApiBase,
+      tenantId: this.config.tenantId,
+    });
+    return client.transcribe(audio, {
+      context: this.config.context,
+      language: this.config.language?.split("-")[0],
+      vocabularyHints: this.config.vocabularyHints,
+      speakerLabels: this.config.speakerLabels,
+    });
   }
 
   // ---------- Private ----------

@@ -2,8 +2,9 @@ import type { DictationEvent, VoxlenConfig } from "./types";
 
 /**
  * Voice dictation engine.
- * Uses Web Speech API (free, built into browsers) as default.
- * Upgrades to Deepgram WebSocket streaming when a Deepgram API key is provided.
+ * Routes through Voxlen API when voxlenApiKey is provided (preferred).
+ * Falls back to Deepgram WebSocket streaming when a deepgramApiKey is provided.
+ * Final fallback: Web Speech API (free, built into browsers).
  */
 export class VoxlenDictation {
   private config: VoxlenConfig;
@@ -11,6 +12,7 @@ export class VoxlenDictation {
   private deepgramWs: WebSocket | null = null;
   private mediaStream: MediaStream | null = null;
   private isListening = false;
+  private stopVoxlenStream: (() => void) | null = null;
 
   constructor(config: VoxlenConfig) {
     this.config = config;
@@ -20,7 +22,9 @@ export class VoxlenDictation {
   async start(): Promise<void> {
     if (this.isListening) return;
 
-    if (this.config.deepgramApiKey) {
+    if (this.config.voxlenApiKey) {
+      await this.startVoxlenStream();
+    } else if (this.config.deepgramApiKey) {
       await this.startDeepgram();
     } else {
       this.startWebSpeech();
@@ -42,6 +46,17 @@ export class VoxlenDictation {
       this.deepgramWs.send(JSON.stringify({ type: "CloseStream" }));
       this.deepgramWs.close();
       this.deepgramWs = null;
+    }
+
+    if (this.stopVoxlenStream) {
+      this.stopVoxlenStream();
+      this.stopVoxlenStream = null;
+    }
+
+    const recorder = (this as any)._recorder as MediaRecorder | undefined;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+      (this as any)._recorder = null;
     }
 
     if (this.mediaStream) {
@@ -104,7 +119,7 @@ export class VoxlenDictation {
     rec.start();
   }
 
-  // ---------- Deepgram WebSocket (premium, requires API key) ----------
+  // ---------- Deepgram WebSocket (fallback, requires deepgramApiKey) ----------
 
   private async startDeepgram(): Promise<void> {
     const apiKey = this.config.deepgramApiKey!;
@@ -117,12 +132,13 @@ export class VoxlenDictation {
 
     // Connect to Deepgram
     const url = new URL("wss://api.deepgram.com/v1/listen");
-    url.searchParams.set("model", "nova-2");
+    url.searchParams.set("model", "nova-3");
     url.searchParams.set("language", lang);
     url.searchParams.set("punctuate", "true");
     url.searchParams.set("smart_format", "true");
     url.searchParams.set("interim_results", "true");
-    url.searchParams.set("utterance_end_ms", "1500");
+    url.searchParams.set("utterance_end_ms", "1000");
+    url.searchParams.set("no_delay", "true");
     url.searchParams.set("encoding", "linear16");
     url.searchParams.set("sample_rate", "16000");
     url.searchParams.set("channels", "1");
@@ -170,5 +186,50 @@ export class VoxlenDictation {
     this.deepgramWs.onerror = () => {
       this.config.onError?.(new Error("Deepgram WebSocket connection failed"));
     };
+  }
+
+  // ---------- Voxlen API streaming (primary, requires voxlenApiKey) ----------
+
+  private async startVoxlenStream(): Promise<void> {
+    const { VoxlenApiClient } = await import("./api-client");
+    const client = new VoxlenApiClient({
+      voxlenApiKey: this.config.voxlenApiKey!,
+      voxlenApiBase: this.config.voxlenApiBase,
+      tenantId: this.config.tenantId,
+    });
+
+    this.mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+
+    // Buffer audio chunks and stream to Voxlen API
+    const audioChunks: Blob[] = [];
+    const recorder = new MediaRecorder(this.mediaStream, { mimeType: "audio/webm" });
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunks.push(e.data);
+        // Stream accumulated audio
+        const blob = new Blob(audioChunks, { type: "audio/webm" });
+        this.stopVoxlenStream?.();
+        this.stopVoxlenStream = client.streamTranscribe(
+          blob,
+          (chunk) => {
+            if (chunk.text) {
+              this.config.onTranscript?.({
+                text: chunk.text,
+                isFinal: chunk.is_final,
+                confidence: 0.95,
+                segmentIndex: chunk.segment_index,
+              });
+            }
+          },
+          (err) => this.config.onError?.(err)
+        );
+      }
+    };
+
+    recorder.start(500); // 500ms chunks
+    (this as any)._recorder = recorder;
   }
 }

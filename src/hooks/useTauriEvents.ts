@@ -5,6 +5,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { applySmartFormat } from "@/lib/smartFormat";
+import { applyContextFormat } from "@/lib/contextFormat";
+import type { VoxlenContext } from "@/lib/contextFormat";
 import { useClauseStore } from "@/stores/clauses";
 
 interface TranscriptionEvent {
@@ -172,7 +174,17 @@ export function useTauriEvents(): void {
                 })
               : text;
             const capsLock = useDictationStore.getState().capsLock;
-            const finalText = capsLock ? shaped.toUpperCase() : shaped;
+            // Context-aware formatting
+            const speakerLabelForContext = result.words?.find((w) => w.speaker !== undefined)
+              ? `Speaker ${(result.words!.find((w) => w.speaker !== undefined)!.speaker! + 1)}`
+              : undefined;
+            const withContext = settings.voxlenContext && settings.voxlenContext !== "general"
+              ? applyContextFormat(shaped, {
+                  context: settings.voxlenContext as VoxlenContext,
+                  speakerLabel: speakerLabelForContext,
+                })
+              : shaped;
+            const finalText = capsLock ? withContext.toUpperCase() : withContext;
 
             // Clause library voice triggers
             const { findByTrigger, findTemplatByTrigger, markUsed } = useClauseStore.getState();
