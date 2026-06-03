@@ -7,6 +7,7 @@ import {
   Palette,
   Shield,
   Zap,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +27,7 @@ const tabs = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "advanced", label: "Advanced", icon: Zap },
   { id: "privacy", label: "Privacy", icon: Shield },
+  { id: "voxlen-api", label: "Voxlen API", icon: Globe },
 ];
 
 // Persist settings whenever they change
@@ -76,6 +78,13 @@ function useSettingsPersistence() {
           launchAtLogin: settings.launchAtLogin,
           telemetryEnabled: settings.telemetryEnabled,
           saveTranscripts: settings.saveTranscripts,
+          privilegedMode: settings.privilegedMode,
+          legalMode: settings.legalMode,
+          jurisdiction: settings.jurisdiction,
+          billableRatePerHour: settings.billableRatePerHour,
+          voxlenApiKey: settings.voxlenApiKey,
+          voxlenContext: settings.voxlenContext,
+          voxlenTenantId: settings.voxlenTenantId,
         });
         await store.save();
       } catch {
@@ -183,6 +192,8 @@ export function SettingsPanel() {
         return <AdvancedSettings />;
       case "privacy":
         return <PrivacySettings />;
+      case "voxlen-api":
+        return <VoxlenApiSettings />;
       default:
         return <AudioSettings />;
     }
@@ -930,6 +941,171 @@ function AdvancedSettings() {
         >
           Reset All Settings
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function VoxlenApiSettings() {
+  const settings = useSettingsStore();
+  const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+
+  const testConnection = async () => {
+    if (!settings.voxlenApiKey) return;
+    setTestStatus("testing");
+    try {
+      const res = await fetch(
+        `${settings.voxlenTenantId ? "https://api.voxlen.com/v1" : "https://api.voxlen.com/v1"}/health`,
+        { headers: { Authorization: `Bearer ${settings.voxlenApiKey}` } }
+      );
+      setTestStatus(res.ok ? "ok" : "error");
+    } catch {
+      setTestStatus("error");
+    }
+    setTimeout(() => setTestStatus("idle"), 3000);
+  };
+
+  const CONTEXT_OPTIONS = [
+    { value: "", label: "None (general)", description: "No domain-specific formatting" },
+    { value: "legal_general", label: "Legal — General", description: "Legal writing defaults" },
+    { value: "legal_contract", label: "Legal — Contract", description: "Defined terms, clause numbering" },
+    { value: "legal_case_note", label: "Legal — Case Note", description: "Attendance note headings" },
+    { value: "legal_court_filing", label: "Legal — Court Filing", description: "Court names, v. formatting" },
+    { value: "legal_deposition", label: "Legal — Deposition", description: "Q/A speaker labels" },
+    { value: "legal_correspondence", label: "Legal — Correspondence", description: "Dear/Yours formatting" },
+    { value: "accounting_general", label: "Accounting — General", description: "Accounting defaults" },
+    { value: "accounting_tax", label: "Accounting — Tax", description: "GST/VAT/IRD references" },
+    { value: "accounting_audit", label: "Accounting — Audit", description: "Finding/Recommendation headings" },
+    { value: "accounting_memo", label: "Accounting — Memo", description: "MEMORANDUM formatting" },
+    { value: "accounting_correspondence", label: "Accounting — Correspondence", description: "Professional letter formatting" },
+    { value: "general", label: "General", description: "Generic formatting" },
+  ];
+
+  return (
+    <div className="space-y-6 max-w-lg">
+      <SectionHeader
+        title="Voxlen API"
+        description="Connect to api.voxlen.com for enhanced transcription with domain-specific formatting. Your API key stays on this device."
+      />
+
+      <SettingRow>
+        <div className="space-y-2">
+          <Input
+            label="Voxlen API Key"
+            type="password"
+            value={settings.voxlenApiKey}
+            onChange={(e) => settings.updateSetting("voxlenApiKey", e.target.value)}
+            placeholder="vx-..."
+          />
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={testConnection}
+              disabled={!settings.voxlenApiKey || testStatus === "testing"}
+            >
+              {testStatus === "testing" ? "Testing…" : "Test Connection"}
+            </Button>
+            {testStatus === "ok" && (
+              <span className="text-[11px] text-emerald-500 font-medium">Connected</span>
+            )}
+            {testStatus === "error" && (
+              <span className="text-[11px] text-red-500 font-medium">Connection failed</span>
+            )}
+          </div>
+        </div>
+      </SettingRow>
+
+      <SettingRow>
+        <Input
+          label="Tenant ID"
+          value={settings.voxlenTenantId}
+          onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
+          placeholder="Your firm or organisation ID"
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="Dictation Context"
+          value={settings.voxlenContext}
+          onChange={(v) => settings.updateSetting("voxlenContext", v)}
+          options={CONTEXT_OPTIONS}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Switch
+          label="Privileged Mode"
+          description="Block all cloud STT — local processing only. For highly sensitive matters where audio must never leave the device."
+          checked={settings.privilegedMode}
+          onChange={(v) => settings.updateSetting("privilegedMode", v)}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Switch
+          label="Legal Mode"
+          description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
+          checked={settings.legalMode}
+          onChange={(v) => settings.updateSetting("legalMode", v)}
+        />
+      </SettingRow>
+
+      {settings.legalMode && (
+        <SettingRow>
+          <Select
+            label="Jurisdiction"
+            value={settings.jurisdiction}
+            onChange={(v) =>
+              settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
+            }
+            options={[
+              { value: "global", label: "Global", description: "International / neutral" },
+              { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
+              { value: "us", label: "United States", description: "Federal + state law" },
+              { value: "australia", label: "Australia", description: "Commonwealth + state law" },
+              { value: "nz", label: "New Zealand", description: "NZ common law" },
+              { value: "canada", label: "Canada", description: "Federal + provincial law" },
+            ]}
+          />
+        </SettingRow>
+      )}
+
+      {settings.legalMode && (
+        <SettingRow>
+          <Slider
+            label="Default Billable Rate"
+            value={settings.billableRatePerHour}
+            onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
+            min={0}
+            max={2000}
+            step={25}
+            formatValue={(v) => `$${v}/hr`}
+          />
+        </SettingRow>
+      )}
+
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-2">
+        <h4 className="label-caps mb-3 block">How It Works</h4>
+        <ul className="space-y-1.5 text-[12px] text-surface-700 leading-relaxed">
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Audio is streamed to api.voxlen.com for transcription with domain-aware formatting.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Context tells the server how to format output (contracts, depositions, tax memos, etc.).
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Falls back to Deepgram or Whisper if Voxlen API is not configured.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-brass-500 mt-0.5">&mdash;</span>
+            Your API key is stored locally — never transmitted beyond api.voxlen.com.
+          </li>
+        </ul>
       </div>
     </div>
   );
