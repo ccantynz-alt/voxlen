@@ -148,8 +148,13 @@ export function DictationPanel() {
   }, [status, setStatus]);
 
   const handleInjectText = useCallback(async () => {
+    const { translationEnabled } = useSettingsStore.getState();
     const fullText = segments
-      .map((s) => s.correctedText || s.text)
+      .map((s) =>
+        translationEnabled && s.translatedText
+          ? s.translatedText
+          : s.correctedText || s.text
+      )
       .join(" ");
 
     if (!fullText) return;
@@ -187,6 +192,27 @@ export function DictationPanel() {
             correctedText: result.corrected,
             grammarApplied: true,
           });
+        }
+
+        // If translation is also enabled, translate the corrected text
+        const { translationEnabled, translationTargetLanguage } = useSettingsStore.getState();
+        if (translationEnabled && translationTargetLanguage && result.corrected) {
+          try {
+            const { invoke: inv } = await import("@tauri-apps/api/core");
+            const translation = await inv<{ translated: string }>(
+              "translate_text",
+              { text: result.corrected, targetLanguage: translationTargetLanguage }
+            );
+            if (translation?.translated && segments.length > 0) {
+              const lastSegment = segments[segments.length - 1];
+              useDictationStore.getState().updateSegment(lastSegment.id, {
+                translatedText: translation.translated,
+                translatedToLanguage: translationTargetLanguage,
+              });
+            }
+          } catch {
+            // Translation not available
+          }
         }
       } catch {
         // Grammar correction not available

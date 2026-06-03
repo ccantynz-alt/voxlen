@@ -163,7 +163,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const steps = [
     { title: "Welcome", icon: Sparkles },
     { title: "Microphone", icon: Mic },
-    { title: "API Key", icon: Key },
+    { title: "Connect", icon: Key },
     { title: "Ready", icon: CheckCircle2 },
   ];
 
@@ -171,7 +171,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     switch (step) {
       case 0: return true;
       case 1: return !!selectedDeviceId;
-      case 2: return !!settings.sttApiKey && apiKeyValid === true;
+      // Step 2: connected if voxlenApiKey is set OR a direct STT key is set
+      case 2: return !!settings.voxlenApiKey || (!!settings.sttApiKey && apiKeyValid === true);
       case 3: return true;
       default: return true;
     }
@@ -355,80 +356,107 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         )}
 
         {step === 2 && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="text-center">
               <h2 className="font-display text-[26px] font-medium tracking-tight-display text-surface-950 mb-1 leading-tight">
-                Connect your AI
+                Connect your account
               </h2>
               <p className="text-[13px] text-surface-700 leading-relaxed">
-                An API key powers transcription and grammar polishing.
+                Sign in to your Voxlen account and you're ready to dictate — no other keys needed.
               </p>
             </div>
 
-            <Select
-              label="Speech Engine"
-              value={settings.sttEngine}
-              onChange={(v) => settings.updateSetting("sttEngine", v)}
-              options={[
-                { value: "deepgram", label: "Deepgram Nova-2", description: "Best for real-time (recommended)" },
-                { value: "whisper_cloud", label: "OpenAI Whisper", description: "High accuracy, batch mode" },
-              ]}
-            />
+            {settings.voxlenApiKey ? (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                  <span className="text-emerald-400">✓</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-surface-900">Voxlen account connected</p>
+                  <p className="text-[11px] text-surface-600">Transcription and AI grammar are ready.</p>
+                </div>
+                <button
+                  onClick={() => settings.updateSetting("voxlenApiKey", "")}
+                  className="text-[10px] text-surface-400 hover:text-red-400"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-surface-300/60 bg-surface-50/60 p-5 space-y-4">
+                <a
+                  href="https://voxlen.ai/#download"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 w-full bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
+                >
+                  Get your Voxlen API key
+                </a>
+                <div className="relative flex items-center gap-3">
+                  <div className="flex-1 h-px bg-surface-300/40" />
+                  <span className="text-[10px] text-surface-400 uppercase tracking-wider whitespace-nowrap">already have a key</span>
+                  <div className="flex-1 h-px bg-surface-300/40" />
+                </div>
+                <Input
+                  label="Voxlen API Key"
+                  type="password"
+                  value={settings.voxlenApiKey}
+                  onChange={(e) => settings.updateSetting("voxlenApiKey", e.target.value)}
+                  placeholder="vx-..."
+                  icon={<Key className="h-4 w-4" />}
+                />
+              </div>
+            )}
 
-            <Input
-              label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
-              type="password"
-              value={settings.sttApiKey}
-              onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-              placeholder={settings.sttEngine === "deepgram" ? "Enter Deepgram API key..." : "sk-..."}
-              icon={<Key className="h-4 w-4" />}
-            />
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleValidateApiKey}
-                loading={apiKeyValidating}
-                disabled={!settings.sttApiKey}
-              >
-                Validate Key
-              </Button>
-              {apiKeyValid === true && (
-                <Badge variant="success" dot>Valid</Badge>
-              )}
-              {apiKeyValid === false && (
-                <Badge variant="error" dot>Invalid - check your key</Badge>
-              )}
-            </div>
-
-            <div className="p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
-              <p className="text-[11px] text-surface-700 leading-relaxed">
-                {settings.sttEngine === "deepgram" ? (
-                  <>Free Deepgram API key with $200 in credits at deepgram.com — enough for ~46,000 minutes of dictation.</>
-                ) : (
-                  <>OpenAI API key at platform.openai.com. Whisper costs ~$0.006/min (~$0.36/hr).</>
-                )}
-              </p>
-            </div>
-
-            <div className="border-t border-surface-300/50 pt-5">
-              <h3 className="label-caps mb-3 block">
-                Grammar engine &mdash; optional
-              </h3>
-              <Input
-                label="Anthropic API key"
-                type="password"
-                value={settings.grammarApiKey}
-                onChange={(e) => settings.updateSetting("grammarApiKey", e.target.value)}
-                placeholder="sk-ant-..."
-                icon={<Sparkles className="h-4 w-4" strokeWidth={1.75} />}
-              />
-              <p className="text-[10px] text-surface-600 mt-2 leading-snug">
-                Powers AI grammar polishing via Claude Haiku — approximately $0.03/month at
-                heavy use. Skip for now if you just want dictation.
-              </p>
-            </div>
+            {/* Advanced: BYOK fallback */}
+            {!settings.voxlenApiKey && (
+              <details className="group">
+                <summary className="text-[11px] text-surface-500 hover:text-surface-700 cursor-pointer list-none flex items-center gap-1.5 select-none">
+                  <span className="transition-transform group-open:rotate-90">›</span>
+                  Advanced: use your own Deepgram or OpenAI key instead
+                </summary>
+                <div className="mt-3 space-y-3 pl-3 border-l border-surface-300/40">
+                  <Select
+                    label="Speech Engine"
+                    value={settings.sttEngine}
+                    onChange={(v) => settings.updateSetting("sttEngine", v)}
+                    options={[
+                      { value: "deepgram", label: "Deepgram Nova-3", description: "Best for real-time (recommended)" },
+                      { value: "whisper_cloud", label: "OpenAI Whisper", description: "High accuracy, batch mode" },
+                    ]}
+                  />
+                  <Input
+                    label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
+                    type="password"
+                    value={settings.sttApiKey}
+                    onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
+                    placeholder={settings.sttEngine === "deepgram" ? "dg_..." : "sk-..."}
+                    icon={<Key className="h-4 w-4" />}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleValidateApiKey}
+                      loading={apiKeyValidating}
+                      disabled={!settings.sttApiKey}
+                    >
+                      Validate Key
+                    </Button>
+                    {apiKeyValid === true && <Badge variant="success" dot>Valid</Badge>}
+                    {apiKeyValid === false && <Badge variant="error" dot>Invalid</Badge>}
+                  </div>
+                  <Input
+                    label="Anthropic API key (for grammar AI)"
+                    type="password"
+                    value={settings.grammarApiKey}
+                    onChange={(e) => settings.updateSetting("grammarApiKey", e.target.value)}
+                    placeholder="sk-ant-..."
+                    icon={<Sparkles className="h-4 w-4" strokeWidth={1.75} />}
+                  />
+                </div>
+              </details>
+            )}
           </div>
         )}
 

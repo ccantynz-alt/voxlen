@@ -3,6 +3,36 @@ use serde::{Deserialize, Serialize};
 use super::grammar::{GrammarProvider, get_grammar_config};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranslationConfig {
+    pub enabled: bool,
+    pub target_language: String,
+}
+
+impl Default for TranslationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            target_language: "en".to_string(),
+        }
+    }
+}
+
+static TRANSLATION_CONFIG: std::sync::OnceLock<parking_lot::RwLock<TranslationConfig>> =
+    std::sync::OnceLock::new();
+
+fn get_config_store() -> &'static parking_lot::RwLock<TranslationConfig> {
+    TRANSLATION_CONFIG.get_or_init(|| parking_lot::RwLock::new(TranslationConfig::default()))
+}
+
+pub fn set_translation_config_internal(config: TranslationConfig) {
+    *get_config_store().write() = config;
+}
+
+pub fn get_translation_config_internal() -> TranslationConfig {
+    get_config_store().read().clone()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranslationResult {
     pub original: String,
     pub translated: String,

@@ -242,32 +242,65 @@ export function useTauriEvents(): void {
             });
             dictation.setCurrentTranscript("");
 
-            // Optional real-time translation. We drop this into `correctedText`
-            // so the original transcription is preserved and the UI can still
-            // show both if needed.
-            if (
+            // Post-processing pipeline (runs async so it doesn't block the UI):
+            // 1. Grammar correction (if enabled)
+            // 2. Translation (if enabled, runs on grammar-corrected text)
+            const grammarEnabled = settings.grammarEnabled;
+            const translationEnabled =
               settings.translationEnabled &&
               settings.translationTargetLanguage &&
-              settings.translationTargetLanguage !== (result.language ?? "")
-            ) {
+              settings.translationTargetLanguage !== (result.language ?? "");
+
+            if (grammarEnabled || translationEnabled) {
               (async () => {
                 try {
                   const { invoke } = await import("@tauri-apps/api/core");
-                  const translation = await invoke<{ translated: string }>(
-                    "translate_text",
-                    {
-                      text: finalText,
-                      targetLanguage: settings.translationTargetLanguage,
+                  let processedText = finalText;
+
+                  // Step 1: grammar correction
+                  if (grammarEnabled) {
+                    try {
+                      const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
+                        "correct_grammar",
+                        {
+                          text: finalText,
+                          customVocabulary: settings.customVocabulary,
+                        }
+                      );
+                      if (grammarResult?.corrected) {
+                        processedText = grammarResult.corrected;
+                        useDictationStore.getState().updateSegment(segmentId, {
+                          correctedText: grammarResult.corrected,
+                          grammarApplied: true,
+                        });
+                      }
+                    } catch {
+                      // Grammar unavailable (no API key etc.) — continue with raw text.
                     }
-                  );
-                  if (translation?.translated) {
-                    useDictationStore.getState().updateSegment(segmentId, {
-                      translatedText: translation.translated,
-                      translatedToLanguage: settings.translationTargetLanguage,
-                    });
+                  }
+
+                  // Step 2: translation (on grammar-corrected or raw text)
+                  if (translationEnabled) {
+                    try {
+                      const translation = await invoke<{ translated: string }>(
+                        "translate_text",
+                        {
+                          text: processedText,
+                          targetLanguage: settings.translationTargetLanguage,
+                        }
+                      );
+                      if (translation?.translated) {
+                        useDictationStore.getState().updateSegment(segmentId, {
+                          translatedText: translation.translated,
+                          translatedToLanguage: settings.translationTargetLanguage,
+                        });
+                      }
+                    } catch {
+                      // Translation failure — leave segment as-is.
+                    }
                   }
                 } catch {
-                  // Non-Tauri or translation failure — leave segment as-is.
+                  // Non-Tauri environment — skip.
                 }
               })();
             }

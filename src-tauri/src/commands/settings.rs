@@ -6,6 +6,7 @@ use crate::stt::{SttConfig, SttEngineType, SttState};
 use crate::commands::grammar::{
     set_grammar_config_internal, GrammarConfig, GrammarProvider, WritingStyle,
 };
+use crate::commands::translate::{set_translation_config_internal, TranslationConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -63,6 +64,12 @@ pub struct AppSettings {
     #[serde(default)]
     pub jurisdiction: String,
 
+    // Translation
+    #[serde(default)]
+    pub translation_enabled: bool,
+    #[serde(default = "default_translation_language")]
+    pub translation_target_language: String,
+
     // Voxlen account — when set, all STT and grammar calls are proxied
     // through api.voxlen.com so users never need their own API keys.
     #[serde(default)]
@@ -117,11 +124,18 @@ impl Default for AppSettings {
             legal_mode: false,
             jurisdiction: "global".to_string(),
 
+            translation_enabled: false,
+            translation_target_language: "en".to_string(),
+
             voxlen_api_key: None,
             voxlen_tenant_id: None,
             voxlen_context: None,
         }
     }
+}
+
+fn default_translation_language() -> String {
+    "en".to_string()
 }
 
 const SETTINGS_STORE_FILE: &str = "settings.json";
@@ -262,6 +276,12 @@ fn apply_settings_to_engines(
         voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
     };
     set_grammar_config_internal(grammar_config);
+
+    let translation_config = TranslationConfig {
+        enabled: s.translation_enabled,
+        target_language: s.translation_target_language.clone(),
+    };
+    set_translation_config_internal(translation_config);
 }
 
 /// Load settings from disk into the in-memory cache. Called once during app
@@ -305,4 +325,9 @@ pub fn load_settings_from_disk(app: AppHandle) -> Result<AppSettings, String> {
 /// commands to gate cloud STT and emit UI events.
 pub fn get_privileged_mode() -> bool {
     get_settings_store().read().privileged_mode
+}
+
+/// Returns a snapshot of the current settings for use by non-command code.
+pub fn get_current_settings() -> AppSettings {
+    get_settings_store().read().clone()
 }

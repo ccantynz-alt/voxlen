@@ -8,9 +8,10 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "node",
+    environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-    globals: false,
+    globals: true,
+    setupFiles: ["./src/test-setup.ts"],
     reporters: "default",
   },
 });
