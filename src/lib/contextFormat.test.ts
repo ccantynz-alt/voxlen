@@ -34,6 +34,28 @@ describe("applyContextFormat — legal_case_note", () => {
   });
 });
 
+describe("applyContextFormat — legal_case_note (extended)", () => {
+  it("replaces 'telephone note' prefix with formal heading", () => {
+    const out = applyContextFormat("telephone note: spoke with client", { context: "legal_case_note" });
+    expect(out).toContain("TELEPHONE NOTE");
+  });
+
+  it("replaces 'conference note' prefix", () => {
+    const out = applyContextFormat("conference note: attended with counsel", { context: "legal_case_note" });
+    expect(out).toContain("CONFERENCE NOTE");
+  });
+
+  it("formats action point", () => {
+    const out = applyContextFormat("action points send letter of claim", { context: "legal_case_note" });
+    expect(out).toContain("ACTION POINT:");
+  });
+
+  it("formats client ref", () => {
+    const out = applyContextFormat("client ref: ABC-001 re claim", { context: "legal_case_note" });
+    expect(out).toContain("Client Ref: ABC-001");
+  });
+});
+
 describe("applyContextFormat — legal_court_filing", () => {
   it("converts 'versus' to 'v'", () => {
     const out = applyContextFormat("Smith versus Jones is the leading case", {
@@ -47,6 +69,20 @@ describe("applyContextFormat — legal_court_filing", () => {
       context: "legal_court_filing",
     });
     expect(out).toContain("Plaintiff");
+  });
+
+  it("uppercases UK court names in filing context", () => {
+    const out = applyContextFormat("in the employment tribunal, the applicant claims", {
+      context: "legal_court_filing",
+    });
+    expect(out).toContain("IN THE EMPLOYMENT TRIBUNAL");
+  });
+
+  it("uppercases Sheriff Court", () => {
+    const out = applyContextFormat("in the sheriff court, the defender denies liability", {
+      context: "legal_court_filing",
+    });
+    expect(out).toContain("IN THE SHERIFF COURT");
   });
 });
 
