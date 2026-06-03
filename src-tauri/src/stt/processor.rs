@@ -36,8 +36,8 @@ impl AudioProcessor {
             let mut accumulated_samples: Vec<f32> = Vec::new();
             let mut sample_rate = 16000u32;
 
-            // Accumulate ~3 seconds of audio before transcribing
-            let target_duration_ms: u64 = 3000;
+            // Accumulate ~1 second of audio before transcribing (was 3s — too slow)
+            let target_duration_ms: u64 = 1000;
             let mut accumulated_duration_ms: u64 = 0;
 
             loop {
@@ -150,8 +150,8 @@ fn detect_voice_activity(samples: &[f32]) -> bool {
 
     let rms: f32 = (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
 
-    // Threshold for voice detection (adjust based on testing)
-    rms > 0.01
+    // Lower threshold catches soft speech — Deepgram handles noise robustly
+    rms > 0.005
 }
 
 /// Convert interleaved multi-channel audio to mono
