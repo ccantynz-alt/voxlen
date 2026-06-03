@@ -878,7 +878,7 @@ function AppearanceSettings() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <SectionHeader title="Appearance" description="Customize how Marco Reid Voice looks." />
+      <SectionHeader title="Appearance" description="Customize how Voxlen looks." />
 
       <SettingRow>
         <Select

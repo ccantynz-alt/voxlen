@@ -24,7 +24,7 @@ pub fn get_stt_engines() -> Result<Vec<EngineInfo>, String> {
         },
         EngineInfo {
             id: "deepgram".to_string(),
-            name: "Deepgram Nova-2".to_string(),
+            name: "Deepgram Nova-3".to_string(),
             description: "Fastest real-time transcription. Best for live dictation.".to_string(),
             requires_api_key: true,
             supports_streaming: true,
