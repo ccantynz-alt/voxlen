@@ -192,4 +192,18 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+
+  <!-- New SEO pages — accountants UK, medical dictation -->
+  <url>
+    <loc>https://voxlen.ai/dictation-software-for-accountants-uk</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://voxlen.ai/voice-to-text-for-medical</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>
