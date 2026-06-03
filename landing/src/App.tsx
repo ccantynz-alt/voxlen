@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import CookieBanner from "./components/CookieBanner";
+import { Dashboard } from "./components/Dashboard";
 import { getStoredUser, storeUser, clearUser, parseIdToken, type GoogleUser } from "./lib/auth";
 import {
   Mic,
@@ -44,21 +45,45 @@ const stagger = {
 export default function App() {
   const [legalModal, setLegalModal] = useState<"privacy" | "terms" | null>(null);
   const [user, setUser] = useState<GoogleUser | null>(() => getStoredUser());
+  const [page, setPage] = useState<"home" | "dashboard">(() =>
+    window.location.hash === "#dashboard" ? "dashboard" : "home"
+  );
 
   const handleSignIn = useCallback((u: GoogleUser) => {
     storeUser(u);
     setUser(u);
+    setPage("dashboard");
+    window.location.hash = "#dashboard";
   }, []);
 
   const handleSignOut = useCallback(() => {
     clearUser();
     setUser(null);
+    setPage("home");
+    window.location.hash = "";
   }, []);
+
+  const goToDashboard = useCallback(() => {
+    setPage("dashboard");
+    window.location.hash = "#dashboard";
+  }, []);
+
+  useEffect(() => {
+    const onHash = () => {
+      setPage(window.location.hash === "#dashboard" ? "dashboard" : "home");
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  if (page === "dashboard" && user) {
+    return <Dashboard user={user} onSignOut={handleSignOut} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#09090b]">
-      <Navbar user={user} onSignIn={handleSignIn} onSignOut={handleSignOut} />
-      <Hero />
+      <Navbar user={user} onSignIn={handleSignIn} onSignOut={handleSignOut} onDashboard={goToDashboard} />
+      <Hero user={user} onSignIn={handleSignIn} />
       <TrustBar />
       <Features />
       <Platforms />
@@ -67,7 +92,7 @@ export default function App() {
       <Comparison />
       <Pricing />
       <FAQ />
-      <CTA />
+      <CTA user={user} onSignIn={handleSignIn} />
       <Footer onOpenLegal={setLegalModal} />
       {legalModal && (
         <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
@@ -82,10 +107,12 @@ function Navbar({
   user,
   onSignIn,
   onSignOut,
+  onDashboard,
 }: {
   user: GoogleUser | null;
   onSignIn: (u: GoogleUser) => void;
   onSignOut: () => void;
+  onDashboard: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -148,6 +175,12 @@ function Navbar({
                     <p className="text-xs font-medium text-white truncate">{user.name}</p>
                     <p className="text-[11px] text-zinc-400 truncate">{user.email}</p>
                   </div>
+                  <button
+                    onClick={() => { setMenuOpen(false); onDashboard(); }}
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Dashboard
+                  </button>
                   <a
                     href="https://app.voxlen.ai"
                     className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
@@ -184,7 +217,20 @@ function Navbar({
   );
 }
 
-function Hero() {
+function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
+  const login = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (response) => {
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${response.access_token}` },
+        });
+        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
+      } catch {}
+    },
+  });
+
   return (
     <section className="relative pt-32 pb-20 overflow-hidden glow-hero">
       {/* Background orbs */}
@@ -233,13 +279,23 @@ function Hero() {
             variants={fadeUp}
             className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4"
           >
-            <a
-              href="#download"
-              className="h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:shadow-marcoreid-600/40 hover:scale-[1.02]"
-            >
-              <Download className="h-5 w-5" />
-              Start Free Trial
-            </a>
+            {user ? (
+              <a
+                href="#download"
+                className="h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:shadow-marcoreid-600/40 hover:scale-[1.02]"
+              >
+                <Download className="h-5 w-5" />
+                Download Voxlen
+              </a>
+            ) : (
+              <button
+                onClick={() => login()}
+                className="h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:shadow-marcoreid-600/40 hover:scale-[1.02]"
+              >
+                <Download className="h-5 w-5" />
+                Start Free Trial
+              </button>
+            )}
             <a
               href="#features"
               className="h-12 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-medium flex items-center gap-2 hover:bg-white/10 transition-all"
@@ -1193,8 +1249,21 @@ const DOWNLOADS: Record<
   },
 };
 
-function CTA() {
+function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
   const [platform, setPlatform] = useState<Platform>("unknown");
+
+  const login = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (response) => {
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${response.access_token}` },
+        });
+        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
+      } catch {}
+    },
+  });
   const [liveAssets, setLiveAssets] = useState<ReleaseAsset[] | null>(null);
   const [hasRelease, setHasRelease] = useState<boolean | null>(null);
 
@@ -1266,19 +1335,33 @@ function CTA() {
             </motion.div>
           ) : primary && hasRelease ? (
             <motion.div variants={fadeUp} className="flex justify-center mb-4">
-              <a
-                href={hrefFor(platform as Exclude<Platform, "unknown">)}
-                className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
-              >
-                <PrimaryIcon className="h-7 w-7" />
-                <div className="text-left">
-                  <div className="text-lg leading-tight">{primary.label}</div>
-                  <div className="text-xs font-normal opacity-80">
-                    {primary.subLabel} · {primary.size}
+              {user ? (
+                <a
+                  href={hrefFor(platform as Exclude<Platform, "unknown">)}
+                  className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
+                >
+                  <PrimaryIcon className="h-7 w-7" />
+                  <div className="text-left">
+                    <div className="text-lg leading-tight">{primary.label}</div>
+                    <div className="text-xs font-normal opacity-80">
+                      {primary.subLabel} · {primary.size}
+                    </div>
                   </div>
-                </div>
-                <Download className="h-5 w-5 opacity-70 group-hover:translate-y-0.5 transition-transform" />
-              </a>
+                  <Download className="h-5 w-5 opacity-70 group-hover:translate-y-0.5 transition-transform" />
+                </a>
+              ) : (
+                <button
+                  onClick={() => login()}
+                  className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
+                >
+                  <PrimaryIcon className="h-7 w-7" />
+                  <div className="text-left">
+                    <div className="text-lg leading-tight">Sign in to Download</div>
+                    <div className="text-xs font-normal opacity-80">Free — sign in with Google</div>
+                  </div>
+                  <Download className="h-5 w-5 opacity-70" />
+                </button>
+              )}
             </motion.div>
           ) : null}
 
