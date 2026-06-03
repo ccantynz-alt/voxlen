@@ -745,6 +745,54 @@ function GrammarSettings() {
           onChange={(v) => settings.updateSetting("preserveTone", v)}
         />
       </SettingRow>
+
+      <div className="pt-2">
+        <SectionHeader
+          title="Real-Time Translation"
+          description="Translate your dictated text into another language. Translation runs after grammar correction, using your grammar AI provider and API key."
+        />
+      </div>
+
+      <SettingRow>
+        <Switch
+          label="Enable Translation"
+          description="Automatically translate transcribed text into the selected target language"
+          checked={settings.translationEnabled}
+          onChange={(v) => settings.updateSetting("translationEnabled", v)}
+        />
+      </SettingRow>
+
+      {settings.translationEnabled && (
+        <SettingRow>
+          <Select
+            label="Target Language"
+            value={settings.translationTargetLanguage}
+            onChange={(v) => settings.updateSetting("translationTargetLanguage", v)}
+            options={[
+              { value: "en", label: "🇬🇧 English" },
+              { value: "es", label: "🇪🇸 Spanish" },
+              { value: "fr", label: "🇫🇷 French" },
+              { value: "de", label: "🇩🇪 German" },
+              { value: "it", label: "🇮🇹 Italian" },
+              { value: "pt", label: "🇵🇹 Portuguese" },
+              { value: "nl", label: "🇳🇱 Dutch" },
+              { value: "pl", label: "🇵🇱 Polish" },
+              { value: "ru", label: "🇷🇺 Russian" },
+              { value: "ja", label: "🇯🇵 Japanese" },
+              { value: "ko", label: "🇰🇷 Korean" },
+              { value: "zh", label: "🇨🇳 Chinese" },
+              { value: "ar", label: "🇸🇦 Arabic" },
+              { value: "hi", label: "🇮🇳 Hindi" },
+              { value: "tr", label: "🇹🇷 Turkish" },
+              { value: "sv", label: "🇸🇪 Swedish" },
+              { value: "da", label: "🇩🇰 Danish" },
+              { value: "fi", label: "🇫🇮 Finnish" },
+              { value: "no", label: "🇳🇴 Norwegian" },
+              { value: "uk", label: "🇺🇦 Ukrainian" },
+            ]}
+          />
+        </SettingRow>
+      )}
     </div>
   );
 }

@@ -74,17 +74,23 @@ impl AudioEngine {
     }
 
     pub fn start_capture(&self) -> anyhow::Result<()> {
+        self.start_capture_with_options(1.0, true)
+    }
+
+    pub fn start_capture_with_options(&self, input_gain: f32, noise_suppression: bool) -> anyhow::Result<()> {
         let device_id = self.selected_device.read().clone();
         let sender = self.audio_sender.clone()
             .ok_or_else(|| anyhow::anyhow!("Audio sender not available"))?;
         let input_level = self.input_level.clone();
         let app_handle = self.app_handle.clone();
 
-        let handle = capture::start_capture(device_id, sender, input_level, app_handle)?;
+        let handle = capture::start_capture_with_options(
+            device_id, sender, input_level, app_handle, input_gain, noise_suppression
+        )?;
         *self.capture_handle.write() = Some(handle);
         *self.status.write() = DictationStatus::Listening;
 
-        log::info!("Audio capture started");
+        log::info!("Audio capture started (gain={}, noise_suppression={})", input_gain, noise_suppression);
         Ok(())
     }
 
