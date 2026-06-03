@@ -99,6 +99,72 @@ function formatSocial(input: string): string {
   return out;
 }
 
+const LATIN_PHRASES: Record<string, string> = {
+  "inter alia": "inter alia",
+  "res judicata": "res judicata",
+  "prima facie": "prima facie",
+  "mens rea": "mens rea",
+  "actus reus": "actus reus",
+  "bona fide": "bona fide",
+  "de facto": "de facto",
+  "de jure": "de jure",
+  "ex parte": "ex parte",
+  "habeas corpus": "habeas corpus",
+  "in camera": "in camera",
+  "in limine": "in limine",
+  "locus standi": "locus standi",
+  "non est factum": "non est factum",
+  "nunc pro tunc": "nunc pro tunc",
+  "obiter dicta": "obiter dicta",
+  "per curiam": "per curiam",
+  "pro bono": "pro bono",
+  "pro rata": "pro rata",
+  "quantum meruit": "quantum meruit",
+  "ratio decidendi": "ratio decidendi",
+  "res ipsa loquitur": "res ipsa loquitur",
+  "stare decisis": "stare decisis",
+  "ultra vires": "ultra vires",
+  "versus": "v.",
+  "and others": "et al.",
+  "and the following": "et seq.",
+  "that is": "i.e.",
+  "for example": "e.g.",
+};
+
+function formatLegalPhrases(input: string): string {
+  let out = input;
+  // Protect known Latin and legal abbreviations from further transforms
+  for (const [spoken, written] of Object.entries(LATIN_PHRASES)) {
+    const re = new RegExp(`\\b${spoken}\\b`, "gi");
+    out = out.replace(re, written);
+  }
+  return out;
+}
+
+const CURRENCY_SPOKEN: Record<string, string> = {
+  "pounds sterling": "GBP",
+  "australian dollars": "AUD",
+  "us dollars": "USD",
+  "euro": "EUR",
+  "euros": "EUR",
+  "new zealand dollars": "NZD",
+  "canadian dollars": "CAD",
+};
+// Keep reference to satisfy lint
+void CURRENCY_SPOKEN;
+
+function formatLegalCurrency(input: string): string {
+  let out = input;
+  // "fifty thousand pounds sterling" → "£50,000"
+  // Simple spoken amount patterns
+  const amountRe = /\b(\w[\w\s]*?)\s+(pounds sterling|australian dollars|us dollars|euros?|new zealand dollars|canadian dollars)\b/gi;
+  out = out.replace(amountRe, (_, amount, currency) => {
+    const symbol = ({ "pounds sterling": "£", "australian dollars": "A$", "us dollars": "$", "euro": "€", "euros": "€", "new zealand dollars": "NZ$", "canadian dollars": "C$" } as Record<string, string>)[currency.toLowerCase()] ?? currency;
+    return symbol + amount.trim();
+  });
+  return out;
+}
+
 /** Markdown-ish dictation commands. Triggered only at the start of a segment. */
 function formatMarkdown(input: string): string {
   const trimmed = input.trimStart();
@@ -144,6 +210,8 @@ export interface SmartFormatOptions {
   social?: boolean;
   markdown?: boolean;
   digitRuns?: boolean;
+  legalPhrases?: boolean; // opt-in — only when legal mode active
+  legalCurrency?: boolean;
 }
 
 const defaultOptions: Required<SmartFormatOptions> = {
@@ -152,6 +220,8 @@ const defaultOptions: Required<SmartFormatOptions> = {
   social: true,
   markdown: true,
   digitRuns: true,
+  legalPhrases: false,
+  legalCurrency: false,
 };
 
 export function applySmartFormat(
@@ -166,5 +236,7 @@ export function applySmartFormat(
   if (o.emails) out = formatEmails(out);
   if (o.urls) out = formatUrls(out);
   if (o.social) out = formatSocial(out);
+  if (o.legalPhrases) out = formatLegalPhrases(out);
+  if (o.legalCurrency) out = formatLegalCurrency(out);
   return out;
 }

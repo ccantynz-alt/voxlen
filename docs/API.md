@@ -137,7 +137,7 @@ type SttConfig = {
 
 ### `correct_grammar`
 
-Run grammar/style correction on a text blob via Claude Haiku or GPT-4o-mini. Requires `grammar_api_key` to be set.
+Run grammar/style correction on a text blob via Claude Sonnet or GPT-4o-mini. Requires `grammar_api_key` to be set.
 
 - **Parameters:** `text: string`
 - **Returns:** `GrammarResult`
@@ -167,7 +167,7 @@ type GrammarChange = {
 type GrammarConfig = {
   enabled: boolean;
   api_key: string | null;
-  provider: "Claude" | "OpenAI";
+  provider: "Claude Sonnet" | "OpenAI";
   style: "Professional" | "Casual" | "Academic" | "Creative" | "Technical";
   auto_correct: boolean;
   preserve_tone: boolean;
@@ -260,6 +260,12 @@ type AppSettings = {
   // Privacy
   telemetry_enabled: boolean;
   save_transcripts: boolean;
+
+  // Privileged mode / Legal
+  privileged_mode: boolean;   // forces offline-only STT, blocks all cloud calls
+  legal_mode: boolean;         // enables Latin phrase recognition + legal smart format
+  jurisdiction: string;        // "uk" | "us" | "australia" | "canada" | "nz" | "global"
+  billable_rate_per_hour: number;
 };
 ```
 
@@ -383,6 +389,7 @@ Emitted by the backend with `AppHandle::emit` and consumed by the frontend via `
 | `speech-started`         | `true`                                   | Voice activity detected                                    |
 | `utterance-end`          | `true`                                   | End-of-utterance detected; good moment to finalize segment |
 | `navigate`               | `"dictation"` \| `"grammar"` \| `"settings"` | Tray menu requested a view switch                      |
+| `privileged-mode-active` | `true`                                   | Emitted when dictation starts in Privileged Mode           |
 
 ```ts
 type TranscriptionResult = {
@@ -392,4 +399,26 @@ type TranscriptionResult = {
   language: string | null;
   // ...provider-specific fields; see src-tauri/src/stt/
 };
+```
+
+---
+
+## Web SDK
+
+The Web SDK (`sdk/`) exposes a JavaScript API for embedding voice dictation in web applications. See `sdk/src/voxlen.ts` for the full typed interface.
+
+### Key types
+
+```ts
+// Initialise the SDK
+const voxlen = new VoxlenSDK({ apiKey: "...", engine: "deepgram" });
+
+// Start dictation
+await voxlen.startDictation({ language: "en", onPartial, onFinal });
+
+// Stop
+await voxlen.stopDictation();
+
+// Grammar correction
+const result = await voxlen.correctGrammar(text, { style: "professional" });
 ```

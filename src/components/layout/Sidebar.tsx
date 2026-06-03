@@ -5,6 +5,7 @@ import {
   History,
   ShieldCheck,
   Brain,
+  BookOpen,
 } from "lucide-react";
 import { APP_VERSION } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,12 @@ const navItems = [
     label: "Grammar",
     icon: SpellCheck,
     description: "AI correction",
+  },
+  {
+    id: "clauses",
+    label: "Clauses",
+    icon: BookOpen,
+    description: "Clause library",
   },
   {
     id: "history",

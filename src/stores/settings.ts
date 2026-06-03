@@ -53,6 +53,9 @@ export interface AppSettings {
   telemetryEnabled: boolean;
   saveTranscripts: boolean;
   privilegedMode: boolean;
+  legalMode: boolean; // enables Latin phrase recognition + legal smart format
+  jurisdiction: "uk" | "us" | "australia" | "canada" | "nz" | "global";
+  billableRatePerHour: number;
 
   // Legal
   legalAcceptedVersion: string | null;
@@ -114,6 +117,9 @@ const defaultSettings: AppSettings = {
   telemetryEnabled: false,
   saveTranscripts: true,
   privilegedMode: false,
+  legalMode: false,
+  jurisdiction: "global",
+  billableRatePerHour: 0,
 
   legalAcceptedVersion: null,
   legalAcceptedAt: null,
