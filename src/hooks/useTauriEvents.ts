@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAudioStore } from "@/stores/audio";
 import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
+import { toast } from "@/components/ui/Toast";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { applySmartFormat } from "@/lib/smartFormat";
@@ -324,6 +325,17 @@ export function useTauriEvents(): void {
           useDictationStore.getState().setCurrentTranscript("");
         });
 
+        const unlistenTranscriptionError = await listen<string>("transcription-error", (event) => {
+          const msg = event.payload;
+          useDictationStore.getState().setStatus("error");
+          useDictationStore.getState().setError(msg);
+          toast(msg.length > 80 ? msg.slice(0, 80) + "…" : msg, "error", 6000);
+        });
+
+        const unlistenReconnecting = await listen<number>("streaming-reconnecting", (event) => {
+          toast(`Reconnecting to Deepgram… (attempt ${event.payload})`, "info", 3000);
+        });
+
         unlisten = () => {
           unlistenLevel();
           unlistenWaveform();
@@ -331,6 +343,8 @@ export function useTauriEvents(): void {
           unlistenPartial();
           unlistenSpeechStarted();
           unlistenUtteranceEnd();
+          unlistenTranscriptionError();
+          unlistenReconnecting();
         };
       } catch {
         // Not running in Tauri.
