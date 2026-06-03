@@ -759,6 +759,7 @@ function Pricing() {
       cta: "Download Free",
       ctaStyle: "secondary",
       highlight: false,
+      priceId: null as string | null,
     },
     {
       name: "Pro",
@@ -780,6 +781,7 @@ function Pricing() {
       ctaStyle: "primary",
       highlight: true,
       badge: "Most Popular",
+      priceId: PRICE_PRO_MONTHLY,
     },
     {
       name: "Professional",
@@ -799,6 +801,7 @@ function Pricing() {
       ctaStyle: "secondary",
       highlight: false,
       badge: "Recommended for Pros",
+      priceId: PRICE_PROFESSIONAL_MONTHLY,
     },
     {
       name: "Lifetime",
@@ -815,6 +818,7 @@ function Pricing() {
       cta: "Get Lifetime",
       ctaStyle: "secondary",
       highlight: false,
+      priceId: PRICE_LIFETIME,
     },
   ];
 
@@ -889,21 +893,46 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a
-                href="#download"
-                className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
-                  t.ctaStyle === "primary"
-                    ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
-                    : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                }`}
-              >
-                {t.cta}
-              </a>
+              {t.priceId ? (
+                <button
+                  type="button"
+                  onClick={() => redirectToCheckout(t.priceId!)}
+                  className={`w-full h-11 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                    t.ctaStyle === "primary"
+                      ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
+                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {t.cta}
+                </button>
+              ) : (
+                <a
+                  href="#download"
+                  className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
+                    t.ctaStyle === "primary"
+                      ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
+                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {t.cta}
+                </a>
+              )}
             </motion.div>
           ))}
         </motion.div>
 
-        <p className="text-center text-xs text-zinc-600 mt-10 max-w-2xl mx-auto leading-relaxed">
+        {/* Stripe trust badge */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="flex items-center justify-center gap-2 mt-8 text-xs text-zinc-500"
+        >
+          <Lock className="h-3.5 w-3.5 text-zinc-600" />
+          <span>Secure payment by <span className="text-zinc-400 font-medium">Stripe</span> — your card details never touch our servers</span>
+        </motion.div>
+
+        <p className="text-center text-xs text-zinc-600 mt-4 max-w-2xl mx-auto leading-relaxed">
           Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
           All AI costs (speech-to-text and grammar correction) are included — your subscription
           covers everything. Audio still streams directly from your device to AI providers and is

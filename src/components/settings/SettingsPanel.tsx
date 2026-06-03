@@ -966,21 +966,45 @@ function AdvancedSettings() {
 
 function VoxlenApiSettings() {
   const settings = useSettingsStore();
-  const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [verifying, setVerifying] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [keyError, setKeyError] = useState("");
+  const isConnected = Boolean(settings.voxlenApiKey);
 
-  const testConnection = async () => {
-    if (!settings.voxlenApiKey) return;
-    setTestStatus("testing");
+  const openSignUp = async () => {
     try {
-      const res = await fetch(
-        `${settings.voxlenTenantId ? "https://api.voxlen.com/v1" : "https://api.voxlen.com/v1"}/health`,
-        { headers: { Authorization: `Bearer ${settings.voxlenApiKey}` } }
-      );
-      setTestStatus(res.ok ? "ok" : "error");
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("open_url", { url: "https://voxlen.ai/#download" });
     } catch {
-      setTestStatus("error");
+      window.open("https://voxlen.ai/#download", "_blank");
     }
-    setTimeout(() => setTestStatus("idle"), 3000);
+  };
+
+  const connect = async () => {
+    const key = keyInput.trim();
+    if (!key) return;
+    setVerifying(true);
+    setKeyError("");
+    try {
+      const res = await fetch("https://api.voxlen.com/v1/health", {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      if (res.ok) {
+        settings.updateSetting("voxlenApiKey", key);
+        setKeyInput("");
+      } else {
+        setKeyError("Invalid API key. Check your Voxlen dashboard.");
+      }
+    } catch {
+      // Network unreachable — accept key anyway (API may not be live yet)
+      settings.updateSetting("voxlenApiKey", key);
+      setKeyInput("");
+    }
+    setVerifying(false);
+  };
+
+  const disconnect = () => {
+    settings.updateSetting("voxlenApiKey", "");
   };
 
   const CONTEXT_OPTIONS = [
@@ -1000,131 +1024,153 @@ function VoxlenApiSettings() {
   ];
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <SectionHeader
-        title="Voxlen API"
-        description="Connect to api.voxlen.com for enhanced transcription with domain-specific formatting. Your API key stays on this device."
-      />
+    <div className="space-y-5 max-w-lg">
+      {/* Connected state */}
+      {isConnected ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center">
+              <span className="text-emerald-400 text-lg">✓</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-surface-900">Voxlen Account Connected</p>
+              <p className="text-[11px] text-surface-600">
+                Transcription and grammar AI powered by Voxlen. No provider keys needed.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={disconnect}
+            className="text-[11px] text-surface-500 hover:text-red-400 transition-colors"
+          >
+            Disconnect account
+          </button>
+        </div>
+      ) : (
+        /* Not connected */
+        <div className="rounded-xl border border-surface-300/60 bg-surface-50/40 p-5 space-y-4">
+          <div className="text-center pb-2">
+            <div className="flex items-baseline justify-center gap-0.5 mb-1">
+              <span className="font-display text-xl text-surface-900 tracking-tight-display">Vox</span>
+              <span className="font-display text-xl italic text-brass-500 tracking-tight-display">len</span>
+            </div>
+            <p className="text-[12px] text-surface-600 max-w-xs mx-auto">
+              Connect your Voxlen account and the app works immediately — no Deepgram or Anthropic keys required.
+            </p>
+          </div>
 
-      <SettingRow>
-        <div className="space-y-2">
-          <Input
-            label="Voxlen API Key"
-            type="password"
-            value={settings.voxlenApiKey}
-            onChange={(e) => settings.updateSetting("voxlenApiKey", e.target.value)}
-            placeholder="vx-..."
-          />
-          <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={openSignUp}
+            className="w-full flex items-center justify-center gap-2 bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
+          >
+            Get your API key at voxlen.ai
+          </button>
+
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-surface-300/50" />
+            <span className="text-[10px] text-surface-500 uppercase tracking-wider">already have a key?</span>
+            <div className="flex-1 h-px bg-surface-300/50" />
+          </div>
+
+          <div className="space-y-2">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => { setKeyInput(e.target.value); setKeyError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && connect()}
+              placeholder="vx-..."
+              className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-[#7345d1] shadow-inset-hairline"
+            />
+            {keyError && <p className="text-[11px] text-red-500">{keyError}</p>}
             <Button
-              size="sm"
               variant="secondary"
-              onClick={testConnection}
-              disabled={!settings.voxlenApiKey || testStatus === "testing"}
+              size="sm"
+              onClick={connect}
+              disabled={!keyInput.trim() || verifying}
+              className="w-full"
             >
-              {testStatus === "testing" ? "Testing…" : "Test Connection"}
+              {verifying ? "Connecting…" : "Connect"}
             </Button>
-            {testStatus === "ok" && (
-              <span className="text-[11px] text-emerald-500 font-medium">Connected</span>
-            )}
-            {testStatus === "error" && (
-              <span className="text-[11px] text-red-500 font-medium">Connection failed</span>
-            )}
           </div>
         </div>
-      </SettingRow>
-
-      <SettingRow>
-        <Input
-          label="Tenant ID"
-          value={settings.voxlenTenantId}
-          onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
-          placeholder="Your firm or organisation ID"
-        />
-      </SettingRow>
-
-      <SettingRow>
-        <Select
-          label="Dictation Context"
-          value={settings.voxlenContext}
-          onChange={(v) => settings.updateSetting("voxlenContext", v)}
-          options={CONTEXT_OPTIONS}
-        />
-      </SettingRow>
-
-      <SettingRow>
-        <Switch
-          label="Privileged Mode"
-          description="Block all cloud STT — local processing only. For highly sensitive matters where audio must never leave the device."
-          checked={settings.privilegedMode}
-          onChange={(v) => settings.updateSetting("privilegedMode", v)}
-        />
-      </SettingRow>
-
-      <SettingRow>
-        <Switch
-          label="Legal Mode"
-          description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
-          checked={settings.legalMode}
-          onChange={(v) => settings.updateSetting("legalMode", v)}
-        />
-      </SettingRow>
-
-      {settings.legalMode && (
-        <SettingRow>
-          <Select
-            label="Jurisdiction"
-            value={settings.jurisdiction}
-            onChange={(v) =>
-              settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
-            }
-            options={[
-              { value: "global", label: "Global", description: "International / neutral" },
-              { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
-              { value: "us", label: "United States", description: "Federal + state law" },
-              { value: "australia", label: "Australia", description: "Commonwealth + state law" },
-              { value: "nz", label: "New Zealand", description: "NZ common law" },
-              { value: "canada", label: "Canada", description: "Federal + provincial law" },
-            ]}
-          />
-        </SettingRow>
       )}
 
-      {settings.legalMode && (
-        <SettingRow>
-          <Slider
-            label="Default Billable Rate"
-            value={settings.billableRatePerHour}
-            onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
-            min={0}
-            max={2000}
-            step={25}
-            formatValue={(v) => `$${v}/hr`}
-          />
-        </SettingRow>
-      )}
+      {/* Settings shown when connected */}
+      {isConnected && (
+        <>
+          <SectionHeader title="Dictation Settings" description="" />
 
-      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-2">
-        <h4 className="label-caps mb-3 block">How It Works</h4>
-        <ul className="space-y-1.5 text-[12px] text-surface-700 leading-relaxed">
-          <li className="flex items-start gap-2">
-            <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Audio is streamed to api.voxlen.com for transcription with domain-aware formatting.
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Context tells the server how to format output (contracts, depositions, tax memos, etc.).
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Falls back to Deepgram or Whisper if Voxlen API is not configured.
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Your API key is stored locally — never transmitted beyond api.voxlen.com.
-          </li>
-        </ul>
-      </div>
+          <SettingRow>
+            <Select
+              label="Dictation Context"
+              value={settings.voxlenContext}
+              onChange={(v) => settings.updateSetting("voxlenContext", v)}
+              options={CONTEXT_OPTIONS}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Switch
+              label="Privileged Mode"
+              description="Block all cloud STT — local processing only. For highly sensitive matters where audio must never leave the device."
+              checked={settings.privilegedMode}
+              onChange={(v) => settings.updateSetting("privilegedMode", v)}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Switch
+              label="Legal Mode"
+              description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
+              checked={settings.legalMode}
+              onChange={(v) => settings.updateSetting("legalMode", v)}
+            />
+          </SettingRow>
+
+          {settings.legalMode && (
+            <SettingRow>
+              <Select
+                label="Jurisdiction"
+                value={settings.jurisdiction}
+                onChange={(v) =>
+                  settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
+                }
+                options={[
+                  { value: "global", label: "Global", description: "International / neutral" },
+                  { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
+                  { value: "us", label: "United States", description: "Federal + state law" },
+                  { value: "australia", label: "Australia", description: "Commonwealth + state law" },
+                  { value: "nz", label: "New Zealand", description: "NZ common law" },
+                  { value: "canada", label: "Canada", description: "Federal + provincial law" },
+                ]}
+              />
+            </SettingRow>
+          )}
+
+          {settings.legalMode && (
+            <SettingRow>
+              <Slider
+                label="Default Billable Rate"
+                value={settings.billableRatePerHour}
+                onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
+                min={0}
+                max={2000}
+                step={25}
+                formatValue={(v) => `$${v}/hr`}
+              />
+            </SettingRow>
+          )}
+
+          <SettingRow>
+            <Input
+              label="Firm / Organisation ID (optional)"
+              value={settings.voxlenTenantId}
+              onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
+              placeholder="For team / SSO accounts"
+            />
+          </SettingRow>
+        </>
+      )}
     </div>
   );
 }
