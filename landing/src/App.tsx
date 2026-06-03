@@ -20,6 +20,8 @@ import {
   Download,
   Apple,
   Lock,
+  FileText,
+  DollarSign,
 } from "lucide-react";
 import {
   redirectToCheckout,
@@ -557,6 +559,20 @@ function Features() {
       description: "Full custom keyboard for Android with Deepgram Nova-3 streaming STT, AI grammar polish, haptic feedback, and dark mode. Replace your stock keyboard with professional-grade dictation.",
       color: "text-green-400",
       bg: "bg-green-400/10",
+    },
+    {
+      icon: FileText,
+      title: "Export to Word & More",
+      description: "Export transcripts as Word-compatible RTF, plain text, Markdown, JSON, or SRT subtitles. RTF opens natively in Microsoft Word with timestamps, speaker labels, and a formatted header.",
+      color: "text-indigo-400",
+      bg: "bg-indigo-400/10",
+    },
+    {
+      icon: DollarSign,
+      title: "Live Billing Clock",
+      description: "Assign a client or matter to any dictation session and watch the running cost tick up in real time. One-click CSV export for billing. For lawyers tracking every six minutes.",
+      color: "text-amber-400",
+      bg: "bg-amber-400/10",
     },
   ];
 
