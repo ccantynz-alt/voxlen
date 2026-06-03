@@ -45,39 +45,47 @@ const stagger = {
 export default function App() {
   const [legalModal, setLegalModal] = useState<"privacy" | "terms" | null>(null);
   const [user, setUser] = useState<GoogleUser | null>(() => getStoredUser());
-  const [page, setPage] = useState<"home" | "dashboard">(() =>
-    window.location.hash === "#dashboard" ? "dashboard" : "home"
-  );
+  const [path, setPath] = useState(() => window.location.pathname);
+
+  const navigate = useCallback((to: string) => {
+    window.history.pushState({}, "", to);
+    setPath(to);
+  }, []);
 
   const handleSignIn = useCallback((u: GoogleUser) => {
     storeUser(u);
     setUser(u);
-    setPage("dashboard");
-    window.location.hash = "#dashboard";
-  }, []);
+    navigate("/dashboard");
+  }, [navigate]);
 
   const handleSignOut = useCallback(() => {
     clearUser();
     setUser(null);
-    setPage("home");
-    window.location.hash = "";
-  }, []);
+    navigate("/");
+  }, [navigate]);
 
-  const goToDashboard = useCallback(() => {
-    setPage("dashboard");
-    window.location.hash = "#dashboard";
-  }, []);
+  const goToDashboard = useCallback(() => navigate("/dashboard"), [navigate]);
 
   useEffect(() => {
-    const onHash = () => {
-      setPage(window.location.hash === "#dashboard" ? "dashboard" : "home");
-    };
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    const onPop = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  if (page === "dashboard" && user) {
+  if (path === "/privacy") {
+    return <LegalPage type="privacy" />;
+  }
+  if (path === "/terms") {
+    return <LegalPage type="terms" />;
+  }
+  if (path === "/support") {
+    return <SupportPage />;
+  }
+  if (path === "/dashboard" && user) {
     return <Dashboard user={user} onSignOut={handleSignOut} />;
+  }
+  if (path === "/dashboard" && !user) {
+    navigate("/");
   }
 
   return (
@@ -93,7 +101,7 @@ export default function App() {
       <Pricing />
       <FAQ />
       <CTA user={user} onSignIn={handleSignIn} />
-      <Footer onOpenLegal={setLegalModal} />
+      <Footer onOpenLegal={(type) => navigate(`/${type}`)} />
       {legalModal && (
         <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
       )}
@@ -1784,6 +1792,115 @@ function TermsContent() {
       <p className="text-zinc-300 leading-relaxed">
         For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-marcoreid-400 hover:underline">legal@voxlen.ai</a>.
       </p>
+    </div>
+  );
+}
+
+function LegalPage({ type }: { type: "privacy" | "terms" }) {
+  return (
+    <div className="min-h-screen bg-[#09090b] text-white">
+      <div className="border-b border-white/5 bg-[#0c0c0f]">
+        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center gap-3">
+          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <div className="w-7 h-7 rounded-lg bg-marcoreid-600 flex items-center justify-center">
+              <Mic className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="font-bold tracking-tight">Voxlen</span>
+          </a>
+          <span className="text-zinc-600">/</span>
+          <span className="text-zinc-400 text-sm capitalize">{type === "privacy" ? "Privacy Policy" : "Terms of Service"}</span>
+        </div>
+      </div>
+      <div className="max-w-3xl mx-auto px-6 py-12">
+        {type === "privacy" ? <PrivacyContent /> : <TermsContent />}
+        <div className="mt-12 pt-6 border-t border-white/10 flex gap-6 text-sm text-zinc-500">
+          <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+          <a href="/support" className="hover:text-white transition-colors">Support</a>
+          <a href="/" className="hover:text-white transition-colors ml-auto">← Back to Voxlen</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupportPage() {
+  return (
+    <div className="min-h-screen bg-[#09090b] text-white">
+      <div className="border-b border-white/5 bg-[#0c0c0f]">
+        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center gap-3">
+          <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <div className="w-7 h-7 rounded-lg bg-marcoreid-600 flex items-center justify-center">
+              <Mic className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="font-bold tracking-tight">Voxlen</span>
+          </a>
+          <span className="text-zinc-600">/</span>
+          <span className="text-zinc-400 text-sm">Support</span>
+        </div>
+      </div>
+      <div className="max-w-3xl mx-auto px-6 py-12 space-y-10">
+        <div>
+          <h1 className="text-3xl font-black mb-2">Support</h1>
+          <p className="text-zinc-400">We're here to help. Reach out through any of the channels below.</p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <a
+            href="mailto:support@voxlen.ai"
+            className="block p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors group"
+          >
+            <div className="text-lg font-bold mb-1 group-hover:text-marcoreid-400 transition-colors">Email Support</div>
+            <p className="text-zinc-400 text-sm mb-3">General help, billing questions, and account issues.</p>
+            <span className="text-marcoreid-400 text-sm font-medium">support@voxlen.ai →</span>
+          </a>
+          <a
+            href="mailto:legal@voxlen.ai"
+            className="block p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors group"
+          >
+            <div className="text-lg font-bold mb-1 group-hover:text-marcoreid-400 transition-colors">Legal &amp; Privacy</div>
+            <p className="text-zinc-400 text-sm mb-3">Terms, privacy policy, and data handling enquiries.</p>
+            <span className="text-marcoreid-400 text-sm font-medium">legal@voxlen.ai →</span>
+          </a>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-5">
+          <h2 className="text-lg font-bold">Frequently Asked Questions</h2>
+          {[
+            {
+              q: "How do I get my API keys working?",
+              a: "Open Voxlen → Settings → API Keys. Paste your Deepgram key in the Speech-to-Text field and your Anthropic key in the Grammar AI field. Keys are stored securely on your device and never sent to Voxlen servers.",
+            },
+            {
+              q: "The iOS keyboard isn't appearing.",
+              a: "Go to iOS Settings → General → Keyboard → Keyboards → Add New Keyboard, then find Voxlen. After adding it, tap the keyboard and enable Full Access to allow microphone use.",
+            },
+            {
+              q: "How do I cancel my subscription?",
+              a: "Your subscription is managed through Stripe. Email support@voxlen.ai with your account email and we'll process the cancellation same-day. You keep access until the end of your billing period.",
+            },
+            {
+              q: "Is my dictated text private?",
+              a: "Yes. Voxlen is a pass-through app — your audio goes directly from your device to the STT provider and your text goes directly to the grammar AI. Nothing passes through Voxlen-operated servers. Session history is stored on your device only.",
+            },
+            {
+              q: "Can I use Voxlen for privileged client communications?",
+              a: "Yes. Enable Offline Mode in Settings for fully on-device transcription (no audio leaves your device). All session history and custom vocabulary is local-only. We never store or access your content.",
+            },
+          ].map(({ q, a }) => (
+            <div key={q} className="border-t border-white/5 pt-4 first:border-0 first:pt-0">
+              <p className="font-semibold text-white mb-1">{q}</p>
+              <p className="text-zinc-400 text-sm leading-relaxed">{a}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-white/10 flex gap-6 text-sm text-zinc-500">
+          <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+          <a href="/" className="hover:text-white transition-colors ml-auto">← Back to Voxlen</a>
+        </div>
+      </div>
     </div>
   );
 }
