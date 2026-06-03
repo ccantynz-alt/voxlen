@@ -30,6 +30,8 @@ pub struct AppSettings {
     pub grammar_provider: String,
     pub writing_style: String,
     pub auto_correct: bool,
+    #[serde(default = "default_true")]
+    pub preserve_tone: bool,
 
     // Dictation
     pub auto_punctuate: bool,
@@ -43,6 +45,8 @@ pub struct AppSettings {
     pub shortcut_toggle: String,
     pub shortcut_push_to_talk: String,
     pub shortcut_cancel: String,
+    #[serde(default = "default_shortcut_correct_grammar")]
+    pub shortcut_correct_grammar: String,
 
     // UI
     pub theme: String,
@@ -99,6 +103,7 @@ impl Default for AppSettings {
             grammar_provider: "claude".to_string(),
             writing_style: "professional".to_string(),
             auto_correct: true,
+            preserve_tone: true,
 
             auto_punctuate: true,
             smart_format: true,
@@ -109,6 +114,7 @@ impl Default for AppSettings {
             shortcut_toggle: "CommandOrControl+Shift+D".to_string(),
             shortcut_push_to_talk: "CommandOrControl+Shift+Space".to_string(),
             shortcut_cancel: "Escape".to_string(),
+            shortcut_correct_grammar: "CommandOrControl+Shift+G".to_string(),
 
             theme: "dark".to_string(),
             show_waveform: true,
@@ -133,6 +139,9 @@ impl Default for AppSettings {
         }
     }
 }
+
+fn default_true() -> bool { true }
+fn default_shortcut_correct_grammar() -> String { "CommandOrControl+Shift+G".to_string() }
 
 fn default_translation_language() -> String {
     "en".to_string()
@@ -271,7 +280,7 @@ fn apply_settings_to_engines(
         provider: grammar_provider,
         style: writing_style,
         auto_correct: s.auto_correct,
-        preserve_tone: true,
+        preserve_tone: s.preserve_tone,
         voxlen_api_key: voxlen_key,
         voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
     };
