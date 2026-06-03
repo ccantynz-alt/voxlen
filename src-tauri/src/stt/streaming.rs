@@ -6,7 +6,7 @@ use futures_util::{SinkExt, StreamExt};
 use crossbeam_channel::Receiver;
 
 use crate::audio::AudioChunk;
-use super::{SttConfig, TranscriptionResult};
+use super::SttConfig;
 
 /// Real-time streaming transcription via Deepgram WebSocket
 pub struct StreamingSession {
@@ -369,19 +369,31 @@ async fn run_session_once(
 
                                 // Emit to frontend
                                 if is_final {
-                                    let _ = app_handle.emit("transcription", TranscriptionResult {
-                                        text: transcript.to_string(),
-                                        is_final: true,
-                                        confidence,
-                                        language: json["channel"]["detected_language"]
-                                            .as_str()
-                                            .map(|s| s.to_string()),
-                                        timestamp_ms: std::time::SystemTime::now()
-                                            .duration_since(std::time::UNIX_EPOCH)
-                                            .unwrap_or_default()
-                                            .as_millis() as u64,
-                                        words: vec![],
-                                    });
+                                    // Build frontend-compatible word list (seconds, not ms)
+                                    let fe_words: Vec<serde_json::Value> = channel["words"]
+                                        .as_array()
+                                        .map(|arr| {
+                                            arr.iter().map(|w| {
+                                                serde_json::json!({
+                                                    "word": w["word"].as_str().unwrap_or(""),
+                                                    "start": w["start"].as_f64().unwrap_or(0.0),
+                                                    "end": w["end"].as_f64().unwrap_or(0.0),
+                                                    "confidence": w["confidence"].as_f64().unwrap_or(0.0),
+                                                    "punctuated_word": w["punctuated_word"].as_str()
+                                                        .unwrap_or(w["word"].as_str().unwrap_or("")),
+                                                    "speaker": w["speaker"].as_u64(),
+                                                })
+                                            }).collect()
+                                        })
+                                        .unwrap_or_default();
+
+                                    let _ = app_handle.emit("transcription", serde_json::json!({
+                                        "text": transcript,
+                                        "is_final": true,
+                                        "confidence": confidence,
+                                        "language": json["channel"]["detected_language"].as_str(),
+                                        "words": fe_words,
+                                    }));
                                 } else {
                                     let _ = app_handle.emit("streaming-partial", &result);
                                 }
