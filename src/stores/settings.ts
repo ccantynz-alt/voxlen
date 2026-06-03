@@ -187,15 +187,20 @@ function schedulePersist() {
     // Persist API keys to OS keychain
     if (state.sttApiKey) await setSecret("sttApiKey", state.sttApiKey);
     if (state.grammarApiKey) await setSecret("grammarApiKey", state.grammarApiKey);
+    if (state.voxlenApiKey) await setSecret("voxlenApiKey", state.voxlenApiKey);
   }, 500);
 }
 
 export async function hydrateSecrets(): Promise<void> {
-  const sttApiKey = await getSecret("sttApiKey");
-  const grammarApiKey = await getSecret("grammarApiKey");
+  const [sttApiKey, grammarApiKey, voxlenApiKey] = await Promise.all([
+    getSecret("sttApiKey"),
+    getSecret("grammarApiKey"),
+    getSecret("voxlenApiKey"),
+  ]);
   const updates: Partial<AppSettings> = {};
   if (sttApiKey) updates.sttApiKey = sttApiKey;
   if (grammarApiKey) updates.grammarApiKey = grammarApiKey;
+  if (voxlenApiKey) updates.voxlenApiKey = voxlenApiKey;
   if (Object.keys(updates).length > 0) {
     useSettingsStore.setState(updates);
   }
