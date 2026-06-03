@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
-import { Copy, Check, Wand2, Languages, Pencil, Trash2, Replace } from "lucide-react";
+import { Copy, Check, Wand2, Languages, Pencil, Trash2, Replace, AlignLeft, List } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -30,6 +30,10 @@ export function TranscriptView({
   const [findValue, setFindValue] = useState("");
   const [replaceValue, setReplaceValue] = useState("");
   const [replaceCount, setReplaceCount] = useState<number | null>(null);
+  const [paragraphMode, setParagraphMode] = useState(false);
+  const [paraEditing, setParaEditing] = useState(false);
+  const [paraValue, setParaValue] = useState("");
+  const paraRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -84,6 +88,31 @@ export function TranscriptView({
     if (count > 0) setFindValue("");
   }, [findValue, replaceValue, updateSegment]);
 
+  const openParaEdit = useCallback(() => {
+    const text = segments.map((s) => s.correctedText || s.text).join(" ");
+    setParaValue(text);
+    setParaEditing(true);
+    setTimeout(() => paraRef.current?.focus(), 0);
+  }, [segments]);
+
+  const commitParaEdit = useCallback(() => {
+    // Replace all segments with a single merged segment
+    const { clearSession, addSegment } = useDictationStore.getState();
+    clearSession();
+    const trimmed = paraValue.trim();
+    if (trimmed) {
+      addSegment({
+        id: crypto.randomUUID(),
+        text: trimmed,
+        timestamp: new Date(),
+        confidence: 1.0,
+        isFinal: true,
+        grammarApplied: false,
+      });
+    }
+    setParaEditing(false);
+  }, [paraValue]);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(fullText);
@@ -109,6 +138,16 @@ export function TranscriptView({
           Transcript
         </span>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setParagraphMode((p) => !p); setParaEditing(false); }}
+            className="h-7 px-2 text-[11px]"
+            title={paragraphMode ? "Switch to segment view" : "Switch to paragraph view"}
+          >
+            {paragraphMode ? <List className="h-3 w-3" strokeWidth={1.75} /> : <AlignLeft className="h-3 w-3" strokeWidth={1.75} />}
+            {paragraphMode ? "Segments" : "Paragraph"}
+          </Button>
           {hasContent && onCorrectGrammar && (
             <Button
               variant="ghost"
@@ -205,6 +244,52 @@ export function TranscriptView({
             <p className="text-[11px] text-surface-600 mt-1.5">
               Start dictating to see your words appear here.
             </p>
+          </div>
+        ) : paragraphMode ? (
+          <div className="h-full">
+            {paraEditing ? (
+              <div className="flex flex-col gap-2 h-full">
+                <textarea
+                  ref={paraRef}
+                  value={paraValue}
+                  onChange={(e) => setParaValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setParaEditing(false); }}
+                  className="flex-1 w-full resize-none rounded border border-brass-400/50 bg-surface-100 p-3 text-surface-950 leading-relaxed outline-none focus:border-brass-500 focus:ring-1 focus:ring-brass-500/30"
+                  style={{ fontSize: "inherit", minHeight: "160px" }}
+                />
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={commitParaEdit}
+                    className="text-[10px] px-2 py-0.5 rounded bg-brass-500/20 text-brass-600 hover:bg-brass-500/30 font-medium transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setParaEditing(false)}
+                    className="text-[10px] px-2 py-0.5 rounded text-surface-500 hover:text-surface-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <span className="text-[9px] text-surface-500 ml-1">Esc to cancel</span>
+                </div>
+              </div>
+            ) : (
+              <p
+                className="leading-relaxed text-surface-950 cursor-text whitespace-pre-wrap"
+                title="Double-click to edit"
+                onDoubleClick={openParaEdit}
+              >
+                {fullText}
+                {currentTranscript && (
+                  <span className="italic text-surface-700 font-display">
+                    {" "}{currentTranscript}
+                    {status === "listening" && (
+                      <span className="inline-block w-px h-4 bg-brass-500 ml-0.5 animate-pulse-soft align-text-bottom" />
+                    )}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
