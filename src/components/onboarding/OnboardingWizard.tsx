@@ -195,7 +195,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       case 0: return true;
       case 1: return !!selectedDeviceId;
       // Step 2: connected if voxlenApiKey is set OR a direct STT key is set
-      case 2: return !!settings.voxlenApiKey || (!!settings.sttApiKey && apiKeyValid === true);
+      case 2: return !!settings.voxlenApiKey || !!settings.sttApiKey;
       case 3: return true;
       default: return true;
     }
@@ -439,10 +439,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
             {/* Advanced: BYOK fallback */}
             {!settings.voxlenApiKey && (
-              <details className="group">
+              <details className="group" open>
                 <summary className="text-[11px] text-surface-500 hover:text-surface-700 cursor-pointer list-none flex items-center gap-1.5 select-none">
                   <span className="transition-transform group-open:rotate-90">›</span>
-                  Advanced: use your own Deepgram or OpenAI key instead
+                  Use your own Deepgram or OpenAI key (advanced / admin)
                 </summary>
                 <div className="mt-3 space-y-3 pl-3 border-l border-surface-300/40">
                   <Select

@@ -1252,8 +1252,8 @@ function VoxlenApiSettings() {
         </div>
       )}
 
-      {/* Settings shown when connected */}
-      {isConnected && (
+      {/* Settings shown when connected OR when using own keys */}
+      {(isConnected || settings.sttApiKey) && (
         <>
           <SectionHeader title="Dictation Settings" description="" />
 
