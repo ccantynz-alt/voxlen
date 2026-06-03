@@ -13,6 +13,7 @@ import {
   Keyboard,
   ChevronDown,
   HelpCircle,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +30,8 @@ import { useClientsStore } from "@/stores/clients";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
+import { downloadExport } from "@/lib/export";
+import type { ExportFormat } from "@/lib/export";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -248,6 +251,7 @@ export function DictationPanel() {
   const [langOpen, setLangOpen] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const sttLanguage = useSettingsStore((s) => s.sttLanguage);
   const autoDetectLanguage = useSettingsStore((s) => s.autoDetectLanguage);
@@ -569,6 +573,45 @@ export function DictationPanel() {
                 <Trash2 className="h-3.5 w-3.5" />
                 Clear
               </Button>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setExportOpen((o) => !o)}
+                  title="Export transcript"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                  <ChevronDown className="h-3 w-3 ml-0.5" />
+                </Button>
+                {exportOpen && (
+                  <div
+                    className="absolute bottom-full right-0 mb-1 w-40 rounded-lg border border-surface-300/60 bg-surface-50 shadow-lg z-50 py-1"
+                    onMouseLeave={() => setExportOpen(false)}
+                  >
+                    {(["txt", "md", "rtf", "json", "srt"] as ExportFormat[]).map((fmt) => (
+                      <button
+                        key={fmt}
+                        onClick={async () => {
+                          setExportOpen(false);
+                          try {
+                            await downloadExport(segments, fmt);
+                          } catch {
+                            toast("Export failed", "error");
+                          }
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-[12px] text-surface-900 hover:bg-surface-100 transition-colors"
+                      >
+                        {fmt === "txt" && "Plain Text (.txt)"}
+                        {fmt === "md" && "Markdown (.md)"}
+                        {fmt === "rtf" && "Word / RTF (.rtf)"}
+                        {fmt === "json" && "JSON (.json)"}
+                        {fmt === "srt" && "Subtitles (.srt)"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button
                 variant="primary"
                 size="sm"
