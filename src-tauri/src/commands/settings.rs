@@ -254,6 +254,7 @@ fn apply_settings_to_engines(
         speaker_diarization: s.speaker_diarization,
         voxlen_api_key: voxlen_key.clone(),
         voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
+        voxlen_tenant_id: s.voxlen_tenant_id.clone().filter(|k| !k.is_empty()),
     };
     stt_engine_arc.read().set_config(stt_config);
 
@@ -283,6 +284,7 @@ fn apply_settings_to_engines(
         preserve_tone: s.preserve_tone,
         voxlen_api_key: voxlen_key,
         voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
+        voxlen_tenant_id: s.voxlen_tenant_id.clone().filter(|k| !k.is_empty()),
     };
     set_grammar_config_internal(grammar_config);
 

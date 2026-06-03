@@ -52,6 +52,8 @@ pub struct SttConfig {
     pub voxlen_api_key: Option<String>,
     #[serde(default)]
     pub voxlen_context: Option<String>,
+    #[serde(default)]
+    pub voxlen_tenant_id: Option<String>,
 }
 
 impl Default for SttConfig {
@@ -69,6 +71,7 @@ impl Default for SttConfig {
             speaker_diarization: false,
             voxlen_api_key: None,
             voxlen_context: None,
+            voxlen_tenant_id: None,
         }
     }
 }
