@@ -170,6 +170,14 @@ function schedulePersist() {
       launchAtLogin: state.launchAtLogin,
       telemetryEnabled: state.telemetryEnabled,
       saveTranscripts: state.saveTranscripts,
+      privilegedMode: state.privilegedMode,
+      legalMode: state.legalMode,
+      jurisdiction: state.jurisdiction,
+      billableRatePerHour: state.billableRatePerHour,
+      voxlenContext: state.voxlenContext,
+      voxlenTenantId: state.voxlenTenantId,
+      legalAcceptedVersion: state.legalAcceptedVersion,
+      legalAcceptedAt: state.legalAcceptedAt,
     };
     try {
       const { load } = await import("@tauri-apps/plugin-store");
