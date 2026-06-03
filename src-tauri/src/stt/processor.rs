@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use parking_lot::RwLock;
 use crossbeam_channel::Receiver;
 use tauri::{AppHandle, Emitter};
@@ -43,10 +42,10 @@ impl AudioProcessor {
             let target_duration_ms: u64 = 1000;
             let mut accumulated_duration_ms: u64 = 0;
 
-            // Streaming-mode state: (relay sender, stop flag) for the active session
+            // Streaming-mode state: (relay sender, session) for the active session
             let mut streaming_relay: Option<(
                 crossbeam_channel::Sender<AudioChunk>,
-                Arc<AtomicBool>,
+                super::streaming::StreamingSession,
             )> = None;
 
             loop {
@@ -57,8 +56,8 @@ impl AudioProcessor {
                     Ok(chunk) => {
                         if *status.read() == DictationStatus::Paused {
                             // Tear down any streaming session while paused
-                            if let Some((_, stop)) = streaming_relay.take() {
-                                stop.store(true, Ordering::Relaxed);
+                            if let Some((_, session)) = streaming_relay.take() {
+                                session.stop();
                             }
                             continue;
                         }
@@ -70,10 +69,11 @@ impl AudioProcessor {
                                 .map(|(tx, _)| tx.is_disconnected())
                                 .unwrap_or(true);
 
+
                             if needs_new_session {
                                 // Tear down old session if any
-                                if let Some((_, stop)) = streaming_relay.take() {
-                                    stop.store(true, Ordering::Relaxed);
+                                if let Some((_, session)) = streaming_relay.take() {
+                                    session.stop();
                                 }
 
                                 let has_key = config.api_key.as_deref()
@@ -91,10 +91,7 @@ impl AudioProcessor {
                                         app_handle.clone(),
                                     ) {
                                         Ok(session) => {
-                                            let stop = session.stop_flag.clone();
-                                            // Keep hold of session so it isn't dropped
-                                            std::mem::forget(session);
-                                            streaming_relay = Some((relay_tx, stop));
+                                            streaming_relay = Some((relay_tx, session));
                                         }
                                         Err(e) => {
                                             log::error!("Failed to start Deepgram streaming: {}", e);
@@ -106,15 +103,15 @@ impl AudioProcessor {
                                 }
                             }
 
-                            if let Some((ref tx, _)) = streaming_relay {
+                            if let Some((ref tx, ref _session)) = streaming_relay {
                                 let _ = tx.try_send(chunk);
                                 continue;
                             }
                             // If no streaming session (no key), fall through to batch below
                         } else {
                             // Switching away from Deepgram — stop streaming session
-                            if let Some((_, stop)) = streaming_relay.take() {
-                                stop.store(true, Ordering::Relaxed);
+                            if let Some((_, session)) = streaming_relay.take() {
+                                session.stop();
                             }
                         }
 
@@ -204,8 +201,8 @@ impl AudioProcessor {
                     }
                     Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
                         log::info!("Audio channel disconnected, stopping processor");
-                        if let Some((_, stop)) = streaming_relay.take() {
-                            stop.store(true, Ordering::Relaxed);
+                        if let Some((_, session)) = streaming_relay.take() {
+                            session.stop();
                         }
                         break;
                     }

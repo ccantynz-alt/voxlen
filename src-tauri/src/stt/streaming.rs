@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use parking_lot::RwLock;
 use tauri::{AppHandle, Emitter};
 use futures_util::{SinkExt, StreamExt};
 use crossbeam_channel::Receiver;
@@ -11,7 +10,7 @@ use super::{SttConfig, TranscriptionResult};
 
 /// Real-time streaming transcription via Deepgram WebSocket
 pub struct StreamingSession {
-    pub stop_flag: Arc<AtomicBool>,
+    stop_flag: Arc<AtomicBool>,
     _handle: Option<tokio::task::JoinHandle<()>>,
 }
 
