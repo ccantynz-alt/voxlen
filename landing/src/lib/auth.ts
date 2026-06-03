@@ -6,6 +6,7 @@ export interface GoogleUser {
 }
 
 const KEY = "voxlen_user";
+const TOKEN_KEY = "voxlen_access_token";
 
 export function getStoredUser(): GoogleUser | null {
   try {
@@ -22,6 +23,15 @@ export function storeUser(user: GoogleUser): void {
 
 export function clearUser(): void {
   localStorage.removeItem(KEY);
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export function storeToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 /** Decode the payload from a Google ID token (JWT) without verification.

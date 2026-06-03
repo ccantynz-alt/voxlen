@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import CookieBanner from "./components/CookieBanner";
 import { Dashboard } from "./components/Dashboard";
-import { getStoredUser, storeUser, clearUser, parseIdToken, type GoogleUser } from "./lib/auth";
+import { getStoredUser, storeUser, clearUser, storeToken, getStoredToken, parseIdToken, type GoogleUser } from "./lib/auth";
 import {
   Mic,
   Zap,
@@ -82,7 +82,7 @@ export default function App() {
     return <SupportPage />;
   }
   if (path === "/dashboard" && user) {
-    return <Dashboard user={user} onSignOut={handleSignOut} />;
+    return <Dashboard user={user} accessToken={getStoredToken()} onSignOut={handleSignOut} />;
   }
   if (path === "/dashboard" && !user) {
     navigate("/");
@@ -127,15 +127,14 @@ function Navbar({
   const login = useGoogleLogin({
     flow: "implicit",
     onSuccess: async (response) => {
-      // Fetch user info from Google using the access token
       try {
         const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
           headers: { Authorization: `Bearer ${response.access_token}` },
         });
         const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        storeToken(response.access_token);
         onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
       } catch {
-        // fallback: try to parse id_token if present
         if ("id_token" in response && typeof response.id_token === "string") {
           const u = parseIdToken(response.id_token);
           if (u) onSignIn(u);
@@ -234,6 +233,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
           headers: { Authorization: `Bearer ${response.access_token}` },
         });
         const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        storeToken(response.access_token);
         onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
       } catch {}
     },
@@ -1268,6 +1268,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
           headers: { Authorization: `Bearer ${response.access_token}` },
         });
         const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        storeToken(response.access_token);
         onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
       } catch {}
     },
