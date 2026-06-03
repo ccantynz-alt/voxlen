@@ -182,6 +182,7 @@ pub fn run() {
             // Window commands
             commands::window::minimize_to_tray,
             commands::window::toggle_window,
+            commands::window::open_url,
             // Permission commands
             commands::permissions::check_permissions,
             commands::permissions::request_admin_permissions,

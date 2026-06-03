@@ -28,6 +28,7 @@ import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore } from "@/stores/clients";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
+import { toast } from "@/components/ui/Toast";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -165,10 +166,13 @@ export function DictationPanel() {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("inject_text", { text: fullText });
+      const wc = fullText.split(/\s+/).filter(Boolean).length;
+      toast(`Injected ${wc} word${wc === 1 ? "" : "s"}`, "success", 2000);
     } catch {
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(fullText);
+        toast("Copied to clipboard", "info", 2000);
       } catch {
         // Ignore
       }

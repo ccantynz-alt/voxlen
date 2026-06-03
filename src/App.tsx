@@ -20,6 +20,7 @@ import { usePersistedSettings, saveSettings } from "@/hooks/usePersistedSettings
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
+import { ToastContainer } from "@/components/ui/Toast";
 
 type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin" | "clauses" | "analytics" | "clients";
 
@@ -315,6 +316,7 @@ export default function App() {
         <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
       </div>
       <ShortcutsCheatsheet />
+      <ToastContainer />
     </div>
   );
 }
