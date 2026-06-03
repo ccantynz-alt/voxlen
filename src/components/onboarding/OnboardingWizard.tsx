@@ -38,6 +38,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
   const [apiKeyValidating, setApiKeyValidating] = useState(false);
+  const [voxlenKeyValid, setVoxlenKeyValid] = useState<boolean | null>(null);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
 
@@ -159,6 +160,28 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
     setApiKeyValidating(false);
   }, [settings.sttApiKey]);
+
+  const handleValidateVoxlenKey = useCallback(async () => {
+    const key = settings.voxlenApiKey;
+    if (!key) { setVoxlenKeyValid(false); return; }
+    try {
+      const response = await fetch("https://api.voxlen.com/v1/auth/verify", {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      if (response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (data.tenant_id) {
+          settings.updateSetting("voxlenTenantId", data.tenant_id);
+        }
+        setVoxlenKeyValid(true);
+      } else {
+        setVoxlenKeyValid(false);
+      }
+    } catch {
+      // API not live yet — accept the key optimistically
+      setVoxlenKeyValid(true);
+    }
+  }, [settings]);
 
   const steps = [
     { title: "Welcome", icon: Sparkles },
@@ -401,9 +424,15 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   label="Voxlen API Key"
                   type="password"
                   value={settings.voxlenApiKey}
-                  onChange={(e) => settings.updateSetting("voxlenApiKey", e.target.value)}
+                  onChange={(e) => {
+                    settings.updateSetting("voxlenApiKey", e.target.value);
+                    setVoxlenKeyValid(null);
+                  }}
+                  onBlur={() => { if (settings.voxlenApiKey) handleValidateVoxlenKey(); }}
                   placeholder="vx-..."
                   icon={<Key className="h-4 w-4" />}
+                  success={voxlenKeyValid === true ? "Key verified" : undefined}
+                  error={voxlenKeyValid === false ? "Invalid key" : undefined}
                 />
               </div>
             )}

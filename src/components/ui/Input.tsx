@@ -4,11 +4,12 @@ import { cn } from "@/lib/utils";
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  success?: string;
   icon?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, icon, type = "text", ...props }, ref) => {
+  ({ className, label, error, success, icon, type = "text", ...props }, ref) => {
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
@@ -33,12 +34,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "transition-colors duration-200",
               icon && "pl-10",
               error && "border-red-500/60 focus-visible:ring-red-500/50",
+              success && !error && "border-green-500/60 focus-visible:ring-green-500/50",
               className
             )}
             {...props}
           />
         </div>
         {error && <span className="text-xs text-red-500">{error}</span>}
+        {success && !error && <span className="text-xs text-green-500">{success}</span>}
       </div>
     );
   }
