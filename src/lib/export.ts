@@ -1,4 +1,5 @@
 import type { TranscriptionSegment } from "@/stores/dictation";
+import type { Client, MatterEntry } from "@/stores/clients";
 
 export type ExportFormat = "txt" | "md" | "json" | "srt";
 
@@ -114,6 +115,64 @@ function formatSrtTime(date: Date): string {
   return `${h}:${m}:${s},000`;
 }
 
+export function exportBillingCsv(
+  client: Client,
+  entries: MatterEntry[]
+): { content: string; filename: string; mimeType: string } {
+  const rows: string[] = [
+    ["Date", "Duration (min)", "Words", "Rate ($/hr)", "Amount ($)", "Note"].join(","),
+  ];
+  for (const e of entries) {
+    const date = new Date(e.date).toLocaleDateString("en-GB");
+    const mins = (e.durationSeconds / 60).toFixed(1);
+    const rate = client.billableRate.toFixed(2);
+    const amount = e.billableAmount.toFixed(2);
+    const note = `"${(e.note ?? "").replace(/"/g, '""')}"`;
+    rows.push([date, mins, e.wordCount, rate, amount, note].join(","));
+  }
+  const totalAmount = entries.reduce((s, e) => s + e.billableAmount, 0);
+  const totalMins = entries.reduce((s, e) => s + e.durationSeconds / 60, 0);
+  rows.push(["TOTAL", totalMins.toFixed(1), "", "", totalAmount.toFixed(2), ""].join(","));
+
+  const slug = client.name.toLowerCase().replace(/\s+/g, "-");
+  const timestamp = new Date().toISOString().slice(0, 10);
+  return {
+    content: rows.join("\r\n"),
+    filename: `voxlen-billing-${slug}-${timestamp}.csv`,
+    mimeType: "text/csv",
+  };
+}
+
+export function exportAllBillingCsv(
+  clients: Client[],
+  entries: MatterEntry[]
+): { content: string; filename: string; mimeType: string } {
+  const clientMap = new Map(clients.map((c) => [c.id, c]));
+  const rows: string[] = [
+    ["Client", "Matter #", "Date", "Duration (min)", "Words", "Rate ($/hr)", "Amount ($)", "Note"].join(","),
+  ];
+  for (const e of entries) {
+    const c = clientMap.get(e.clientId);
+    if (!c) continue;
+    const date = new Date(e.date).toLocaleDateString("en-GB");
+    const mins = (e.durationSeconds / 60).toFixed(1);
+    const rate = c.billableRate.toFixed(2);
+    const amount = e.billableAmount.toFixed(2);
+    const note = `"${(e.note ?? "").replace(/"/g, '""')}"`;
+    const matter = `"${(c.matterNumber ?? "").replace(/"/g, '""')}"`;
+    rows.push([`"${c.name}"`, matter, date, mins, e.wordCount, rate, amount, note].join(","));
+  }
+  const total = entries.reduce((s, e) => s + e.billableAmount, 0);
+  rows.push(["TOTAL", "", "", "", "", "", total.toFixed(2), ""].join(","));
+
+  const timestamp = new Date().toISOString().slice(0, 10);
+  return {
+    content: rows.join("\r\n"),
+    filename: `voxlen-billing-all-${timestamp}.csv`,
+    mimeType: "text/csv",
+  };
+}
+
 export async function downloadExport(
   segments: TranscriptionSegment[],
   format: ExportFormat
@@ -136,6 +195,34 @@ export async function downloadExport(
     // Fallback to browser download
   }
 
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadBillingExport(
+  content: string,
+  filename: string,
+  mimeType: string
+) {
+  try {
+    const { save } = await import("@tauri-apps/plugin-dialog");
+    const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+    const path = await save({
+      defaultPath: filename,
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+    });
+    if (path) {
+      await writeTextFile(path, content);
+      return;
+    }
+  } catch {
+    // Fallback to browser download
+  }
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
