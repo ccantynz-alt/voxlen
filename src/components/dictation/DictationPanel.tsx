@@ -12,6 +12,7 @@ import {
   Zap,
   Keyboard,
   ChevronDown,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,7 @@ import { formatDuration } from "@/lib/utils";
 import { useHistoryStore } from "@/stores/history";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore } from "@/stores/clients";
+import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -239,6 +241,7 @@ export function DictationPanel() {
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const [contextOpen, setContextOpen] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const activeClientId = useClientsStore((s) => s.activeClientId);
   const allClients = useClientsStore((s) => s.clients.filter((c) => !c.archived));
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
@@ -494,6 +497,15 @@ export function DictationPanel() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setHelpOpen(true)}
+            title="Voice commands help"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            Voice Commands
+          </Button>
           {segments.length > 0 && (
             <>
               <Button variant="ghost" size="sm" onClick={handleClearSession}>
@@ -511,6 +523,7 @@ export function DictationPanel() {
             </>
           )}
         </div>
+        {helpOpen && <VoiceCommandsHelp onClose={() => setHelpOpen(false)} />}
       </div>
     </div>
   );

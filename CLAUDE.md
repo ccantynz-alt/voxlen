@@ -43,29 +43,34 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 
 - **Desktop app:** Tauri v2, Rust backend (`src-tauri/`), React/TS frontend (`src/`)
 - **State management:** Zustand stores (`src/stores/`)
-- **STT engines:** Deepgram Nova-2 (streaming), OpenAI Whisper (cloud), Whisper Local (not yet implemented)
-- **Grammar AI:** Claude Haiku 4.5 + GPT-4o-mini via user's own API keys
+- **STT engines:** Deepgram Nova-3 (streaming, default), OpenAI Whisper (cloud), Whisper Local (not yet implemented)
+- **Grammar AI:** Claude Sonnet 4.6 + GPT-4o-mini — proxied through api.voxlen.com when account key present; falls back to user BYOK keys
 - **Text injection:** OS-level keyboard simulation (osascript/SendInput/xdotool)
 - **iOS keyboard:** Swift, `ios/VoxKeyboard/`
 - **Web SDK:** `sdk/` — embeddable JS library for AlecRae.com integration
 - **Landing page:** `landing/` — Vite + React + Tailwind
 - **Flywheel:** `src/stores/flywheel.ts` — local-only learning (vocabulary, correction patterns, metrics)
+- **Clients:** `src/stores/clients.ts` — per-client matter tracking with billable time
 
 ## Known Remaining Gaps (Fix These When You Can)
 
 - [ ] Whisper Local offline mode (integrate whisper-rs)
-- [ ] Noise suppression (RNNoise integration in audio pipeline)
-- [ ] Payment system (Stripe for Pro/Lifetime tiers)
-- [ ] React error boundaries (app white-screens on component errors)
 - [ ] API key secure storage (use OS keychain via tauri-plugin-keyring)
-- [ ] OG image for landing page social sharing
-- [ ] Cookie consent banner for GDPR
 - [ ] Android keyboard extension
-- [ ] Speaker diarization
-- [ ] Real-time translation
-- [ ] Analytics dashboard in the app
-- [ ] Tests (zero test coverage currently)
-- [ ] Flywheel UI panel for viewing learned vocabulary/patterns
+- [ ] Stripe payment links (replace REPLACE_* placeholders in landing/src/lib/stripe.ts with real Stripe dashboard URLs)
+- [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
+- [x] Noise suppression — high-pass filter + noise gate in capture pipeline ✓
+- [x] Payment system — Stripe integration on landing page ✓
+- [x] React error boundaries ✓
+- [x] OG image for landing page ✓
+- [x] Cookie consent banner (GDPR) ✓
+- [x] Speaker diarization ✓
+- [x] Real-time translation ✓
+- [x] Analytics dashboard ✓
+- [x] Tests (88 passing) ✓
+- [x] Flywheel UI panel ✓
+- [x] Per-client matter tracking + billable time ✓
+- [x] SEO landing pages (13 pages, 40k+ searches/month targeted) ✓
 
 ## Commit Convention
 
