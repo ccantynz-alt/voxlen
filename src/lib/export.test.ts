@@ -40,7 +40,7 @@ describe("exportTranscript", () => {
       [seg("first"), seg("second", "second clean", undefined, true)],
       "md"
     );
-    expect(out.content).toContain("# Marco Reid Voice Transcript");
+    expect(out.content).toContain("# Voxlen Transcript");
     expect(out.content).toContain("**Segments:** 2");
     expect(out.content).toContain("*(AI polished)*");
     expect(out.mimeType).toBe("text/markdown");
@@ -49,7 +49,7 @@ describe("exportTranscript", () => {
   it("json: is valid JSON with the expected shape", () => {
     const out = exportTranscript([seg("hi", "hi!")], "json");
     const parsed = JSON.parse(out.content);
-    expect(parsed.app).toBe("Marco Reid Voice");
+    expect(parsed.app).toBe("Voxlen");
     expect(parsed.segments).toHaveLength(1);
     expect(parsed.segments[0].text).toBe("hi");
     expect(parsed.segments[0].correctedText).toBe("hi!");

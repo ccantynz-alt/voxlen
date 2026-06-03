@@ -75,6 +75,7 @@ interface DictationState {
   addSegment: (segment: TranscriptionSegment) => void;
   updateSegment: (id: string, updates: Partial<TranscriptionSegment>) => void;
   popLastSegment: () => void;
+  removeSegment: (id: string) => void;
   appendToLastSegment: (text: string) => void;
   setCurrentTranscript: (text: string) => void;
   setCorrectedTranscript: (text: string) => void;
@@ -132,6 +133,17 @@ export const useDictationStore = create<DictationState>((set, get) => ({
     set((state) => {
       if (state.segments.length === 0) return {};
       const segments = state.segments.slice(0, -1);
+      const wordCount = segments.reduce(
+        (count, s) =>
+          count + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
+        0
+      );
+      return { segments, wordCount };
+    }),
+
+  removeSegment: (id) =>
+    set((state) => {
+      const segments = state.segments.filter((s) => s.id !== id);
       const wordCount = segments.reduce(
         (count, s) =>
           count + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,

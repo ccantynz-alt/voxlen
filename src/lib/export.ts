@@ -1,7 +1,7 @@
 import type { TranscriptionSegment } from "@/stores/dictation";
 import type { Client, MatterEntry } from "@/stores/clients";
 
-export type ExportFormat = "txt" | "md" | "json" | "srt";
+export type ExportFormat = "txt" | "md" | "json" | "srt" | "rtf";
 
 export function exportTranscript(
   segments: TranscriptionSegment[],
@@ -34,6 +34,12 @@ export function exportTranscript(
         filename: `voxlen-transcript-${timestamp}.srt`,
         mimeType: "text/srt",
       };
+    case "rtf":
+      return {
+        content: formatAsRtf(segments),
+        filename: `voxlen-transcript-${timestamp}.rtf`,
+        mimeType: "application/rtf",
+      };
     default:
       return {
         content: formatAsText(segments),
@@ -49,7 +55,7 @@ function formatAsText(segments: TranscriptionSegment[]): string {
 
 function formatAsMarkdown(segments: TranscriptionSegment[]): string {
   const lines = [
-    "# Marco Reid Voice Transcript",
+    "# Voxlen Transcript",
     "",
     `**Date:** ${new Date().toLocaleDateString()}`,
     `**Words:** ${segments.reduce((c, s) => c + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length, 0)}`,
@@ -78,7 +84,7 @@ function formatAsJson(segments: TranscriptionSegment[]): string {
   return JSON.stringify(
     {
       version: "1.0",
-      app: "Marco Reid Voice",
+      app: "Voxlen",
       exported: new Date().toISOString(),
       segments: segments.map((s) => ({
         id: s.id,
@@ -106,6 +112,46 @@ function formatAsSrt(segments: TranscriptionSegment[]): string {
       return `${i + 1}\n${start} --> ${end}\n${s.correctedText || s.text}\n`;
     })
     .join("\n");
+}
+
+function rtfEscape(text: string): string {
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/\{/g, "\\{")
+    .replace(/\}/g, "\\}")
+    .replace(/[^\x00-\x7F]/g, (c) => `\\u${c.charCodeAt(0)}?`);
+}
+
+function formatAsRtf(segments: TranscriptionSegment[]): string {
+  const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const wordCount = segments.reduce((c, s) => c + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length, 0);
+
+  const header = [
+    `{\\rtf1\\ansi\\ansicpg1252\\deff0`,
+    `{\\fonttbl{\\f0\\froman\\fprq2\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fprq2\\fcharset0 Arial;}}`,
+    `{\\colortbl;\\red0\\green0\\blue0;\\red100\\green100\\blue100;}`,
+    `\\widowctrl\\wpaper15840\\wpaperh12240\\margl1800\\margr1800\\margt1440\\margb1440`,
+    `\\f0\\fs24\\cf1`,
+    `{\\f1\\fs28\\b Voxlen Transcript\\b0}\\par`,
+    `{\\f1\\fs20\\cf2 ${rtfEscape(date)} \\emdash  ${wordCount} words}\\par\\par`,
+    `\\pard\\sl360\\slmult1`,
+  ].join("\n");
+
+  const body = segments.map((s) => {
+    const text = rtfEscape(s.correctedText || s.text);
+    const time = s.timestamp.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const parts: string[] = [];
+    if (s.speakerLabel) {
+      parts.push(`{\\f1\\fs18\\b ${rtfEscape(s.speakerLabel)}\\b0  }`);
+    }
+    parts.push(`{\\f1\\fs18\\cf2 [${time}]  \\cf1}${text}`);
+    if (s.translatedText) {
+      parts.push(`\\par{\\f1\\fs18\\i ${rtfEscape(s.translatedText)}\\i0}`);
+    }
+    return parts.join("") + "\\par\\par";
+  }).join("\n");
+
+  return `${header}\n${body}\n}`;
 }
 
 function formatSrtTime(date: Date): string {

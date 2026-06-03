@@ -90,7 +90,7 @@ function useSettingsPersistence() {
       } catch {
         try {
           localStorage.setItem(
-            "marcoreid_settings",
+            "voxlen_settings",
             JSON.stringify({
               preferredDeviceId: settings.preferredDeviceId,
               sttEngine: settings.sttEngine,
@@ -878,7 +878,7 @@ function AppearanceSettings() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <SectionHeader title="Appearance" description="Customize how Marco Reid Voice looks." />
+      <SectionHeader title="Appearance" description="Customize how Voxlen looks." />
 
       <SettingRow>
         <Select
@@ -1252,8 +1252,8 @@ function VoxlenApiSettings() {
         </div>
       )}
 
-      {/* Settings shown when connected */}
-      {isConnected && (
+      {/* Settings shown when connected OR when using own keys */}
+      {(isConnected || settings.sttApiKey) && (
         <>
           <SectionHeader title="Dictation Settings" description="" />
 

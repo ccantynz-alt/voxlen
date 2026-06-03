@@ -4,7 +4,7 @@ use crossbeam_channel::Receiver;
 use tauri::{AppHandle, Emitter};
 
 use crate::audio::{AudioChunk, DictationStatus};
-use super::SttEngine;
+use super::{SttEngine, SttEngineType};
 
 /// Processes audio chunks from the capture thread and sends them to STT
 pub struct AudioProcessor {
@@ -26,32 +26,100 @@ impl AudioProcessor {
         }
     }
 
-    /// Start processing audio chunks from the receiver
+    /// Start processing audio chunks from the receiver.
+    /// When engine is DeepgramCloud, routes audio to the WebSocket streaming
+    /// session for real-time transcription. Falls back to batch HTTP processing
+    /// for Whisper and other engines.
     pub fn start(&self, receiver: Receiver<AudioChunk>) {
         let app_handle = self.app_handle.clone();
         let stt_engine = self.stt_engine.clone();
         let status = self.status.clone();
 
         tauri::async_runtime::spawn(async move {
+            // Batch-mode state
             let mut accumulated_samples: Vec<f32> = Vec::new();
             let mut sample_rate = 16000u32;
-
-            // Accumulate ~1 second of audio before transcribing (was 3s — too slow)
             let target_duration_ms: u64 = 1000;
             let mut accumulated_duration_ms: u64 = 0;
 
+            // Streaming-mode state: (relay sender, session) for the active session
+            let mut streaming_relay: Option<(
+                crossbeam_channel::Sender<AudioChunk>,
+                super::streaming::StreamingSession,
+            )> = None;
+
             loop {
+                let config = stt_engine.read().get_config();
+                let is_deepgram = matches!(config.engine, SttEngineType::DeepgramCloud);
+
                 match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
                     Ok(chunk) => {
                         if *status.read() == DictationStatus::Paused {
+                            // Tear down any streaming session while paused
+                            if let Some((_, session)) = streaming_relay.take() {
+                                session.stop();
+                            }
                             continue;
                         }
 
+                        if is_deepgram {
+                            // Streaming path — ensure a live session exists
+                            let needs_new_session = streaming_relay
+                                .as_ref()
+                                .map(|(tx, _)| tx.is_disconnected())
+                                .unwrap_or(true);
+
+
+                            if needs_new_session {
+                                // Tear down old session if any
+                                if let Some((_, session)) = streaming_relay.take() {
+                                    session.stop();
+                                }
+
+                                let has_key = config.api_key.as_deref()
+                                    .map(|k| !k.is_empty())
+                                    .unwrap_or(false)
+                                    || config.voxlen_api_key.as_deref()
+                                    .map(|k| !k.is_empty())
+                                    .unwrap_or(false);
+
+                                if has_key {
+                                    let (relay_tx, relay_rx) = crossbeam_channel::bounded::<AudioChunk>(512);
+                                    match super::streaming::start_streaming(
+                                        config.clone(),
+                                        relay_rx,
+                                        app_handle.clone(),
+                                    ) {
+                                        Ok(session) => {
+                                            streaming_relay = Some((relay_tx, session));
+                                        }
+                                        Err(e) => {
+                                            log::error!("Failed to start Deepgram streaming: {}", e);
+                                            let _ = app_handle.emit("transcription-error", e.to_string());
+                                        }
+                                    }
+                                } else {
+                                    // No key — fall through to batch processing below
+                                }
+                            }
+
+                            if let Some((ref tx, ref _session)) = streaming_relay {
+                                let _ = tx.try_send(chunk);
+                                continue;
+                            }
+                            // If no streaming session (no key), fall through to batch below
+                        } else {
+                            // Switching away from Deepgram — stop streaming session
+                            if let Some((_, session)) = streaming_relay.take() {
+                                session.stop();
+                            }
+                        }
+
+                        // --- Batch processing path (Whisper / fallback) ---
                         sample_rate = chunk.sample_rate;
                         let chunk_duration_ms = (chunk.samples.len() as u64 * 1000)
                             / (chunk.sample_rate as u64 * chunk.channels as u64);
 
-                        // Convert to mono if stereo
                         let mono_samples = if chunk.channels > 1 {
                             to_mono(&chunk.samples, chunk.channels)
                         } else {
@@ -61,24 +129,20 @@ impl AudioProcessor {
                         accumulated_samples.extend_from_slice(&mono_samples);
                         accumulated_duration_ms += chunk_duration_ms;
 
-                        // Check for voice activity (simple energy-based VAD)
                         let has_voice = detect_voice_activity(&mono_samples);
 
-                        // Send for transcription when we have enough audio
                         if accumulated_duration_ms >= target_duration_ms && has_voice {
                             *status.write() = DictationStatus::Processing;
 
                             let samples = std::mem::take(&mut accumulated_samples);
                             accumulated_duration_ms = 0;
 
-                            // Resample to 16kHz if needed (most STT engines prefer 16kHz)
                             let resampled = if sample_rate != 16000 {
                                 resample(&samples, sample_rate, 16000)
                             } else {
                                 samples
                             };
 
-                            let config = stt_engine.read().get_config();
                             match super::transcribe_audio(&resampled, 16000, config).await {
                                 Ok(result) => {
                                     if !result.text.trim().is_empty() {
@@ -96,7 +160,10 @@ impl AudioProcessor {
                         }
                     }
                     Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
-                        // If we have accumulated samples and silence detected, transcribe what we have
+                        if is_deepgram {
+                            continue; // Streaming handles timeouts internally
+                        }
+                        // Batch mode: flush on silence
                         if !accumulated_samples.is_empty() && accumulated_duration_ms > 1000 {
                             let has_recent_voice = accumulated_samples
                                 .chunks(accumulated_samples.len().min(4800))
@@ -134,6 +201,9 @@ impl AudioProcessor {
                     }
                     Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
                         log::info!("Audio channel disconnected, stopping processor");
+                        if let Some((_, session)) = streaming_relay.take() {
+                            session.stop();
+                        }
                         break;
                     }
                 }

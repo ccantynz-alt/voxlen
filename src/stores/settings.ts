@@ -82,7 +82,7 @@ const defaultSettings: AppSettings = {
   inputGain: 1.0,
   noiseSuppression: true,
 
-  sttEngine: "whisper_cloud",
+  sttEngine: "deepgram",
   sttApiKey: "",
   sttLanguage: "en",
   autoDetectLanguage: true,
@@ -170,6 +170,14 @@ function schedulePersist() {
       launchAtLogin: state.launchAtLogin,
       telemetryEnabled: state.telemetryEnabled,
       saveTranscripts: state.saveTranscripts,
+      privilegedMode: state.privilegedMode,
+      legalMode: state.legalMode,
+      jurisdiction: state.jurisdiction,
+      billableRatePerHour: state.billableRatePerHour,
+      voxlenContext: state.voxlenContext,
+      voxlenTenantId: state.voxlenTenantId,
+      legalAcceptedVersion: state.legalAcceptedVersion,
+      legalAcceptedAt: state.legalAcceptedAt,
     };
     try {
       const { load } = await import("@tauri-apps/plugin-store");
@@ -178,7 +186,7 @@ function schedulePersist() {
       await store.save();
     } catch {
       try {
-        localStorage.setItem("marcoreid_settings", JSON.stringify(toSave));
+        localStorage.setItem("voxlen_settings", JSON.stringify(toSave));
       } catch {
         // Ignore
       }

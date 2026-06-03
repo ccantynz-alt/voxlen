@@ -2,8 +2,11 @@ import { useEffect } from "react";
 import { useAudioStore } from "@/stores/audio";
 import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
+import { toast } from "@/components/ui/Toast";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
 import { useFlywheelStore } from "@/stores/flywheel";
+import { useHistoryStore } from "@/stores/history";
+import { useClientsStore } from "@/stores/clients";
 import { applySmartFormat } from "@/lib/smartFormat";
 import { applyContextFormat } from "@/lib/contextFormat";
 import type { VoxlenContext } from "@/lib/contextFormat";
@@ -324,6 +327,17 @@ export function useTauriEvents(): void {
           useDictationStore.getState().setCurrentTranscript("");
         });
 
+        const unlistenTranscriptionError = await listen<string>("transcription-error", (event) => {
+          const msg = event.payload;
+          useDictationStore.getState().setStatus("error");
+          useDictationStore.getState().setError(msg);
+          toast(msg.length > 80 ? msg.slice(0, 80) + "…" : msg, "error", 6000);
+        });
+
+        const unlistenReconnecting = await listen<number>("streaming-reconnecting", (event) => {
+          toast(`Reconnecting to Deepgram… (attempt ${event.payload})`, "info", 3000);
+        });
+
         unlisten = () => {
           unlistenLevel();
           unlistenWaveform();
@@ -331,6 +345,8 @@ export function useTauriEvents(): void {
           unlistenPartial();
           unlistenSpeechStarted();
           unlistenUtteranceEnd();
+          unlistenTranscriptionError();
+          unlistenReconnecting();
         };
       } catch {
         // Not running in Tauri.
@@ -353,8 +369,55 @@ export function useTauriEvents(): void {
       const wasActive = lastStatus === "listening" || lastStatus === "processing";
       const isIdle = current === "idle";
       if (wasActive && isIdle) {
-        const saveTranscripts = useSettingsStore.getState().saveTranscripts;
-        if (saveTranscripts) {
+        const dictState = useDictationStore.getState();
+        const settings = useSettingsStore.getState();
+        const segments = dictState.segments;
+
+        // Save to in-memory history store (always, so UI reflects it immediately)
+        if (segments.length > 0) {
+          const fullText = segments.map((s) => s.correctedText || s.text).join(" ");
+          const wc = fullText.split(/\s+/).filter(Boolean).length;
+          const hasGrammar = segments.some((s) => s.grammarApplied);
+          const alreadyInHistory = useHistoryStore.getState().entries.some(
+            (e) => e.text === fullText
+          );
+          if (!alreadyInHistory) {
+            useHistoryStore.getState().addEntry({
+              id: crypto.randomUUID(),
+              text: fullText,
+              duration: dictState.sessionDuration * 1000,
+              wordCount: wc,
+              language: segments[0].language || "en",
+              timestamp: new Date().toISOString(),
+              grammarCorrected: hasGrammar,
+            });
+
+            // Record flywheel session
+            const engine = settings.sttEngine;
+            useFlywheelStore.getState().recordSession(wc, dictState.sessionDuration, engine);
+
+            // Record billable entry for active client
+            const { activeClientId, clients, addEntry } = useClientsStore.getState();
+            if (activeClientId) {
+              const client = clients.find((c) => c.id === activeClientId);
+              if (client) {
+                const rate = client.billableRate > 0
+                  ? client.billableRate
+                  : (settings.billableRatePerHour ?? 350);
+                const billable = (dictState.sessionDuration / 3600) * rate;
+                addEntry({
+                  clientId: activeClientId,
+                  date: Date.now(),
+                  durationSeconds: dictState.sessionDuration,
+                  wordCount: wc,
+                  billableAmount: billable,
+                });
+              }
+            }
+          }
+        }
+
+        if (settings.saveTranscripts) {
           const record = buildSessionRecord();
           if (record) {
             // Fire and forget; graceful fallback for non-Tauri.

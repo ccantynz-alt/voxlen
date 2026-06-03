@@ -1,13 +1,12 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use parking_lot::RwLock;
 use tauri::{AppHandle, Emitter};
 use futures_util::{SinkExt, StreamExt};
 use crossbeam_channel::Receiver;
 
 use crate::audio::AudioChunk;
-use super::TranscriptionResult;
+use super::SttConfig;
 
 /// Real-time streaming transcription via Deepgram WebSocket
 pub struct StreamingSession {
@@ -49,16 +48,25 @@ enum SessionOutcome {
     Disconnected(Duration),
 }
 
-/// Start a real-time streaming session with Deepgram
+/// Start a real-time streaming session with Deepgram using full SttConfig.
 pub fn start_streaming(
-    api_key: String,
-    language: String,
-    auto_detect: bool,
+    config: SttConfig,
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
 ) -> anyhow::Result<StreamingSession> {
+    let api_key = config.api_key
+        .filter(|k| !k.is_empty())
+        .or_else(|| config.voxlen_api_key.filter(|k| !k.is_empty()))
+        .ok_or_else(|| anyhow::anyhow!("No API key configured for Deepgram streaming"))?;
+
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_clone = stop_flag.clone();
+
+    let language = config.language.clone();
+    let auto_detect = config.auto_detect_language;
+    let custom_vocabulary = config.custom_vocabulary.clone();
+    let diarization = config.speaker_diarization;
+    let tenant_id = config.voxlen_tenant_id.clone();
 
     let handle = tokio::spawn(async move {
         let max_retries = 3;
@@ -73,6 +81,9 @@ pub fn start_streaming(
                 &api_key,
                 &language,
                 auto_detect,
+                &custom_vocabulary,
+                diarization,
+                tenant_id.as_deref(),
                 audio_receiver.clone(),
                 app_handle.clone(),
                 stop_clone.clone(),
@@ -107,6 +118,9 @@ async fn run_streaming_session(
     api_key: &str,
     language: &str,
     auto_detect: bool,
+    custom_vocabulary: &[String],
+    diarization: bool,
+    tenant_id: Option<&str>,
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
     stop_flag: Arc<AtomicBool>,
@@ -123,6 +137,9 @@ async fn run_streaming_session(
             api_key,
             language,
             auto_detect,
+            custom_vocabulary,
+            diarization,
+            tenant_id,
             &audio_receiver,
             app_handle.clone(),
             stop_flag.clone(),
@@ -185,6 +202,9 @@ async fn run_session_once(
     api_key: &str,
     language: &str,
     auto_detect: bool,
+    custom_vocabulary: &[String],
+    diarization: bool,
+    tenant_id: Option<&str>,
     audio_receiver: &Receiver<AudioChunk>,
     app_handle: AppHandle,
     stop_flag: Arc<AtomicBool>,
@@ -202,13 +222,28 @@ async fn run_session_once(
         url.push_str(&format!("&language={}", language));
     }
 
+    if diarization {
+        url.push_str("&diarize=true");
+    }
+
+    for word in custom_vocabulary {
+        let encoded = word.replace(' ', "%20");
+        url.push_str(&format!("&keywords={}:1.5", encoded));
+    }
+
     log::info!("Connecting to Deepgram streaming...");
 
     // Connect WebSocket
-    let request = tokio_tungstenite::tungstenite::http::Request::builder()
+    let mut req_builder = tokio_tungstenite::tungstenite::http::Request::builder()
         .uri(&url)
         .header("Authorization", format!("Token {}", api_key))
-        .header("Host", "api.deepgram.com")
+        .header("Host", "api.deepgram.com");
+
+    if let Some(tid) = tenant_id.filter(|s| !s.is_empty()) {
+        req_builder = req_builder.header("X-Tenant-ID", tid);
+    }
+
+    let request = req_builder
         .header("Connection", "Upgrade")
         .header("Upgrade", "websocket")
         .header("Sec-WebSocket-Version", "13")
@@ -334,19 +369,31 @@ async fn run_session_once(
 
                                 // Emit to frontend
                                 if is_final {
-                                    let _ = app_handle.emit("transcription", TranscriptionResult {
-                                        text: transcript.to_string(),
-                                        is_final: true,
-                                        confidence,
-                                        language: json["channel"]["detected_language"]
-                                            .as_str()
-                                            .map(|s| s.to_string()),
-                                        timestamp_ms: std::time::SystemTime::now()
-                                            .duration_since(std::time::UNIX_EPOCH)
-                                            .unwrap_or_default()
-                                            .as_millis() as u64,
-                                        words: vec![],
-                                    });
+                                    // Build frontend-compatible word list (seconds, not ms)
+                                    let fe_words: Vec<serde_json::Value> = channel["words"]
+                                        .as_array()
+                                        .map(|arr| {
+                                            arr.iter().map(|w| {
+                                                serde_json::json!({
+                                                    "word": w["word"].as_str().unwrap_or(""),
+                                                    "start": w["start"].as_f64().unwrap_or(0.0),
+                                                    "end": w["end"].as_f64().unwrap_or(0.0),
+                                                    "confidence": w["confidence"].as_f64().unwrap_or(0.0),
+                                                    "punctuated_word": w["punctuated_word"].as_str()
+                                                        .unwrap_or(w["word"].as_str().unwrap_or("")),
+                                                    "speaker": w["speaker"].as_u64(),
+                                                })
+                                            }).collect()
+                                        })
+                                        .unwrap_or_default();
+
+                                    let _ = app_handle.emit("transcription", serde_json::json!({
+                                        "text": transcript,
+                                        "is_final": true,
+                                        "confidence": confidence,
+                                        "language": json["channel"]["detected_language"].as_str(),
+                                        "words": fe_words,
+                                    }));
                                 } else {
                                     let _ = app_handle.emit("streaming-partial", &result);
                                 }
