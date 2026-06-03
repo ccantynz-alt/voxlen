@@ -15,7 +15,7 @@ beforeEach(() => {
 describe("addClient", () => {
   it("creates a client with correct defaults", () => {
     const store = useClientsStore.getState();
-    const id = store.addClient({ name: "Acme Corp", billableRate: 250 });
+    const id = store.addClient({ name: "Acme Corp", billableRate: 250, color: "" });
     const { clients } = useClientsStore.getState();
     expect(clients).toHaveLength(1);
     expect(clients[0].id).toBe(id);
@@ -38,7 +38,7 @@ describe("addClient", () => {
 describe("updateClient", () => {
   it("updates specified fields without touching others", () => {
     const store = useClientsStore.getState();
-    const id = store.addClient({ name: "Old Name", billableRate: 100 });
+    const id = store.addClient({ name: "Old Name", billableRate: 100, color: "" });
     useClientsStore.getState().updateClient(id, { name: "New Name", billableRate: 350 });
     const { clients } = useClientsStore.getState();
     expect(clients[0].name).toBe("New Name");
