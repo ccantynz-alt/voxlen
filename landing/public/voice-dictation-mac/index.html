@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Dictation for Mac | AI Dictation Software — Voxlen</title>
+  <meta name="description" content="The best AI voice dictation software for Mac. Native macOS app, Apple Silicon &amp; Intel support. The modern Dragon NaturallySpeaking alternative for Mac — discontinued in 2023, Voxlen fills the gap." />
+  <meta name="keywords" content="voice dictation mac, dictation software mac, dragon naturallyspeaking mac alternative, ai dictation mac, speech to text mac, macos dictation software" />
+  <link rel="canonical" href="https://voxlen.ai/voice-dictation-mac" />
+  <meta property="og:title" content="Voice Dictation for Mac | AI Dictation Software — Voxlen" />
+  <meta property="og:description" content="Native AI voice dictation for Mac. Works in any Mac app. The best Dragon NaturallySpeaking alternative for macOS." />
+  <meta property="og:url" content="https://voxlen.ai/voice-dictation-mac" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Voice Dictation for Mac | AI Dictation Software — Voxlen" />
+  <meta name="twitter:description" content="Native AI voice dictation for Mac. Works in any Mac app. The best Dragon NaturallySpeaking alternative for macOS." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Voxlen",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "macOS",
+    "description": "AI-powered voice dictation software for Mac. Native macOS app with Apple Silicon and Intel support. The premier Dragon NaturallySpeaking alternative for macOS.",
+    "url": "https://voxlen.ai",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Monthly",
+        "price": "29",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Annual",
+        "price": "79",
+        "priceCurrency": "USD"
+      },
+      {
+        "@type": "Offer",
+        "name": "Lifetime",
+        "price": "599",
+        "priceCurrency": "USD"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "312"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is Voxlen a good Dragon NaturallySpeaking alternative for Mac?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Dragon NaturallySpeaking (Dragon Professional) was discontinued on macOS in 2023, leaving Mac users without enterprise-grade dictation software. Voxlen fills that gap with modern AI — faster, more accurate, and natively built for macOS including Apple Silicon."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Voxlen work on Apple Silicon Macs (M1, M2, M3, M4)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Voxlen ships as a universal binary and runs natively on both Apple Silicon (M1, M2, M3, M4 and later) and Intel Macs. You get the full performance of your chip with no Rosetta translation needed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which Mac apps does Voxlen work in?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Voxlen works in virtually any Mac application — Microsoft Word, Outlook, Apple Mail, Safari, Chrome, Firefox, Notion, Google Docs, legal practice management software, accounting platforms, and more. It injects text directly at the OS level."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is my dictation data private?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Voxlen is designed for professionals such as lawyers and accountants who require strict confidentiality. All vocabulary learning and usage patterns are stored on-device only. Your dictated content is never sent to Voxlen servers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What macOS versions does Voxlen support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Voxlen supports macOS 12 Monterey and later, including macOS 13 Ventura, macOS 14 Sonoma, and macOS 15 Sequoia."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --purple: #7345d1;
+      --purple-light: #8f5fe8;
+      --purple-dim: #3d2470;
+      --bg: #09090b;
+      --bg-card: #111113;
+      --bg-card2: #18181b;
+      --gold: #d4a82a;
+      --gold-light: #f0c84a;
+      --text: #ffffff;
+      --text-muted: #a1a1aa;
+      --border: #27272a;
+      --radius: 12px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9,9,11,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 20px;
+      background: var(--purple);
+      color: #fff;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--purple-light); }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 72px;
+      background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(115,69,209,0.22) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(115,69,209,0.18);
+      border: 1px solid rgba(115,69,209,0.4);
+      color: #c4a0ff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    h1 span { color: var(--purple-light); }
+    .hero-sub {
+      font-size: clamp(1rem, 2.2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 36px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: var(--purple);
+      color: #fff;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--purple-light); transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      padding: 14px 28px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--purple); color: #fff; }
+    .hero-note {
+      margin-top: 18px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* SECTION COMMON */
+    section { padding: 72px 24px; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--purple-light);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin-bottom: 52px;
+    }
+
+    /* HOW IT WORKS */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      position: relative;
+    }
+    .step-num {
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: rgba(115,69,209,0.25);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .step-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+    .step-card p { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: var(--purple-dim); }
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(115,69,209,0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.55; }
+
+    /* COMPARISON */
+    .comparison-section { background: var(--bg-card); }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    .comparison-table th,
+    .comparison-table td {
+      padding: 14px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table th {
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      background: var(--bg-card2);
+    }
+    .comparison-table th:first-child,
+    .comparison-table td:first-child { text-align: left; }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table tr:hover td { background: rgba(115,69,209,0.05); }
+    .col-voxlen { color: #a78bfa; font-weight: 700; }
+    .col-dragon { color: var(--text-muted); }
+    .check { color: #4ade80; font-size: 1.1rem; }
+    .cross { color: #f87171; font-size: 1.1rem; }
+    .col-header-voxlen { color: var(--purple-light) !important; }
+
+    /* PRICING */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pricing-card.featured {
+      border-color: var(--purple);
+      background: rgba(115,69,209,0.08);
+      position: relative;
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--purple);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 12px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .pricing-plan { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+    .pricing-price { font-size: 2.4rem; font-weight: 900; line-height: 1; }
+    .pricing-price span { font-size: 1rem; font-weight: 400; color: var(--text-muted); }
+    .pricing-desc { font-size: 0.88rem; color: var(--text-muted); }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .pricing-features li { font-size: 0.9rem; display: flex; align-items: flex-start; gap: 8px; }
+    .pricing-features li::before { content: "✓"; color: #4ade80; font-weight: 700; flex-shrink: 0; }
+    .pricing-btn {
+      margin-top: 8px;
+      display: block;
+      text-align: center;
+      padding: 11px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .pricing-btn:hover { background: var(--bg-card); border-color: var(--purple); }
+    .pricing-card.featured .pricing-btn {
+      background: var(--purple);
+      border-color: var(--purple);
+    }
+    .pricing-card.featured .pricing-btn:hover { background: var(--purple-light); }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 2px; }
+    details {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    details + details { margin-top: 8px; }
+    summary {
+      padding: 20px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: "+";
+      font-size: 1.3rem;
+      color: var(--purple-light);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    details[open] summary::after { content: "−"; }
+    .faq-answer {
+      padding: 0 24px 20px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: 48px 24px 32px;
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 32px;
+      margin-bottom: 40px;
+    }
+    .footer-brand p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      max-width: 260px;
+      margin-top: 8px;
+      line-height: 1.55;
+    }
+    .footer-links h4 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .footer-links ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .footer-links a { color: var(--text-muted); font-size: 0.9rem; transition: color 0.2s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      section { padding: 52px 16px; }
+      nav { padding: 0 16px; }
+      .hero { padding: 56px 16px 52px; }
+      .comparison-table { font-size: 0.82rem; }
+      .comparison-table th, .comparison-table td { padding: 10px 12px; }
+      .footer-top { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="https://voxlen.ai/" class="logo">Voxlen</a>
+    <a href="https://voxlen.ai/#download" class="nav-cta">Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">macOS — Apple Silicon &amp; Intel</div>
+  <h1>AI <span>Voice Dictation</span><br>for Mac</h1>
+  <p class="hero-sub">The most advanced dictation software for macOS. Dragon NaturallySpeaking left Mac users behind when it was discontinued in 2023 — Voxlen fills that gap with next-generation AI accuracy.</p>
+  <div class="hero-actions">
+    <a href="https://voxlen.ai/#download" class="btn-primary">
+      ⬇ Download Free for Mac
+    </a>
+    <a href="https://voxlen.ai/" class="btn-secondary">Learn More</a>
+  </div>
+  <p class="hero-note">Free plan available · No credit card required · macOS 12+</p>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="section-inner">
+    <p class="section-label">How It Works</p>
+    <h2>Start dictating in three steps</h2>
+    <p class="section-desc">Voxlen is designed to get out of your way. From install to dictating in under two minutes.</p>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <h3>Install the Mac app</h3>
+        <p>Download the universal binary. Works natively on Apple Silicon (M1–M4) and Intel Macs — no Rosetta required. Grant microphone and accessibility permissions.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <h3>Press your hotkey and speak</h3>
+        <p>Activate Voxlen from any Mac app with a keyboard shortcut. Speak naturally — Voxlen transcribes in real time with AI grammar correction built in.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <h3>Text appears instantly</h3>
+        <p>Your words are injected directly into the focused app using macOS accessibility APIs — Word, Outlook, browsers, legal software, anything with a text field.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <p class="section-label">Features</p>
+    <h2>Built for professionals on Mac</h2>
+    <p class="section-desc">Every feature is designed around the needs of lawyers, accountants, and other professionals who type for a living.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🍎</div>
+        <h3>Native Apple Silicon performance</h3>
+        <p>Voxlen ships as a universal macOS binary. On M-series Macs it runs blazing fast with minimal CPU and battery impact, taking full advantage of the Neural Engine.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Works in any Mac app</h3>
+        <p>Microsoft Word, Outlook, Apple Pages, Mail, Safari, Chrome, Firefox, Notion, Google Docs, legal practice management software, accounting platforms — if it has a text field, Voxlen works in it.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>AI grammar correction</h3>
+        <p>Powered by Claude and GPT-4o-mini via your own API keys. Spoken words are automatically corrected for grammar and punctuation — so your draft comes out polished.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Privacy-first design</h3>
+        <p>Your dictated content never touches Voxlen servers. Critical for lawyers and accountants. All learning happens locally on your Mac — confidentiality by architecture.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>Learns your vocabulary</h3>
+        <p>Voxlen's on-device flywheel learns your terminology — legal citations, accounting terms, client names — and improves accuracy over time without ever sending your data to the cloud.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Real-time streaming transcription</h3>
+        <p>Powered by Deepgram Nova-2 for ultra-low-latency streaming, or OpenAI Whisper for maximum accuracy. Switch engines based on your needs with one click.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comparison-section">
+  <div class="section-inner">
+    <p class="section-label">Comparison</p>
+    <h2>Voxlen vs Dragon NaturallySpeaking for Mac</h2>
+    <p class="section-desc">Dragon Professional was discontinued on macOS in 2023. Voxlen is the modern, AI-powered replacement Mac users have been waiting for.</p>
+    <div style="overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border);">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="col-header-voxlen">Voxlen</th>
+            <th>Dragon for Mac</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Still available on macOS</td>
+            <td class="col-voxlen"><span class="check">✓</span> Yes</td>
+            <td class="col-dragon"><span class="cross">✗</span> Discontinued 2023</td>
+          </tr>
+          <tr>
+            <td>Apple Silicon (M1–M4) native</td>
+            <td class="col-voxlen"><span class="check">✓</span> Universal binary</td>
+            <td class="col-dragon"><span class="cross">✗</span> Never updated</td>
+          </tr>
+          <tr>
+            <td>AI grammar correction</td>
+            <td class="col-voxlen"><span class="check">✓</span> Claude / GPT-4o</td>
+            <td class="col-dragon"><span class="cross">✗</span> Not available</td>
+          </tr>
+          <tr>
+            <td>Works in any Mac app</td>
+            <td class="col-voxlen"><span class="check">✓</span> All apps</td>
+            <td class="col-dragon">Limited compatibility</td>
+          </tr>
+          <tr>
+            <td>Privacy — no cloud storage of content</td>
+            <td class="col-voxlen"><span class="check">✓</span> On-device only</td>
+            <td class="col-dragon">Nuance cloud</td>
+          </tr>
+          <tr>
+            <td>Free tier available</td>
+            <td class="col-voxlen"><span class="check">✓</span> Yes</td>
+            <td class="col-dragon"><span class="cross">✗</span> $300+ one-time</td>
+          </tr>
+          <tr>
+            <td>Learns custom vocabulary</td>
+            <td class="col-voxlen"><span class="check">✓</span> On-device AI</td>
+            <td class="col-dragon">Basic word lists</td>
+          </tr>
+          <tr>
+            <td>Active development</td>
+            <td class="col-voxlen"><span class="check">✓</span> Continuously updated</td>
+            <td class="col-dragon"><span class="cross">✗</span> End of life</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section>
+  <div class="section-inner">
+    <p class="section-label">Pricing</p>
+    <h2>Simple, honest pricing</h2>
+    <p class="section-desc">Start free. Upgrade when you're ready. No surprise fees — your data is always yours.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <p class="pricing-plan">Free</p>
+        <p class="pricing-price">$0</p>
+        <p class="pricing-desc">Get started with no commitment.</p>
+        <ul class="pricing-features">
+          <li>60 minutes / month</li>
+          <li>Deepgram Nova-2 transcription</li>
+          <li>Works in any Mac app</li>
+          <li>Basic vocabulary learning</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn">Download Free</a>
+      </div>
+      <div class="pricing-card featured" style="position:relative;">
+        <span class="pricing-badge">Most Popular</span>
+        <p class="pricing-plan">Pro Monthly</p>
+        <p class="pricing-price">$29 <span>/ month</span></p>
+        <p class="pricing-desc">For professionals who dictate daily.</p>
+        <ul class="pricing-features">
+          <li>Unlimited transcription</li>
+          <li>AI grammar correction</li>
+          <li>Advanced vocabulary flywheel</li>
+          <li>Priority support</li>
+          <li>All STT engines</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn">Start Pro Trial</a>
+      </div>
+      <div class="pricing-card">
+        <p class="pricing-plan">Pro Annual</p>
+        <p class="pricing-price">$79 <span>/ year</span></p>
+        <p class="pricing-desc">Save 77% vs monthly billing.</p>
+        <ul class="pricing-features">
+          <li>Everything in Pro Monthly</li>
+          <li>Best value plan</li>
+          <li>Annual billing</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn">Get Annual</a>
+      </div>
+      <div class="pricing-card" style="border-color: var(--gold);">
+        <p class="pricing-plan" style="color: var(--gold);">Lifetime</p>
+        <p class="pricing-price" style="color: var(--gold-light);">$599</p>
+        <p class="pricing-desc">Pay once, own it forever. For power users.</p>
+        <ul class="pricing-features">
+          <li>All Pro features forever</li>
+          <li>All future updates included</li>
+          <li>No recurring payments</li>
+          <li>Priority lifetime support</li>
+        </ul>
+        <a href="https://voxlen.ai/#download" class="pricing-btn" style="border-color: var(--gold); color: var(--gold);">Get Lifetime</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="section-inner">
+    <p class="section-label">FAQ</p>
+    <h2>Frequently asked questions</h2>
+    <p class="section-desc">Everything you need to know about Voxlen for Mac.</p>
+    <div class="faq-list">
+      <details>
+        <summary>Is Voxlen a good Dragon NaturallySpeaking alternative for Mac?</summary>
+        <div class="faq-answer">Yes. Dragon NaturallySpeaking (Dragon Professional) was discontinued on macOS in 2023, leaving Mac users without enterprise-grade dictation software. Voxlen fills that gap with modern AI — faster, more accurate, natively built for macOS including Apple Silicon, and actively maintained.</div>
+      </details>
+      <details>
+        <summary>Does Voxlen work on Apple Silicon Macs (M1, M2, M3, M4)?</summary>
+        <div class="faq-answer">Yes. Voxlen ships as a universal binary and runs natively on both Apple Silicon (M1, M2, M3, M4 and later) and Intel Macs. You get the full performance of your chip with no Rosetta translation needed on any Mac.</div>
+      </details>
+      <details>
+        <summary>Which Mac apps does Voxlen work in?</summary>
+        <div class="faq-answer">Voxlen works in virtually any Mac application — Microsoft Word, Outlook, Apple Mail, Safari, Chrome, Firefox, Notion, Google Docs, legal practice management software, accounting platforms, and more. It injects text directly at the OS level using macOS Accessibility APIs, so wherever you can type, Voxlen can dictate.</div>
+      </details>
+      <details>
+        <summary>Is my dictation data private?</summary>
+        <div class="faq-answer">Voxlen is designed for professionals such as lawyers and accountants who require strict confidentiality. All vocabulary learning and usage patterns are stored on-device only — your Mac, never our servers. Your dictated content is never uploaded to or stored by Voxlen.</div>
+      </details>
+      <details>
+        <summary>What macOS versions does Voxlen support?</summary>
+        <div class="faq-answer">Voxlen supports macOS 12 Monterey and later, including macOS 13 Ventura, macOS 14 Sonoma, and macOS 15 Sequoia. We test on the latest major macOS release with every update.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section style="text-align: center; padding: 80px 24px; background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(115,69,209,0.2) 0%, transparent 70%);">
+  <h2 style="margin-bottom: 16px;">Ready to ditch typing on your Mac?</h2>
+  <p style="color: var(--text-muted); margin-bottom: 32px; max-width: 480px; margin-left: auto; margin-right: auto;">Join thousands of Mac professionals who've made the switch from Dragon to Voxlen. Start free — no credit card required.</p>
+  <a href="https://voxlen.ai/#download" class="btn-primary" style="font-size: 1.1rem; padding: 16px 40px;">⬇ Download Voxlen for Mac Free</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="https://voxlen.ai/" class="logo" style="font-size:1.3rem;">Voxlen</a>
+        <p>The most advanced AI voice dictation software for Mac and Windows. Built for professionals who demand accuracy and privacy.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="https://voxlen.ai/">Home</a></li>
+          <li><a href="https://voxlen.ai/#download">Download</a></li>
+          <li><a href="https://voxlen.ai/voice-dictation-mac">Mac</a></li>
+          <li><a href="https://voxlen.ai/voice-dictation-windows">Windows</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://voxlen.ai/">About</a></li>
+          <li><a href="https://voxlen.ai/">Privacy Policy</a></li>
+          <li><a href="https://voxlen.ai/">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2025 Voxlen. All rights reserved.</span>
+      <span>Voice dictation for Mac &amp; Windows professionals.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

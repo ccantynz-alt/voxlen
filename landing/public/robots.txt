@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /api/
 
+# Sitemaps
 Sitemap: https://voxlen.ai/sitemap.xml
+
+# Crawl-delay for polite bots
+Crawl-delay: 1

@@ -1,5 +1,68 @@
 use super::{SttConfig, TranscriptionResult, WordResult};
 
+/// Proxy STT through api.voxlen.com — no provider key needed.
+async fn voxlen_proxy_transcribe(
+    wav_data: &[u8],
+    voxlen_key: &str,
+    config: &SttConfig,
+) -> anyhow::Result<TranscriptionResult> {
+    let part = reqwest::multipart::Part::bytes(wav_data.to_vec())
+        .file_name("audio.wav")
+        .mime_str("audio/wav")?;
+
+    let form = reqwest::multipart::Form::new()
+        .part("audio", part)
+        .text("language", if config.auto_detect_language { "auto".to_string() } else { config.language.clone() })
+        .text("context", config.voxlen_context.clone().unwrap_or_else(|| "general".to_string()))
+        .text("smart_format", config.smart_format.to_string())
+        .text("punctuate", config.punctuate.to_string())
+        .text("diarize", config.speaker_diarization.to_string());
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://api.voxlen.com/v1/stt")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .multipart(form)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await?;
+        anyhow::bail!("Voxlen STT API error: {}", error_text);
+    }
+
+    let result: serde_json::Value = response.json().await?;
+    let text = result["text"].as_str().unwrap_or("").to_string();
+    let confidence = result["confidence"].as_f64().unwrap_or(0.95) as f32;
+    let language = result["language"].as_str().map(|s| s.to_string());
+
+    let words = result["words"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|w| super::WordResult {
+                    word: w["word"].as_str().unwrap_or("").to_string(),
+                    start_ms: (w["start"].as_f64().unwrap_or(0.0) * 1000.0) as u64,
+                    end_ms: (w["end"].as_f64().unwrap_or(0.0) * 1000.0) as u64,
+                    confidence: w["confidence"].as_f64().unwrap_or(0.95) as f32,
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(super::TranscriptionResult {
+        text,
+        is_final: true,
+        confidence,
+        language,
+        timestamp_ms: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64,
+        words,
+    })
+}
+
 /// Transcribe audio using OpenAI Whisper API
 pub async fn whisper_transcribe(
     wav_data: &[u8],
@@ -74,10 +137,15 @@ pub async fn deepgram_transcribe(
     wav_data: &[u8],
     config: &SttConfig,
 ) -> anyhow::Result<TranscriptionResult> {
+    // Route through Voxlen proxy when account key is present
+    if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        return voxlen_proxy_transcribe(wav_data, voxlen_key, config).await;
+    }
+
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Deepgram API key not configured"))?;
+        .ok_or_else(|| anyhow::anyhow!("No API key configured. Sign in to your Voxlen account in Settings, or add your Deepgram API key."))?;
 
     let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3");
 

@@ -7,6 +7,7 @@ import {
   Brain,
   BookOpen,
   BarChart3,
+  Briefcase,
 } from "lucide-react";
 import { APP_VERSION } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,12 @@ const navItems = [
     label: "Analytics",
     icon: BarChart3,
     description: "Usage stats",
+  },
+  {
+    id: "clients",
+    label: "Clients",
+    icon: Briefcase,
+    description: "Billable matters",
   },
 ];
 

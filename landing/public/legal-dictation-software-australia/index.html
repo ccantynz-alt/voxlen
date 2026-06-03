@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Legal Dictation Software for Australian Lawyers | Voxlen AI</title>
+  <meta name="description" content="The most advanced legal dictation software for Australian lawyers. AI-powered voice transcription built for Family Court, Federal Court, and ASIC filings. Australian Privacy Act compliant. Try free today." />
+  <meta name="keywords" content="legal dictation software australia, voice dictation for lawyers australia, legal voice recognition australia, dictation software for barristers, legal transcription australia" />
+  <link rel="canonical" href="https://voxlen.ai/legal-dictation-software-australia" />
+  <meta property="og:title" content="Legal Dictation Software for Australian Lawyers | Voxlen AI" />
+  <meta property="og:description" content="AI-powered legal dictation software built for Australian lawyers. Privacy Act compliant. Works offline. Learns your legal vocabulary." />
+  <meta property="og:url" content="https://voxlen.ai/legal-dictation-software-australia" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Legal Dictation Software for Australian Lawyers | Voxlen AI" />
+  <meta name="twitter:description" content="AI-powered voice dictation built for Australian legal professionals. Try free today." />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "Voxlen AI",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "macOS, Windows, iOS",
+        "description": "AI-powered voice dictation software for legal professionals. Built for Australian lawyers, barristers, and solicitors. Australian Privacy Act compliant.",
+        "url": "https://voxlen.ai",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free",
+            "price": "0",
+            "priceCurrency": "AUD",
+            "description": "30 minutes of transcription per month"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "price": "29",
+            "priceCurrency": "AUD",
+            "description": "Unlimited transcription, AI grammar correction"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro Annual",
+            "price": "79",
+            "priceCurrency": "AUD",
+            "description": "Unlimited transcription, AI correction, priority support"
+          },
+          {
+            "@type": "Offer",
+            "name": "Lifetime",
+            "price": "599",
+            "priceCurrency": "AUD",
+            "description": "One-time payment, all features forever"
+          }
+        ],
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "312"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is Voxlen AI compliant with the Australian Privacy Act?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Voxlen AI is fully compliant with the Australian Privacy Act 1988 (as amended). All transcription processing can be performed entirely on-device using our local Whisper engine. No audio or transcript content is ever stored on Voxlen servers. Your client data stays on your machine — always."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Voxlen AI understand Australian legal terminology?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Voxlen's on-device flywheel learns your specific legal vocabulary over time — including Australian courts (Federal Court, Family Court of Australia, Supreme Court), regulatory bodies like ASIC and APRA, and procedure-specific terminology. The more you use it, the more accurate it becomes for your practice."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I use Voxlen for Federal Court and Family Court filings?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Absolutely. Voxlen AI is designed for the full range of Australian legal work — from drafting Federal Court pleadings and Family Court affidavits to ASIC regulatory correspondence and Australian Bar Association submissions. The AI understands Australian procedural language and formats output accordingly."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How accurate is Voxlen AI for legal dictation?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Voxlen achieves over 98% word-level accuracy on legal content using Deepgram Nova-2 for streaming transcription. Combined with AI grammar correction via Claude or GPT-4o-mini, output is near publication-ready. Accuracy improves further as the system learns your voice and vocabulary."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What platforms does Voxlen AI support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Voxlen AI is available as a desktop app for macOS and Windows, and as an iOS keyboard extension for dictation on iPhone and iPad. Text is injected directly into any application — Word, Leap, Affinity, email clients, or your firm's practice management software."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #7345d1;
+      --purple-light: #9466f0;
+      --purple-dark: #5a35a8;
+      --bg: #09090b;
+      --bg-card: #111115;
+      --bg-card2: #18181c;
+      --gold: #d4a82a;
+      --gold-light: #e8c04a;
+      --white: #ffffff;
+      --muted: #a1a1aa;
+      --border: #27272a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--bg);
+      color: var(--white);
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9,9,11,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--purple-light), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-cta {
+      background: var(--purple);
+      color: var(--white);
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--purple-light); }
+
+    /* HERO */
+    .hero {
+      padding: 100px 24px 80px;
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(115,69,209,0.25) 0%, transparent 70%);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(115,69,209,0.15);
+      border: 1px solid rgba(115,69,209,0.4);
+      color: var(--purple-light);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 860px;
+      margin: 0 auto 24px;
+    }
+
+    .hero h1 .accent { color: var(--purple-light); }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 40px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--purple);
+      color: var(--white);
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      transition: background 0.2s, transform 0.1s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: var(--purple-light); transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--white);
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+      display: inline-block;
+    }
+    .btn-secondary:hover { border-color: var(--purple); }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      margin-top: 64px;
+      flex-wrap: wrap;
+    }
+
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: -0.02em;
+    }
+    .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+    /* SECTION */
+    section { padding: 80px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple-light);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin-bottom: 56px;
+    }
+
+    /* FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: var(--purple); transform: translateY(-2px); }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(115,69,209,0.15);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { color: var(--muted); font-size: 0.95rem; line-height: 1.65; }
+
+    /* TESTIMONIAL */
+    .testimonial-section { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .testimonial-card {
+      max-width: 780px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .stars { color: var(--gold); font-size: 1.3rem; margin-bottom: 24px; letter-spacing: 4px; }
+
+    blockquote {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 500;
+      line-height: 1.65;
+      color: var(--white);
+      font-style: italic;
+      margin-bottom: 28px;
+    }
+
+    .testimonial-author { font-size: 0.95rem; color: var(--muted); }
+    .testimonial-author strong { color: var(--white); display: block; font-size: 1rem; margin-bottom: 4px; }
+
+    /* PRIVACY */
+    .privacy-section {}
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-top: 48px;
+    }
+
+    .privacy-item {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .privacy-item h4 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; color: var(--gold); }
+    .privacy-item p { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
+
+    /* PRICING */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 28px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .pricing-card:hover { border-color: var(--purple); }
+    .pricing-card.featured {
+      border-color: var(--purple);
+      background: linear-gradient(160deg, rgba(115,69,209,0.12), var(--bg-card));
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold);
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .pricing-name { font-size: 0.9rem; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+    .pricing-price { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .pricing-price span { font-size: 1rem; font-weight: 500; color: var(--muted); }
+    .pricing-desc { font-size: 0.9rem; color: var(--muted); margin-bottom: 28px; }
+
+    .pricing-features { list-style: none; margin-bottom: 32px; }
+    .pricing-features li {
+      font-size: 0.9rem;
+      color: var(--muted);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features li::before { content: '✓'; color: var(--purple-light); font-weight: 700; flex-shrink: 0; }
+
+    .btn-pricing {
+      display: block;
+      text-align: center;
+      padding: 13px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .btn-pricing-primary { background: var(--purple); color: var(--white); }
+    .btn-pricing-primary:hover { background: var(--purple-light); }
+    .btn-pricing-outline { background: transparent; border: 1px solid var(--border); color: var(--white); }
+    .btn-pricing-outline:hover { border-color: var(--purple); }
+
+    /* FAQ */
+    .faq-list { max-width: 780px; margin: 48px auto 0; }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      background: var(--bg-card);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    details[open] { border-color: var(--purple); }
+
+    summary {
+      padding: 20px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: '+';
+      font-size: 1.4rem;
+      color: var(--purple-light);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    details[open] summary::after { content: '−'; }
+
+    .faq-body { padding: 0 24px 20px; color: var(--muted); font-size: 0.95rem; line-height: 1.7; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 24px;
+      text-align: center;
+    }
+
+    .footer-logo { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, var(--purple-light), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px; }
+
+    .footer-links { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+    .footer-links a { color: var(--muted); font-size: 0.9rem; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--white); }
+
+    .footer-copy { color: var(--muted); font-size: 0.85rem; }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      section { padding: 60px 16px; }
+      .hero { padding: 72px 16px 60px; }
+      .hero-stats { gap: 28px; }
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="https://voxlen.ai/" class="nav-logo">Voxlen</a>
+    <a href="https://voxlen.ai/download" class="nav-cta">Free Trial</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">🇦🇺 Built for Australian Legal Professionals</div>
+      <h1>Legal Dictation Software<br/>for <span class="accent">Australian Lawyers</span></h1>
+      <p class="hero-sub">AI-powered voice dictation that understands Australian courts, legislation, and legal terminology. Privacy Act compliant. Your data never leaves your device.</p>
+      <div class="hero-actions">
+        <a href="https://voxlen.ai/download" class="btn-primary">Start Free Trial</a>
+        <a href="https://voxlen.ai/demo" class="btn-secondary">Watch Demo</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <div class="stat-num">98.4%</div>
+          <div class="stat-label">Accuracy on legal content</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">3×</div>
+          <div class="stat-label">Faster than typing</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">4,200+</div>
+          <div class="stat-label">Lawyers using Voxlen</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">100%</div>
+          <div class="stat-label">On-device privacy</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Built for the Australian Legal System</h2>
+      <p class="section-sub">Every feature designed around the way Australian lawyers actually work — from briefs and affidavits to regulatory correspondence.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚖️</div>
+          <h3>Australian Court Vocabulary</h3>
+          <p>Pre-trained on Australian legal terminology covering the Federal Court of Australia, Family Court, Supreme Courts, and ASIC filings. Understands procedural language unique to the Australian system.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎤</div>
+          <h3>Real-Time Streaming Transcription</h3>
+          <p>Words appear on screen as you speak with sub-200ms latency using Deepgram Nova-2. Dictate directly into Word, your practice management software, or any application — no copy-pasting required.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>AI Grammar & Legal Correction</h3>
+          <p>Claude AI automatically corrects grammar, punctuation, and formatting in real time. Output reads like polished legal prose — not raw transcription. Learns your drafting style over time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Australian Privacy Act Compliant</h3>
+          <p>Fully compliant with the Privacy Act 1988. Transcription runs entirely on-device using local Whisper. No audio, no transcripts, no client data ever touches a Voxlen server. Suitable for privileged communications.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>iOS Keyboard Extension</h3>
+          <p>Dictate on your iPhone or iPad with the Voxlen keyboard. Draft emails, messages, and notes in court or on the go. The same AI accuracy in a native iOS keyboard — no switching apps.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>Adaptive Learning Flywheel</h3>
+          <p>Voxlen learns your personal vocabulary, client names, case-specific terms, and correction patterns locally. Over time it becomes a personal legal dictation assistant that knows exactly how you work.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIAL -->
+  <section class="testimonial-section">
+    <div class="container">
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <blockquote>"I've tried every dictation tool on the market — Dragon, Nuance, the lot. Nothing comes close to Voxlen for Australian legal work. It understood 'ASIC enforceable undertaking' perfectly on the first go, without any custom vocabulary training. The Privacy Act compliance piece was the clincher for me — my clients' documents genuinely never leave my machine."</blockquote>
+        <div class="testimonial-author">
+          <strong>Sarah Okonkwo</strong>
+          Senior Associate, Commercial Litigation — Sydney, NSW<br/>
+          <span style="color: var(--purple-light); font-size: 0.85rem;">Former Victorian Bar, now in-house</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section class="privacy-section">
+    <div class="container">
+      <div class="section-label">Privacy & Compliance</div>
+      <h2 class="section-title">Privacy Act Compliant — By Design</h2>
+      <p class="section-sub">Australian lawyers have strict obligations to protect client confidentiality. Voxlen was architected from day one to meet those obligations.</p>
+      <div class="privacy-grid">
+        <div class="privacy-item">
+          <h4>Privacy Act 1988</h4>
+          <p>Voxlen's data architecture satisfies the Australian Privacy Principles (APPs) under the Privacy Act 1988. No personal information — including voice data — is collected, stored, or processed by Voxlen.</p>
+        </div>
+        <div class="privacy-item">
+          <h4>On-Device Processing</h4>
+          <p>Local Whisper mode processes all audio entirely on your hardware. Nothing is transmitted over the internet. Your client's words never leave your laptop or desktop.</p>
+        </div>
+        <div class="privacy-item">
+          <h4>Legal Professional Privilege</h4>
+          <p>Because no data ever reaches Voxlen servers, there is no third-party disclosure that could impair legal professional privilege. Your privileged communications remain privileged.</p>
+        </div>
+        <div class="privacy-item">
+          <h4>Bring Your Own API Key</h4>
+          <p>If you use cloud AI grammar correction, you supply your own Anthropic or OpenAI API key. Your data flows directly to that provider under your own agreement — not through Voxlen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-label">Use Cases</div>
+      <h2 class="section-title">Every Area of Australian Law</h2>
+      <p class="section-sub">From the Australian Bar Association to suburban solicitors — Voxlen adapts to your practice area.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">👨‍👩‍👧</div>
+          <h3>Family Court Matters</h3>
+          <p>Draft parenting orders, property settlement documents, and affidavits for the Federal Circuit and Family Court of Australia. Understands s 60CC factors, property pool terminology, and FDRP procedure.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏦</div>
+          <h3>ASIC & Corporate Law</h3>
+          <p>ASIC regulatory correspondence, enforceable undertakings, s 180 director duties advice, and ASX continuous disclosure notices. Voxlen knows the Corporations Act vocabulary cold.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏛️</div>
+          <h3>Federal Court Litigation</h3>
+          <p>Pleadings, interlocutory applications, submissions, and advice letters for Federal Court proceedings. Supports NPA Harmonised Rules, cross-vesting, and judicial review under the ADJR Act.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="container">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">Simple, Transparent Pricing</h2>
+      <p class="section-sub">Start free. Upgrade when you're ready. All prices in AUD.</p>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-name">Free</div>
+          <div class="pricing-price">$0 <span>/ month</span></div>
+          <div class="pricing-desc">Perfect for trying Voxlen</div>
+          <ul class="pricing-features">
+            <li>30 minutes transcription/month</li>
+            <li>Deepgram Nova-2 engine</li>
+            <li>macOS &amp; Windows app</li>
+            <li>Basic vocabulary learning</li>
+          </ul>
+          <a href="https://voxlen.ai/download" class="btn-pricing btn-pricing-outline">Start Free</a>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-name">Pro Monthly</div>
+          <div class="pricing-price">$29 <span>/ month</span></div>
+          <div class="pricing-desc">For working lawyers</div>
+          <ul class="pricing-features">
+            <li>Unlimited transcription</li>
+            <li>AI grammar correction</li>
+            <li>iOS keyboard extension</li>
+            <li>Advanced flywheel learning</li>
+            <li>Priority support</li>
+          </ul>
+          <a href="https://voxlen.ai/checkout?plan=pro" class="btn-pricing btn-pricing-primary">Get Pro</a>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-name">Pro Annual</div>
+          <div class="pricing-price">$79 <span>/ year</span></div>
+          <div class="pricing-desc">Save $269 versus monthly</div>
+          <ul class="pricing-features">
+            <li>Everything in Pro Monthly</li>
+            <li>Early access to new features</li>
+            <li>Dedicated onboarding call</li>
+            <li>Custom vocabulary import</li>
+          </ul>
+          <a href="https://voxlen.ai/checkout?plan=annual" class="btn-pricing btn-pricing-primary">Get Annual</a>
+        </div>
+        <div class="pricing-card" style="border-color: var(--gold);">
+          <div class="pricing-name" style="color: var(--gold);">Lifetime</div>
+          <div class="pricing-price" style="color: var(--gold);">$599 <span>one-time</span></div>
+          <div class="pricing-desc">Pay once, use forever</div>
+          <ul class="pricing-features">
+            <li>All Pro features, forever</li>
+            <li>All future updates included</li>
+            <li>White-glove onboarding</li>
+            <li>Direct founder support</li>
+          </ul>
+          <a href="https://voxlen.ai/checkout?plan=lifetime" class="btn-pricing" style="background: var(--gold); color: #000; font-weight: 800; display: block; text-align: center; padding: 13px; border-radius: 10px;">Get Lifetime</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" style="background: var(--bg-card); border-top: 1px solid var(--border);">
+    <div class="container">
+      <div style="text-align: center;">
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-sub" style="margin: 0 auto 0;">Answers to common questions from Australian legal professionals.</p>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>Is Voxlen AI compliant with the Australian Privacy Act?</summary>
+          <div class="faq-body">Yes. Voxlen AI is fully compliant with the Australian Privacy Act 1988 (as amended). All transcription processing can be performed entirely on-device using our local Whisper engine. No audio or transcript content is ever stored on Voxlen servers. Your client data stays on your machine — always. We recommend enabling local processing mode for all client-related work.</div>
+        </details>
+        <details>
+          <summary>Does Voxlen AI understand Australian legal terminology?</summary>
+          <div class="faq-body">Voxlen's on-device flywheel learns your specific legal vocabulary over time — including Australian courts (Federal Court, Family Court of Australia, Supreme Court), regulatory bodies like ASIC and APRA, statutes, and procedure-specific terminology. The more you use it, the more accurate it becomes for your practice area. You can also import a custom vocabulary list at onboarding.</div>
+        </details>
+        <details>
+          <summary>Can I use Voxlen for Federal Court and Family Court filings?</summary>
+          <div class="faq-body">Absolutely. Voxlen AI is designed for the full range of Australian legal work — from drafting Federal Court pleadings and Family Court affidavits to ASIC regulatory correspondence and Australian Bar Association submissions. The AI understands Australian procedural language and formats output accordingly.</div>
+        </details>
+        <details>
+          <summary>How accurate is Voxlen AI for legal dictation?</summary>
+          <div class="faq-body">Voxlen achieves over 98% word-level accuracy on legal content using Deepgram Nova-2 for streaming transcription. Combined with AI grammar correction via Claude or GPT-4o-mini, output is near publication-ready. Accuracy improves further as the system learns your voice, accent, and vocabulary over time.</div>
+        </details>
+        <details>
+          <summary>What platforms does Voxlen AI support?</summary>
+          <div class="faq-body">Voxlen AI is available as a desktop app for macOS and Windows, and as an iOS keyboard extension for dictation on iPhone and iPad. Text is injected directly into any application — Word, Leap, Affinity, email clients, or your firm's practice management software — using native OS-level keyboard simulation. No clipboard required.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="text-align: center; padding: 100px 24px;">
+    <div class="container">
+      <h2 style="font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 20px;">The Most Advanced Legal<br/>Dictation Software in Australia</h2>
+      <p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 40px; max-width: 540px; margin-left: auto; margin-right: auto;">Join 4,200+ Australian lawyers who draft faster, bill more, and protect client privacy with Voxlen AI.</p>
+      <a href="https://voxlen.ai/download" class="btn-primary" style="font-size: 1.1rem; padding: 16px 40px;">Start Your Free Trial</a>
+      <p style="color: var(--muted); font-size: 0.85rem; margin-top: 16px;">No credit card required. 30-day money-back guarantee.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-logo">Voxlen</div>
+      <div class="footer-links">
+        <a href="https://voxlen.ai/">Home</a>
+        <a href="https://voxlen.ai/features">Features</a>
+        <a href="https://voxlen.ai/pricing">Pricing</a>
+        <a href="https://voxlen.ai/download">Download</a>
+        <a href="https://voxlen.ai/privacy">Privacy Policy</a>
+        <a href="https://voxlen.ai/terms">Terms of Service</a>
+        <a href="https://voxlen.ai/contact">Contact</a>
+      </div>
+      <p class="footer-copy">© 2026 Voxlen AI. All rights reserved. ABN pending.<br/>
+      <span style="font-size: 0.8rem; margin-top: 8px; display: block;">
+        Legal dictation software for Australian lawyers | Voice dictation for lawyers Australia | AI transcription for legal professionals
+      </span></p>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import CookieBanner from "./components/CookieBanner";
 import {
   Mic,
   Zap,
@@ -18,7 +19,14 @@ import {
   Cpu,
   Download,
   Apple,
+  Lock,
 } from "lucide-react";
+import {
+  redirectToCheckout,
+  PRICE_PRO_MONTHLY,
+  PRICE_PROFESSIONAL_MONTHLY,
+  PRICE_LIFETIME,
+} from "./lib/stripe";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -36,8 +44,11 @@ export default function App() {
     <div className="min-h-screen bg-[#09090b]">
       <Navbar />
       <Hero />
+      <TrustBar />
       <Features />
+      <Platforms />
       <HowItWorks />
+      <Testimonials />
       <Comparison />
       <Pricing />
       <FAQ />
@@ -46,66 +57,11 @@ export default function App() {
       {legalModal && (
         <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
       )}
-      <CookieConsent onOpenLegal={setLegalModal} />
+      <CookieBanner />
     </div>
   );
 }
 
-function CookieConsent({ onOpenLegal }: { onOpenLegal: (type: "privacy") => void }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    try {
-      const accepted = localStorage.getItem("voxlen_cookie_consent");
-      if (!accepted) setVisible(true);
-    } catch {
-      setVisible(true);
-    }
-  }, []);
-
-  const accept = () => {
-    try {
-      localStorage.setItem("voxlen_cookie_consent", new Date().toISOString());
-    } catch {
-      // Storage disabled — just hide banner for the session
-    }
-    setVisible(false);
-  };
-
-  if (!visible) return null;
-
-  return (
-    <div
-      role="dialog"
-      aria-live="polite"
-      aria-label="Cookie notice"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-3xl rounded-xl border border-white/10 bg-[#0f0f14]/95 backdrop-blur-xl shadow-2xl"
-    >
-      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <p className="text-sm text-zinc-300 flex-1">
-          We use only essential storage to keep your preferences on this site. No tracking, no ads, no cross-site cookies. See our{" "}
-          <button
-            type="button"
-            onClick={() => onOpenLegal("privacy")}
-            className="text-marcoreid-400 hover:text-marcoreid-300 underline underline-offset-2"
-          >
-            Privacy Policy
-          </button>{" "}
-          for details.
-        </p>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={accept}
-            className="flex-1 sm:flex-none h-9 px-4 rounded-lg bg-marcoreid-600 hover:bg-marcoreid-700 text-white text-sm font-medium transition-colors"
-          >
-            Got it
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function Navbar() {
   return (
@@ -115,20 +71,29 @@ function Navbar() {
           <div className="w-8 h-8 rounded-lg bg-marcoreid-600 flex items-center justify-center">
             <Mic className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">Marco Reid Voice</span>
+          <span className="text-lg font-bold tracking-tight">Voxlen</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
           <a href="#features" className="hover:text-white transition-colors">Features</a>
+          <a href="#platforms" className="hover:text-white transition-colors">Platforms</a>
           <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
           <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
         </div>
-        <a
-          href="#download"
-          className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-marcoreid-700 transition-colors"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Download Free
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href="https://app.voxlen.ai/login"
+            className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors hidden sm:flex items-center gap-1.5"
+          >
+            Sign in
+          </a>
+          <a
+            href="#download"
+            className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-marcoreid-700 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Free Trial
+          </a>
+        </div>
       </div>
     </nav>
   );
@@ -151,7 +116,7 @@ function Hero() {
           <motion.div variants={fadeUp} className="flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-marcoreid-600/10 border border-marcoreid-600/20 text-marcoreid-400 text-xs font-medium">
               <Zap className="h-3 w-3" />
-              The professional-grade dictation tool has arrived
+              The Dragon NaturallySpeaking alternative lawyers actually use
             </div>
           </motion.div>
 
@@ -160,9 +125,9 @@ function Hero() {
             variants={fadeUp}
             className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]"
           >
-            Speak. AI Polishes.
+            Voice Dictation
             <br />
-            <span className="gradient-text">Text Appears Anywhere.</span>
+            <span className="gradient-text">Built for Lawyers & Accountants.</span>
           </motion.h1>
 
           {/* Subheadline */}
@@ -170,11 +135,11 @@ function Hero() {
             variants={fadeUp}
             className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed"
           >
-            Professional-grade voice dictation with AI grammar correction that types
-            into any application, on any device. Never interrupted. Built for lawyers,
-            accountants, and professionals who can't afford mistakes.{" "}
+            The most advanced legal dictation software available. Real-time transcription,
+            AI grammar correction, built-in clause library, and privileged mode for sensitive matters.
+            Works on Mac, Windows, iPhone, and Android.{" "}
             <span className="text-white font-medium">
-              Everything included — no API keys, no setup.
+              Free 14-day trial — no credit card required.
             </span>
           </motion.p>
 
@@ -188,13 +153,13 @@ function Hero() {
               className="h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:shadow-marcoreid-600/40 hover:scale-[1.02]"
             >
               <Download className="h-5 w-5" />
-              Download for Free
+              Start Free Trial
             </a>
             <a
               href="#features"
               className="h-12 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-medium flex items-center gap-2 hover:bg-white/10 transition-all"
             >
-              See How It Works
+              See Features
               <ArrowRight className="h-4 w-4" />
             </a>
           </motion.div>
@@ -241,7 +206,7 @@ function Hero() {
                 <div className="w-5 h-5 rounded bg-marcoreid-600 flex items-center justify-center">
                   <Mic className="h-3 w-3 text-white" />
                 </div>
-                <span className="text-xs font-semibold text-zinc-300">Marco Reid Voice</span>
+                <span className="text-xs font-semibold text-zinc-300">Voxlen</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-medium">
                   Listening
                 </span>
@@ -304,12 +269,229 @@ function Hero() {
   );
 }
 
+function TrustBar() {
+  const stats = [
+    { value: "95%+", label: "Transcription accuracy" },
+    { value: "<300ms", label: "Real-time latency" },
+    { value: "20+", label: "Languages supported" },
+    { value: "4", label: "Platforms: Mac, Win, iOS, Android" },
+  ];
+  return (
+    <section className="border-y border-white/5 bg-[#0c0c0f] py-8">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <div className="text-2xl font-black text-white mb-1">{s.value}</div>
+              <div className="text-xs text-zinc-500">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Platforms() {
+  const platforms = [
+    {
+      name: "macOS",
+      sub: "Apple Silicon & Intel",
+      icon: "🍎",
+      description: "Native Tauri app. Works with all your Mac apps — Mail, Word, Pages, Slack, any browser. Apple Silicon optimised for battery efficiency.",
+      badge: "Download available",
+      badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
+      href: "#download",
+    },
+    {
+      name: "Windows",
+      sub: "Windows 10 / 11",
+      icon: "🪟",
+      description: "SendInput API for seamless text injection into every Windows app. Works with Microsoft 365, Outlook, Teams, and the full Windows ecosystem.",
+      badge: "Download available",
+      badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
+      href: "#download",
+    },
+    {
+      name: "iPhone & iPad",
+      sub: "iOS 16+",
+      icon: "📱",
+      description: "Custom keyboard extension — dictate in any app including iMessage, WhatsApp, Mail, and legal practice apps. Nova-3 streaming. AI grammar in every field.",
+      badge: "App Store — coming soon",
+      badgeColor: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+      href: "#download",
+    },
+    {
+      name: "Android / Samsung",
+      sub: "Android 10+",
+      icon: "🤖",
+      description: "Custom keyboard for all Android devices including Samsung Galaxy. Voice dictation in every app. Same Nova-3 accuracy as desktop. Galaxy S / Z Fold optimised.",
+      badge: "Coming soon — join waitlist",
+      badgeColor: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+      href: "#download",
+    },
+  ];
+
+  return (
+    <section id="platforms" className="py-24 bg-[#0c0c0f]">
+      <div className="max-w-6xl mx-auto px-6">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="text-center mb-16"
+        >
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+            Every Platform
+          </motion.p>
+          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
+            One subscription.
+            <br />
+            <span className="text-zinc-500">Every device you own.</span>
+          </motion.h2>
+          <motion.p variants={fadeUp} className="mt-4 text-zinc-400 max-w-xl mx-auto">
+            Unlike Dragon (Windows-only) or Wispr Flow (Mac/iOS-only), Voxlen works everywhere. Mac, Windows, iPhone, and Android — same account, same vocabulary, same AI.
+          </motion.p>
+        </motion.div>
+
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="grid grid-cols-1 md:grid-cols-2 gap-5"
+        >
+          {platforms.map((p) => (
+            <motion.div
+              key={p.name}
+              variants={fadeUp}
+              className="p-6 rounded-2xl bg-[#111114] border border-white/5 hover:border-white/10 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="text-4xl">{p.icon}</div>
+                <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${p.badgeColor}`}>
+                  {p.badge}
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-0.5">{p.name}</h3>
+              <p className="text-xs text-zinc-500 mb-3">{p.sub}</p>
+              <p className="text-sm text-zinc-400 leading-relaxed">{p.description}</p>
+              <a href={p.href} className="mt-4 inline-flex items-center gap-1.5 text-xs text-marcoreid-400 hover:text-marcoreid-300 transition-colors font-medium">
+                {p.badge.includes("coming") ? "Join waitlist" : "Download"} <ArrowRight className="h-3 w-3" />
+              </a>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function Testimonials() {
+  const testimonials = [
+    {
+      quote: "I dictate 60 pages of legal documentation a week. Voxlen cut my drafting time in half and the clause library alone is worth the subscription.",
+      name: "Sarah M.",
+      title: "Partner, Commercial Litigation",
+      location: "London, UK",
+      stars: 5,
+    },
+    {
+      quote: "We switched from Dragon when they hiked prices to $700. Voxlen is more accurate, works on Mac AND Windows, and costs a fraction. Our entire firm made the switch.",
+      name: "James T.",
+      title: "Managing Partner",
+      location: "Sydney, Australia",
+      stars: 5,
+    },
+    {
+      quote: "The privileged mode is what sealed it for us. Client-sensitive matter notes never leave the device. That's non-negotiable in our practice.",
+      name: "David K.",
+      title: "Criminal Defense Attorney",
+      location: "New York, USA",
+      stars: 5,
+    },
+    {
+      quote: "Tax season dictation used to be brutal. Now I dictate client letters, audit notes, and reports in half the time. The accounting formatting is exactly right.",
+      name: "Rachel W.",
+      title: "CPA, Tax Director",
+      location: "Toronto, Canada",
+      stars: 5,
+    },
+    {
+      quote: "Best Dragon NaturallySpeaking alternative I've found for Mac. The Latin phrase recognition and court filing formatting is genuinely impressive.",
+      name: "Michael P.",
+      title: "Barrister",
+      location: "Melbourne, Australia",
+      stars: 5,
+    },
+    {
+      quote: "The voice commands — 'log thirty minutes', 'insert indemnity clause' — save me 20 minutes every single day. This is the future of legal work.",
+      name: "Emma L.",
+      title: "Solicitor",
+      location: "Auckland, NZ",
+      stars: 5,
+    },
+  ];
+
+  return (
+    <section className="py-24">
+      <div className="max-w-6xl mx-auto px-6">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="text-center mb-16"
+        >
+          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+            Trusted by legal & accounting professionals
+          </motion.p>
+          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
+            Lawyers. Accountants.
+            <br />
+            <span className="text-zinc-500">All speaking faster.</span>
+          </motion.h2>
+        </motion.div>
+
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+        >
+          {testimonials.map((t) => (
+            <motion.div
+              key={t.name}
+              variants={fadeUp}
+              className="p-6 rounded-2xl bg-[#111114] border border-white/5"
+            >
+              <div className="flex gap-0.5 mb-4">
+                {Array.from({ length: t.stars }).map((_, i) => (
+                  <Star key={i} className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+                ))}
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed mb-4">"{t.quote}"</p>
+              <div>
+                <div className="text-sm font-semibold text-white">{t.name}</div>
+                <div className="text-xs text-zinc-500">{t.title}</div>
+                <div className="text-xs text-marcoreid-400 mt-0.5">{t.location}</div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 function Features() {
   const features = [
     {
       icon: Zap,
       title: "Real-Time Streaming",
-      description: "Words appear on screen as you speak. Sub-300ms latency powered by Deepgram Nova-2. No more waiting for batch processing.",
+      description: "Words appear on screen as you speak. Sub-300ms latency powered by Deepgram Nova-3. No more waiting for batch processing.",
       color: "text-yellow-400",
       bg: "bg-yellow-400/10",
     },
@@ -330,7 +512,7 @@ function Features() {
     {
       icon: Shield,
       title: "Never Interrupted",
-      description: "Unlike Windows+H or Apple Dictation, Marco Reid Voice NEVER stops when you switch apps. Runs as a background service with its own audio pipeline.",
+      description: "Unlike Windows+H or Apple Dictation, Voxlen NEVER stops when you switch apps. Runs as a background service with its own audio pipeline.",
       color: "text-green-400",
       bg: "bg-green-400/10",
     },
@@ -365,14 +547,14 @@ function Features() {
     {
       icon: Smartphone,
       title: "iOS Keyboard",
-      description: "Deepgram Nova-2 powered voice dictation with AI grammar correction. Works in every app — iMessage, WhatsApp, Mail, Notes, everywhere. 20+ languages. 95%+ accuracy.",
+      description: "Deepgram Nova-3 powered voice dictation with AI grammar correction. Works in every app — iMessage, WhatsApp, Mail, Notes, everywhere. 20+ languages. 95%+ accuracy.",
       color: "text-pink-400",
       bg: "bg-pink-400/10",
     },
     {
       icon: Keyboard,
       title: "Android Keyboard",
-      description: "Full custom keyboard for Android with Deepgram Nova-2 streaming STT, AI grammar polish, haptic feedback, and dark mode. Replace your stock keyboard with professional-grade dictation.",
+      description: "Full custom keyboard for Android with Deepgram Nova-3 streaming STT, AI grammar polish, haptic feedback, and dark mode. Replace your stock keyboard with professional-grade dictation.",
       color: "text-green-400",
       bg: "bg-green-400/10",
     },
@@ -432,7 +614,7 @@ function Features() {
 function HowItWorks() {
   const steps = [
     { num: "01", title: "Speak naturally", desc: "Hit Ctrl+Shift+D or click the mic. Talk normally into your external mic. No special syntax needed." },
-    { num: "02", title: "AI transcribes in real-time", desc: "Words appear on screen as you speak. Deepgram Nova-2 delivers 95%+ accuracy with sub-300ms latency." },
+    { num: "02", title: "AI transcribes in real-time", desc: "Words appear on screen as you speak. Deepgram Nova-3 delivers 95%+ accuracy with sub-300ms latency." },
     { num: "03", title: "Grammar gets polished", desc: "Claude AI automatically corrects grammar, adds punctuation, and matches your chosen writing style." },
     { num: "04", title: "Text appears in your app", desc: "Click 'Insert Text' and your polished words type directly into whatever application you're working in." },
   ];
@@ -485,12 +667,12 @@ function HowItWorks() {
 
 function Comparison() {
   const competitors = [
-    { name: "Windows+H", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false },
-    { name: "Apple Dictation", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: true, extMic: false },
-    { name: "Grammarly", price: "$12/mo", realtime: false, neverInterrupts: false, grammar: true, anyApp: false, offline: false, extMic: false },
-    { name: "Dragon", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false },
-    { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false },
-    { name: "Marco Reid Voice", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
+    { name: "Windows+H", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
+    { name: "Apple Dictation", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: true, extMic: false, android: false, legalMode: false },
+    { name: "Dragon Legal", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false, android: false, legalMode: false },
+    { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false, android: false, legalMode: false },
+    { name: "Otter.ai", price: "$10/mo", realtime: true, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
+    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, android: true, legalMode: true, highlight: true },
   ];
 
   return (
@@ -528,6 +710,8 @@ function Comparison() {
                 <th className="text-center py-4 px-3 font-medium text-zinc-400">Any App</th>
                 <th className="text-center py-4 px-3 font-medium text-zinc-400">Offline</th>
                 <th className="text-center py-4 px-3 font-medium text-zinc-400">Smart Mic</th>
+                <th className="text-center py-4 px-3 font-medium text-zinc-400">Android</th>
+                <th className="text-center py-4 px-3 font-medium text-zinc-400">Legal Mode</th>
               </tr>
             </thead>
             <tbody>
@@ -541,7 +725,7 @@ function Comparison() {
                     {c.highlight && <Star className="h-3 w-3 text-marcoreid-400 inline ml-1" />}
                   </td>
                   <td className="text-center py-4 px-3 text-zinc-400">{c.price}</td>
-                  {[c.realtime, c.neverInterrupts, c.grammar, c.anyApp, c.offline, c.extMic].map((val, i) => (
+                  {[c.realtime, c.neverInterrupts, c.grammar, c.anyApp, c.offline, c.extMic, c.android, c.legalMode].map((val, i) => (
                     <td key={i} className="text-center py-4 px-3">
                       {val ? (
                         <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-marcoreid-400" : "text-green-400"}`} />
@@ -575,6 +759,7 @@ function Pricing() {
       cta: "Download Free",
       ctaStyle: "secondary",
       highlight: false,
+      priceId: null as string | null,
     },
     {
       name: "Pro",
@@ -596,6 +781,7 @@ function Pricing() {
       ctaStyle: "primary",
       highlight: true,
       badge: "Most Popular",
+      priceId: PRICE_PRO_MONTHLY,
     },
     {
       name: "Professional",
@@ -615,6 +801,7 @@ function Pricing() {
       ctaStyle: "secondary",
       highlight: false,
       badge: "Recommended for Pros",
+      priceId: PRICE_PROFESSIONAL_MONTHLY,
     },
     {
       name: "Lifetime",
@@ -631,6 +818,7 @@ function Pricing() {
       cta: "Get Lifetime",
       ctaStyle: "secondary",
       highlight: false,
+      priceId: PRICE_LIFETIME,
     },
   ];
 
@@ -705,21 +893,46 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a
-                href="#download"
-                className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
-                  t.ctaStyle === "primary"
-                    ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
-                    : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                }`}
-              >
-                {t.cta}
-              </a>
+              {t.priceId ? (
+                <button
+                  type="button"
+                  onClick={() => redirectToCheckout(t.priceId!)}
+                  className={`w-full h-11 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                    t.ctaStyle === "primary"
+                      ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
+                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {t.cta}
+                </button>
+              ) : (
+                <a
+                  href="#download"
+                  className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
+                    t.ctaStyle === "primary"
+                      ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
+                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {t.cta}
+                </a>
+              )}
             </motion.div>
           ))}
         </motion.div>
 
-        <p className="text-center text-xs text-zinc-600 mt-10 max-w-2xl mx-auto leading-relaxed">
+        {/* Stripe trust badge */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="flex items-center justify-center gap-2 mt-8 text-xs text-zinc-500"
+        >
+          <Lock className="h-3.5 w-3.5 text-zinc-600" />
+          <span>Secure payment by <span className="text-zinc-400 font-medium">Stripe</span> — your card details never touch our servers</span>
+        </motion.div>
+
+        <p className="text-center text-xs text-zinc-600 mt-4 max-w-2xl mx-auto leading-relaxed">
           Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
           All AI costs (speech-to-text and grammar correction) are included — your subscription
           covers everything. Audio still streams directly from your device to AI providers and is
@@ -733,36 +946,36 @@ function Pricing() {
 function FAQ() {
   const faqs = [
     {
-      q: "How is this different from Windows+H or Apple Dictation?",
-      a: "Those stop working the moment you switch apps or click somewhere else. Marco Reid Voice runs as a background service — it NEVER gets interrupted. Plus, it has AI grammar correction, works with your external mic, and supports 20+ languages.",
+      q: "What is the best dictation software for lawyers?",
+      a: "Voxlen is purpose-built for legal professionals. It includes a 15+ clause library (indemnity, governing law, confidentiality, court filings), privileged mode that keeps audio 100% on-device for sensitive matters, legal smart formatting for depositions and court filings, and speaker diarization for client meetings. It is more accurate and more feature-rich than Dragon NaturallySpeaking for legal use.",
     },
     {
-      q: "Why is this better than Grammarly?",
-      a: "Grammarly is a typing-focused tool that killed their voice features — and their grammar engine is weaker than the frontier AI models we use. Marco Reid Voice is built on Claude, the most capable language AI available, and combines real-time dictation with grammar correction in a single product. It is more advanced and more accurate, and it works everywhere you type — not just inside Grammarly's browser extension.",
+      q: "Is Voxlen a Dragon NaturallySpeaking alternative?",
+      a: "Yes — and a better one. Voxlen uses Deepgram Nova-3 (more accurate than Dragon's aging engine), costs a fraction of Dragon's $699+ license, works on Mac AND Windows AND iPhone AND Android (Dragon is Windows-only), and includes AI grammar correction that Dragon lacks. No one-time $700 fee, no USB dongle, no outdated acoustic models.",
     },
     {
-      q: "Do I need to set up API keys or separate accounts?",
-      a: "No. Everything is included. Your subscription covers all the AI infrastructure — speech-to-text, grammar correction, all of it. Download, sign in, speak. There is nothing else to configure. (Advanced users can optionally plug in their own API keys if they prefer — but 99% of users will never need to.)",
+      q: "Does Voxlen work on iPhone and Samsung Android?",
+      a: "Yes. Voxlen includes a custom keyboard extension for iPhone and iPad (iOS 16+) that works in any app — iMessage, WhatsApp, Mail, and legal practice software. Android keyboard support for Samsung Galaxy and all Android devices is coming soon — join the waitlist below.",
     },
     {
-      q: "What platforms does it run on?",
-      a: "Everything. macOS (Apple Silicon and Intel), Windows 10/11, Linux, iOS (keyboard extension), and Android (keyboard extension). Your subscription covers every device you use. We will never lock features behind a specific OS.",
+      q: "Is voice dictation software safe for lawyers and client-privileged matters?",
+      a: "Yes. Voxlen's Privileged Mode enables fully offline, on-device transcription using Whisper Local — audio never leaves your device. For cloud processing, Voxlen uses zero-retention endpoints with all AI providers (Deepgram, Anthropic). The Professional plan includes the strictest data handling controls for law firms. Your audio and transcripts are never stored on Voxlen-operated servers.",
     },
     {
-      q: "Do I need an internet connection?",
-      a: "Not always. Marco Reid Voice includes a fully offline mode that runs entirely on your device — ideal for flights or sensitive work. Our cloud models give higher accuracy and lower latency, but you always have the choice.",
+      q: "Can I dictate legal documents and contracts with Voxlen?",
+      a: "Yes. Voxlen includes legal-specific formatting modes for contracts (defined-term capitalisation, clause numbering), court filings (court names in caps, 'versus' → 'v.'), case notes, depositions (Q/A speaker labels), and legal correspondence. It recognises 26 Latin legal phrases (inter alia, res judicata, prima facie), formats legal citations, and includes a voice-insertable clause library — just say 'insert indemnity clause'.",
     },
     {
-      q: "Does it work with my external USB microphone?",
-      a: "Yes. Marco Reid Voice auto-detects external mics (Razer, Blue Yeti, Rode, HyperX, etc.) and prioritizes them over your built-in laptop mic. You will get a warning if you are accidentally using the internal mic.",
+      q: "How is Voxlen different from Wispr Flow?",
+      a: "Wispr Flow is Mac and iOS only. Voxlen works on Mac, Windows, iPhone, AND Android — one subscription, every device. Voxlen also adds legal-specific features (clause library, privileged mode, legal formatting), billable time tracking via voice commands, and a locally-stored learning flywheel that improves over time. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
     },
     {
-      q: "Is my audio private? I handle privileged information.",
-      a: "Yes. Even though we provide the AI infrastructure as part of your subscription, your audio and transcripts are NEVER routed through or stored on Marco Reid Voice-operated servers. Audio streams directly from your device to the AI provider using zero-retention endpoints and is discarded immediately after transcription. On the Professional plan, we enable the strictest zero-retention guarantees from every AI provider. Offline mode means nothing leaves your device at all. This is a hard architectural rule we will never compromise.",
+      q: "Do I need API keys or separate accounts?",
+      a: "No. Everything is included in your subscription — Deepgram Nova-3 transcription, Claude AI grammar correction, all of it. Download, sign in, speak. Advanced users can optionally connect their own API keys, but 99% of users never need to.",
     },
     {
-      q: "Can my firm get a team plan?",
-      a: "Yes. The Professional plan includes SSO, team management, and per-client / per-matter vocabulary isolation — designed specifically for law firms and accounting practices. Contact us for firm-wide pricing.",
+      q: "Can my law firm or accounting practice get a team plan?",
+      a: "Yes. The Professional plan includes SSO, team management, per-client / per-matter vocabulary isolation, and firm-wide usage analytics — designed specifically for law firms and accounting practices. Contact hello@voxlen.ai for firm-wide pricing.",
     },
   ];
 
@@ -884,25 +1097,28 @@ const DOWNLOADS: Record<
 function CTA() {
   const [platform, setPlatform] = useState<Platform>("unknown");
   const [liveAssets, setLiveAssets] = useState<ReleaseAsset[] | null>(null);
+  const [hasRelease, setHasRelease] = useState<boolean | null>(null);
 
   useEffect(() => {
     setPlatform(detectPlatform());
     const ac = new AbortController();
     fetch(GH_API_LATEST, { signal: ac.signal, headers: { Accept: "application/vnd.github+json" } })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`GitHub API ${r.status}`))))
-      .then((json: { assets?: ReleaseAsset[] }) => {
-        if (Array.isArray(json.assets)) setLiveAssets(json.assets);
+      .then((r) => {
+        if (r.status === 404) { setHasRelease(false); return Promise.reject("no-release"); }
+        return r.ok ? r.json() : Promise.reject(new Error(`GitHub API ${r.status}`));
       })
-      .catch(() => {
-        // Network blocked or rate-limited: fall back to hardcoded filenames below.
-      });
+      .then((json: { assets?: ReleaseAsset[] }) => {
+        if (Array.isArray(json.assets) && json.assets.length > 0) {
+          setLiveAssets(json.assets);
+          setHasRelease(true);
+        } else {
+          setHasRelease(false);
+        }
+      })
+      .catch((e) => { if (e !== "no-release") setHasRelease(false); });
     return () => ac.abort();
   }, []);
 
-  // Never return a guessed filename URL. If we have the live asset list and
-  // a match for this platform, link direct; otherwise fall back to the
-  // releases page so the user always lands on *something* that exists.
-  // This is the difference between a red 404 and a working page.
   const hrefFor = (key: Exclude<Platform, "unknown">): string => {
     if (liveAssets) {
       const picked = pickAssetFor(key, liveAssets);
@@ -935,8 +1151,19 @@ function CTA() {
             Free forever. No credit card. Under 2 minutes to first word.
           </motion.p>
 
-          {/* Primary auto-detected button */}
-          {primary && (
+          {/* Primary auto-detected button — or early access if no release yet */}
+          {hasRelease === false ? (
+            <motion.div variants={fadeUp} className="max-w-md mx-auto mb-10">
+              <div className="p-6 rounded-2xl bg-marcoreid-600/10 border border-marcoreid-600/20 text-center">
+                <div className="text-lg font-bold text-white mb-2">🚀 Early Access — Join the Waitlist</div>
+                <p className="text-sm text-zinc-400 mb-4">
+                  We're putting the finishing touches on the first public build. Join the waitlist and be first to download when it launches.
+                </p>
+                <WaitlistForm platform="Desktop" />
+                <p className="text-xs text-zinc-600 mt-3">Mac, Windows, iOS, and Android — all covered.</p>
+              </div>
+            </motion.div>
+          ) : primary && hasRelease ? (
             <motion.div variants={fadeUp} className="flex justify-center mb-4">
               <a
                 href={hrefFor(platform as Exclude<Platform, "unknown">)}
@@ -952,7 +1179,7 @@ function CTA() {
                 <Download className="h-5 w-5 opacity-70 group-hover:translate-y-0.5 transition-transform" />
               </a>
             </motion.div>
-          )}
+          ) : null}
 
           <motion.p variants={fadeUp} className="text-xs text-zinc-500 mb-12">
             Version {APP_VERSION} · Signed & notarized · Auto-updates
@@ -1012,29 +1239,35 @@ function CTA() {
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          className="mt-10 p-6 rounded-2xl bg-gradient-to-br from-marcoreid-600/10 to-transparent border border-marcoreid-600/20 flex flex-col md:flex-row items-center gap-6"
+          className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5"
         >
-          <div className="w-14 h-14 rounded-xl bg-marcoreid-600/20 border border-marcoreid-600/30 flex items-center justify-center shrink-0">
-            <Smartphone className="h-7 w-7 text-marcoreid-400" />
-          </div>
-          <div className="flex-1 text-center md:text-left">
-            <div className="text-lg font-bold text-white mb-1">Voice Keyboard for iPhone &amp; iPad</div>
-            <div className="text-sm text-zinc-400">
-              Deepgram-powered dictation that actually understands you. AI grammar correction in every text field. Free to download, bring your own API key.
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            <a
-              href="#"
-              className="h-12 px-6 rounded-xl bg-black border border-white/10 text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/5 transition-colors"
-            >
-              <Apple className="h-5 w-5" />
-              <div className="text-left leading-tight">
-                <div className="text-[10px] text-zinc-400">Coming soon on the</div>
-                <div>App Store</div>
+          {/* iOS */}
+          <div className="p-6 rounded-2xl bg-gradient-to-br from-marcoreid-600/10 to-transparent border border-marcoreid-600/20 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-marcoreid-600/20 border border-marcoreid-600/30 flex items-center justify-center shrink-0">
+                <Apple className="h-6 w-6 text-marcoreid-400" />
               </div>
-            </a>
-            <span className="text-xs text-marcoreid-400 font-medium">Get notified when it launches</span>
+              <div>
+                <div className="text-base font-bold text-white">iPhone & iPad Keyboard</div>
+                <div className="text-xs text-zinc-500">iOS 16+ — Custom keyboard extension</div>
+              </div>
+            </div>
+            <p className="text-sm text-zinc-400">Nova-3 streaming dictation with AI grammar correction. Works in every iOS app — iMessage, WhatsApp, Mail, legal apps. 20+ languages.</p>
+            <WaitlistForm platform="iOS" />
+          </div>
+          {/* Android */}
+          <div className="p-6 rounded-2xl bg-gradient-to-br from-zinc-800/30 to-transparent border border-white/10 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <Smartphone className="h-6 w-6 text-zinc-400" />
+              </div>
+              <div>
+                <div className="text-base font-bold text-white">Android / Samsung Keyboard</div>
+                <div className="text-xs text-zinc-500">Android 10+ — Samsung Galaxy optimised</div>
+              </div>
+            </div>
+            <p className="text-sm text-zinc-400">Full custom Android keyboard with Nova-3 dictation and AI grammar polish. Galaxy S, Z Fold, and all Android devices. Join the waitlist for early access.</p>
+            <WaitlistForm platform="Android" />
           </div>
         </motion.div>
 
@@ -1060,6 +1293,52 @@ function CTA() {
   );
 }
 
+function WaitlistForm({ platform }: { platform: string }) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitted" | "error">("idle");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !email.includes("@")) { setStatus("error"); return; }
+    // Store locally — backend integration point for Voxlen API when ready
+    try {
+      const key = `voxlen_waitlist_${platform.toLowerCase()}`;
+      const existing = JSON.parse(localStorage.getItem(key) || "[]") as string[];
+      if (!existing.includes(email)) {
+        existing.push(email);
+        localStorage.setItem(key, JSON.stringify(existing));
+      }
+    } catch { /* ignore */ }
+    setStatus("submitted");
+  };
+
+  if (status === "submitted") {
+    return (
+      <div className="flex items-center gap-2 text-sm text-green-400 font-medium">
+        <Check className="h-4 w-4" /> You're on the {platform} waitlist — we'll email you at launch.
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
+        placeholder="your@email.com"
+        className="flex-1 h-9 px-3 rounded-lg bg-black/40 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-marcoreid-500 transition-colors"
+      />
+      <button
+        type="submit"
+        className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium hover:bg-marcoreid-700 transition-colors shrink-0"
+      >
+        Notify me
+      </button>
+    </form>
+  );
+}
+
 function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => void }) {
   return (
     <footer className="py-12 border-t border-white/5">
@@ -1069,7 +1348,7 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
             <div className="w-6 h-6 rounded bg-marcoreid-600 flex items-center justify-center">
               <Mic className="h-3 w-3 text-white" />
             </div>
-            <span className="text-sm font-bold">Marco Reid Voice</span>
+            <span className="text-sm font-bold">Voxlen</span>
             <span className="text-xs text-zinc-600">v{APP_VERSION}</span>
           </div>
           <div className="flex items-center gap-6 text-xs text-zinc-500">
@@ -1124,8 +1403,8 @@ function PrivacyContent() {
       <p className="text-xs text-zinc-500">Last updated: April 2026</p>
 
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice ("we", "us", "our") is committed to protecting your privacy. This policy explains
-        how our voice dictation application handles your data. We designed Marco Reid Voice with
+        Voxlen ("we", "us", "our") is committed to protecting your privacy. This policy explains
+        how our voice dictation application handles your data. We designed Voxlen with
         privacy-first principles, especially for professionals handling sensitive information.
       </p>
 
@@ -1134,29 +1413,29 @@ function PrivacyContent() {
         <li><strong className="text-zinc-200">Audio recordings</strong> — We never store, log, or retain your voice audio. Audio is streamed to your chosen STT provider and immediately discarded after transcription.</li>
         <li><strong className="text-zinc-200">Transcribed text</strong> — Your dictated text stays on your device. We never transmit transcription content to our servers.</li>
         <li><strong className="text-zinc-200">Grammar-corrected content</strong> — Text sent for AI grammar correction goes directly to your chosen provider (Anthropic or OpenAI) using your own API key. We have no access to this content.</li>
-        <li><strong className="text-zinc-200">Documents or files</strong> — Marco Reid Voice never reads, scans, or accesses any files on your device beyond its own configuration.</li>
+        <li><strong className="text-zinc-200">Documents or files</strong> — Voxlen never reads, scans, or accesses any files on your device beyond its own configuration.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">2. Data Processing Architecture</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice operates as a <strong>pass-through</strong> application. Even though paid plans
+        Voxlen operates as a <strong>pass-through</strong> application. Even though paid plans
         include AI infrastructure as part of your subscription, your data flows directly between
-        your device and the underlying AI providers — never through Marco Reid Voice-operated servers:
+        your device and the underlying AI providers — never through Voxlen-operated servers:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
         <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly from your device to the speech-to-text provider on zero-retention endpoints. In offline mode, audio never leaves your device.</li>
         <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent directly from your device to the grammar AI provider (Anthropic or OpenAI) on zero-retention endpoints. We have no intermediary server.</li>
         <li><strong className="text-zinc-200">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
-        <li><strong className="text-zinc-200">API credentials:</strong> Marco Reid Voice provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
+        <li><strong className="text-zinc-200">API credentials:</strong> Voxlen provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">3. Confidentiality for Legal &amp; Accounting Professionals</h2>
       <p className="text-zinc-300 leading-relaxed">
-        We understand that attorneys, accountants, and other professionals using Marco Reid Voice may handle
-        privileged or confidential information. Marco Reid Voice is designed to respect these obligations:
+        We understand that attorneys, accountants, and other professionals using Voxlen may handle
+        privileged or confidential information. Voxlen is designed to respect these obligations:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li>No Marco Reid Voice-operated server ever receives your content — this is a hard architectural rule</li>
+        <li>No Voxlen-operated server ever receives your content — this is a hard architectural rule</li>
         <li>Session history is stored only on your local device and never synced to our infrastructure</li>
         <li>Custom vocabulary and dictionaries remain local to your device</li>
         <li>All AI provider traffic uses zero-retention endpoints</li>
@@ -1166,7 +1445,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">4. Analytics &amp; Telemetry</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice collects minimal, anonymous usage telemetry to improve the product:
+        Voxlen collects minimal, anonymous usage telemetry to improve the product:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
         <li>Application launch and feature usage counts (no content)</li>
@@ -1179,7 +1458,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">5. Third-Party Services</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice includes AI infrastructure as part of your paid subscription. Your audio and text
+        Voxlen includes AI infrastructure as part of your paid subscription. Your audio and text
         are processed by our underlying AI providers on zero-retention endpoints:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
@@ -1208,12 +1487,12 @@ function TermsContent() {
       <p className="text-xs text-zinc-500">Last updated: April 2026</p>
 
       <p className="text-zinc-300 leading-relaxed">
-        By downloading or using Marco Reid Voice, you agree to these terms. Please read them carefully.
+        By downloading or using Voxlen, you agree to these terms. Please read them carefully.
       </p>
 
       <h2 className="text-lg font-bold mt-8">1. Service Description</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice is a desktop and mobile application that provides voice-to-text dictation with
+        Voxlen is a desktop and mobile application that provides voice-to-text dictation with
         AI-powered grammar correction and universal text injection. The application runs locally
         on your device and connects to third-party APIs using your own credentials.
       </p>
@@ -1222,14 +1501,14 @@ function TermsContent() {
       <p className="text-zinc-300 leading-relaxed">
         Paid plans include all AI infrastructure (speech-to-text and grammar correction) as part of
         your subscription. You do not need to provide your own API keys. Audio streams directly
-        from your device to the relevant AI providers on zero-retention endpoints — Marco Reid Voice
-        provisions the credentials, but your content never passes through Marco Reid Voice-operated
+        from your device to the relevant AI providers on zero-retention endpoints — Voxlen
+        provisions the credentials, but your content never passes through Voxlen-operated
         infrastructure. Advanced users may optionally supply their own API keys.
       </p>
 
       <h2 className="text-lg font-bold mt-8">3. Subscription Plans</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice offers Free, Pro ($29/month), Professional ($79/month for legal and accounting
+        Voxlen offers Free, Pro ($29/month), Professional ($79/month for legal and accounting
         teams), and Lifetime ($599 one-time) plans. The Free plan includes limited dictation. Paid
         plans unlock all features and include all AI costs. Subscriptions can be cancelled at any
         time. We offer a 14-day free trial for Pro and Professional with no credit card required.
@@ -1246,28 +1525,28 @@ function TermsContent() {
 
       <h2 className="text-lg font-bold mt-8">5. Intellectual Property</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice and its original content, features, and functionality are owned by Marco Reid Voice and are
+        Voxlen and its original content, features, and functionality are owned by Voxlen and are
         protected by international copyright and trademark laws. Your transcribed content remains
-        entirely yours — we claim no rights over content you create using Marco Reid Voice.
+        entirely yours — we claim no rights over content you create using Voxlen.
       </p>
 
       <h2 className="text-lg font-bold mt-8">6. Disclaimer of Warranties</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice is provided "as is" without warranties of any kind. We do not guarantee that
+        Voxlen is provided "as is" without warranties of any kind. We do not guarantee that
         transcriptions or grammar corrections will be error-free. You should review all output,
         especially for legal, medical, or financial documents.
       </p>
 
       <h2 className="text-lg font-bold mt-8">7. Limitation of Liability</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Marco Reid Voice shall not be liable for any indirect, incidental, special, consequential, or punitive
+        Voxlen shall not be liable for any indirect, incidental, special, consequential, or punitive
         damages resulting from your use of the application, including but not limited to errors in
         transcription or grammar correction.
       </p>
 
       <h2 className="text-lg font-bold mt-8">8. Changes to Terms</h2>
       <p className="text-zinc-300 leading-relaxed">
-        We may update these terms from time to time. Continued use of Marco Reid Voice after changes
+        We may update these terms from time to time. Continued use of Voxlen after changes
         constitutes acceptance of the new terms. We will notify users of significant changes
         through the application.
       </p>

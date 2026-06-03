@@ -24,6 +24,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { useHistoryStore } from "@/stores/history";
 import { useFlywheelStore } from "@/stores/flywheel";
+import { useClientsStore } from "@/stores/clients";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -103,6 +104,24 @@ export function DictationPanel() {
 
         const engine = useSettingsStore.getState().sttEngine;
         useFlywheelStore.getState().recordSession(wc, currentDuration, engine);
+
+        // Record billable entry for active client
+        const { activeClientId, clients, addEntry } = useClientsStore.getState();
+        if (activeClientId) {
+          const client = clients.find((c) => c.id === activeClientId);
+          if (client) {
+            const defaultRate = useSettingsStore.getState().billableRatePerHour ?? 350;
+            const rate = client.billableRate > 0 ? client.billableRate : defaultRate;
+            const billable = (currentDuration / 3600) * rate;
+            addEntry({
+              clientId: activeClientId,
+              date: Date.now(),
+              durationSeconds: currentDuration,
+              wordCount: wc,
+              billableAmount: billable,
+            });
+          }
+        }
       }
       setStatus("idle");
     }
@@ -193,6 +212,11 @@ export function DictationPanel() {
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const [contextOpen, setContextOpen] = useState(false);
+  const [clientOpen, setClientOpen] = useState(false);
+  const activeClientId = useClientsStore((s) => s.activeClientId);
+  const allClients = useClientsStore((s) => s.clients.filter((c) => !c.archived));
+  const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
+  const setActiveClient = useClientsStore((s) => s.setActiveClient);
 
   const isActive = status === "listening" || status === "processing";
   const showControls = isActive || status === "paused";
@@ -278,6 +302,53 @@ export function DictationPanel() {
               </Badge>
             )}
           </div>
+
+          {/* Client / matter selector */}
+          {allClients.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setClientOpen((o) => !o)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-surface-300/60 bg-surface-50/70 text-[11px] font-medium text-surface-700 hover:border-brass-400/50 hover:text-surface-900 transition-all shadow-inset-hairline"
+              >
+                {activeClient && (
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: activeClient.color }}
+                  />
+                )}
+                <span className="text-brass-500/80 text-[9px] uppercase tracking-widest mr-0.5">Client</span>
+                {activeClient ? activeClient.name : "None"}
+                <ChevronDown className="h-3 w-3 text-surface-500" strokeWidth={1.75} />
+              </button>
+              {clientOpen && (
+                <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-50 w-52 rounded-lg border border-surface-300/60 bg-surface-50 shadow-elevation py-1">
+                  <button
+                    onClick={() => { setActiveClient(null); setClientOpen(false); }}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-[11px] transition-colors",
+                      !activeClientId ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                    )}
+                  >
+                    No client
+                  </button>
+                  {allClients.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setActiveClient(c.id); setClientOpen(false); }}
+                      className={cn(
+                        "w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 transition-colors",
+                        c.id === activeClientId ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                      )}
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                      <span className="truncate">{c.name}</span>
+                      {c.matterNumber && <span className="text-surface-500 text-[10px] ml-auto shrink-0">#{c.matterNumber}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Context selector */}
           <div className="relative">

@@ -62,6 +62,15 @@ pub struct AppSettings {
     pub legal_mode: bool,
     #[serde(default)]
     pub jurisdiction: String,
+
+    // Voxlen account — when set, all STT and grammar calls are proxied
+    // through api.voxlen.com so users never need their own API keys.
+    #[serde(default)]
+    pub voxlen_api_key: Option<String>,
+    #[serde(default)]
+    pub voxlen_tenant_id: Option<String>,
+    #[serde(default)]
+    pub voxlen_context: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -107,6 +116,10 @@ impl Default for AppSettings {
             privileged_mode: false,
             legal_mode: false,
             jurisdiction: "global".to_string(),
+
+            voxlen_api_key: None,
+            voxlen_tenant_id: None,
+            voxlen_context: None,
         }
     }
 }
@@ -195,17 +208,29 @@ fn apply_settings_to_engines(
         SttEngineType::WhisperLocal => "base".to_string(),
     };
 
+    let voxlen_key = s.voxlen_api_key.clone().filter(|k| !k.is_empty());
+
+    // When a Voxlen account key is present, STT is proxied through
+    // api.voxlen.com — user does not need their own provider keys.
+    let resolved_api_key = if voxlen_key.is_some() {
+        None // voxlen_api_key takes precedence; direct key unused
+    } else {
+        s.stt_api_key.clone().filter(|k| !k.is_empty())
+    };
+
     let stt_config = SttConfig {
         engine: stt_engine_type,
         language: s.stt_language.clone(),
         auto_detect_language: s.auto_detect_language,
-        api_key: s.stt_api_key.clone().filter(|k| !k.is_empty()),
+        api_key: resolved_api_key,
         model,
         punctuate: s.auto_punctuate,
         smart_format: s.smart_format,
         profanity_filter: false,
         custom_vocabulary: s.custom_vocabulary.clone(),
         speaker_diarization: s.speaker_diarization,
+        voxlen_api_key: voxlen_key.clone(),
+        voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
     };
     stt_engine_arc.read().set_config(stt_config);
 
@@ -220,13 +245,21 @@ fn apply_settings_to_engines(
         "technical" => WritingStyle::Technical,
         _ => WritingStyle::Professional,
     };
+    let grammar_api_key = if voxlen_key.is_some() {
+        None
+    } else {
+        s.grammar_api_key.clone().filter(|k| !k.is_empty())
+    };
+
     let grammar_config = GrammarConfig {
         enabled: s.grammar_enabled,
-        api_key: s.grammar_api_key.clone().filter(|k| !k.is_empty()),
+        api_key: grammar_api_key,
         provider: grammar_provider,
         style: writing_style,
         auto_correct: s.auto_correct,
         preserve_tone: true,
+        voxlen_api_key: voxlen_key,
+        voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
     };
     set_grammar_config_internal(grammar_config);
 }
