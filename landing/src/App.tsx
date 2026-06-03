@@ -1154,7 +1154,7 @@ function CTA() {
           </motion.p>
 
           {/* Primary auto-detected button — or early access if no release yet */}
-          {hasRelease === false ? (
+          {hasRelease !== true ? (
             <motion.div variants={fadeUp} className="max-w-md mx-auto mb-10">
               <div className="p-6 rounded-2xl bg-marcoreid-600/10 border border-marcoreid-600/20 text-center">
                 <div className="text-lg font-bold text-white mb-2">🚀 Early Access — Join the Waitlist</div>
@@ -1183,9 +1183,11 @@ function CTA() {
             </motion.div>
           ) : null}
 
-          <motion.p variants={fadeUp} className="text-xs text-zinc-500 mb-12">
-            Version {APP_VERSION} · Signed & notarized · Auto-updates
-          </motion.p>
+          {hasRelease === true && (
+            <motion.p variants={fadeUp} className="text-xs text-zinc-500 mb-12">
+              Version {APP_VERSION} · Signed & notarized · Auto-updates
+            </motion.p>
+          )}
         </motion.div>
 
         {/* All platforms grid */}
@@ -1201,7 +1203,7 @@ function CTA() {
               const Icon = d.icon === "apple" ? Apple : Monitor;
               const isDetected = key === platform;
               const platformLabel = d.label.replace("Download for ", "");
-              if (hasRelease === false) {
+              if (hasRelease !== true) {
                 return (
                   <motion.div
                     key={key}
