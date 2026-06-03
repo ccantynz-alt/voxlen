@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Plus, Briefcase, Archive, Trash2, Edit2, Check, X } from "lucide-react";
+import { Plus, Briefcase, Archive, Trash2, Edit2, Check, X, Download } from "lucide-react";
 import { useClientsStore, type Client } from "../../stores/clients";
 import { useSettingsStore } from "../../stores/settings";
+import { exportBillingCsv, exportAllBillingCsv, downloadBillingExport } from "../../lib/export";
 
 const CLIENT_COLORS = [
   "#7345d1", "#3b82f6", "#10b981", "#f59e0b",
@@ -191,13 +192,25 @@ function ClientCard({ client }: { client: Client }) {
             </>
           ) : (
             <>
-              <button onClick={() => setEditing(true)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded">
+              <button onClick={() => setEditing(true)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded" title="Edit">
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => archiveClient(client.id)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded">
+              {entries.length > 0 && (
+                <button
+                  onClick={async () => {
+                    const { content, filename, mimeType } = exportBillingCsv(client, entries);
+                    await downloadBillingExport(content, filename, mimeType);
+                  }}
+                  className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded"
+                  title="Export billing CSV"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button onClick={() => archiveClient(client.id)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded" title="Archive">
                 <Archive className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => deleteClient(client.id)} className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded">
+              <button onClick={() => deleteClient(client.id)} className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded" title="Delete">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </>
@@ -243,9 +256,14 @@ function ClientCard({ client }: { client: Client }) {
 }
 
 export function ClientsPanel() {
-  const { clients, activeClientId, setActiveClient } = useClientsStore();
+  const { clients, activeClientId, setActiveClient, entries } = useClientsStore();
   const [showAdd, setShowAdd] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+
+  const handleExportAll = async () => {
+    const { content, filename, mimeType } = exportAllBillingCsv(clients, entries);
+    await downloadBillingExport(content, filename, mimeType);
+  };
 
   const active = clients.filter((c) => !c.archived);
   const archived = clients.filter((c) => c.archived);
@@ -267,13 +285,25 @@ export function ClientsPanel() {
             {active.length} active · {totalHours.toFixed(1)} hrs · ${totalBillable.toFixed(0)} total
           </p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 text-xs font-medium bg-[#7345d1] hover:bg-[#5c35b0] text-white px-3 py-1.5 rounded-lg transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Client
-        </button>
+        <div className="flex items-center gap-2">
+          {entries.length > 0 && (
+            <button
+              onClick={handleExportAll}
+              className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white border border-[#3f3f46] hover:border-zinc-500 px-3 py-1.5 rounded-lg transition-colors"
+              title="Export all billing as CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export CSV
+            </button>
+          )}
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 text-xs font-medium bg-[#7345d1] hover:bg-[#5c35b0] text-white px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Client
+          </button>
+        </div>
       </div>
 
       {/* Active client selector */}

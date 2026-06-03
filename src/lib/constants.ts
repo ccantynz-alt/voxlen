@@ -76,7 +76,7 @@ export const STT_ENGINES = {
   },
   deepgram: {
     id: "deepgram",
-    name: "Deepgram Nova-2",
+    name: "Deepgram Nova-3",
     description: "Fastest real-time transcription",
     icon: "zap",
   },
