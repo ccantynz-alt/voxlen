@@ -120,6 +120,50 @@ describe("applySmartFormat", () => {
     });
   });
 
+  describe("legal phrases", () => {
+    it("preserves inter alia", () => {
+      expect(applySmartFormat("the contract inter alia requires notice", { legalPhrases: true })).toContain("inter alia");
+    });
+
+    it("formats contra proferentem", () => {
+      expect(applySmartFormat("the rule of contra proferentem applies", { legalPhrases: true })).toContain("contra proferentem");
+    });
+
+    it("formats force majeure", () => {
+      expect(applySmartFormat("this is a force majeure event", { legalPhrases: true })).toContain("force majeure");
+    });
+
+    it("formats pari passu", () => {
+      expect(applySmartFormat("paid pari passu with other creditors", { legalPhrases: true })).toContain("pari passu");
+    });
+
+    it("formats sine die", () => {
+      expect(applySmartFormat("adjourned sine die pending resolution", { legalPhrases: true })).toContain("sine die");
+    });
+  });
+
+  describe("accounting phrases", () => {
+    it("uppercases EBITDA", () => {
+      expect(applySmartFormat("the ebitda was strong this year", { legalPhrases: true })).toContain("EBITDA");
+    });
+
+    it("uppercases HMRC", () => {
+      expect(applySmartFormat("submitted to hmrc on time", { legalPhrases: true })).toContain("HMRC");
+    });
+
+    it("formats P&L", () => {
+      expect(applySmartFormat("reviewed the profit and loss statement", { legalPhrases: true })).toContain("P&L");
+    });
+
+    it("uppercases VAT", () => {
+      expect(applySmartFormat("the vat return is due", { legalPhrases: true })).toContain("VAT");
+    });
+
+    it("uppercases GAAP", () => {
+      expect(applySmartFormat("prepared under gaap standards", { legalPhrases: true })).toContain("GAAP");
+    });
+  });
+
   describe("edge cases", () => {
     it("returns empty string unchanged", () => {
       expect(applySmartFormat("")).toBe("");

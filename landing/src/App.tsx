@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useGoogleLogin } from "@react-oauth/google";
 import CookieBanner from "./components/CookieBanner";
+import { getStoredUser, storeUser, clearUser, parseIdToken, type GoogleUser } from "./lib/auth";
 import {
   Mic,
   Zap,
@@ -20,6 +22,8 @@ import {
   Download,
   Apple,
   Lock,
+  FileText,
+  DollarSign,
 } from "lucide-react";
 import {
   redirectToCheckout,
@@ -39,10 +43,21 @@ const stagger = {
 
 export default function App() {
   const [legalModal, setLegalModal] = useState<"privacy" | "terms" | null>(null);
+  const [user, setUser] = useState<GoogleUser | null>(() => getStoredUser());
+
+  const handleSignIn = useCallback((u: GoogleUser) => {
+    storeUser(u);
+    setUser(u);
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    clearUser();
+    setUser(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#09090b]">
-      <Navbar />
+      <Navbar user={user} onSignIn={handleSignIn} onSignOut={handleSignOut} />
       <Hero />
       <TrustBar />
       <Features />
@@ -63,7 +78,37 @@ export default function App() {
 }
 
 
-function Navbar() {
+function Navbar({
+  user,
+  onSignIn,
+  onSignOut,
+}: {
+  user: GoogleUser | null;
+  onSignIn: (u: GoogleUser) => void;
+  onSignOut: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const login = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (response) => {
+      // Fetch user info from Google using the access token
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${response.access_token}` },
+        });
+        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
+      } catch {
+        // fallback: try to parse id_token if present
+        if ("id_token" in response && typeof response.id_token === "string") {
+          const u = parseIdToken(response.id_token);
+          if (u) onSignIn(u);
+        }
+      }
+    },
+  });
+
   return (
     <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -80,12 +125,52 @@ function Navbar() {
           <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href="https://app.voxlen.ai/login"
-            className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors hidden sm:flex items-center gap-1.5"
-          >
-            Sign in
-          </a>
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex items-center gap-2 h-9 px-3 rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <img
+                  src={user.picture}
+                  alt={user.name}
+                  className="w-7 h-7 rounded-full"
+                  referrerPolicy="no-referrer"
+                />
+                <span className="text-sm text-white hidden sm:block">{user.name.split(" ")[0]}</span>
+              </button>
+              {menuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl py-1 z-50"
+                  onMouseLeave={() => setMenuOpen(false)}
+                >
+                  <div className="px-3 py-2 border-b border-white/10">
+                    <p className="text-xs font-medium text-white truncate">{user.name}</p>
+                    <p className="text-[11px] text-zinc-400 truncate">{user.email}</p>
+                  </div>
+                  <a
+                    href="https://app.voxlen.ai"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Open App
+                  </a>
+                  <button
+                    onClick={() => { setMenuOpen(false); onSignOut(); }}
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => login()}
+              className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors hidden sm:flex items-center gap-1.5"
+            >
+              Sign in with Google
+            </button>
+          )}
           <a
             href="#download"
             className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-marcoreid-700 transition-colors"
@@ -557,6 +642,20 @@ function Features() {
       description: "Full custom keyboard for Android with Deepgram Nova-3 streaming STT, AI grammar polish, haptic feedback, and dark mode. Replace your stock keyboard with professional-grade dictation.",
       color: "text-green-400",
       bg: "bg-green-400/10",
+    },
+    {
+      icon: FileText,
+      title: "Export to Word & More",
+      description: "Export transcripts as Word-compatible RTF, plain text, Markdown, JSON, or SRT subtitles. RTF opens natively in Microsoft Word with timestamps, speaker labels, and a formatted header.",
+      color: "text-indigo-400",
+      bg: "bg-indigo-400/10",
+    },
+    {
+      icon: DollarSign,
+      title: "Live Billing Clock",
+      description: "Assign a client or matter to any dictation session and watch the running cost tick up in real time. One-click CSV export for billing. For lawyers tracking every six minutes.",
+      color: "text-amber-400",
+      bg: "bg-amber-400/10",
     },
   ];
 

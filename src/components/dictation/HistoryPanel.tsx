@@ -28,6 +28,7 @@ export function HistoryPanel() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [exportMenuId, setExportMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();
@@ -43,12 +44,28 @@ export function HistoryPanel() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleExportTxt = (entry: (typeof entries)[0]) => {
-    const blob = new Blob([entry.text], { type: "text/plain" });
+  const handleExport = (entry: (typeof entries)[0], format: "txt" | "rtf") => {
+    const date = new Date(entry.timestamp);
+    const dateStr = date.toISOString().slice(0, 10);
+    let content: string;
+    let mimeType: string;
+    let ext: string;
+    if (format === "rtf") {
+      const escaped = entry.text.replace(/\\/g, "\\\\").replace(/\{/g, "\\{").replace(/\}/g, "\\}");
+      const dateLabel = date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+      content = `{\\rtf1\\ansi\\ansicpg1252\\deff0{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset0 Arial;}}\\f1\\fs28\\b Voxlen Transcript\\b0\\par\\fs20 ${escaped.replace(/[^\x00-\x7F]/g, (c) => `\\u${c.charCodeAt(0)}?`)}\\par\\par{\\fs18 ${dateLabel} — ${entry.wordCount} words}\\par\\par\\f0\\fs24\\sl360\\slmult1 ${escaped}\\par}`;
+      mimeType = "application/rtf";
+      ext = "rtf";
+    } else {
+      content = entry.text;
+      mimeType = "text/plain";
+      ext = "txt";
+    }
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `transcript-${new Date(entry.timestamp).toISOString().slice(0, 10)}.txt`;
+    a.download = `transcript-${dateStr}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -163,14 +180,27 @@ export function HistoryPanel() {
                       <Copy className="h-3 w-3" />
                     )}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleExportTxt(entry)}
-                    className="h-7 px-2"
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setExportMenuId(exportMenuId === entry.id ? null : entry.id)}
+                      className="h-7 px-2"
+                      title="Export"
+                    >
+                      <Download className="h-3 w-3" />
+                      <ChevronDown className="h-2.5 w-2.5 ml-0.5" />
+                    </Button>
+                    {exportMenuId === entry.id && (
+                      <div
+                        className="absolute right-0 top-full mt-1 w-36 rounded-lg border border-surface-300/60 bg-surface-50 shadow-lg z-50 py-1"
+                        onMouseLeave={() => setExportMenuId(null)}
+                      >
+                        <button onClick={() => { handleExport(entry, "txt"); setExportMenuId(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-surface-900 hover:bg-surface-100">Plain text (.txt)</button>
+                        <button onClick={() => { handleExport(entry, "rtf"); setExportMenuId(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-surface-900 hover:bg-surface-100">Word / RTF (.rtf)</button>
+                      </div>
+                    )}
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
