@@ -13,4 +13,6 @@
 export { VoxlenSDK } from "./voxlen";
 export { VoxlenDictation } from "./dictation";
 export { VoxlenGrammar } from "./grammar";
+export { VoxlenApiClient } from "./api-client";
 export type { VoxlenConfig, DictationEvent, GrammarResult } from "./types";
+export type { VoxlenContext, TranscribeResponse, AsyncTranscribeResponse, VocabularyList } from "./types";

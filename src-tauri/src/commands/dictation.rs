@@ -1,8 +1,14 @@
-use tauri::State;
+use tauri::{State, Emitter};
 use crate::audio::{AudioState, DictationStatus};
 
 #[tauri::command]
-pub fn start_dictation(state: State<'_, AudioState>) -> Result<(), String> {
+pub fn start_dictation(
+    state: State<'_, AudioState>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    if crate::commands::settings::get_privileged_mode() {
+        let _ = app.emit("privileged-mode-active", true);
+    }
     let engine = state.0.read();
     engine.start_capture().map_err(|e| e.to_string())
 }

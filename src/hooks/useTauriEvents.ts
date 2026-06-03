@@ -3,7 +3,11 @@ import { useAudioStore } from "@/stores/audio";
 import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
+import { useFlywheelStore } from "@/stores/flywheel";
 import { applySmartFormat } from "@/lib/smartFormat";
+import { applyContextFormat } from "@/lib/contextFormat";
+import type { VoxlenContext } from "@/lib/contextFormat";
+import { useClauseStore } from "@/stores/clauses";
 
 interface TranscriptionEvent {
   text: string;
@@ -103,6 +107,26 @@ export function useTauriEvents(): void {
                 }
 
                 const output = executeVoiceCommand(parsed.action);
+
+                // Billable time voice commands
+                if (typeof output === "string" && output.startsWith("__LOG_TIME")) {
+                  const minuteMap: Record<string, number> = {
+                    "__LOG_TIME_6__": 6,
+                    "__LOG_TIME_15__": 15,
+                    "__LOG_TIME_30__": 30,
+                    "__LOG_TIME_45__": 45,
+                    "__LOG_TIME_60__": 60,
+                    "__LOG_TIME_120__": 120,
+                    "__LOG_TIME__": 30, // default
+                  };
+                  const minutes = minuteMap[output] ?? 30;
+                  const { logTime } = useFlywheelStore.getState();
+                  const { billableRatePerHour } = useSettingsStore.getState() as { billableRatePerHour?: number };
+                  logTime(minutes, "", parsed.remainingText || "", billableRatePerHour ?? 0);
+                  dictation.setCurrentTranscript("");
+                  return;
+                }
+
                 // For caps on/off, toggle local state.
                 if (parsed.action === "caps_on") {
                   dictation.setCapsLock(true);
@@ -143,9 +167,57 @@ export function useTauriEvents(): void {
 
             // Regular transcription: apply smart formatting (if enabled)
             // and honour capsLock.
-            const shaped = settings.smartFormat ? applySmartFormat(text) : text;
+            const shaped = settings.smartFormat
+              ? applySmartFormat(text, {
+                  legalPhrases: settings.legalMode,
+                  legalCurrency: settings.legalMode,
+                })
+              : text;
             const capsLock = useDictationStore.getState().capsLock;
-            const finalText = capsLock ? shaped.toUpperCase() : shaped;
+            // Context-aware formatting
+            const speakerLabelForContext = result.words?.find((w) => w.speaker !== undefined)
+              ? `Speaker ${(result.words!.find((w) => w.speaker !== undefined)!.speaker! + 1)}`
+              : undefined;
+            const withContext = settings.voxlenContext && settings.voxlenContext !== "general"
+              ? applyContextFormat(shaped, {
+                  context: settings.voxlenContext as VoxlenContext,
+                  speakerLabel: speakerLabelForContext,
+                })
+              : shaped;
+            const finalText = capsLock ? withContext.toUpperCase() : withContext;
+
+            // Clause library voice triggers
+            const { findByTrigger, findTemplatByTrigger, markUsed } = useClauseStore.getState();
+            const matchedClause = findByTrigger(finalText);
+            const matchedTemplate = findTemplatByTrigger(finalText);
+            if (matchedClause) {
+              markUsed(matchedClause.id);
+              dictation.addSegment({
+                id: crypto.randomUUID(),
+                text: matchedClause.text,
+                timestamp: new Date(),
+                confidence: 1.0,
+                language: result.language,
+                isFinal: true,
+                grammarApplied: false,
+              });
+              dictation.setCurrentTranscript("");
+              return;
+            }
+            if (matchedTemplate) {
+              const templateText = matchedTemplate.sections.map((s: string) => `${s.toUpperCase()}\n\n`).join("\n");
+              dictation.addSegment({
+                id: crypto.randomUUID(),
+                text: templateText,
+                timestamp: new Date(),
+                confidence: 1.0,
+                language: result.language,
+                isFinal: true,
+                grammarApplied: false,
+              });
+              dictation.setCurrentTranscript("");
+              return;
+            }
 
             const segmentId = crypto.randomUUID();
             dictation.addSegment({

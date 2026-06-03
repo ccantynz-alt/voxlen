@@ -54,6 +54,14 @@ pub struct AppSettings {
     // Privacy
     pub telemetry_enabled: bool,
     pub save_transcripts: bool,
+
+    // Privileged mode / Legal
+    #[serde(default)]
+    pub privileged_mode: bool,
+    #[serde(default)]
+    pub legal_mode: bool,
+    #[serde(default)]
+    pub jurisdiction: String,
 }
 
 impl Default for AppSettings {
@@ -95,6 +103,10 @@ impl Default for AppSettings {
 
             telemetry_enabled: false,
             save_transcripts: true,
+
+            privileged_mode: false,
+            legal_mode: false,
+            jurisdiction: "global".to_string(),
         }
     }
 }
@@ -165,14 +177,20 @@ fn apply_settings_to_engines(
     stt_engine_arc: &std::sync::Arc<parking_lot::RwLock<crate::stt::SttEngine>>,
     s: &AppSettings,
 ) {
-    let stt_engine_type = match s.stt_engine.as_str() {
-        "deepgram" | "deepgram_cloud" => SttEngineType::DeepgramCloud,
-        "whisper_local" => SttEngineType::WhisperLocal,
-        _ => SttEngineType::WhisperCloud,
+    // Privileged mode: block all cloud STT. Only local (offline) processing allowed.
+    // If WhisperLocal is not configured, dictation will fail with a clear error.
+    let stt_engine_type = if s.privileged_mode {
+        SttEngineType::WhisperLocal
+    } else {
+        match s.stt_engine.as_str() {
+            "deepgram" | "deepgram_cloud" => SttEngineType::DeepgramCloud,
+            "whisper_local" => SttEngineType::WhisperLocal,
+            _ => SttEngineType::WhisperCloud,
+        }
     };
 
     let model = match stt_engine_type {
-        SttEngineType::DeepgramCloud => "nova-2".to_string(),
+        SttEngineType::DeepgramCloud => "nova-3".to_string(),
         SttEngineType::WhisperCloud => "whisper-1".to_string(),
         SttEngineType::WhisperLocal => "base".to_string(),
     };
@@ -248,4 +266,10 @@ pub fn load_settings_from_disk(app: AppHandle) -> Result<AppSettings, String> {
 
     *get_settings_store().write() = loaded.clone();
     Ok(loaded)
+}
+
+/// Returns whether privileged mode is currently active. Used by dictation
+/// commands to gate cloud STT and emit UI events.
+pub fn get_privileged_mode() -> bool {
+    get_settings_store().read().privileged_mode
 }

@@ -23,6 +23,12 @@ const COMMAND_MAP: Record<string, (text: string) => string> = {
   insert_close_paren: () => ")",
   legal_new_section: () => "\n\n",
   legal_new_clause: () => "\n\n",
+  log_30_min: () => "__LOG_TIME_30__",
+  log_45_min: () => "__LOG_TIME_45__",
+  log_60_min: () => "__LOG_TIME_60__",
+  log_120_min: () => "__LOG_TIME_120__",
+  log_15_min: () => "__LOG_TIME_15__",
+  log_6_min: () => "__LOG_TIME_6__",
 };
 
 const EXTENDED_COMMANDS: Array<{
@@ -58,6 +64,12 @@ const EXTENDED_COMMANDS: Array<{
   { patterns: ["sub clause one", "sub clause two", "sub clause three"], action: "legal_sub_clause" },
   // Billable time
   { patterns: ["log time", "add to timesheet", "record time"], action: "log_time" },
+  { patterns: ["log thirty minutes", "log 30 minutes"], action: "log_30_min" },
+  { patterns: ["log forty five minutes", "log 45 minutes"], action: "log_45_min" },
+  { patterns: ["log one hour", "log 60 minutes"], action: "log_60_min" },
+  { patterns: ["log two hours", "log 120 minutes"], action: "log_120_min" },
+  { patterns: ["log fifteen minutes", "log 15 minutes"], action: "log_15_min" },
+  { patterns: ["log six minutes", "log 6 minutes"], action: "log_6_min" },
   // Navigation
   { patterns: ["review uncertain words", "check uncertain", "show uncertain"], action: "review_uncertain" },
 ];
@@ -152,8 +164,12 @@ export function executeVoiceCommand(action: string): string | null {
       return null; // Handled by caller context
     case "legal_sub_clause":
       return "\n    ";
-    case "log_time":
-      return null; // Handled by flywheel integration
+    case "log_time": {
+      // Extract minutes from the original text if possible
+      // e.g. "log thirty minutes", "add to timesheet 45 minutes"
+      // This is a signal to the UI layer — return a marker string
+      return "__LOG_TIME__";
+    }
     case "review_uncertain":
       return null; // UI concern
     default:

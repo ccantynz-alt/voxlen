@@ -2,7 +2,7 @@ import type { VoxlenConfig, GrammarResult } from "./types";
 
 /**
  * AI grammar correction engine.
- * Calls Claude Haiku or GPT-4o-mini to polish text.
+ * Calls Claude Sonnet or GPT-4o-mini to polish text.
  */
 export class VoxlenGrammar {
   private config: VoxlenConfig;
@@ -39,7 +39,7 @@ export class VoxlenGrammar {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-4-6",
         max_tokens: 2048,
         messages: [{ role: "user", content: prompt }],
       }),
