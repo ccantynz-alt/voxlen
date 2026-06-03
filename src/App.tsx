@@ -79,7 +79,7 @@ export default function App() {
 
         // Load saved settings from localStorage
         try {
-          const saved = localStorage.getItem("marcoreid_settings");
+          const saved = localStorage.getItem("voxlen_settings") ?? localStorage.getItem("marcoreid_settings");
           if (saved) {
             useSettingsStore.getState().updateSettings(JSON.parse(saved));
           }

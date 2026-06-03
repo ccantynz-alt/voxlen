@@ -90,7 +90,7 @@ function useSettingsPersistence() {
       } catch {
         try {
           localStorage.setItem(
-            "marcoreid_settings",
+            "voxlen_settings",
             JSON.stringify({
               preferredDeviceId: settings.preferredDeviceId,
               sttEngine: settings.sttEngine,
