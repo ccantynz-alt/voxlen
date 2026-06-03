@@ -817,7 +817,25 @@ function FAQ() {
 }
 
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
+const GH_RELEASES_PAGE = "https://github.com/ccantynz-alt/voxlen/releases/latest";
+const GH_API_LATEST = "https://api.github.com/repos/ccantynz-alt/voxlen/releases/latest";
 const APP_VERSION = "1.0.9";
+
+interface ReleaseAsset {
+  name: string;
+  browser_download_url: string;
+  size: number;
+}
+
+function pickAssetFor(platform: Exclude<Platform, "unknown">, assets: ReleaseAsset[]): ReleaseAsset | null {
+  const matchers: Record<Exclude<Platform, "unknown">, RegExp> = {
+    "mac-arm": /aarch64.*\.dmg$|arm64.*\.dmg$/i,
+    "mac-intel": /x64.*\.dmg$|x86_64.*\.dmg$/i,
+    windows: /\.msi$|setup.*\.exe$/i,
+    linux: /\.AppImage$/i,
+  };
+  return assets.find((a) => matchers[platform]?.test(a.name)) ?? null;
+}
 
 type Platform = "mac-arm" | "mac-intel" | "windows" | "linux" | "unknown";
 
