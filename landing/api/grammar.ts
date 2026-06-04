@@ -28,18 +28,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).set(headers).json({ error: "Grammar service not configured" });
   }
 
-  const { text, context, writingStyle, preserveTone } = req.body as {
+  const body = req.body as {
     text: string;
     context?: string;
     writingStyle?: string;
+    style?: string;
     preserveTone?: boolean;
+    custom_vocabulary?: string[];
   };
+  const { text, context, preserveTone } = body;
+  const writingStyle = body.writingStyle ?? body.style;
+  const customVocabulary = body.custom_vocabulary ?? [];
 
   if (!text || typeof text !== "string") {
     return res.status(400).set(headers).json({ error: "text is required" });
   }
 
-  const systemPrompt = buildSystemPrompt(context, writingStyle, preserveTone);
+  const systemPrompt = buildSystemPrompt(context, writingStyle, preserveTone, customVocabulary);
 
   try {
     const upstream = await fetch(ANTHROPIC_URL, {
@@ -73,11 +78,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 function buildSystemPrompt(
   context?: string,
   writingStyle?: string,
-  preserveTone?: boolean
+  preserveTone?: boolean,
+  customVocabulary?: string[],
 ): string {
   const style = writingStyle ?? "professional";
   const contextNote = context && context !== "general"
     ? `The text is for a ${context.replace(/_/g, " ")} context.`
+    : "";
+  const vocabNote = customVocabulary && customVocabulary.length > 0
+    ? `Preserve these domain-specific terms exactly as-is: ${customVocabulary.join(", ")}.`
     : "";
 
   return [
@@ -85,6 +94,7 @@ function buildSystemPrompt(
     "Correct grammar, punctuation, and spelling in the user's dictated text.",
     "Return ONLY the corrected text — no explanation, no commentary, no quotes.",
     contextNote,
+    vocabNote,
     `Writing style: ${style}.`,
     preserveTone
       ? "Preserve the author's voice and tone exactly — only fix errors, do not rephrase."
