@@ -1307,7 +1307,7 @@ function PrivacySettings() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Use Whisper Local for fully offline operation.
+            Offline mode (Whisper Local) coming soon — no audio will leave your device.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
