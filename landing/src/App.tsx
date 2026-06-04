@@ -84,8 +84,14 @@ export default function App() {
   if (path === "/dashboard" && user) {
     return <Dashboard user={user} accessToken={getStoredToken()} onSignOut={handleSignOut} />;
   }
+  useEffect(() => {
+    if (path === "/dashboard" && !user) {
+      navigate("/");
+    }
+  }, [path, user, navigate]);
+
   if (path === "/dashboard" && !user) {
-    navigate("/");
+    return null;
   }
 
   return (
@@ -189,7 +195,7 @@ function Navbar({
                     Dashboard
                   </button>
                   <a
-                    href="https://app.voxlen.ai"
+                    href="/#download"
                     className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
                   >
                     Open App
