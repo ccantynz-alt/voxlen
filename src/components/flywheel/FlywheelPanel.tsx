@@ -58,7 +58,7 @@ export function FlywheelPanel() {
 
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "ok" | "error">("idle");
   const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
-  const voxlenApiBase = "https://api.voxlen.com/v1";
+  const voxlenApiBase = "https://voxlen.ai/api";
   const voxlenTenantId = useSettingsStore((s) => s.voxlenTenantId);
 
   const handleSyncVocabulary = async () => {

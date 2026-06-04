@@ -165,7 +165,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     const key = settings.voxlenApiKey;
     if (!key) { setVoxlenKeyValid(false); return; }
     try {
-      const response = await fetch("https://api.voxlen.com/v1/auth/verify", {
+      const response = await fetch("https://voxlen.ai/api/me", {
         headers: { Authorization: `Bearer ${key}` },
       });
       if (response.ok) {
