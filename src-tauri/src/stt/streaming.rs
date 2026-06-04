@@ -48,20 +48,42 @@ enum SessionOutcome {
     Disconnected(Duration),
 }
 
+/// Fetch a short-lived Deepgram key from the Voxlen proxy.
+async fn fetch_proxy_deepgram_key(voxlen_key: &str) -> anyhow::Result<String> {
+    let client = reqwest::Client::new();
+    let res = client
+        .post("https://voxlen.ai/api/deepgram-token")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .send()
+        .await?;
+    if !res.status().is_success() {
+        anyhow::bail!("deepgram-token endpoint error: {}", res.status());
+    }
+    let json: serde_json::Value = res.json().await?;
+    json["key"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| anyhow::anyhow!("No key in deepgram-token response"))
+}
+
 /// Start a real-time streaming session with Deepgram using full SttConfig.
 pub fn start_streaming(
     config: SttConfig,
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
 ) -> anyhow::Result<StreamingSession> {
-    let api_key = config.api_key
-        .filter(|k| !k.is_empty())
-        .or_else(|| config.voxlen_api_key.filter(|k| !k.is_empty()))
-        .ok_or_else(|| anyhow::anyhow!("No API key configured for Deepgram streaming"))?;
+    // Validate that we have some form of auth before spawning the task
+    let has_direct_key = config.api_key.as_deref().filter(|k| !k.is_empty()).is_some();
+    let has_voxlen_key = config.voxlen_api_key.as_deref().filter(|k| !k.is_empty()).is_some();
+    if !has_direct_key && !has_voxlen_key {
+        anyhow::bail!("No API key configured for Deepgram streaming");
+    }
 
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_clone = stop_flag.clone();
 
+    let direct_api_key = config.api_key.filter(|k| !k.is_empty());
+    let voxlen_api_key = config.voxlen_api_key.filter(|k| !k.is_empty());
     let language = config.language.clone();
     let auto_detect = config.auto_detect_language;
     let custom_vocabulary = config.custom_vocabulary.clone();
@@ -69,6 +91,23 @@ pub fn start_streaming(
     let tenant_id = config.voxlen_tenant_id.clone();
 
     let handle = tokio::spawn(async move {
+        // Resolve the actual Deepgram API key to use for this session.
+        // If the user has a direct Deepgram key, use it. Otherwise fetch a
+        // short-lived proxy key from the Voxlen backend.
+        let api_key = if let Some(k) = direct_api_key {
+            k
+        } else if let Some(vk) = voxlen_api_key {
+            match fetch_proxy_deepgram_key(&vk).await {
+                Ok(k) => k,
+                Err(e) => {
+                    let _ = app_handle.emit("transcription-error", format!("Failed to get streaming key from Voxlen proxy: {}", e));
+                    return;
+                }
+            }
+        } else {
+            return;
+        };
+
         let max_retries = 3;
         let mut attempt = 0;
 

@@ -1125,12 +1125,12 @@ function VoxlenApiSettings() {
   const [keyError, setKeyError] = useState("");
   const isConnected = Boolean(settings.voxlenApiKey);
 
-  const openSignUp = async () => {
+  const openDashboard = async () => {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("open_url", { url: "https://voxlen.ai/#download" });
+      await invoke("open_url", { url: "https://voxlen.ai/dashboard" });
     } catch {
-      window.open("https://voxlen.ai/#download", "_blank");
+      window.open("https://voxlen.ai/dashboard", "_blank");
     }
   };
 
@@ -1140,17 +1140,17 @@ function VoxlenApiSettings() {
     setVerifying(true);
     setKeyError("");
     try {
-      const res = await fetch("https://api.voxlen.com/v1/health", {
+      const res = await fetch("https://voxlen.ai/api/me", {
         headers: { Authorization: `Bearer ${key}` },
       });
       if (res.ok) {
         settings.updateSetting("voxlenApiKey", key);
         setKeyInput("");
       } else {
-        setKeyError("Invalid API key. Check your Voxlen dashboard.");
+        setKeyError("Token invalid or expired. Sign in again at voxlen.ai/dashboard.");
       }
     } catch {
-      // Network unreachable — accept key anyway (API may not be live yet)
+      // Network unreachable — accept token anyway
       settings.updateSetting("voxlenApiKey", key);
       setKeyInput("");
     }
@@ -1217,15 +1217,15 @@ function VoxlenApiSettings() {
           </div>
 
           <button
-            onClick={openSignUp}
+            onClick={openDashboard}
             className="w-full flex items-center justify-center gap-2 bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
           >
-            Get your API key at voxlen.ai
+            Sign in at voxlen.ai → copy your token
           </button>
 
           <div className="relative flex items-center gap-3">
             <div className="flex-1 h-px bg-surface-300/50" />
-            <span className="text-[10px] text-surface-500 uppercase tracking-wider">already have a key?</span>
+            <span className="text-[10px] text-surface-500 uppercase tracking-wider">paste token below</span>
             <div className="flex-1 h-px bg-surface-300/50" />
           </div>
 
@@ -1235,7 +1235,7 @@ function VoxlenApiSettings() {
               value={keyInput}
               onChange={(e) => { setKeyInput(e.target.value); setKeyError(""); }}
               onKeyDown={(e) => e.key === "Enter" && connect()}
-              placeholder="vx-..."
+              placeholder="Paste token from voxlen.ai/dashboard"
               className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-[#7345d1] shadow-inset-hairline"
             />
             {keyError && <p className="text-[11px] text-red-500">{keyError}</p>}

@@ -316,7 +316,7 @@ async fn correct_with_voxlen_proxy(
 ) -> Result<GrammarResult, String> {
     let client = reqwest::Client::new();
     let mut req = client
-        .post("https://api.voxlen.com/v1/grammar")
+        .post("https://voxlen.ai/api/grammar")
         .header("Authorization", format!("Bearer {}", voxlen_key))
         .header("content-type", "application/json");
     if let Some(tid) = config.voxlen_tenant_id.as_deref().filter(|s| !s.is_empty()) {

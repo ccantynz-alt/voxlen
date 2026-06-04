@@ -74,7 +74,7 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
-export function Dashboard({ user, onSignOut }: { user: GoogleUser; onSignOut: () => void }) {
+export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; accessToken: string | null; onSignOut: () => void }) {
   const isAdmin = user.email === ADMIN_EMAIL;
   const [assets, setAssets] = useState<ReleaseAsset[] | null>(null);
   const [hasRelease, setHasRelease] = useState<boolean | null>(null);
@@ -199,6 +199,24 @@ export function Dashboard({ user, onSignOut }: { user: GoogleUser; onSignOut: ()
                 </a>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Connect Desktop App */}
+        {accessToken && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="h-5 w-5 text-marcoreid-400" />
+              <h2 className="font-bold">Connect Desktop App</h2>
+            </div>
+            <p className="text-zinc-500 text-sm mb-4">
+              Copy your session token and paste it into <strong className="text-zinc-300">Voxlen Settings → Voxlen Account</strong> to use the app without entering API keys.
+            </p>
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-zinc-400 break-all">
+              <span className="flex-1 truncate">{accessToken}</span>
+              <CopyButton value={accessToken} />
+            </div>
+            <p className="text-[11px] text-zinc-600 mt-2">This token expires when you sign out. Re-copy if you sign in again.</p>
           </div>
         )}
 

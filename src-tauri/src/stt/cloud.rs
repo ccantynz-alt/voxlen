@@ -20,7 +20,7 @@ async fn voxlen_proxy_transcribe(
 
     let client = reqwest::Client::new();
     let mut req = client
-        .post("https://api.voxlen.com/v1/stt")
+        .post("https://voxlen.ai/api/stt")
         .header("Authorization", format!("Bearer {}", voxlen_key));
     if let Some(tid) = config.voxlen_tenant_id.as_deref().filter(|s| !s.is_empty()) {
         req = req.header("X-Tenant-ID", tid);
