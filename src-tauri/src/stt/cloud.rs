@@ -1,6 +1,6 @@
 use super::{SttConfig, TranscriptionResult, WordResult};
 
-/// Proxy STT through api.voxlen.com — no provider key needed.
+/// Proxy STT through voxlen.ai/api — no provider key needed.
 async fn voxlen_proxy_transcribe(
     wav_data: &[u8],
     voxlen_key: &str,

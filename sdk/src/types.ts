@@ -13,9 +13,9 @@ export type VoxlenContext =
   | "general";
 
 export interface VoxlenConfig {
-  /** Voxlen platform API key — routes through api.voxlen.com (preferred) */
+  /** Voxlen platform API key — routes through voxlen.ai/api (preferred) */
   voxlenApiKey?: string;
-  /** Voxlen API base URL override (default: https://api.voxlen.com/v1) */
+  /** Voxlen API base URL override (default: https://voxlen.ai/api) */
   voxlenApiBase?: string;
   /** Tenant ID for usage reporting (e.g. your firm or organisation ID) */
   tenantId?: string;
