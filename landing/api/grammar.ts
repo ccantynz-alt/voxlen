@@ -44,7 +44,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).set(headers).json({ error: "text is required" });
   }
 
-  const systemPrompt = buildSystemPrompt(context, writingStyle, preserveTone, customVocabulary);
+  const stableCore = buildStableCore();
+  const dynamicSuffix = buildDynamicSuffix(context, writingStyle, preserveTone, customVocabulary);
+
+  const systemBlocks: Array<{ type: string; text: string; cache_control?: { type: string } }> = [
+    { type: "text", text: stableCore, cache_control: { type: "ephemeral" } },
+  ];
+  if (dynamicSuffix) {
+    systemBlocks.push({ type: "text", text: dynamicSuffix });
+  }
 
   try {
     const upstream = await fetch(ANTHROPIC_URL, {
@@ -52,12 +60,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: {
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
         "content-type": "application/json",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 2048,
-        system: systemPrompt,
+        system: systemBlocks,
         messages: [{ role: "user", content: text }],
       }),
     });
@@ -75,7 +84,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-function buildSystemPrompt(
+function buildStableCore(): string {
+  return [
+    "You are a grammar correction assistant for legal and accounting professionals.",
+    "Correct grammar, punctuation, and spelling in the user's dictated text.",
+    "Return ONLY the corrected text — no explanation, no commentary, no quotes.",
+    "Do not add or remove substantive content.",
+  ].join(" ");
+}
+
+function buildDynamicSuffix(
   context?: string,
   writingStyle?: string,
   preserveTone?: boolean,
@@ -88,17 +106,9 @@ function buildSystemPrompt(
   const vocabNote = customVocabulary && customVocabulary.length > 0
     ? `Preserve these domain-specific terms exactly as-is: ${customVocabulary.join(", ")}.`
     : "";
+  const toneNote = preserveTone
+    ? "Preserve the author's voice and tone exactly — only fix errors, do not rephrase."
+    : "Improve clarity where appropriate while staying faithful to the meaning.";
 
-  return [
-    "You are a grammar correction assistant for legal and accounting professionals.",
-    "Correct grammar, punctuation, and spelling in the user's dictated text.",
-    "Return ONLY the corrected text — no explanation, no commentary, no quotes.",
-    contextNote,
-    vocabNote,
-    `Writing style: ${style}.`,
-    preserveTone
-      ? "Preserve the author's voice and tone exactly — only fix errors, do not rephrase."
-      : "Improve clarity where appropriate while staying faithful to the meaning.",
-    "Do not add or remove substantive content.",
-  ].filter(Boolean).join(" ");
+  return [contextNote, vocabNote, `Writing style: ${style}.`, toneNote].filter(Boolean).join(" ");
 }
