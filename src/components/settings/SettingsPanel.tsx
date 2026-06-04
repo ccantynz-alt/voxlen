@@ -1012,98 +1012,59 @@ function AdvancedSettings() {
   );
 }
 
-interface UsageData {
+interface AccountInfo {
   plan: string;
-  period_start: string;
-  period_end: string;
-  stt_minutes_used: number;
-  stt_minutes_included: number;
-  grammar_corrections_used: number;
-  grammar_corrections_included: number;
+  features: string[];
+  name: string;
+  email: string;
+  isAdmin: boolean;
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+  stt: "Dictation (STT)",
+  grammar: "AI Grammar Correction",
+  export: "All Export Formats",
+  clauses: "Clause Library",
+  billing: "Client Billing Tracking",
+};
+
 function UsageMeter({ apiKey }: { apiKey: string }) {
-  const [usage, setUsage] = useState<UsageData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [info, setInfo] = useState<AccountInfo | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("https://api.voxlen.com/v1/usage", {
+    fetch("https://voxlen.ai/api/me", {
       headers: { Authorization: `Bearer ${apiKey}` },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: UsageData) => {
-        if (!cancelled) { setUsage(data); setLoading(false); }
-      })
-      .catch(() => { if (!cancelled) setLoading(false); });
+      .then((data: AccountInfo) => { if (!cancelled) setInfo(data); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [apiKey]);
 
-  if (loading || !usage) return null;
+  if (!info) return null;
 
-  const planLabel =
-    usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1);
-  const isFree = usage.plan.toLowerCase() === "free";
-
-  const sttPct =
-    usage.stt_minutes_included === -1
-      ? 0
-      : Math.min(100, (usage.stt_minutes_used / usage.stt_minutes_included) * 100);
-
-  const grammarPct =
-    usage.grammar_corrections_included === -1
-      ? 0
-      : Math.min(100, (usage.grammar_corrections_used / usage.grammar_corrections_included) * 100);
+  const planLabel = info.plan.charAt(0).toUpperCase() + info.plan.slice(1);
+  const isFree = info.plan.toLowerCase() === "free";
 
   return (
     <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
-          Usage this month
+          Account
         </span>
         <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#7345d1]/15 text-[#7345d1] font-semibold">
           {planLabel}
         </span>
       </div>
-
-      {/* STT minutes */}
-      <div>
-        <div className="flex justify-between text-[11px] text-surface-600 mb-1">
-          <span>Dictation minutes</span>
-          <span>
-            {usage.stt_minutes_used.toFixed(1)}&thinsp;/&thinsp;
-            {usage.stt_minutes_included === -1 ? "∞" : `${usage.stt_minutes_included} min`}
-          </span>
-        </div>
-        {usage.stt_minutes_included !== -1 && (
-          <div className="h-1.5 rounded-full bg-surface-200/60 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${sttPct}%`, background: "#7345d1" }}
-            />
+      <div className="space-y-1">
+        {info.features.map((f) => (
+          <div key={f} className="flex items-center gap-1.5 text-[11px] text-surface-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7345d1] shrink-0" />
+            {FEATURE_LABELS[f] ?? f}
           </div>
-        )}
+        ))}
       </div>
-
-      {/* Grammar corrections */}
-      <div>
-        <div className="flex justify-between text-[11px] text-surface-600 mb-1">
-          <span>Grammar corrections</span>
-          <span>
-            {usage.grammar_corrections_used}&thinsp;/&thinsp;
-            {usage.grammar_corrections_included === -1 ? "∞" : usage.grammar_corrections_included}
-          </span>
-        </div>
-        {usage.grammar_corrections_included !== -1 && (
-          <div className="h-1.5 rounded-full bg-surface-200/60 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${grammarPct}%`, background: "#7345d1" }}
-            />
-          </div>
-        )}
-      </div>
-
       {isFree && (
         <a
           href="https://voxlen.ai/#pricing"
