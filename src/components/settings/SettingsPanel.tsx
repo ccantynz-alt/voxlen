@@ -464,24 +464,15 @@ function SttSettings() {
         />
       </SettingRow>
 
-      {settings.voxlenApiKey ? (
-        <SettingRow>
-          <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/30 px-4 py-3 text-sm text-purple-300">
-            <span className="text-green-400">✓</span>
-            Transcription powered by your Voxlen account — no provider API key needed.
-          </div>
-        </SettingRow>
-      ) : (
-        <SettingRow>
-          <Input
-            label="API Key (optional — not needed with Voxlen account)"
-            type="password"
-            value={settings.sttApiKey}
-            onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-            placeholder="Add your own Deepgram / OpenAI key, or sign in via Voxlen tab"
-          />
-        </SettingRow>
-      )}
+      <SettingRow>
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
+          {settings.voxlenApiKey ? (
+            <><span className="text-green-400">✓</span> Transcription powered by your Voxlen account — no provider API key needed.</>
+          ) : (
+            <><span className="text-surface-400">→</span> Sign in to your Voxlen account (Voxlen tab) to enable transcription.</>
+          )}
+        </div>
+      </SettingRow>
 
       <SettingRow>
         <Switch
@@ -683,30 +674,15 @@ function GrammarSettings() {
         />
       </SettingRow>
 
-      {settings.voxlenApiKey ? (
-        <SettingRow>
-          <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/30 px-4 py-3 text-sm text-purple-300">
-            <span className="text-green-400">✓</span>
-            Grammar AI powered by your Voxlen account — no provider API key needed.
-          </div>
-        </SettingRow>
-      ) : (
-        <SettingRow>
-          <Input
-            label="AI API Key (optional — not needed with Voxlen account)"
-            type="password"
-            value={settings.grammarApiKey}
-            onChange={(e) =>
-              settings.updateSetting("grammarApiKey", e.target.value)
-            }
-            placeholder={
-              settings.grammarProvider === "claude"
-                ? "sk-ant-... (or sign in via Voxlen tab)"
-                : "sk-... (or sign in via Voxlen tab)"
-            }
-          />
-        </SettingRow>
-      )}
+      <SettingRow>
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
+          {settings.voxlenApiKey ? (
+            <><span className="text-green-400">✓</span> Grammar AI powered by your Voxlen account — no provider API key needed.</>
+          ) : (
+            <><span className="text-surface-400">→</span> Sign in to your Voxlen account (Voxlen tab) to enable grammar correction.</>
+          )}
+        </div>
+      </SettingRow>
 
       <SettingRow>
         <Select
@@ -1213,8 +1189,7 @@ function VoxlenApiSettings() {
         </div>
       )}
 
-      {/* Settings shown when connected OR when using own keys */}
-      {(isConnected || settings.sttApiKey) && (
+      {isConnected && (
         <>
           <SectionHeader title="Dictation Settings" description="" />
 
