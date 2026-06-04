@@ -1205,9 +1205,10 @@ function VoxlenApiSettings() {
           <SettingRow>
             <Switch
               label="Privileged Mode"
-              description="Block all cloud STT — local processing only. For highly sensitive matters where audio must never leave the device."
-              checked={settings.privilegedMode}
-              onChange={(v) => settings.updateSetting("privilegedMode", v)}
+              description="Block all cloud STT — local processing only. Coming soon: requires Whisper Local (offline mode) which is not yet available."
+              checked={false}
+              onChange={() => {}}
+              disabled
             />
           </SettingRow>
 
