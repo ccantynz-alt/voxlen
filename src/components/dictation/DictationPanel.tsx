@@ -221,11 +221,11 @@ export function DictationPanel() {
               });
             }
           } catch {
-            // Translation not available
+            toast("Translation unavailable — check your API key in Settings", "error", 4000);
           }
         }
       } catch {
-        // Grammar correction not available
+        toast("Grammar correction unavailable — check your API key in Settings", "error", 4000);
       }
     },
     [segments]
