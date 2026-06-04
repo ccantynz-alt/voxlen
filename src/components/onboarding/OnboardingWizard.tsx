@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Badge } from "@/components/ui/Badge";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 
@@ -36,8 +35,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
   const [micTestLevel, setMicTestLevel] = useState(0);
   const [isTesting, setIsTesting] = useState(false);
-  const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
-  const [apiKeyValidating, setApiKeyValidating] = useState(false);
   const [voxlenKeyValid, setVoxlenKeyValid] = useState<boolean | null>(null);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -135,31 +132,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
     setIsTesting(false);
   }, []);
-
-  const handleValidateApiKey = useCallback(async () => {
-    const key = settings.sttApiKey;
-    if (!key) { setApiKeyValid(false); return; }
-
-    setApiKeyValidating(true);
-    try {
-      // Try a simple API call to validate
-      const response = await fetch("https://api.deepgram.com/v1/projects", {
-        headers: { Authorization: `Token ${key}` },
-      });
-      setApiKeyValid(response.ok);
-    } catch {
-      // Try OpenAI validation
-      try {
-        const response = await fetch("https://api.openai.com/v1/models", {
-          headers: { Authorization: `Bearer ${key}` },
-        });
-        setApiKeyValid(response.ok);
-      } catch {
-        setApiKeyValid(false);
-      }
-    }
-    setApiKeyValidating(false);
-  }, [settings.sttApiKey]);
 
   const handleValidateVoxlenKey = useCallback(async () => {
     const key = settings.voxlenApiKey;
@@ -437,55 +409,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             )}
 
-            {/* Advanced: BYOK fallback */}
-            {!settings.voxlenApiKey && (
-              <details className="group" open>
-                <summary className="text-[11px] text-surface-500 hover:text-surface-700 cursor-pointer list-none flex items-center gap-1.5 select-none">
-                  <span className="transition-transform group-open:rotate-90">›</span>
-                  Use your own Deepgram or OpenAI key (advanced / admin)
-                </summary>
-                <div className="mt-3 space-y-3 pl-3 border-l border-surface-300/40">
-                  <Select
-                    label="Speech Engine"
-                    value={settings.sttEngine}
-                    onChange={(v) => settings.updateSetting("sttEngine", v)}
-                    options={[
-                      { value: "deepgram", label: "Deepgram Nova-3", description: "Best for real-time (recommended)" },
-                      { value: "whisper_cloud", label: "OpenAI Whisper", description: "High accuracy, batch mode" },
-                    ]}
-                  />
-                  <Input
-                    label={settings.sttEngine === "deepgram" ? "Deepgram API Key" : "OpenAI API Key"}
-                    type="password"
-                    value={settings.sttApiKey}
-                    onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-                    placeholder={settings.sttEngine === "deepgram" ? "dg_..." : "sk-..."}
-                    icon={<Key className="h-4 w-4" />}
-                  />
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleValidateApiKey}
-                      loading={apiKeyValidating}
-                      disabled={!settings.sttApiKey}
-                    >
-                      Validate Key
-                    </Button>
-                    {apiKeyValid === true && <Badge variant="success" dot>Valid</Badge>}
-                    {apiKeyValid === false && <Badge variant="error" dot>Invalid</Badge>}
-                  </div>
-                  <Input
-                    label="Anthropic API key (for grammar AI)"
-                    type="password"
-                    value={settings.grammarApiKey}
-                    onChange={(e) => settings.updateSetting("grammarApiKey", e.target.value)}
-                    placeholder="sk-ant-..."
-                    icon={<Sparkles className="h-4 w-4" strokeWidth={1.75} />}
-                  />
-                </div>
-              </details>
-            )}
           </div>
         )}
 

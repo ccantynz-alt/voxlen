@@ -84,8 +84,14 @@ export default function App() {
   if (path === "/dashboard" && user) {
     return <Dashboard user={user} accessToken={getStoredToken()} onSignOut={handleSignOut} />;
   }
+  useEffect(() => {
+    if (path === "/dashboard" && !user) {
+      navigate("/");
+    }
+  }, [path, user, navigate]);
+
   if (path === "/dashboard" && !user) {
-    navigate("/");
+    return null;
   }
 
   return (
@@ -189,7 +195,7 @@ function Navbar({
                     Dashboard
                   </button>
                   <a
-                    href="https://app.voxlen.ai"
+                    href="/#download"
                     className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
                   >
                     Open App
@@ -689,7 +695,7 @@ function Features() {
     {
       icon: Cpu,
       title: "Offline Mode",
-      description: "Run Whisper locally for complete privacy. Your audio never leaves your device. Perfect for sensitive documents.",
+      description: "Offline mode with on-device Whisper is coming soon. Today, audio streams over zero-retention endpoints — never stored on Voxlen servers.",
       color: "text-emerald-400",
       bg: "bg-emerald-400/10",
     },
@@ -835,7 +841,7 @@ function Comparison() {
     { name: "Dragon Legal", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false, android: false, legalMode: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false, android: false, legalMode: false },
     { name: "Otter.ai", price: "$10/mo", realtime: true, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
-    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, android: true, legalMode: true, highlight: true },
+    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: false, extMic: true, android: false, legalMode: true, highlight: true },
   ];
 
   return (
@@ -1122,7 +1128,7 @@ function FAQ() {
     },
     {
       q: "Is voice dictation software safe for lawyers and client-privileged matters?",
-      a: "Yes. Voxlen's Privileged Mode enables fully offline, on-device transcription using Whisper Local — audio never leaves your device. For cloud processing, Voxlen uses zero-retention endpoints with all AI providers (Deepgram, Anthropic). The Professional plan includes the strictest data handling controls for law firms. Your audio and transcripts are never stored on Voxlen-operated servers.",
+      a: "Yes. Voxlen uses zero-retention endpoints with all AI providers (Deepgram, Anthropic) — your audio and transcripts are never stored on Voxlen-operated servers or provider servers. Fully offline on-device transcription via Whisper Local is on the roadmap and coming soon for the Professional plan.",
     },
     {
       q: "Can I dictate legal documents and contracts with Voxlen?",
@@ -1886,7 +1892,7 @@ function SupportPage() {
             },
             {
               q: "Can I use Voxlen for privileged client communications?",
-              a: "Yes. Enable Offline Mode in Settings for fully on-device transcription (no audio leaves your device). All session history and custom vocabulary is local-only. We never store or access your content.",
+              a: "Yes. All session history and custom vocabulary is stored on your device only. Audio streams over zero-retention endpoints — nothing is stored by Voxlen or its providers. Fully offline on-device mode is coming soon.",
             },
           ].map(({ q, a }) => (
             <div key={q} className="border-t border-white/5 pt-4 first:border-0 first:pt-0">

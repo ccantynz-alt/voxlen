@@ -34,7 +34,12 @@ export async function redirectToCheckout(priceId: string, email?: string): Promi
   if (url && !url.includes("REPLACE")) {
     window.location.href = email ? `${url}?prefilled_email=${encodeURIComponent(email)}` : url;
   } else {
-    // Placeholder — Stripe not yet configured
-    alert("Payment coming soon! Join the waitlist at the top of the page.");
+    // Stripe not yet configured — scroll to waitlist
+    const el = document.getElementById("download") ?? document.getElementById("pricing");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.location.hash = "#download";
+    }
   }
 }

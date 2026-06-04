@@ -75,7 +75,7 @@ pub struct AppSettings {
     pub translation_target_language: String,
 
     // Voxlen account — when set, all STT and grammar calls are proxied
-    // through api.voxlen.com so users never need their own API keys.
+    // through voxlen.ai/api so users never need their own API keys.
     #[serde(default)]
     pub voxlen_api_key: Option<String>,
     #[serde(default)]
@@ -234,7 +234,7 @@ fn apply_settings_to_engines(
     let voxlen_key = s.voxlen_api_key.clone().filter(|k| !k.is_empty());
 
     // When a Voxlen account key is present, STT is proxied through
-    // api.voxlen.com — user does not need their own provider keys.
+    // voxlen.ai/api — user does not need their own provider keys.
     let resolved_api_key = if voxlen_key.is_some() {
         None // voxlen_api_key takes precedence; direct key unused
     } else {

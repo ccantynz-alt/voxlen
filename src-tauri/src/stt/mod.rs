@@ -46,7 +46,7 @@ pub struct SttConfig {
     /// prefix output with speaker labels like "[Speaker 1]: ...".
     #[serde(default)]
     pub speaker_diarization: bool,
-    /// When set, all STT calls are proxied through api.voxlen.com
+    /// When set, all STT calls are proxied through voxlen.ai/api
     /// so the user does not need their own provider API keys.
     #[serde(default)]
     pub voxlen_api_key: Option<String>,
