@@ -99,29 +99,22 @@ pub fn start_streaming(
     let stop_on_exit = stop_flag.clone();
     let handle = tokio::spawn(async move {
         let session_task = async {
-        let max_retries = 3;
-        let mut attempt = 0;
-
-        loop {
-            if stop_clone.load(Ordering::Relaxed) {
-                break;
-            }
-
-            // Resolve the Deepgram key: use the direct key if present, otherwise
-            // exchange the Voxlen account key for a short-lived Deepgram temp key.
-            let resolved_key = match direct_key.as_deref() {
+            // Fetch the initial Deepgram key
+            let initial_key = match direct_key.as_deref() {
                 Some(k) => k.to_string(),
                 None => match fetch_deepgram_temp_key(voxlen_key.as_deref().unwrap_or("")).await {
                     Ok(k) => k,
                     Err(e) => {
                         let _ = app_handle.emit("transcription-error", format!("Token exchange failed: {}", e));
-                        break;
+                        return;
                     }
                 },
             };
 
-            match run_streaming_session(
-                &resolved_key,
+            run_streaming_session(
+                &initial_key,
+                direct_key.as_deref(),
+                voxlen_key.as_deref(),
                 &language,
                 auto_detect,
                 &custom_vocabulary,
@@ -130,25 +123,7 @@ pub fn start_streaming(
                 audio_receiver.clone(),
                 app_handle.clone(),
                 stop_clone.clone(),
-            ).await {
-                Ok(()) => break, // Clean shutdown
-                Err(e) => {
-                    attempt += 1;
-                    log::error!("Streaming session error (attempt {}/{}): {}", attempt, max_retries, e);
-
-                    if attempt >= max_retries || stop_clone.load(Ordering::Relaxed) {
-                        let _ = app_handle.emit("transcription-error", e.to_string());
-                        break;
-                    }
-
-                    // Exponential backoff: 1s, 2s, 4s
-                    let delay = std::time::Duration::from_secs(1 << (attempt - 1));
-                    log::info!("Reconnecting in {:?}...", delay);
-                    let _ = app_handle.emit("streaming-reconnecting", attempt);
-                    tokio::time::sleep(delay).await;
-                }
-            }
-        }
+            ).await;
         };
         session_task.await;
         // Mark the session ended so the processor knows to start a fresh one
@@ -162,7 +137,9 @@ pub fn start_streaming(
 }
 
 async fn run_streaming_session(
-    api_key: &str,
+    initial_key: &str,
+    direct_key: Option<&str>,
+    voxlen_key: Option<&str>,
     language: &str,
     auto_detect: bool,
     custom_vocabulary: &[String],
@@ -171,9 +148,10 @@ async fn run_streaming_session(
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
     stop_flag: Arc<AtomicBool>,
-) -> anyhow::Result<()> {
+) {
     let mut backoff_ms: u64 = 1000;
     let mut attempt: u32 = 0;
+    let mut current_key = initial_key.to_string();
 
     loop {
         if stop_flag.load(Ordering::Relaxed) {
@@ -181,7 +159,7 @@ async fn run_streaming_session(
         }
 
         match run_session_once(
-            api_key,
+            &current_key,
             language,
             auto_detect,
             custom_vocabulary,
@@ -193,11 +171,31 @@ async fn run_streaming_session(
         ).await {
             Ok(SessionOutcome::StoppedByUser) => break,
             Ok(SessionOutcome::AuthFailed) => {
-                let _ = app_handle.emit(
-                    "transcription-error",
-                    "Authentication failed — check your API key in Settings",
-                );
-                break;
+                // For Voxlen users the temp key may have expired (30s TTL).
+                // Try to fetch a fresh one before giving up.
+                if let Some(vk) = voxlen_key.filter(|_| direct_key.is_none()) {
+                    match fetch_deepgram_temp_key(vk).await {
+                        Ok(new_key) => {
+                            log::info!("Refreshed Deepgram temp key after auth failure");
+                            current_key = new_key;
+                            // Fall through to reconnect logic below
+                        }
+                        Err(e) => {
+                            let _ = app_handle.emit(
+                                "transcription-error",
+                                format!("Token refresh failed: {}", e),
+                            );
+                            break;
+                        }
+                    }
+                } else {
+                    let _ = app_handle.emit(
+                        "transcription-error",
+                        "Authentication failed — check your API key in Settings",
+                    );
+                    break;
+                }
+                // continue loop to reconnect with refreshed key
             }
             outcome => {
                 if stop_flag.load(Ordering::Relaxed) {
@@ -213,6 +211,20 @@ async fn run_streaming_session(
                 if session_duration_was_healthy {
                     backoff_ms = 1000;
                     attempt = 0;
+                }
+
+                // Refresh Deepgram temp key for Voxlen users before reconnecting
+                if let Some(vk) = voxlen_key.filter(|_| direct_key.is_none()) {
+                    match fetch_deepgram_temp_key(vk).await {
+                        Ok(new_key) => { current_key = new_key; }
+                        Err(e) => {
+                            let _ = app_handle.emit(
+                                "transcription-error",
+                                format!("Token refresh failed: {}", e),
+                            );
+                            break;
+                        }
+                    }
                 }
 
                 attempt += 1;
@@ -241,8 +253,6 @@ async fn run_streaming_session(
 
     let _ = app_handle.emit("streaming-disconnected", true);
     log::info!("Streaming session ended");
-
-    Ok(())
 }
 
 async fn run_session_once(
