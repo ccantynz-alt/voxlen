@@ -5,7 +5,7 @@ This page describes what leaves your machine, what stays on your machine, and wh
 ## TL;DR
 
 - **No telemetry.** Voxlen does not contact any analytics, metrics, or crash-reporting service.
-- **No cloud sync.** Your data never touches Voxlen-operated servers.
+- **No cloud sync.** Voxlen never stores your data. With a Voxlen account, requests pass transiently through zero-retention voxlen.ai endpoints to reach the AI providers; nothing is logged or retained.
 - **Third-party calls are strictly on your behalf**, to the providers you select.
 
 ## What gets sent off your device

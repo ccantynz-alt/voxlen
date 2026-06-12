@@ -46,8 +46,10 @@ access.
 prompts, vocabulary lists, document context, and other materials you input
 into or generate with the Service (**"Your Content"**). You grant Voxlen
 only the technical licences strictly necessary to operate the Service on
-your device. Voxlen does not receive, process, or store Your Content on
-Voxlen-operated servers.
+your device. Voxlen does not store Your Content on Voxlen-operated
+servers. When you use a Voxlen account, requests may pass transiently
+through zero-retention Voxlen endpoints solely to reach the AI providers;
+nothing is logged or retained.
 
 3.2 **Lawful use.** You will use the Service only for lawful purposes, in
 accordance with the Acceptable Use Policy, and in compliance with all laws,

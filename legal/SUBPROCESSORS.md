@@ -7,8 +7,10 @@ This page lists the service providers Voxlen engages to process
 personal information on Voxlen's behalf (**"Sub-processors"**), as
 required by the Data Processing Addendum (`legal/DPA.md`).
 
-Because Voxlen runs on your device and does not send Your Content
-to Voxlen-operated servers, most processing never involves a Voxlen Sub-processor. This list covers only the ancillary services Voxlen uses to operate its business (email, billing, release hosting, etc.).
+Because Voxlen runs on your device and never stores Your Content on
+Voxlen-operated servers (account requests pass transiently through
+zero-retention endpoints), most processing never involves a Voxlen
+Sub-processor. This list covers only the ancillary services Voxlen uses to operate its business (email, billing, release hosting, etc.).
 
 ## Current Sub-processors
 
