@@ -226,7 +226,7 @@ async fn translate_with_voxlen_proxy(
 ) -> Result<TranslationResult, String> {
     let client = reqwest::Client::new();
     let response = client
-        .post("https://api.voxlen.com/v1/translate")
+        .post("https://voxlen.ai/api/translate")
         .header("Authorization", format!("Bearer {}", voxlen_key))
         .header("content-type", "application/json")
         .json(&serde_json::json!({
