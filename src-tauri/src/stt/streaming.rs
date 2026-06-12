@@ -58,7 +58,7 @@ enum SessionOutcome {
 async fn fetch_deepgram_temp_key(voxlen_key: &str) -> anyhow::Result<String> {
     let client = reqwest::Client::new();
     let resp = client
-        .post("https://api.voxlen.com/v1/deepgram-token")
+        .post("https://voxlen.ai/api/deepgram-token")
         .header("Authorization", format!("Bearer {}", voxlen_key))
         .send()
         .await?;
