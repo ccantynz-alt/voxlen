@@ -139,6 +139,8 @@ export const useClientsStore = create<ClientsState>()(
       },
 
       addEntry: (data) => {
+        const clientExists = get().clients.some((c) => c.id === data.clientId);
+        if (!clientExists) return;
         const id = `entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         set((s) => ({ entries: [...s.entries, { ...data, id }] }));
       },
