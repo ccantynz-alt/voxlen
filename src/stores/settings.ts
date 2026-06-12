@@ -199,6 +199,16 @@ function schedulePersist() {
     else await deleteSecret("grammarApiKey").catch(() => {});
     if (state.voxlenApiKey) await setSecret("voxlenApiKey", state.voxlenApiKey);
     else await deleteSecret("voxlenApiKey").catch(() => {});
+
+    // Push settings to the Rust engine layer so changes take effect immediately
+    // (without this, API key / grammar / STT changes only apply after restart).
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const { toBackendSettings } = await import("@/lib/settings");
+      await invoke("update_settings", { settings: toBackendSettings(state) });
+    } catch {
+      // Non-Tauri environment — skip.
+    }
   }, 500);
 }
 
