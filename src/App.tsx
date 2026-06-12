@@ -11,7 +11,7 @@ import { AdminPanel } from "@/components/settings/AdminPanel";
 import { ClauseLibrary } from "@/components/clauses/ClauseLibrary";
 import { AnalyticsPanel } from "@/components/analytics/AnalyticsPanel";
 import { ClientsPanel } from "@/components/clients/ClientsPanel";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { OnboardingWizard, LEGAL_POLICY_VERSION } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
@@ -65,17 +65,23 @@ export default function App() {
         const { load } = await import("@tauri-apps/plugin-store");
         const store = await load("settings.json");
         const hasCompletedOnboarding = await store.get<boolean>("onboarding_complete");
-        setShowOnboarding(!hasCompletedOnboarding);
 
-        // Load saved settings
+        // Load saved settings first so we can check legalAcceptedVersion
         const savedSettings = await store.get<Record<string, unknown>>("settings");
         if (savedSettings) {
           useSettingsStore.getState().updateSettings(savedSettings);
         }
+
+        // Re-show onboarding if legal terms have been updated since last acceptance
+        const acceptedVersion = useSettingsStore.getState().legalAcceptedVersion;
+        const needsLegalAcceptance = acceptedVersion !== LEGAL_POLICY_VERSION;
+        setShowOnboarding(!hasCompletedOnboarding || needsLegalAcceptance);
       } catch {
         // Not in Tauri - check localStorage
         const completed = localStorage.getItem("voxlen_onboarding_complete");
-        setShowOnboarding(!completed);
+        const acceptedVersion = useSettingsStore.getState().legalAcceptedVersion;
+        const needsLegalAcceptance = acceptedVersion !== LEGAL_POLICY_VERSION;
+        setShowOnboarding(!completed || needsLegalAcceptance);
 
         // Load saved settings from localStorage
         try {
