@@ -48,16 +48,38 @@ enum SessionOutcome {
     Disconnected(Duration),
 }
 
+/// Exchange a Voxlen API key for a short-lived Deepgram temp key via the Voxlen proxy.
+async fn fetch_deepgram_temp_key(voxlen_key: &str) -> anyhow::Result<String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .post("https://api.voxlen.com/v1/deepgram-token")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        anyhow::bail!("Voxlen token exchange failed: {}", resp.status());
+    }
+    let body: serde_json::Value = resp.json().await?;
+    body["key"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| anyhow::anyhow!("No key in Voxlen deepgram-token response"))
+}
+
 /// Start a real-time streaming session with Deepgram using full SttConfig.
 pub fn start_streaming(
     config: SttConfig,
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
 ) -> anyhow::Result<StreamingSession> {
-    let api_key = config.api_key
-        .filter(|k| !k.is_empty())
-        .or_else(|| config.voxlen_api_key.filter(|k| !k.is_empty()))
-        .ok_or_else(|| anyhow::anyhow!("No API key configured for Deepgram streaming"))?;
+    // Voxlen keys are not Deepgram keys — they must be exchanged for a temp
+    // Deepgram key via the Voxlen proxy before opening the WebSocket.
+    let direct_key = config.api_key.clone().filter(|k| !k.is_empty());
+    let voxlen_key = config.voxlen_api_key.clone().filter(|k| !k.is_empty());
+
+    if direct_key.is_none() && voxlen_key.is_none() {
+        anyhow::bail!("No API key configured for Deepgram streaming");
+    }
 
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_clone = stop_flag.clone();
@@ -77,8 +99,21 @@ pub fn start_streaming(
                 break;
             }
 
+            // Resolve the Deepgram key: use the direct key if present, otherwise
+            // exchange the Voxlen account key for a short-lived Deepgram temp key.
+            let resolved_key = match direct_key.as_deref() {
+                Some(k) => k.to_string(),
+                None => match fetch_deepgram_temp_key(voxlen_key.as_deref().unwrap_or("")).await {
+                    Ok(k) => k,
+                    Err(e) => {
+                        let _ = app_handle.emit("transcription-error", format!("Token exchange failed: {}", e));
+                        break;
+                    }
+                },
+            };
+
             match run_streaming_session(
-                &api_key,
+                &resolved_key,
                 &language,
                 auto_detect,
                 &custom_vocabulary,
