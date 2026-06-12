@@ -156,9 +156,11 @@ function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
   const [apiKey, setApiKey] = useState<GeneratedKey | null>(null);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   const generate = useCallback(async () => {
     setRegenerating(true);
+    setGenError(null);
     try {
       const r = await fetch(`${VOXLEN_BASE}/api/generate-key`, {
         method: "POST",
@@ -168,8 +170,12 @@ function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
       if (r.ok) {
         const json = (await r.json()) as GeneratedKey;
         setApiKey(json);
+      } else {
+        setGenError(`Failed to generate key (${r.status}). Please try again.`);
       }
-    } catch { /* network error */ }
+    } catch {
+      setGenError("Network error. Check your connection and try again.");
+    }
     setLoading(false);
     setRegenerating(false);
   }, [accessToken]);
@@ -204,7 +210,8 @@ function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
         <span className="flex-1 truncate">{loading ? "Generating your key…" : displayKey}</span>
         {!loading && <CopyButton value={displayKey} />}
       </div>
-      <p className="text-[11px] text-zinc-600 mt-2">{expiresMsg}</p>
+      {genError && <p className="text-[11px] text-red-400 mt-2">{genError}</p>}
+      {!genError && <p className="text-[11px] text-zinc-600 mt-2">{expiresMsg}</p>}
     </div>
   );
 }
@@ -355,37 +362,43 @@ function OverviewTab({ accessToken }: { accessToken: string }) {
   }, [accessToken]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const pingEndpoints = [
       { url: `${VOXLEN_BASE}/api/me`, label: "/api/me", method: "GET" },
       { url: `${VOXLEN_BASE}/api/grammar`, label: "/api/grammar", method: "POST" },
       { url: `${VOXLEN_BASE}/api/generate-key`, label: "/api/generate-key", method: "POST" },
     ];
-    pingEndpoints.forEach(async (ep) => {
-      const start = Date.now();
-      try {
-        const r = await fetch(ep.url, {
-          method: ep.method,
-          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-          body: ep.method === "POST" ? JSON.stringify({}) : undefined,
-          signal: AbortSignal.timeout(5000),
-        });
-        const ms = Date.now() - start;
-        setEndpoints((prev) =>
-          prev.map((e) =>
-            e.label === ep.label
-              ? { ...e, status: r.status < 500 ? "ok" : "error", responseMs: ms, code: r.status }
-              : e
-          )
-        );
-      } catch {
-        const ms = Date.now() - start;
-        setEndpoints((prev) =>
-          prev.map((e) =>
-            e.label === ep.label ? { ...e, status: "error", responseMs: ms, code: null } : e
-          )
-        );
-      }
-    });
+    Promise.all(
+      pingEndpoints.map(async (ep) => {
+        const start = Date.now();
+        try {
+          const r = await fetch(ep.url, {
+            method: ep.method,
+            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+            body: ep.method === "POST" ? JSON.stringify({}) : undefined,
+            signal: controller.signal,
+          });
+          if (controller.signal.aborted) return;
+          const ms = Date.now() - start;
+          setEndpoints((prev) =>
+            prev.map((e) =>
+              e.label === ep.label
+                ? { ...e, status: r.status < 500 ? "ok" : "error", responseMs: ms, code: r.status }
+                : e
+            )
+          );
+        } catch (err) {
+          if (controller.signal.aborted) return;
+          const ms = Date.now() - start;
+          setEndpoints((prev) =>
+            prev.map((e) =>
+              e.label === ep.label ? { ...e, status: "error", responseMs: ms, code: null } : e
+            )
+          );
+        }
+      })
+    );
+    return () => controller.abort();
   }, [accessToken]);
 
   const totalDownloads = latestRelease?.assets.reduce((s, a) => s + (a.download_count ?? 0), 0) ?? 0;
@@ -1089,7 +1102,7 @@ export function Dashboard({
         {accessToken && <ConnectDesktopApp accessToken={accessToken} />}
 
         {/* Admin key issuer */}
-        {isAdmin && accessToken && <AdminKeyIssuer accessToken={accessToken} />}
+        {isAdmin && accessToken && <AdminKeyIssuer accessToken={accessToken} onIssued={() => {}} />}
 
         {/* Subscription (non-admin) */}
         {!isAdmin && (

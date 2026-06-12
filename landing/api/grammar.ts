@@ -43,6 +43,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!text || typeof text !== "string") {
     return res.status(400).set(headers).json({ error: "text is required" });
   }
+  if (text.length > 50_000) {
+    return res.status(413).set(headers).json({ error: "text exceeds maximum length of 50,000 characters" });
+  }
 
   const stableCore = buildStableCore();
   const dynamicSuffix = buildDynamicSuffix(context, writingStyle, preserveTone, customVocabulary);

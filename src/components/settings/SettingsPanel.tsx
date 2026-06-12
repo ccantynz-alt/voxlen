@@ -1029,7 +1029,14 @@ function UsageMeter({ apiKey }: { apiKey: string }) {
 
   if (!info) return null;
 
-  const planLabel = info.plan.charAt(0).toUpperCase() + info.plan.slice(1);
+  const PLAN_LABELS: Record<string, string> = {
+    free: "Free",
+    free_trial: "Free Trial",
+    pro: "Pro",
+    professional: "Professional",
+    admin: "Admin",
+  };
+  const planLabel = PLAN_LABELS[info.plan.toLowerCase()] ?? (info.plan.charAt(0).toUpperCase() + info.plan.slice(1));
   const isFree = info.plan.toLowerCase() === "free";
 
   return (

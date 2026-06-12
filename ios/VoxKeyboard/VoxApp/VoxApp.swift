@@ -16,7 +16,7 @@ struct ContentView: View {
     @EnvironmentObject var settings: SettingsManager
 
     private var keysConfigured: Bool {
-        !settings.apiKey.isEmpty && !settings.deepgramApiKey.isEmpty
+        !settings.voxlenApiKey.isEmpty || (!settings.apiKey.isEmpty && !settings.deepgramApiKey.isEmpty)
     }
 
     private var partialKeysConfigured: Bool {
@@ -102,6 +102,25 @@ struct ContentView: View {
                             .cornerRadius(10)
                         }
                     }
+                }
+
+                // MARK: - Voxlen Account (no separate API keys needed)
+                Section {
+                    SecureField("Voxlen Account Key", text: $settings.voxlenApiKey)
+                        .textContentType(.password)
+                    if !settings.voxlenApiKey.isEmpty {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Connected — all AI and dictation included")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Label("Voxlen Account", systemImage: "person.badge.key.fill")
+                } footer: {
+                    Text("Sign in at voxlen.ai/dashboard to get your key. No other API keys needed.")
                 }
 
                 // MARK: - Grammar AI
@@ -224,8 +243,10 @@ struct ContentView: View {
     }
 
     private var apiKeyStatusMessage: String {
-        if settings.apiKey.isEmpty && settings.deepgramApiKey.isEmpty {
-            return "Set your AI Provider and Deepgram API keys below to enable all features."
+        if !settings.voxlenApiKey.isEmpty {
+            return "Connected via Voxlen account."
+        } else if settings.apiKey.isEmpty && settings.deepgramApiKey.isEmpty {
+            return "Enter your Voxlen account key above, or set individual AI Provider and Deepgram keys below."
         } else if settings.apiKey.isEmpty {
             return "Set your AI Provider API key to enable grammar correction."
         } else {
@@ -302,6 +323,9 @@ class SettingsManager: ObservableObject {
     @Published var language: String {
         didSet { defaults.set(language, forKey: "language") }
     }
+    @Published var voxlenApiKey: String {
+        didSet { defaults.set(voxlenApiKey, forKey: "voxlenApiKey") }
+    }
 
     init() {
         self.autoCorrectEnabled = defaults.bool(forKey: "autoCorrect")
@@ -315,5 +339,6 @@ class SettingsManager: ObservableObject {
         self.sttEngine = STTEngine(rawValue: defaults.string(forKey: "sttEngine") ?? "deepgram") ?? .deepgram
         self.deepgramApiKey = defaults.string(forKey: "deepgramApiKey") ?? ""
         self.language = defaults.string(forKey: "language") ?? "en"
+        self.voxlenApiKey = defaults.string(forKey: "voxlenApiKey") ?? ""
     }
 }

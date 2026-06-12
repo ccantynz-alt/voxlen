@@ -56,13 +56,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     dgUrl += `&keyterm=${encodeURIComponent(term)}`;
   }
 
-  // Buffer the incoming body
+  // Buffer the incoming body (max 25 MB)
+  const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
   await new Promise<void>((resolve, reject) => {
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("data", (chunk: Buffer) => {
+      totalBytes += chunk.length;
+      if (totalBytes > MAX_AUDIO_BYTES) {
+        reject(new Error("payload_too_large"));
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", resolve);
     req.on("error", reject);
+  }).catch((err: Error) => {
+    if (err.message === "payload_too_large") {
+      res.status(413).set(headers).json({ error: "Audio file exceeds 25 MB limit" });
+    }
+    throw err;
   });
+  if (res.headersSent) return;
   const body = Buffer.concat(chunks);
 
   try {

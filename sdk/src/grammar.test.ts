@@ -4,7 +4,7 @@ import { VoxlenGrammar } from "./grammar";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-function makeApiResponse(corrected: string, changes = [], score = 0.95) {
+function makeApiResponse(corrected: string, changes: object[] = [], score = 0.95) {
   return {
     ok: true,
     status: 200,
@@ -14,7 +14,7 @@ function makeApiResponse(corrected: string, changes = [], score = 0.95) {
   };
 }
 
-function makeOpenAIResponse(corrected: string, changes = [], score = 0.95) {
+function makeOpenAIResponse(corrected: string, changes: object[] = [], score = 0.95) {
   return {
     ok: true,
     status: 200,

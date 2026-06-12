@@ -358,19 +358,51 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     private func startDictation() {
         let engine = defaults?.string(forKey: "sttEngine") ?? "deepgram"
         let deepgramKey = defaults?.string(forKey: "deepgramApiKey") ?? ""
+        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
 
         if engine == "deepgram" && !deepgramKey.isEmpty {
             startDeepgramDictation(apiKey: deepgramKey)
+        } else if !voxlenKey.isEmpty {
+            // Exchange Voxlen account key for a short-lived Deepgram temp key
+            grammarLabel.text = "Connecting…"
+            Task {
+                do {
+                    let tempKey = try await fetchVoxlenDeepgramToken(voxlenKey: voxlenKey)
+                    await MainActor.run { self.startDeepgramDictation(apiKey: tempKey) }
+                } catch {
+                    await MainActor.run {
+                        self.grammarLabel.text = "Token error — check Voxlen key"
+                        self.startAppleDictation()
+                    }
+                }
+            }
         } else {
             startAppleDictation()
         }
+    }
+
+    private func fetchVoxlenDeepgramToken(voxlenKey: String) async throws -> String {
+        var request = URLRequest(url: URL(string: "https://voxlen.ai/api/deepgram-token")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(voxlenKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [:])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw NSError(domain: "Voxlen", code: 401, userInfo: [NSLocalizedDescriptionKey: "Token exchange failed"])
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let key = json["key"] as? String else {
+            throw NSError(domain: "Voxlen", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid token response"])
+        }
+        return key
     }
 
     // MARK: - Deepgram WebSocket STT
 
     private func startDeepgramDictation(apiKey: String) {
         let lang = defaults?.string(forKey: "language") ?? "en"
-        let urlStr = "wss://api.deepgram.com/v1/listen?model=nova-3&punctuate=true&smart_format=true&language=\(lang)&interim_results=true&endpointing=200&no_delay=true&encoding=linear16&sample_rate=16000&channels=1"
+        let urlStr = "wss://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true&punctuate=true&smart_format=true&language=\(lang)&interim_results=true&endpointing=200&no_delay=true&encoding=linear16&sample_rate=16000&channels=1"
 
         guard let url = URL(string: urlStr) else {
             grammarLabel.text = "Invalid Deepgram URL"

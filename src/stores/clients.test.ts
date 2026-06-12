@@ -94,6 +94,12 @@ describe("addEntry and getTotalBillable", () => {
     store.addEntry({ ...base, clientId: id2, billableAmount: 999 });
     expect(useClientsStore.getState().getTotalBillable(id1)).toBe(100);
   });
+
+  it("silently drops entries with unknown clientId", () => {
+    const store = useClientsStore.getState();
+    store.addEntry({ clientId: "nonexistent", date: Date.now(), durationSeconds: 60, wordCount: 10, billableAmount: 100 });
+    expect(useClientsStore.getState().entries).toHaveLength(0);
+  });
 });
 
 describe("vocabulary", () => {
