@@ -183,7 +183,7 @@ async fn run_streaming_session(
             Ok(SessionOutcome::AuthFailed) => {
                 let _ = app_handle.emit(
                     "transcription-error",
-                    "Authentication failed — check your Deepgram API key",
+                    "Authentication failed — check your API key in Settings",
                 );
                 break;
             }
