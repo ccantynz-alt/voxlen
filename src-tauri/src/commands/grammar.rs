@@ -79,7 +79,7 @@ pub async fn correct_grammar(
 ) -> Result<GrammarResult, String> {
     let config = get_config_store().read().clone();
 
-    if !config.enabled {
+    if !config.enabled || crate::commands::settings::get_privileged_mode() {
         return Ok(GrammarResult {
             original: text.clone(),
             corrected: text,

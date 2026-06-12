@@ -14,6 +14,8 @@ import {
   ChevronDown,
   HelpCircle,
   Download,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -253,6 +255,7 @@ export function DictationPanel() {
   }, [clearSession]);
 
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
+  const privilegedMode = useSettingsStore((s) => s.privilegedMode);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const [contextOpen, setContextOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -291,6 +294,21 @@ export function DictationPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Privileged mode banner */}
+      {privilegedMode && (
+        <div className="flex items-center gap-2.5 px-5 py-2.5 bg-emerald-950/60 border-b border-emerald-500/20">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" strokeWidth={1.75} />
+          <p className="text-[11px] text-emerald-300 font-medium">
+            Privileged mode active — attorney-client privilege protected. Cloud grammar and translation disabled.
+          </p>
+          <button
+            onClick={() => updateSetting("privilegedMode", false)}
+            className="ml-auto text-[10px] text-emerald-600 hover:text-emerald-400 underline transition-colors shrink-0"
+          >
+            Disable
+          </button>
+        </div>
+      )}
       {/* Main dictation area */}
       <div className="flex-1 flex flex-col p-8 gap-7 overflow-hidden">
         {/* Mic control + waveform */}
@@ -579,6 +597,23 @@ export function DictationPanel() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => updateSetting("privilegedMode", !privilegedMode)}
+            title={privilegedMode ? "Privileged mode ON — click to disable" : "Enable privileged mode (ABA 1.6 safe)"}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
+              privilegedMode
+                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/15"
+                : "text-surface-600 hover:bg-surface-100 hover:text-surface-800"
+            )}
+          >
+            {privilegedMode ? (
+              <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
+            ) : (
+              <ShieldOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+            )}
+            {privilegedMode ? "Privileged" : "Privilege"}
+          </button>
           <Button
             variant="ghost"
             size="sm"

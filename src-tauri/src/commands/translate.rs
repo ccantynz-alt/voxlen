@@ -49,7 +49,7 @@ pub async fn translate_text(
     text: String,
     target_language: String,
 ) -> Result<TranslationResult, String> {
-    if text.trim().is_empty() {
+    if text.trim().is_empty() || crate::commands::settings::get_privileged_mode() {
         return Ok(TranslationResult {
             original: text.clone(),
             translated: text,
