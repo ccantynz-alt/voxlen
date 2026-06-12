@@ -146,7 +146,7 @@ export default function EthicsSection() {
         >
           <a
             href="#download"
-            className="inline-flex items-center gap-2 h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:scale-[1.02]"
+            className="inline-flex items-center gap-2 h-12 px-8 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:scale-[1.02]"
           >
             <Shield className="h-4 w-4" />
             Start your free trial — privacy guaranteed

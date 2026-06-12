@@ -32,7 +32,7 @@ function Slider({
       </div>
       <div className="relative h-2 rounded-full bg-white/5">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-marcoreid-600 transition-all"
+          className="absolute inset-y-0 left-0 rounded-full bg-brand-600 transition-all"
           style={{ width: `${pct}%` }}
         />
         <input
@@ -45,7 +45,7 @@ function Slider({
           className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
         />
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-marcoreid-500 shadow-lg transition-all pointer-events-none"
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-brand-500 shadow-lg transition-all pointer-events-none"
           style={{ left: `calc(${pct}% - 8px)` }}
         />
       </div>
@@ -172,8 +172,8 @@ export default function ROICalculator() {
             className="space-y-4"
           >
             {/* Primary result */}
-            <div className="rounded-2xl bg-gradient-to-br from-marcoreid-600/20 to-marcoreid-900/10 border border-marcoreid-500/30 p-6 text-center">
-              <div className="text-xs font-mono text-marcoreid-400 uppercase tracking-wider mb-2">Billable time recovered / year</div>
+            <div className="rounded-2xl bg-gradient-to-br from-brand-600/20 to-brand-900/10 border border-brand-500/30 p-6 text-center">
+              <div className="text-xs font-mono text-brand-400 uppercase tracking-wider mb-2">Billable time recovered / year</div>
               <div className="text-6xl font-black text-white tabular-nums mb-1">
                 {fmt$(savedBillablePerYear)}
               </div>
@@ -235,7 +235,7 @@ export default function ROICalculator() {
 
             <a
               href="#download"
-              className="block w-full h-12 rounded-xl bg-marcoreid-600 text-white font-semibold text-center flex items-center justify-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:scale-[1.01]"
+              className="block w-full h-12 rounded-xl bg-brand-600 text-white font-semibold text-center flex items-center justify-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:scale-[1.01]"
             >
               Start recovering billable time →
             </a>

@@ -180,7 +180,7 @@ export default function LiveDemo() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-marcoreid-600/10 border border-marcoreid-600/20 text-marcoreid-400 text-xs font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-600/10 border border-brand-600/20 text-brand-400 text-xs font-medium mb-4">
             <Play className="h-3 w-3" />
             Live Demo — No account needed
           </div>
@@ -209,7 +209,7 @@ export default function LiveDemo() {
                 <div className="w-3 h-3 rounded-full bg-[#28c840]" />
               </div>
               <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <div className="w-4 h-4 rounded bg-marcoreid-600 flex items-center justify-center">
+                <div className="w-4 h-4 rounded bg-brand-600 flex items-center justify-center">
                   <Mic className="h-2.5 w-2.5 text-white" />
                 </div>
                 <span className="font-medium text-zinc-300">Voxlen</span>
@@ -233,10 +233,10 @@ export default function LiveDemo() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-marcoreid-600/10 border border-marcoreid-600/20"
+                  className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-600/10 border border-brand-600/20"
                 >
-                  <Sparkles className="h-3 w-3 text-marcoreid-400 animate-pulse" />
-                  <span className="text-marcoreid-400 text-xs font-medium">AI correcting…</span>
+                  <Sparkles className="h-3 w-3 text-brand-400 animate-pulse" />
+                  <span className="text-brand-400 text-xs font-medium">AI correcting…</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -249,7 +249,7 @@ export default function LiveDemo() {
               {Array.from({ length: 40 }).map((_, i) => (
                 <motion.div
                   key={i}
-                  className={`w-1 rounded-full ${state === "listening" ? "bg-marcoreid-500" : "bg-white/10"}`}
+                  className={`w-1 rounded-full ${state === "listening" ? "bg-brand-500" : "bg-white/10"}`}
                   animate={
                     state === "listening"
                       ? {
@@ -284,29 +284,29 @@ export default function LiveDemo() {
                     </span>
                   )}
                   {state === "listening" && transcript && (
-                    <span className="inline-block w-0.5 h-3.5 bg-marcoreid-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-0.5 h-3.5 bg-brand-400 ml-0.5 animate-pulse align-text-bottom" />
                   )}
                 </p>
               </div>
 
               {/* Corrected */}
-              <div className="rounded-xl bg-marcoreid-600/5 border border-marcoreid-600/15 p-4 min-h-[100px]">
+              <div className="rounded-xl bg-brand-600/5 border border-brand-600/15 p-4 min-h-[100px]">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Sparkles className="h-3 w-3 text-marcoreid-400" />
-                  <span className="text-[10px] font-mono text-marcoreid-500 uppercase tracking-wider">AI-corrected</span>
+                  <Sparkles className="h-3 w-3 text-brand-400" />
+                  <span className="text-[10px] font-mono text-brand-500 uppercase tracking-wider">AI-corrected</span>
                 </div>
                 <p className="text-sm text-zinc-200 leading-relaxed">
                   {correctedDisplayed || (
                     <span className="text-zinc-600 italic">
                       {state === "processing" ? (
-                        <span className="text-marcoreid-400">Applying grammar correction…</span>
+                        <span className="text-brand-400">Applying grammar correction…</span>
                       ) : (
                         "Polished output will appear here…"
                       )}
                     </span>
                   )}
                   {state === "done" && correctedDisplayed.length < corrected.length && (
-                    <span className="inline-block w-0.5 h-3.5 bg-marcoreid-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-0.5 h-3.5 bg-brand-400 ml-0.5 animate-pulse align-text-bottom" />
                   )}
                 </p>
               </div>
@@ -346,7 +346,7 @@ export default function LiveDemo() {
                   <>
                     <button
                       onClick={runSimulatedDemo}
-                      className="h-11 px-6 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:scale-[1.02]"
+                      className="h-11 px-6 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:scale-[1.02]"
                     >
                       <Play className="h-4 w-4" />
                       Watch demo
@@ -387,10 +387,10 @@ export default function LiveDemo() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   href="#download"
-                  className="h-11 px-6 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25"
+                  className="h-11 px-6 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25"
                 >
                   Get the app
-                  <span className="text-marcoreid-300 text-sm">→</span>
+                  <span className="text-brand-300 text-sm">→</span>
                 </motion.a>
               )}
             </div>
