@@ -448,7 +448,7 @@ function SttSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Speech-to-Text Engine"
-        description="Choose your transcription engine. Cloud engines offer better accuracy; local offers privacy."
+        description="Choose your transcription engine. Offline mode (Whisper Local) is coming soon."
       />
 
       <SettingRow>
@@ -464,24 +464,15 @@ function SttSettings() {
         />
       </SettingRow>
 
-      {settings.voxlenApiKey ? (
-        <SettingRow>
-          <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/30 px-4 py-3 text-sm text-purple-300">
-            <span className="text-green-400">✓</span>
-            Transcription powered by your Voxlen account — no provider API key needed.
-          </div>
-        </SettingRow>
-      ) : (
-        <SettingRow>
-          <Input
-            label="API Key (optional — not needed with Voxlen account)"
-            type="password"
-            value={settings.sttApiKey}
-            onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-            placeholder="Add your own Deepgram / OpenAI key, or sign in via Voxlen tab"
-          />
-        </SettingRow>
-      )}
+      <SettingRow>
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
+          {settings.voxlenApiKey ? (
+            <><span className="text-green-400">✓</span> Transcription powered by your Voxlen account — no provider API key needed.</>
+          ) : (
+            <><span className="text-surface-400">→</span> Sign in to your Voxlen account (Voxlen tab) to enable transcription.</>
+          )}
+        </div>
+      </SettingRow>
 
       <SettingRow>
         <Switch
@@ -683,30 +674,15 @@ function GrammarSettings() {
         />
       </SettingRow>
 
-      {settings.voxlenApiKey ? (
-        <SettingRow>
-          <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/30 px-4 py-3 text-sm text-purple-300">
-            <span className="text-green-400">✓</span>
-            Grammar AI powered by your Voxlen account — no provider API key needed.
-          </div>
-        </SettingRow>
-      ) : (
-        <SettingRow>
-          <Input
-            label="AI API Key (optional — not needed with Voxlen account)"
-            type="password"
-            value={settings.grammarApiKey}
-            onChange={(e) =>
-              settings.updateSetting("grammarApiKey", e.target.value)
-            }
-            placeholder={
-              settings.grammarProvider === "claude"
-                ? "sk-ant-... (or sign in via Voxlen tab)"
-                : "sk-... (or sign in via Voxlen tab)"
-            }
-          />
-        </SettingRow>
-      )}
+      <SettingRow>
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
+          {settings.voxlenApiKey ? (
+            <><span className="text-green-400">✓</span> Grammar AI powered by your Voxlen account — no provider API key needed.</>
+          ) : (
+            <><span className="text-surface-400">→</span> Sign in to your Voxlen account (Voxlen tab) to enable grammar correction.</>
+          )}
+        </div>
+      </SettingRow>
 
       <SettingRow>
         <Select
@@ -1021,98 +997,59 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
   );
 }
 
-interface UsageData {
+interface AccountInfo {
   plan: string;
-  period_start: string;
-  period_end: string;
-  stt_minutes_used: number;
-  stt_minutes_included: number;
-  grammar_corrections_used: number;
-  grammar_corrections_included: number;
+  features: string[];
+  name: string;
+  email: string;
+  isAdmin: boolean;
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+  stt: "Dictation (STT)",
+  grammar: "AI Grammar Correction",
+  export: "All Export Formats",
+  clauses: "Clause Library",
+  billing: "Client Billing Tracking",
+};
+
 function UsageMeter({ apiKey }: { apiKey: string }) {
-  const [usage, setUsage] = useState<UsageData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [info, setInfo] = useState<AccountInfo | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("https://api.voxlen.com/v1/usage", {
+    fetch("https://voxlen.ai/api/me", {
       headers: { Authorization: `Bearer ${apiKey}` },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: UsageData) => {
-        if (!cancelled) { setUsage(data); setLoading(false); }
-      })
-      .catch(() => { if (!cancelled) setLoading(false); });
+      .then((data: AccountInfo) => { if (!cancelled) setInfo(data); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [apiKey]);
 
-  if (loading || !usage) return null;
+  if (!info) return null;
 
-  const planLabel =
-    usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1);
-  const isFree = usage.plan.toLowerCase() === "free";
-
-  const sttPct =
-    usage.stt_minutes_included === -1
-      ? 0
-      : Math.min(100, (usage.stt_minutes_used / usage.stt_minutes_included) * 100);
-
-  const grammarPct =
-    usage.grammar_corrections_included === -1
-      ? 0
-      : Math.min(100, (usage.grammar_corrections_used / usage.grammar_corrections_included) * 100);
+  const planLabel = info.plan.charAt(0).toUpperCase() + info.plan.slice(1);
+  const isFree = info.plan.toLowerCase() === "free";
 
   return (
     <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
-          Usage this month
+          Account
         </span>
         <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#7345d1]/15 text-[#7345d1] font-semibold">
           {planLabel}
         </span>
       </div>
-
-      {/* STT minutes */}
-      <div>
-        <div className="flex justify-between text-[11px] text-surface-600 mb-1">
-          <span>Dictation minutes</span>
-          <span>
-            {usage.stt_minutes_used.toFixed(1)}&thinsp;/&thinsp;
-            {usage.stt_minutes_included === -1 ? "∞" : `${usage.stt_minutes_included} min`}
-          </span>
-        </div>
-        {usage.stt_minutes_included !== -1 && (
-          <div className="h-1.5 rounded-full bg-surface-200/60 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${sttPct}%`, background: "#7345d1" }}
-            />
+      <div className="space-y-1">
+        {info.features.map((f) => (
+          <div key={f} className="flex items-center gap-1.5 text-[11px] text-surface-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7345d1] shrink-0" />
+            {FEATURE_LABELS[f] ?? f}
           </div>
-        )}
+        ))}
       </div>
-
-      {/* Grammar corrections */}
-      <div>
-        <div className="flex justify-between text-[11px] text-surface-600 mb-1">
-          <span>Grammar corrections</span>
-          <span>
-            {usage.grammar_corrections_used}&thinsp;/&thinsp;
-            {usage.grammar_corrections_included === -1 ? "∞" : usage.grammar_corrections_included}
-          </span>
-        </div>
-        {usage.grammar_corrections_included !== -1 && (
-          <div className="h-1.5 rounded-full bg-surface-200/60 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${grammarPct}%`, background: "#7345d1" }}
-            />
-          </div>
-        )}
-      </div>
-
       {isFree && (
         <a
           href="https://voxlen.ai/#pricing"
@@ -1134,12 +1071,12 @@ function VoxlenApiSettings() {
   const [keyError, setKeyError] = useState("");
   const isConnected = Boolean(settings.voxlenApiKey);
 
-  const openSignUp = async () => {
+  const openDashboard = async () => {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("open_url", { url: "https://voxlen.ai/#download" });
+      await invoke("open_url", { url: "https://voxlen.ai/dashboard" });
     } catch {
-      window.open("https://voxlen.ai/#download", "_blank");
+      window.open("https://voxlen.ai/dashboard", "_blank");
     }
   };
 
@@ -1149,17 +1086,17 @@ function VoxlenApiSettings() {
     setVerifying(true);
     setKeyError("");
     try {
-      const res = await fetch("https://api.voxlen.com/v1/health", {
+      const res = await fetch("https://voxlen.ai/api/me", {
         headers: { Authorization: `Bearer ${key}` },
       });
       if (res.ok) {
         settings.updateSetting("voxlenApiKey", key);
         setKeyInput("");
       } else {
-        setKeyError("Invalid API key. Check your Voxlen dashboard.");
+        setKeyError("Token invalid or expired. Sign in again at voxlen.ai/dashboard.");
       }
     } catch {
-      // Network unreachable — accept key anyway (API may not be live yet)
+      // Network unreachable — accept token anyway
       settings.updateSetting("voxlenApiKey", key);
       setKeyInput("");
     }
@@ -1226,15 +1163,15 @@ function VoxlenApiSettings() {
           </div>
 
           <button
-            onClick={openSignUp}
+            onClick={openDashboard}
             className="w-full flex items-center justify-center gap-2 bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
           >
-            Get your API key at voxlen.ai
+            Sign in at voxlen.ai → copy your token
           </button>
 
           <div className="relative flex items-center gap-3">
             <div className="flex-1 h-px bg-surface-300/50" />
-            <span className="text-[10px] text-surface-500 uppercase tracking-wider">already have a key?</span>
+            <span className="text-[10px] text-surface-500 uppercase tracking-wider">paste token below</span>
             <div className="flex-1 h-px bg-surface-300/50" />
           </div>
 
@@ -1244,7 +1181,7 @@ function VoxlenApiSettings() {
               value={keyInput}
               onChange={(e) => { setKeyInput(e.target.value); setKeyError(""); }}
               onKeyDown={(e) => e.key === "Enter" && connect()}
-              placeholder="vx-..."
+              placeholder="Paste token from voxlen.ai/dashboard"
               className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-[#7345d1] shadow-inset-hairline"
             />
             {keyError && <p className="text-[11px] text-red-500">{keyError}</p>}
@@ -1261,8 +1198,7 @@ function VoxlenApiSettings() {
         </div>
       )}
 
-      {/* Settings shown when connected OR when using own keys */}
-      {(isConnected || settings.sttApiKey) && (
+      {isConnected && (
         <>
           <SectionHeader title="Dictation Settings" description="" />
 
@@ -1278,9 +1214,10 @@ function VoxlenApiSettings() {
           <SettingRow>
             <Switch
               label="Privileged Mode"
-              description="Block all cloud STT — local processing only. For highly sensitive matters where audio must never leave the device."
-              checked={settings.privilegedMode}
-              onChange={(v) => settings.updateSetting("privilegedMode", v)}
+              description="Block all cloud STT — local processing only. Coming soon: requires Whisper Local (offline mode) which is not yet available."
+              checked={false}
+              onChange={() => {}}
+              disabled
             />
           </SettingRow>
 
@@ -1380,7 +1317,7 @@ function PrivacySettings() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Use Whisper Local for fully offline operation.
+            Offline mode (Whisper Local) coming soon — no audio will leave your device.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>

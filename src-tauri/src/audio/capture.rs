@@ -77,6 +77,8 @@ pub fn start_capture_with_options(
         let buffer_clone = buffer.clone();
         let waveform_last_emit = Arc::new(Mutex::new(Instant::now()));
         let waveform_last_emit_clone = waveform_last_emit.clone();
+        let noise_state = Arc::new(Mutex::new(NoiseState::new(sample_rate)));
+        let noise_state_clone = noise_state.clone();
 
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_input_stream(
@@ -94,6 +96,7 @@ pub fn start_capture_with_options(
                         &waveform_last_emit_clone,
                         input_gain,
                         noise_suppression,
+                        &noise_state_clone,
                     );
                 },
                 err_fn,
@@ -115,6 +118,7 @@ pub fn start_capture_with_options(
                         &waveform_last_emit_clone,
                         input_gain,
                         noise_suppression,
+                        &noise_state_clone,
                     );
                 },
                 err_fn,
@@ -139,6 +143,7 @@ pub fn start_capture_with_options(
                         &waveform_last_emit_clone,
                         input_gain,
                         noise_suppression,
+                        &noise_state_clone,
                     );
                 },
                 err_fn,
@@ -189,9 +194,13 @@ fn process_audio_data(
     waveform_last_emit: &Arc<Mutex<Instant>>,
     input_gain: f32,
     noise_suppression: bool,
+    noise_state: &Arc<Mutex<NoiseState>>,
 ) {
     // Apply input gain + noise processing
-    let processed: Vec<f32> = apply_audio_processing(data, input_gain, noise_suppression);
+    let processed: Vec<f32> = {
+        let mut state = noise_state.lock();
+        apply_audio_processing(data, input_gain, noise_suppression, &mut state)
+    };
     let data = processed.as_slice();
 
     // Calculate RMS level for visualization
@@ -236,55 +245,102 @@ fn process_audio_data(
     }
 }
 
-/// Apply input gain and a simple spectral noise gate.
-///
-/// Noise gate: compute the RMS of the frame. If it is below the threshold
-/// (−40 dBFS ≈ 0.01), treat the frame as silence and zero it out. This
-/// removes constant background hum / HVAC without introducing latency or
-/// requiring RNNoise. A soft-knee is applied so speech onset is not clipped.
-///
-/// High-pass biquad at 80 Hz removes low-frequency rumble (desk vibration,
-/// air conditioning). Coefficients pre-computed for fs=16000; for other rates
-/// the filter is a gentle high-pass that still removes sub-80Hz energy.
-fn apply_audio_processing(samples: &[f32], gain: f32, noise_suppression: bool) -> Vec<f32> {
+/// Persistent state for the noise-suppression chain. Must live across audio
+/// callbacks: resetting the biquad per frame injects a click at every buffer
+/// boundary, and the gate needs a hangover so trailing consonants survive.
+pub(crate) struct NoiseState {
+    // High-pass biquad coefficients (computed for the device sample rate)
+    b0: f32,
+    b1: f32,
+    b2: f32,
+    a1: f32,
+    a2: f32,
+    // Filter delay line
+    x1: f32,
+    x2: f32,
+    y1: f32,
+    y2: f32,
+    // Gate hangover: samples of pass-through remaining after last speech
+    gate_hold_samples: u64,
+    hangover_samples: u64,
+}
+
+impl NoiseState {
+    /// RBJ-cookbook high-pass biquad at 80 Hz, Q = 0.707, designed for the
+    /// actual device sample rate (hard-coding 16 kHz coefficients turns the
+    /// filter into ~240 Hz at 48 kHz, which cuts male voice fundamentals).
+    pub(crate) fn new(sample_rate: u32) -> Self {
+        let fs = sample_rate.max(8000) as f32;
+        let w0 = 2.0 * std::f32::consts::PI * 80.0 / fs;
+        let cos_w0 = w0.cos();
+        let alpha = w0.sin() / (2.0 * 0.707);
+        let a0 = 1.0 + alpha;
+        Self {
+            b0: ((1.0 + cos_w0) / 2.0) / a0,
+            b1: (-(1.0 + cos_w0)) / a0,
+            b2: ((1.0 + cos_w0) / 2.0) / a0,
+            a1: (-2.0 * cos_w0) / a0,
+            a2: (1.0 - alpha) / a0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
+            gate_hold_samples: 0,
+            // Keep the gate open ~400 ms after speech so soft endings survive
+            hangover_samples: (fs * 0.4) as u64,
+        }
+    }
+}
+
+/// Apply input gain, an 80 Hz high-pass (rumble/HVAC removal), and a gentle
+/// RMS noise gate with hangover. The gate attenuates rather than hard-mutes
+/// so quiet speech onsets are never destroyed before they reach the STT
+/// engine.
+fn apply_audio_processing(
+    samples: &[f32],
+    gain: f32,
+    noise_suppression: bool,
+    state: &mut NoiseState,
+) -> Vec<f32> {
     // Apply gain first
     let mut out: Vec<f32> = samples.iter().map(|&s| (s * gain).clamp(-1.0, 1.0)).collect();
 
     if noise_suppression {
-        // High-pass biquad (80 Hz, Q=0.707) — removes low-frequency rumble.
-        // Coefficients for fs=16000 Hz (close enough for 44.1/48 kHz too).
-        let b0: f32 = 0.9780;
-        let b1: f32 = -1.9560;
-        let b2: f32 = 0.9780;
-        let a1: f32 = -1.9556;
-        let a2: f32 = 0.9565;
-
-        let mut x1 = 0f32;
-        let mut x2 = 0f32;
-        let mut y1 = 0f32;
-        let mut y2 = 0f32;
-
         for s in out.iter_mut() {
             let x0 = *s;
-            let y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-            x2 = x1; x1 = x0;
-            y2 = y1; y1 = y0;
+            let y0 = state.b0 * x0 + state.b1 * state.x1 + state.b2 * state.x2
+                - state.a1 * state.y1
+                - state.a2 * state.y2;
+            state.x2 = state.x1;
+            state.x1 = x0;
+            state.y2 = state.y1;
+            state.y1 = y0;
             *s = y0.clamp(-1.0, 1.0);
         }
 
-        // Noise gate: −40 dBFS threshold with soft knee
+        // Noise gate: −46 dBFS threshold with soft knee and hangover
         let rms = calculate_rms(&out);
-        const GATE_THRESHOLD: f32 = 0.01;   // −40 dBFS
-        const GATE_KNEE: f32 = 0.025;       // soft knee top
-        if rms < GATE_THRESHOLD {
-            // Full silence — background noise floor
-            out.iter_mut().for_each(|s| *s = 0.0);
-        } else if rms < GATE_KNEE {
-            // Soft knee: fade in proportionally
+        const GATE_THRESHOLD: f32 = 0.005; // ≈ −46 dBFS
+        const GATE_KNEE: f32 = 0.015;
+        const FLOOR_ATTENUATION: f32 = 0.1; // attenuate, don't hard-mute
+
+        if rms >= GATE_KNEE {
+            // Speech — pass through and re-arm the hangover
+            state.gate_hold_samples = state.hangover_samples;
+        } else if rms >= GATE_THRESHOLD {
+            // Soft knee: partial attenuation, also counts as activity
             let knee_ratio = (rms - GATE_THRESHOLD) / (GATE_KNEE - GATE_THRESHOLD);
-            out.iter_mut().for_each(|s| *s *= knee_ratio);
+            let g = FLOOR_ATTENUATION + (1.0 - FLOOR_ATTENUATION) * knee_ratio;
+            out.iter_mut().for_each(|s| *s *= g);
+            state.gate_hold_samples = state.hangover_samples;
+        } else if state.gate_hold_samples > 0 {
+            // Recent speech — keep the gate open so trailing sounds survive
+            state.gate_hold_samples =
+                state.gate_hold_samples.saturating_sub(out.len() as u64);
+        } else {
+            // Sustained silence — attenuate the noise floor
+            out.iter_mut().for_each(|s| *s *= FLOOR_ATTENUATION);
         }
-        // Above knee: pass through unchanged
     }
 
     out

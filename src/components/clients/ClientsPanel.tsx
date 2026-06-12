@@ -3,11 +3,14 @@ import { Plus, Briefcase, Archive, Trash2, Edit2, Check, X, Download, BookOpen }
 import { useClientsStore, type Client } from "../../stores/clients";
 import { useSettingsStore } from "../../stores/settings";
 import { exportBillingCsv, exportAllBillingCsv, downloadBillingExport } from "../../lib/export";
+import { Button } from "../ui/Button";
 
 const CLIENT_COLORS = [
   "#7345d1", "#3b82f6", "#10b981", "#f59e0b",
   "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899",
 ];
+
+const INPUT_CLS = "w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400 focus:ring-1 focus:ring-brass-400/30 shadow-inset-hairline transition-colors";
 
 function AddClientModal({ onClose }: { onClose: () => void }) {
   const { addClient } = useClientsStore();
@@ -25,36 +28,34 @@ function AddClientModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-6 w-full max-w-md shadow-2xl">
-        <h2 className="text-lg font-bold mb-5">Add Client / Matter</h2>
+      <div className="bg-surface-50 border border-surface-300/60 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <h2 className="text-lg font-bold text-surface-950 mb-5">Add Client / Matter</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5 block">Client Name *</label>
+            <label className="label-caps mb-1.5 block">Client Name *</label>
             <input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
-              className="w-full bg-[#09090b] border border-[#3f3f46] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#7345d1]"
+              className={INPUT_CLS}
               placeholder="e.g. Acme Corp, Smith v Jones"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5 block">Matter / File Number</label>
+            <label className="label-caps mb-1.5 block">Matter / File Number</label>
             <input
               value={matterNumber}
               onChange={(e) => setMatterNumber(e.target.value)}
-              className="w-full bg-[#09090b] border border-[#3f3f46] rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#7345d1]"
+              className={INPUT_CLS}
               placeholder="e.g. 2024-001, M-4821"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5 block">
-              Billable Rate ($/hr)
-            </label>
+            <label className="label-caps mb-1.5 block">Billable Rate ($/hr)</label>
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -63,16 +64,16 @@ function AddClientModal({ onClose }: { onClose: () => void }) {
                 step={25}
                 value={rate}
                 onChange={(e) => setRate(Number(e.target.value))}
-                className="flex-1 accent-[#7345d1]"
+                className="flex-1 accent-brass-500"
               />
-              <span className="text-sm font-semibold w-20 text-right">
+              <span className="text-sm font-semibold text-surface-900 w-20 text-right">
                 {rate === 0 ? "Use default" : `$${rate}/hr`}
               </span>
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5 block">Colour</label>
+            <label className="label-caps mb-1.5 block">Colour</label>
             <div className="flex gap-2 flex-wrap">
               {CLIENT_COLORS.map((c) => (
                 <button
@@ -90,19 +91,21 @@ function AddClientModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex gap-3 mt-6">
-          <button
+          <Button
+            variant="primary"
             onClick={submit}
             disabled={!name.trim()}
-            className="flex-1 bg-[#7345d1] hover:bg-[#5c35b0] disabled:opacity-40 text-white font-semibold text-sm py-2 rounded-lg transition-colors"
+            className="flex-1"
           >
             Add Client
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="flex-1 bg-[#27272a] hover:bg-[#3f3f46] text-white font-semibold text-sm py-2 rounded-lg transition-colors"
+            className="flex-1"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -143,9 +146,9 @@ function ClientCard({ client }: { client: Client }) {
   };
 
   return (
-    <div className="bg-[#18181b] border border-[#27272a] rounded-xl overflow-hidden">
+    <div className="bg-surface-50 border border-surface-300/60 rounded-xl overflow-hidden shadow-inset-hairline">
       {/* Header */}
-      <div className="flex items-start gap-3 p-4 border-b border-[#27272a]">
+      <div className="flex items-start gap-3 p-4 border-b border-surface-300/50">
         <div
           className="w-3 h-3 rounded-full mt-1.5 shrink-0"
           style={{ backgroundColor: client.color }}
@@ -157,13 +160,13 @@ function ClientCard({ client }: { client: Client }) {
                 autoFocus
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="w-full bg-[#09090b] border border-[#3f3f46] rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-[#7345d1]"
+                className="w-full bg-surface-100 border border-surface-300/70 rounded px-2 py-1 text-sm text-surface-900 focus:outline-none focus:border-brass-400"
               />
               <input
                 value={editMatter}
                 onChange={(e) => setEditMatter(e.target.value)}
                 placeholder="Matter number"
-                className="w-full bg-[#09090b] border border-[#3f3f46] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#7345d1]"
+                className="w-full bg-surface-100 border border-surface-300/70 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400"
               />
               <div className="flex items-center gap-2">
                 <input
@@ -173,9 +176,9 @@ function ClientCard({ client }: { client: Client }) {
                   step={25}
                   value={editRate}
                   onChange={(e) => setEditRate(Number(e.target.value))}
-                  className="flex-1 accent-[#7345d1]"
+                  className="flex-1 accent-brass-500"
                 />
-                <span className="text-xs w-16 text-right text-zinc-300">
+                <span className="text-xs text-surface-700 w-16 text-right">
                   {editRate === 0 ? "Default" : `$${editRate}/hr`}
                 </span>
               </div>
@@ -189,11 +192,11 @@ function ClientCard({ client }: { client: Client }) {
             </div>
           ) : (
             <>
-              <h3 className="font-semibold text-sm text-white truncate">{client.name}</h3>
+              <h3 className="font-semibold text-sm text-surface-950 truncate">{client.name}</h3>
               {client.matterNumber && (
-                <p className="text-xs text-zinc-500 mt-0.5">{client.matterNumber}</p>
+                <p className="text-xs text-surface-600 mt-0.5">{client.matterNumber}</p>
               )}
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <p className="text-xs text-surface-600 mt-0.5">
                 {client.billableRate === 0 ? "Default rate" : `$${client.billableRate}/hr`}
               </p>
             </>
@@ -202,16 +205,16 @@ function ClientCard({ client }: { client: Client }) {
         <div className="flex items-center gap-1">
           {editing ? (
             <>
-              <button onClick={saveEdit} className="p-1.5 text-emerald-400 hover:bg-emerald-500/10 rounded">
+              <button onClick={saveEdit} className="p-1.5 text-green-600 hover:bg-green-500/10 rounded transition-colors">
                 <Check className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => setEditing(false)} className="p-1.5 text-zinc-500 hover:bg-zinc-800 rounded">
+              <button onClick={() => setEditing(false)} className="p-1.5 text-surface-500 hover:bg-surface-200 rounded transition-colors">
                 <X className="w-3.5 h-3.5" />
               </button>
             </>
           ) : (
             <>
-              <button onClick={() => setEditing(true)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded" title="Edit">
+              <button onClick={() => setEditing(true)} className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors" title="Edit">
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               {entries.length > 0 && (
@@ -220,16 +223,16 @@ function ClientCard({ client }: { client: Client }) {
                     const { content, filename, mimeType } = exportBillingCsv(client, entries);
                     await downloadBillingExport(content, filename, mimeType);
                   }}
-                  className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded"
+                  className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors"
                   title="Export billing CSV"
                 >
                   <Download className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button onClick={() => archiveClient(client.id)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded" title="Archive">
+              <button onClick={() => archiveClient(client.id)} className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors" title="Archive">
                 <Archive className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => deleteClient(client.id)} className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded" title="Delete">
+              <button onClick={() => deleteClient(client.id)} className="p-1.5 text-surface-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors" title="Delete">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </>
@@ -238,17 +241,17 @@ function ClientCard({ client }: { client: Client }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 divide-x divide-[#27272a]">
+      <div className="grid grid-cols-3 divide-x divide-surface-300/50">
         <div className="p-3 text-center">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">Sessions</p>
-          <p className="text-lg font-bold text-white">{entries.length}</p>
+          <p className="text-[10px] text-surface-600 uppercase tracking-wide-caps mb-0.5">Sessions</p>
+          <p className="text-lg font-bold text-surface-950">{entries.length}</p>
         </div>
         <div className="p-3 text-center">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">Hours</p>
-          <p className="text-lg font-bold text-white">{totalHours.toFixed(1)}</p>
+          <p className="text-[10px] text-surface-600 uppercase tracking-wide-caps mb-0.5">Hours</p>
+          <p className="text-lg font-bold text-surface-950">{totalHours.toFixed(1)}</p>
         </div>
         <div className="p-3 text-center">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">Billable</p>
+          <p className="text-[10px] text-surface-600 uppercase tracking-wide-caps mb-0.5">Billable</p>
           <p className="text-lg font-bold" style={{ color: client.color }}>
             ${totalBillable.toFixed(0)}
           </p>
@@ -257,15 +260,15 @@ function ClientCard({ client }: { client: Client }) {
 
       {/* Recent entries */}
       {recentEntries.length > 0 && (
-        <div className="p-3 border-t border-[#27272a] space-y-1.5">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">Recent Sessions</p>
+        <div className="p-3 border-t border-surface-300/50 space-y-1.5">
+          <p className="text-[10px] text-surface-600 uppercase tracking-wide-caps mb-2">Recent Sessions</p>
           {recentEntries.map((entry) => (
             <div key={entry.id} className="flex items-center justify-between text-xs">
-              <span className="text-zinc-400">
+              <span className="text-surface-600">
                 {new Date(entry.date).toLocaleDateString()} · {Math.round(entry.durationSeconds / 60)}m
                 {entry.wordCount > 0 && ` · ${entry.wordCount} words`}
               </span>
-              <span className="text-zinc-300 font-medium">${entry.billableAmount.toFixed(2)}</span>
+              <span className="text-surface-800 font-medium">${entry.billableAmount.toFixed(2)}</span>
             </div>
           ))}
         </div>
@@ -348,45 +351,47 @@ export function ClientsPanel() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#27272a] shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-surface-300/50 shrink-0 bg-surface-50/60">
         <div>
-          <h2 className="text-sm font-semibold text-white">Clients & Matters</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <h2 className="text-sm font-semibold text-surface-950">Clients & Matters</h2>
+          <p className="text-xs text-surface-600 mt-0.5">
             {active.length} active · {totalHours.toFixed(1)} hrs · ${totalBillable.toFixed(0)} total
           </p>
         </div>
         <div className="flex items-center gap-2">
           {entries.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleExportAll}
-              className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white border border-[#3f3f46] hover:border-zinc-500 px-3 py-1.5 rounded-lg transition-colors"
               title="Export all billing as CSV"
             >
               <Download className="w-3.5 h-3.5" />
               Export CSV
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 text-xs font-medium bg-[#7345d1] hover:bg-[#5c35b0] text-white px-3 py-1.5 rounded-lg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Client
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Active client selector */}
       {active.length > 0 && (
-        <div className="px-4 py-3 border-b border-[#27272a] shrink-0">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Active Client (for new dictations)</p>
+        <div className="px-4 py-3 border-b border-surface-300/50 shrink-0">
+          <p className="label-caps mb-2">Active Client (for new dictations)</p>
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setActiveClient(null)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
                 activeClientId === null
-                  ? "bg-[#27272a] border-[#3f3f46] text-white"
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+                  ? "bg-surface-200 border-surface-300/60 text-surface-950"
+                  : "border-transparent text-surface-600 hover:text-surface-900"
               }`}
             >
               None
@@ -397,10 +402,10 @@ export function ClientsPanel() {
                 onClick={() => setActiveClient(c.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
                   activeClientId === c.id
-                    ? "border-transparent text-white"
-                    : "border-transparent text-zinc-400 hover:text-zinc-200"
+                    ? "border-transparent text-surface-950"
+                    : "border-transparent text-surface-600 hover:text-surface-900"
                 }`}
-                style={activeClientId === c.id ? { backgroundColor: c.color + "33", borderColor: c.color } : {}}
+                style={activeClientId === c.id ? { backgroundColor: c.color + "22", borderColor: c.color + "80" } : {}}
               >
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
@@ -408,7 +413,7 @@ export function ClientsPanel() {
                 />
                 {c.name}
                 {c.matterNumber && (
-                  <span className="text-zinc-500">#{c.matterNumber}</span>
+                  <span className="text-surface-500">#{c.matterNumber}</span>
                 )}
               </button>
             ))}
@@ -420,18 +425,15 @@ export function ClientsPanel() {
       <div className="flex-1 overflow-y-auto p-4">
         {active.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Briefcase className="w-10 h-10 text-zinc-700 mb-4" />
-            <p className="text-sm font-medium text-zinc-400 mb-1">No clients yet</p>
-            <p className="text-xs text-zinc-600 max-w-xs mb-4">
+            <Briefcase className="w-10 h-10 text-surface-400 mb-4" />
+            <p className="text-sm font-medium text-surface-700 mb-1">No clients yet</p>
+            <p className="text-xs text-surface-600 max-w-xs mb-4">
               Add a client or matter to track billable time and usage per file.
             </p>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1.5 text-xs font-medium bg-[#7345d1] hover:bg-[#5c35b0] text-white px-4 py-2 rounded-lg"
-            >
+            <Button variant="primary" size="sm" onClick={() => setShowAdd(true)}>
               <Plus className="w-3.5 h-3.5" />
               Add First Client
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -445,7 +447,7 @@ export function ClientsPanel() {
           <div className="mt-6">
             <button
               onClick={() => setShowArchived((v) => !v)}
-              className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1.5"
+              className="text-xs text-surface-500 hover:text-surface-800 flex items-center gap-1.5 transition-colors"
             >
               <Archive className="w-3.5 h-3.5" />
               {showArchived ? "Hide" : "Show"} {archived.length} archived client{archived.length !== 1 ? "s" : ""}

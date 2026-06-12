@@ -40,11 +40,19 @@ function formatLegalContract(text: string): string {
 
 // ── Legal case note: prepend date/time heading, attendance note structure ──
 function formatLegalCaseNote(text: string): string {
-  // "attendance note" spoken at start → formal heading
-  let out = text.replace(/^attendance note[:\s]*/i, "ATTENDANCE NOTE\n\n");
+  let out = text;
+  // "attendance note" / "file note" / "telephone note" spoken at start → formal heading
+  out = out.replace(/^attendance note[:\s]*/i, "ATTENDANCE NOTE\n\n");
   out = out.replace(/^file note[:\s]*/i, "FILE NOTE\n\n");
-  // "matter" → preserve as-is but ensure capitalisation
-  out = out.replace(/\bmatter number\s+(\S+)/gi, "Matter No: $1");
+  out = out.replace(/^telephone note[:\s]*/i, "TELEPHONE NOTE\n\n");
+  out = out.replace(/^telephone attendance[:\s]*/i, "TELEPHONE ATTENDANCE\n\n");
+  out = out.replace(/^meeting note[:\s]*/i, "MEETING NOTE\n\n");
+  out = out.replace(/^conference note[:\s]*/i, "CONFERENCE NOTE\n\n");
+  // "matter number X" / "ref X" → Matter No: X
+  out = out.replace(/\bmatter (number|no|ref)[:\s]+(\S+)/gi, "Matter No: $2");
+  out = out.replace(/\bclient ref[:\s]+(\S+)/gi, "Client Ref: $1");
+  // "action point" → ACTION POINT:
+  out = out.replace(/\baction point[s]?[:\s]*/gi, "ACTION POINT: ");
   return out;
 }
 
@@ -52,8 +60,10 @@ function formatLegalCaseNote(text: string): string {
 function formatLegalCourtFiling(text: string): string {
   let out = text;
   // "in the" + court name → uppercase
-  out = out.replace(/\bin the\s+(high court|supreme court|court of appeal|district court|family court|magistrates court)[,\s]/gi,
-    (_m, court) => `IN THE ${court.toUpperCase()},`);
+  out = out.replace(
+    /\bin the\s+(high court|supreme court|court of appeal|court of session|sheriff court|district court|family court|magistrates court|county court|employment tribunal|upper tribunal|first-tier tribunal|crown court|privy council)[,\s]/gi,
+    (_m, court) => `IN THE ${court.toUpperCase()},`
+  );
   // Case citation spoken: "Smith versus Jones" → "Smith v Jones"
   out = out.replace(/\b(\w+)\s+versus\s+(\w+)\b/gi, "$1 v $2");
   // "plaintiff" / "defendant" always capitalised in headings context

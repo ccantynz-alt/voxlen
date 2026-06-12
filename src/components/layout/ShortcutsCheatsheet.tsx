@@ -109,6 +109,24 @@ export function ShortcutsCheatsheet() {
               <Row key={row.label} label={row.label} keys={row.keys} />
             ))}
           </Section>
+          <Section title="Transcript">
+            {[
+              { label: "Edit a segment", keys: "Double-click" },
+              { label: "Save edit", keys: "Enter" },
+              { label: "Cancel edit", keys: "Esc" },
+              { label: "Find & Replace", keys: "Replace button" },
+              { label: "Switch paragraph / segment view", keys: "Paragraph button" },
+              { label: "Copy transcript", keys: "Copy button" },
+              { label: "Export (txt / rtf / json…)", keys: "Export button" },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-4 py-1">
+                <span className="text-sm text-surface-900">{row.label}</span>
+                <kbd className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-surface-300/70 bg-surface-100 text-[11px] text-surface-900 font-mono shadow-inset-hairline whitespace-nowrap">
+                  {row.keys}
+                </kbd>
+              </div>
+            ))}
+          </Section>
           <Section title="Voice commands" className="md:col-span-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1.5">
               {VOICE_COMMANDS.map((c) => (

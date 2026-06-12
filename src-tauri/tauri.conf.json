@@ -62,7 +62,7 @@
     },
     "windows": {
       "certificateThumbprint": null,
-      "timestampUrl": null,
+      "timestampUrl": "http://timestamp.digicert.com",
       "webviewInstallMode": {
         "type": "embedBootstrapper"
       },

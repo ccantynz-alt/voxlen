@@ -8,7 +8,7 @@ pub struct GrammarConfig {
     pub style: WritingStyle,
     pub auto_correct: bool,
     pub preserve_tone: bool,
-    /// When set, grammar correction is proxied through api.voxlen.com.
+    /// When set, grammar correction is proxied through voxlen.ai/api.
     #[serde(default)]
     pub voxlen_api_key: Option<String>,
     #[serde(default)]
@@ -118,7 +118,7 @@ pub async fn correct_grammar(
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or("No API key configured. Sign in to your Voxlen account in Settings, or add your Anthropic/OpenAI API key.")?;
+        .ok_or("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key.")?;
 
     let mut effective_config = config.clone();
     if let Some(ctx) = effective_context {
@@ -344,7 +344,7 @@ Text: "{text}""#,
     })
 }
 
-/// Proxy grammar correction through api.voxlen.com — no provider key needed.
+/// Proxy grammar correction through voxlen.ai/api — no provider key needed.
 async fn correct_with_voxlen_proxy(
     text: &str,
     voxlen_key: &str,
@@ -354,7 +354,7 @@ async fn correct_with_voxlen_proxy(
 ) -> Result<GrammarResult, String> {
     let client = reqwest::Client::new();
     let mut req = client
-        .post("https://api.voxlen.com/v1/grammar")
+        .post("https://voxlen.ai/api/grammar")
         .header("Authorization", format!("Bearer {}", voxlen_key))
         .header("content-type", "application/json");
     if let Some(tid) = config.voxlen_tenant_id.as_deref().filter(|s| !s.is_empty()) {

@@ -28,6 +28,7 @@ export function HistoryPanel() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [exportMenuId, setExportMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();

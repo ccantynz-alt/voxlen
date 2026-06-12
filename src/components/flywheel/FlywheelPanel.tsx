@@ -58,7 +58,7 @@ export function FlywheelPanel() {
 
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "ok" | "error">("idle");
   const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
-  const voxlenApiBase = "https://api.voxlen.com/v1";
+  const voxlenApiBase = "https://voxlen.ai/api";
   const voxlenTenantId = useSettingsStore((s) => s.voxlenTenantId);
 
   const handleSyncVocabulary = async () => {
@@ -311,6 +311,8 @@ function VocabularyList({
   entries: ReturnType<typeof useFlywheelStore.getState>["vocabulary"];
   onRemove: (word: string) => void;
 }) {
+  const customVocabulary = useSettingsStore((s) => s.customVocabulary);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
   if (entries.length === 0) {
     return (
       <EmptyState
@@ -339,14 +341,31 @@ function VocabularyList({
               {entry.frequency}×
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => onRemove(entry.word)}
-            className="text-surface-600 hover:text-red-500 transition-colors p-1"
-            aria-label={"Remove " + entry.word}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex items-center gap-0.5">
+            {!customVocabulary.includes(entry.word) && (
+              <button
+                type="button"
+                onClick={() => updateSetting("customVocabulary", [...customVocabulary, entry.word])}
+                className="text-surface-500 hover:text-brass-500 transition-colors p-1"
+                title="Promote to STT vocabulary (boosts recognition in Deepgram)"
+              >
+                <Upload className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {customVocabulary.includes(entry.word) && (
+              <span className="p-1 text-brass-500" title="Already in STT vocabulary">
+                <Check className="h-3.5 w-3.5" />
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => onRemove(entry.word)}
+              className="text-surface-600 hover:text-red-500 transition-colors p-1"
+              aria-label={"Remove " + entry.word}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </li>
       ))}
     </ul>

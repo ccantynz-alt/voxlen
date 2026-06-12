@@ -218,10 +218,12 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
       return { timeEntries: [entry, ...state.timeEntries].slice(0, 500) };
     }),
 
-  removeTimeEntry: (id) =>
+  removeTimeEntry: (id) => {
     set((state) => ({
       timeEntries: state.timeEntries.filter((e) => e.id !== id),
-    })),
+    }));
+    schedulePersist();
+  },
 
   getTotalBillableHours: (): number => {
     const entries: TimeEntry[] = get().timeEntries;

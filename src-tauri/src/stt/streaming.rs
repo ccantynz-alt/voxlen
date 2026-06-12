@@ -18,6 +18,12 @@ impl StreamingSession {
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::Relaxed);
     }
+
+    /// True once the session has been stopped or its worker task has exited
+    /// (clean shutdown, auth failure, or retries exhausted).
+    pub fn is_stopped(&self) -> bool {
+        self.stop_flag.load(Ordering::Relaxed)
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -84,13 +90,34 @@ pub fn start_streaming(
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_clone = stop_flag.clone();
 
+    let direct_api_key = config.api_key.filter(|k| !k.is_empty());
+    let voxlen_api_key = config.voxlen_api_key.filter(|k| !k.is_empty());
     let language = config.language.clone();
     let auto_detect = config.auto_detect_language;
     let custom_vocabulary = config.custom_vocabulary.clone();
     let diarization = config.speaker_diarization;
     let tenant_id = config.voxlen_tenant_id.clone();
 
+    let stop_on_exit = stop_flag.clone();
     let handle = tokio::spawn(async move {
+        let session_task = async {
+        // Resolve the actual Deepgram API key to use for this session.
+        // If the user has a direct Deepgram key, use it. Otherwise fetch a
+        // short-lived proxy key from the Voxlen backend.
+        let api_key = if let Some(k) = direct_api_key {
+            k
+        } else if let Some(vk) = voxlen_api_key {
+            match fetch_proxy_deepgram_key(&vk).await {
+                Ok(k) => k,
+                Err(e) => {
+                    let _ = app_handle.emit("transcription-error", format!("Failed to get streaming key from Voxlen proxy: {}", e));
+                    return;
+                }
+            }
+        } else {
+            return;
+        };
+
         let max_retries = 3;
         let mut attempt = 0;
 
@@ -141,6 +168,10 @@ pub fn start_streaming(
                 }
             }
         }
+        };
+        session_task.await;
+        // Mark the session ended so the processor knows to start a fresh one
+        stop_on_exit.store(true, Ordering::Relaxed);
     });
 
     Ok(StreamingSession {
@@ -261,9 +292,10 @@ async fn run_session_once(
         url.push_str("&diarize=true");
     }
 
+    // Nova-3 uses keyterm prompting (the old `keywords` param is silently
+    // ignored on nova-3), so custom vocabulary must go through `keyterm`.
     for word in custom_vocabulary {
-        let encoded = word.replace(' ', "%20");
-        url.push_str(&format!("&keywords={}:1.5", encoded));
+        url.push_str(&format!("&keyterm={}", super::cloud::urlencoding(word)));
     }
 
     log::info!("Connecting to Deepgram streaming...");

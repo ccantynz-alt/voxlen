@@ -66,7 +66,7 @@ impl AudioProcessor {
                             // Streaming path — ensure a live session exists
                             let needs_new_session = streaming_relay
                                 .as_ref()
-                                .map(|(tx, _)| tx.is_disconnected())
+                                .map(|(_, session)| session.is_stopped())
                                 .unwrap_or(true);
 
 

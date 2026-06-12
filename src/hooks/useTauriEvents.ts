@@ -162,6 +162,21 @@ export function useTauriEvents(): void {
                   return;
                 }
 
+                // Review uncertain words — count and toast
+                if (parsed.action === "review_uncertain") {
+                  const segs = useDictationStore.getState().segments;
+                  const count = segs.flatMap((s) => (s.words ?? []).filter((w) => w.confidence < 0.75)).length;
+                  toast(
+                    count > 0
+                      ? `${count} uncertain word${count !== 1 ? "s" : ""} highlighted in transcript`
+                      : "No uncertain words in transcript",
+                    "info",
+                    count > 0 ? 4000 : 3000
+                  );
+                  dictation.setCurrentTranscript("");
+                  return;
+                }
+
                 // For caps on/off, toggle local state.
                 if (parsed.action === "caps_on") {
                   dictation.setCapsLock(true);

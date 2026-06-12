@@ -29,6 +29,7 @@ export function GrammarPanel() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const writingStyle = useSettingsStore((s) => s.writingStyle);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const activeClient = useClientsStore((s) => s.clients.find((c) => c.id === s.activeClientId));
@@ -37,6 +38,7 @@ export function GrammarPanel() {
     if (!inputText.trim()) return;
 
     setIsProcessing(true);
+    setError(null);
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const matterContext = buildMatterContext(activeClient) || undefined;
@@ -58,10 +60,10 @@ export function GrammarPanel() {
       setChanges(result.changes);
       setScore(result.score);
     } catch {
-      // Demo fallback
       setCorrectedText(inputText);
       setChanges([]);
       setScore(1.0);
+      setError("Grammar correction unavailable. Check your API key in Settings.");
     }
     setIsProcessing(false);
   }, [inputText]);
@@ -169,6 +171,11 @@ export function GrammarPanel() {
             </Button>
           </div>
           <div className="flex-1 p-5 overflow-y-auto">
+            {error && (
+              <div className="mb-3 px-3 py-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs">
+                {error}
+              </div>
+            )}
             {correctedText ? (
               <p className="text-[14px] text-surface-950 leading-relaxed whitespace-pre-wrap font-sans">
                 {correctedText}

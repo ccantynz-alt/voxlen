@@ -6,10 +6,10 @@ import type {
   VocabularyList,
 } from "./types";
 
-const DEFAULT_BASE = "https://api.voxlen.com/v1";
+const DEFAULT_BASE = "https://voxlen.ai/api";
 
 /**
- * Low-level client for the Voxlen REST API (api.voxlen.com/v1).
+ * Low-level client for the Voxlen REST API (voxlen.ai/api/v1).
  * Used when a voxlenApiKey is configured — routes all transcription
  * through the Voxlen platform rather than calling Deepgram directly.
  */

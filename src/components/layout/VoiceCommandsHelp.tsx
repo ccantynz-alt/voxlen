@@ -34,6 +34,7 @@ const ALL_COMMANDS: CommandEntry[] = [
   { command: "undo / undo that", description: "Undo the last action", category: "control" },
   { command: "copy that / copy text", description: "Copy all text to clipboard", category: "control" },
   { command: "select all", description: "Select all text", category: "control" },
+  { command: "review uncertain words / check uncertain", description: "Show count of low-confidence words in transcript", category: "control" },
   // Billable time
   { command: "start billing / start timer", description: "Start the billable time timer", category: "billing" },
   { command: "stop billing / stop timer", description: "Stop the billable time timer", category: "billing" },

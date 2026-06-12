@@ -37,6 +37,7 @@ import type { ExportFormat } from "@/lib/export";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
+  const errorMessage = useDictationStore((s) => s.error);
   const wordCount = useDictationStore((s) => s.wordCount);
   const sessionDuration = useDictationStore((s) => s.sessionDuration);
   const inputLevel = useDictationStore((s) => s.inputLevel);
@@ -92,7 +93,7 @@ export function DictationPanel() {
   }, [status, incrementDuration]);
 
   const handleToggleDictation = useCallback(async () => {
-    if (status === "idle" || status === "paused") {
+    if (status === "idle" || status === "paused" || status === "error") {
       sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
@@ -114,8 +115,13 @@ export function DictationPanel() {
 
         await invoke("start_dictation");
         setStatus("listening");
-      } catch {
-        setStatus("listening");
+      } catch (e) {
+        // Real failure in the desktop app (mic permission, device missing,
+        // no account) — never pretend we're listening.
+        const msg = typeof e === "string" ? e : e instanceof Error ? e.message : "Could not start dictation";
+        useDictationStore.getState().setError(msg);
+        setStatus("error");
+        toast(msg.length > 100 ? msg.slice(0, 100) + "…" : msg, "error", 6000);
       }
     } else if (status === "listening") {
       // Capture session BEFORE status flip so autosave in useTauriEvents
@@ -266,11 +272,11 @@ export function DictationPanel() {
               });
             }
           } catch {
-            // Translation not available
+            toast("Translation unavailable — check your API key in Settings", "error", 4000);
           }
         }
       } catch {
-        // Grammar correction not available
+        toast("Grammar correction unavailable — check your API key in Settings", "error", 4000);
       }
     },
     [segments]
@@ -307,9 +313,12 @@ export function DictationPanel() {
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
   const setActiveClient = useClientsStore((s) => s.setActiveClient);
 
+  const currentTranscript = useDictationStore((s) => s.currentTranscript);
   const isActive = status === "listening" || status === "processing";
   const showControls = isActive || status === "paused";
-  const hasContent = segments.length > 0;
+  // Include the live interim transcript so the very first utterance is
+  // visible while it's still being spoken
+  const hasContent = segments.length > 0 || !!currentTranscript;
 
   const CONTEXTS = [
     { value: "", label: "General" },
@@ -405,8 +414,13 @@ export function DictationPanel() {
               )}
               {status === "processing" && "Processing speech"}
               {status === "paused" && "Paused"}
-              {status === "error" && "An error occurred"}
+              {status === "error" && "Couldn't start dictation"}
             </h2>
+            {status === "error" && errorMessage && (
+              <p className="text-[12px] text-red-400 mt-2 max-w-md mx-auto leading-relaxed">
+                {errorMessage} — press the microphone to retry.
+              </p>
+            )}
             {selectedDevice && (
               <p className="text-[11px] text-surface-600 mt-2 flex items-center justify-center gap-1.5 tracking-tight">
                 <Mic className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
