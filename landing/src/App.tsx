@@ -1300,7 +1300,9 @@ function detectPlatform(): Platform {
   const ua = window.navigator.userAgent;
   const platform = window.navigator.platform || "";
   if (/Mac/i.test(platform) || /Mac/i.test(ua)) {
-    return "mac-arm";
+    // Distinguish Apple Silicon from Intel via userAgentData or UA string
+    const isIntel = /Intel/i.test(ua) || /x86_64/i.test(ua);
+    return isIntel ? "mac-intel" : "mac-arm";
   }
   if (/Win/i.test(platform) || /Windows/i.test(ua)) return "windows";
   if (/Linux/i.test(platform) || /Linux/i.test(ua)) return "linux";
@@ -2069,9 +2071,14 @@ interface SEOPageData {
 function SEOPage({ title, headline, subheadline, description, bullets, faq, cta, onSignIn }: SEOPageData & { onSignIn: (u: GoogleUser) => void }) {
   const login = useGoogleSignIn(onSignIn);
 
+  useEffect(() => {
+    const prev = document.title;
+    document.title = `${title} | Voxlen`;
+    return () => { document.title = prev; };
+  }, [title]);
+
   return (
     <div className="min-h-screen bg-[#09090b] text-white">
-      <title>{title} | Voxlen</title>
       {/* Nav */}
       <div className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">

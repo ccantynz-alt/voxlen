@@ -79,13 +79,15 @@ export default function ROICalculator() {
   const savedPerSession = typingMinutes - dictationMinutes + ACCURACY_GAIN_MINUTES_PER_HOUR * (dictationMinutes / 60);
 
   // Sessions per day (approx)
-  const sessionsPerDay = (hoursPerDay * 60) / typingMinutes;
+  const sessionsPerDay = typingMinutes > 0 ? (hoursPerDay * 60) / typingMinutes : 0;
   const savedMinutesPerDay = savedPerSession * sessionsPerDay;
   const savedMinutesPerYear = savedMinutesPerDay * daysPerWeek * 50; // 50 weeks
   const savedHoursPerYear = savedMinutesPerYear / 60;
   const savedBillablePerYear = savedHoursPerYear * rate;
   const voxlenCostPerYear = 29 * 12; // Pro plan: $29/mo billed monthly
-  const roiMultiple = Math.round(savedBillablePerYear / voxlenCostPerYear);
+  const roiMultiple = isFinite(savedBillablePerYear / voxlenCostPerYear)
+    ? Math.round(savedBillablePerYear / voxlenCostPerYear)
+    : 0;
 
   return (
     <section id="roi-calculator" className="py-24 px-6 bg-[#0c0c0f]">
