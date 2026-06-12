@@ -1088,34 +1088,48 @@ export function Dashboard({
         {/* Connect Desktop App */}
         {accessToken && <ConnectDesktopApp accessToken={accessToken} />}
 
-        {/* Getting started (non-admin) */}
-        {!isAdmin && <GettingStarted hasApiKey={hasApiKey} />}
+        {/* Admin key issuer */}
+        {isAdmin && accessToken && <AdminKeyIssuer accessToken={accessToken} />}
+
+        {/* Subscription (non-admin) */}
+        {!isAdmin && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="h-5 w-5 text-zinc-400" />
+              <h2 className="font-bold">Subscription</h2>
+            </div>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <p className="text-zinc-300 font-medium">Free Plan</p>
+                <p className="text-zinc-500 text-sm mt-0.5">Upgrade to Pro or Professional to unlock grammar AI and unlimited dictation.</p>
+              </div>
+              <a
+                href="/#pricing"
+                className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
+              >
+                Upgrade
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Upgrade prompt (non-admin) */}
         {!isAdmin && (
-          <div className="rounded-2xl border border-marcoreid-600/20 bg-marcoreid-600/5 p-6">
+          <div className="rounded-2xl border border-brand-600/20 bg-brand-600/5 p-6">
             <div className="flex items-center gap-2 mb-2">
-              <Zap className="h-5 w-5 text-marcoreid-400" />
-              <h2 className="font-bold text-marcoreid-300">Unlock Full Access</h2>
+              <Zap className="h-5 w-5 text-brand-400" />
+              <h2 className="font-bold text-brand-300">Unlock Full Access</h2>
             </div>
             <p className="text-zinc-400 text-sm mb-4">
               Upgrade to a Pro or Professional plan — Voxlen supplies all AI keys. No Deepgram or Anthropic accounts
               needed.
             </p>
-            <div className="flex items-center gap-3">
-              <a
-                href="/#pricing"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors"
-              >
-                View Plans
-              </a>
-              <a
-                href="/#pricing"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/10 text-zinc-300 text-sm hover:bg-white/5 transition-colors"
-              >
-                Compare features
-              </a>
-            </div>
+            <a
+              href="/#pricing"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
+            >
+              View Plans
+            </a>
           </div>
         )}
 
