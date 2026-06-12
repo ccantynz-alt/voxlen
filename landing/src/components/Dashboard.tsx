@@ -5,7 +5,6 @@ import {
   Monitor,
   Shield,
   Zap,
-  Key,
   LogOut,
   Copy,
   Check,
@@ -226,11 +225,11 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
               <div className="space-y-3">
                 <p className="text-zinc-400 text-xs uppercase tracking-widest font-medium">Quick links</p>
                 <a
-                  href="https://app.voxlen.ai"
+                  href="/#download"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 transition-colors text-sm font-medium"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  Open Voxlen App
+                  Download Voxlen App
                 </a>
                 <a
                   href="https://github.com/ccantynz-alt/voxlen"
@@ -271,36 +270,22 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
           </div>
         )}
 
-        {/* API key (non-admin) */}
+        {/* Upgrade prompt (non-admin) */}
         {!isAdmin && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <Key className="h-5 w-5 text-zinc-400" />
-              <h2 className="font-bold">API Keys</h2>
+          <div className="rounded-2xl border border-marcoreid-600/20 bg-marcoreid-600/5 p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="h-5 w-5 text-marcoreid-400" />
+              <h2 className="font-bold text-marcoreid-300">Unlock Full Access</h2>
             </div>
-            <p className="text-zinc-500 text-sm mb-4">
-              Enter your own Deepgram and Anthropic keys in the desktop app Settings panel, or upgrade for managed keys (no setup needed).
+            <p className="text-zinc-400 text-sm mb-4">
+              Upgrade to a Pro or Professional plan — Voxlen supplies all AI keys. No Deepgram or Anthropic accounts needed.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <a
-                href="https://console.deepgram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Get Deepgram key (free tier)
-              </a>
-              <a
-                href="https://console.anthropic.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Get Anthropic key (Claude)
-              </a>
-            </div>
+            <a
+              href="/#pricing"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors"
+            >
+              View Plans
+            </a>
           </div>
         )}
 
