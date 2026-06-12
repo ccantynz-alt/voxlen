@@ -278,11 +278,15 @@ export function useTauriEvents(): void {
                   // Step 1: grammar correction
                   if (grammarEnabled) {
                     try {
+                      const flyVocab = useFlywheelStore.getState().vocabulary
+                        .filter((v) => v.frequency >= 2)
+                        .map((v) => v.word);
+                      const mergedVocab = Array.from(new Set([...flyVocab, ...settings.customVocabulary]));
                       const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
                         "correct_grammar",
                         {
                           text: finalText,
-                          customVocabulary: settings.customVocabulary,
+                          customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
                         }
                       );
                       if (grammarResult?.corrected) {
@@ -291,6 +295,20 @@ export function useTauriEvents(): void {
                           correctedText: grammarResult.corrected,
                           grammarApplied: true,
                         });
+                        // Feed corrections back into flywheel
+                        if (grammarResult.changes?.length) {
+                          const fw = useFlywheelStore.getState();
+                          for (const c of grammarResult.changes) {
+                            if (c.original && c.corrected && c.original !== c.corrected) {
+                              fw.recordCorrection(
+                                c.original,
+                                c.corrected,
+                                (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
+                              );
+                            }
+                          }
+                          fw.recordCorrectionFeedback(true);
+                        }
                       }
                     } catch {
                       // Grammar unavailable (no API key etc.) — continue with raw text.
