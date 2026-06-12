@@ -373,7 +373,7 @@ export function useTauriEvents(): void {
         });
 
         const unlistenReconnecting = await listen<number>("streaming-reconnecting", (event) => {
-          toast(`Reconnecting to Deepgram… (attempt ${event.payload})`, "info", 3000);
+          toast(`Reconnecting to transcription service… (attempt ${event.payload})`, "info", 3000);
         });
 
         unlisten = () => {
