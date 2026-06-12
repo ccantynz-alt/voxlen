@@ -230,6 +230,18 @@ export default function App() {
     setShowOnboarding(false);
   }, []);
 
+  const handleReopenSetup = useCallback(async () => {
+    try {
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("settings.json");
+      await store.delete("onboarding_complete");
+      await store.save();
+    } catch {
+      localStorage.removeItem("voxlen_onboarding_complete");
+    }
+    setShowOnboarding(true);
+  }, []);
+
   const renderView = useCallback(() => {
     switch (activeView) {
       case "dictation":
@@ -259,7 +271,7 @@ export default function App() {
       case "settings":
         return (
           <ErrorBoundary label="Settings">
-            <SettingsPanel />
+            <SettingsPanel onReopenSetup={handleReopenSetup} />
           </ErrorBoundary>
         );
       case "admin":

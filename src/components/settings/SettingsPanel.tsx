@@ -119,7 +119,7 @@ function useSettingsPersistence() {
   });
 }
 
-export function SettingsPanel() {
+export function SettingsPanel({ onReopenSetup }: { onReopenSetup?: () => void } = {}) {
   const settings = useSettingsStore();
   const setDevices = useAudioStore((s) => s.setDevices);
 
@@ -189,7 +189,7 @@ export function SettingsPanel() {
       case "appearance":
         return <AppearanceSettings />;
       case "advanced":
-        return <AdvancedSettings />;
+        return <AdvancedSettings onReopenSetup={onReopenSetup} />;
       case "privacy":
         return <PrivacySettings />;
       case "voxlen-api":
@@ -919,7 +919,7 @@ function AppearanceSettings() {
   );
 }
 
-function AdvancedSettings() {
+function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
   const settings = useSettingsStore();
 
   return (
@@ -999,7 +999,16 @@ function AdvancedSettings() {
         />
       </SettingRow>
 
-      <div className="pt-4">
+      <div className="pt-4 flex items-center gap-3 flex-wrap">
+        {onReopenSetup && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReopenSetup}
+          >
+            Re-run Setup Wizard
+          </Button>
+        )}
         <Button
           variant="danger"
           size="sm"
