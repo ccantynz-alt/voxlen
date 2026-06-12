@@ -43,12 +43,41 @@ export function HistoryPanel() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleExportTxt = (entry: (typeof entries)[0]) => {
-    const blob = new Blob([entry.text], { type: "text/plain" });
+  const handleExport = (entry: (typeof entries)[0], format: "txt" | "md") => {
+    const date = new Date(entry.timestamp);
+    const dateStr = date.toISOString().slice(0, 10);
+    let content: string;
+    let mimeType: string;
+    let ext: string;
+
+    if (format === "md") {
+      const lines = [
+        "# Voxlen Transcript",
+        "",
+        `**Date:** ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+        `**Words:** ${entry.wordCount}`,
+        `**Duration:** ${formatDuration(entry.duration)}`,
+        `**Language:** ${entry.language.toUpperCase()}`,
+        entry.grammarCorrected ? "**AI Polished:** Yes" : "",
+        "",
+        "---",
+        "",
+        entry.text,
+      ].filter((l) => l !== undefined);
+      content = lines.join("\n");
+      mimeType = "text/markdown";
+      ext = "md";
+    } else {
+      content = entry.text;
+      mimeType = "text/plain";
+      ext = "txt";
+    }
+
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `transcript-${new Date(entry.timestamp).toISOString().slice(0, 10)}.txt`;
+    a.download = `transcript-${dateStr}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -163,14 +192,30 @@ export function HistoryPanel() {
                       <Copy className="h-3 w-3" />
                     )}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleExportTxt(entry)}
-                    className="h-7 px-2"
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
+                  <div className="relative group/dl">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      title="Export transcript"
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover/dl:flex flex-col z-10 bg-white border border-surface-300/70 rounded-lg shadow-elevation overflow-hidden min-w-[80px]">
+                      <button
+                        onClick={() => handleExport(entry, "txt")}
+                        className="px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 text-left"
+                      >
+                        .txt
+                      </button>
+                      <button
+                        onClick={() => handleExport(entry, "md")}
+                        className="px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 text-left"
+                      >
+                        .md
+                      </button>
+                    </div>
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
