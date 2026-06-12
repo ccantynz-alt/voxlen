@@ -77,9 +77,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await upstream.json() as { content: Array<{ text: string }> };
-    const corrected = data.content?.[0]?.text ?? text;
-    return res.status(200).set(headers).json({ corrected });
-  } catch (e) {
+    const raw = data.content?.[0]?.text ?? text;
+
+    // Try to parse as structured JSON (Rust client sends structured prompt)
+    try {
+      const parsed = JSON.parse(raw) as {
+        corrected?: string;
+        changes?: unknown[];
+        score?: number;
+      };
+      if (parsed.corrected) {
+        return res.status(200).set(headers).json({
+          corrected: parsed.corrected,
+          changes: parsed.changes ?? [],
+          score: parsed.score ?? 1.0,
+        });
+      }
+    } catch {
+      // Plain text response — wrap it
+    }
+
+    return res.status(200).set(headers).json({
+      corrected: raw,
+      changes: [],
+      score: 1.0,
+    });
+  } catch {
     return res.status(502).set(headers).json({ error: "Grammar request failed" });
   }
 }
@@ -88,7 +111,7 @@ function buildStableCore(): string {
   return [
     "You are a grammar correction assistant for legal and accounting professionals.",
     "Correct grammar, punctuation, and spelling in the user's dictated text.",
-    "Return ONLY the corrected text — no explanation, no commentary, no quotes.",
+    'Respond ONLY with valid JSON: {"corrected": "...", "changes": [{"original": "...", "corrected": "...", "reason": "...", "category": "grammar|spelling|punctuation|style"}], "score": 0.95}',
     "Do not add or remove substantive content.",
   ].join(" ");
 }
