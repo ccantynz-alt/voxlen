@@ -446,6 +446,21 @@ export function useTauriEvents(): void {
             })();
           }
         }
+
+        // Session summary toast
+        if (segments.length > 0) {
+          const wc = segments.reduce(
+            (n, s) => n + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
+            0
+          );
+          const corrected = segments.filter((s) => s.grammarApplied).length;
+          const mins = Math.floor(useDictationStore.getState().sessionDuration / 60);
+          const secs = useDictationStore.getState().sessionDuration % 60;
+          const duration = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+          const parts = [`${wc} word${wc !== 1 ? "s" : ""}`, duration];
+          if (corrected > 0) parts.push(`${corrected} correction${corrected !== 1 ? "s" : ""}`);
+          toast(`Session saved — ${parts.join(" · ")}`, "success", 4000);
+        }
       }
       lastStatus = current;
     });
