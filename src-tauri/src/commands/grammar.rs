@@ -79,6 +79,15 @@ pub async fn correct_grammar(
 ) -> Result<GrammarResult, String> {
     let config = get_config_store().read().clone();
 
+    if text.trim().is_empty() {
+        return Ok(GrammarResult {
+            original: text.clone(),
+            corrected: text,
+            changes: vec![],
+            score: 1.0,
+        });
+    }
+
     if !config.enabled || crate::commands::settings::get_privileged_mode() {
         return Ok(GrammarResult {
             original: text.clone(),
