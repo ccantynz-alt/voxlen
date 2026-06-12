@@ -54,9 +54,12 @@ export default function App() {
 
   const handleSignIn = useCallback((u: GoogleUser) => {
     storeUser(u);
+    // Set user and path in the same React batch so we never render
+    // path="/dashboard" with user=null (which returns null → black screen).
     setUser(u);
-    navigate("/dashboard");
-  }, [navigate]);
+    setPath("/dashboard");
+    window.history.pushState({}, "", "/dashboard");
+  }, []);
 
   const handleSignOut = useCallback(() => {
     clearUser();
@@ -71,6 +74,14 @@ export default function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  // Redirect unauthenticated /dashboard visits to home — must be before any early returns
+  useEffect(() => {
+    if (path === "/dashboard" && !user) {
+      setPath("/");
+      window.history.replaceState({}, "", "/");
+    }
+  }, [path, user]);
 
   if (path === "/privacy") {
     return <LegalPage type="privacy" />;
@@ -88,15 +99,6 @@ export default function App() {
   if (path === "/dashboard" && user) {
     return <Dashboard user={user} accessToken={getStoredToken()} onSignOut={handleSignOut} />;
   }
-  useEffect(() => {
-    if (path === "/dashboard" && !user) {
-      navigate("/");
-    }
-  }, [path, user, navigate]);
-
-  if (path === "/dashboard" && !user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-[#09090b]">
@@ -108,7 +110,7 @@ export default function App() {
       <HowItWorks />
       <Testimonials />
       <Comparison />
-      <Pricing />
+      <Pricing user={user} onSignIn={handleSignIn} />
       <FAQ />
       <CTA user={user} onSignIn={handleSignIn} />
       <Footer onOpenLegal={(type) => navigate(`/${type}`)} />
@@ -264,7 +266,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
           <motion.div variants={fadeUp} className="flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-600/10 border border-brand-600/20 text-brand-400 text-xs font-medium">
               <Zap className="h-3 w-3" />
-              The Dragon NaturallySpeaking alternative lawyers actually use
+              Real-time AI dictation — faster than typing, smarter than autocorrect
             </div>
           </motion.div>
 
@@ -273,9 +275,9 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             variants={fadeUp}
             className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]"
           >
-            Voice Dictation
+            Dictate anything.
             <br />
-            <span className="gradient-text">Built for Lawyers & Accountants.</span>
+            <span className="gradient-text">Perfectly.</span>
           </motion.h1>
 
           {/* Subheadline */}
@@ -283,11 +285,11 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             variants={fadeUp}
             className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed"
           >
-            The most advanced legal dictation software available. Real-time transcription,
-            AI grammar correction, built-in clause library, and zero-retention privacy for sensitive matters.
-            Works on Mac, Windows, iPhone, and Android.{" "}
+            The AI voice dictation tool built for professionals who can't afford mistakes.
+            Real-time transcription, Claude AI grammar correction, and zero-retention privacy.
+            Works in every app on Mac, Windows, iPhone, and Android.{" "}
             <span className="text-white font-medium">
-              Free 14-day trial — no credit card required.
+              Loved by lawyers, accountants, doctors, and executives.
             </span>
           </motion.p>
 
@@ -918,7 +920,30 @@ function Comparison() {
   );
 }
 
-function Pricing() {
+function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
+  const login = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (response) => {
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${response.access_token}` },
+        });
+        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        storeToken(response.access_token);
+        const u = { email: info.email, name: info.name, picture: info.picture, sub: info.sub };
+        onSignIn(u);
+        // After sign-in, proceed to checkout (will scroll to download if Stripe not configured)
+      } catch {}
+    },
+  });
+
+  const handleCta = (priceId: string) => {
+    if (!user) {
+      login();
+      return;
+    }
+    redirectToCheckout(priceId, user.email);
+  };
   const tiers = [
     {
       name: "Free",
@@ -979,17 +1004,18 @@ function Pricing() {
     },
     {
       name: "Lifetime",
-      tagline: "Pay once, own forever",
+      tagline: "Early bird offer — limited time",
       price: "$599",
       period: "/one-time",
       features: [
-        "Everything in Pro",
-        "Lifetime updates",
+        "Everything in Professional",
+        "Lifetime updates — pay once, own forever",
         "Early access to new features",
         "Custom vocabulary",
         "Direct founder support",
+        "Price increases after launch",
       ],
-      cta: "Get Lifetime",
+      cta: "Get Lifetime Access",
       ctaStyle: "secondary",
       highlight: false,
       priceId: PRICE_LIFETIME,
@@ -1070,14 +1096,14 @@ function Pricing() {
               {t.priceId ? (
                 <button
                   type="button"
-                  onClick={() => redirectToCheckout(t.priceId!)}
+                  onClick={() => handleCta(t.priceId!)}
                   className={`w-full h-11 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
                     t.ctaStyle === "primary"
                       ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25"
                       : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
                   }`}
                 >
-                  {t.cta}
+                  {!user ? "Sign in to Get Started" : t.cta}
                 </button>
               ) : (
                 <a
