@@ -10,6 +10,9 @@ import {
   Check,
   Crown,
   ExternalLink,
+  Key,
+  RefreshCw,
+  UserPlus,
 } from "lucide-react";
 import type { GoogleUser } from "../lib/auth";
 
@@ -73,46 +76,146 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
+interface GeneratedKey {
+  token: string;
+  expiresDate: string;
+  plan: string;
+  email: string;
+}
+
 function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
-  // Prefer a long-lived desktop token; fall back to the (1-hour) Google
-  // session token if the endpoint isn't configured yet.
-  const [desktopToken, setDesktopToken] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<GeneratedKey | null>(null);
   const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/desktop-token", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((json: { token?: string }) => {
-        if (!cancelled && json.token) setDesktopToken(json.token);
-      })
-      .catch(() => { /* fall back to session token */ })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [accessToken]);
+  const generate = async () => {
+    setRegenerating(true);
+    try {
+      const r = await fetch("https://voxlen.ai/api/generate-key", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (r.ok) {
+        const json = await r.json() as GeneratedKey;
+        setApiKey(json);
+      }
+    } catch { /* network error */ }
+    setLoading(false);
+    setRegenerating(false);
+  };
 
-  const key = desktopToken ?? accessToken;
+  useEffect(() => { generate(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const displayKey = apiKey?.token ?? accessToken;
+  const expiresMsg = apiKey
+    ? `Valid until ${apiKey.expiresDate} · ${apiKey.plan} plan`
+    : "Session token — expires in ~1 hour. Generate a key above for a persistent one.";
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-      <div className="flex items-center gap-2 mb-1">
-        <Zap className="h-5 w-5 text-brand-400" />
-        <h2 className="font-bold">Connect Desktop App</h2>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <Key className="h-5 w-5 text-marcoreid-400" />
+          <h2 className="font-bold">Your API Key</h2>
+        </div>
+        <button
+          onClick={generate}
+          disabled={regenerating}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3 w-3 ${regenerating ? "animate-spin" : ""}`} />
+          Regenerate
+        </button>
       </div>
       <p className="text-zinc-500 text-sm mb-4">
-        Copy your account key and paste it into <strong className="text-zinc-300">Voxlen Settings → Voxlen Account</strong> (or the onboarding Connect step). Transcription and AI grammar are included — no other keys needed.
+        Paste this into <strong className="text-zinc-300">Voxlen Settings → Voxlen Account</strong>. All AI and transcription included — no other keys needed.
       </p>
-      <div className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-zinc-400 break-all">
-        <span className="flex-1 truncate">{loading ? "Generating your key…" : key}</span>
-        {!loading && <CopyButton value={key} />}
+      <div className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-zinc-400">
+        <span className="flex-1 truncate">{loading ? "Generating your key…" : displayKey}</span>
+        {!loading && <CopyButton value={displayKey} />}
       </div>
-      <p className="text-[11px] text-zinc-600 mt-2">
-        {desktopToken
-          ? "This key is valid for 180 days. Come back any time to generate a fresh one."
-          : "This session token expires after about an hour — re-copy from this page if the app asks you to reconnect."}
-      </p>
+      <p className="text-[11px] text-zinc-600 mt-2">{expiresMsg}</p>
+    </div>
+  );
+}
+
+function AdminKeyIssuer({ accessToken }: { accessToken: string }) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [plan, setPlan] = useState("pro");
+  const [ttlDays, setTtlDays] = useState("30");
+  const [result, setResult] = useState<GeneratedKey | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const issue = async () => {
+    if (!email) return;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const r = await fetch("https://voxlen.ai/api/generate-key", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ targetEmail: email, targetName: name || email, plan, ttlDays: parseInt(ttlDays) }),
+      });
+      const json = await r.json() as GeneratedKey & { error?: string };
+      if (!r.ok) { setError(json.error ?? "Failed"); }
+      else setResult(json);
+    } catch { setError("Network error"); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <UserPlus className="h-5 w-5 text-amber-400" />
+        <h2 className="font-bold text-amber-300">Issue API Key</h2>
+        <span className="text-xs text-amber-500 ml-1">Admin only</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="text-xs text-zinc-400 block mb-1">Email *</label>
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="user@example.com"
+            className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/50" />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-400 block mb-1">Name (optional)</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith"
+            className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/50" />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-400 block mb-1">Plan</label>
+          <select value={plan} onChange={e => setPlan(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-sm text-white focus:outline-none focus:border-amber-500/50">
+            <option value="free_trial">Free Trial</option>
+            <option value="free">Free</option>
+            <option value="pro">Pro</option>
+            <option value="professional">Professional</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-zinc-400 block mb-1">Valid for (days)</label>
+          <input type="number" value={ttlDays} onChange={e => setTtlDays(e.target.value)} min="1" max="3650"
+            className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-sm text-white focus:outline-none focus:border-amber-500/50" />
+        </div>
+      </div>
+      <button onClick={issue} disabled={loading || !email}
+        className="px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 transition-colors disabled:opacity-50">
+        {loading ? "Generating…" : "Generate Key"}
+      </button>
+      {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
+      {result && (
+        <div className="mt-4 p-3 rounded-xl bg-black/30 border border-amber-500/20">
+          <p className="text-xs text-zinc-400 mb-1">Key for <strong className="text-white">{result.email}</strong> · {result.plan} · expires {result.expiresDate}</p>
+          <div className="flex items-center gap-2 font-mono text-xs text-zinc-300">
+            <span className="flex-1 truncate">{result.token}</span>
+            <CopyButton value={result.token} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -247,6 +350,9 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
 
         {/* Connect Desktop App */}
         {accessToken && <ConnectDesktopApp accessToken={accessToken} />}
+
+        {/* Admin key issuer */}
+        {isAdmin && accessToken && <AdminKeyIssuer accessToken={accessToken} />}
 
         {/* Subscription (non-admin) */}
         {!isAdmin && (
