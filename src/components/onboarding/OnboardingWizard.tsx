@@ -168,7 +168,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       case 0: return true;
       case 1: return !!selectedDeviceId;
       // Step 2: connected if voxlenApiKey is set OR a direct STT key is set
-      case 2: return !!settings.voxlenApiKey || !!settings.sttApiKey;
+      case 2: return !!settings.voxlenApiKey;
       case 3: return true;
       default: return true;
     }

@@ -81,6 +81,10 @@ export default function App() {
   if (path === "/support") {
     return <SupportPage />;
   }
+  const seoPage = SEO_PAGES[path];
+  if (seoPage) {
+    return <SEOPage {...seoPage} onSignIn={handleSignIn} />;
+  }
   if (path === "/dashboard" && user) {
     return <Dashboard user={user} accessToken={getStoredToken()} onSignOut={handleSignOut} />;
   }
@@ -1965,3 +1969,469 @@ function SupportPage() {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// SEO landing pages
+// ---------------------------------------------------------------------------
+
+interface SEOPageData {
+  title: string;
+  headline: string;
+  subheadline: string;
+  description: string;
+  bullets: string[];
+  faq: { q: string; a: string }[];
+  cta: string;
+}
+
+function SEOPage({ title, headline, subheadline, description, bullets, faq, cta, onSignIn }: SEOPageData & { onSignIn: (u: GoogleUser) => void }) {
+  const login = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (response) => {
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${response.access_token}` },
+        });
+        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        storeToken(response.access_token);
+        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
+      } catch {}
+    },
+  });
+
+  return (
+    <div className="min-h-screen bg-[#09090b] text-white">
+      <title>{title} | Voxlen</title>
+      {/* Nav */}
+      <div className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-marcoreid-600 flex items-center justify-center">
+              <Zap className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="font-bold text-sm tracking-tight">Voxlen</span>
+          </a>
+          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors">
+            Get Started
+          </a>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-6 py-20">
+        {/* Hero */}
+        <div className="mb-16">
+          <p className="text-marcoreid-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-5 leading-tight">{headline}</h1>
+          <p className="text-xl text-zinc-400 mb-8 leading-relaxed">{subheadline}</p>
+          <div className="flex flex-wrap gap-3">
+            <a href="/#download" className="px-6 py-3 rounded-xl bg-marcoreid-600 text-white font-semibold hover:bg-marcoreid-700 transition-colors">
+              Download Free
+            </a>
+            <button
+              onClick={() => login()}
+              className="px-6 py-3 rounded-xl border border-white/10 text-white font-semibold hover:bg-white/5 transition-colors"
+            >
+              Sign in with Google
+            </button>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="mb-14">
+          <p className="text-zinc-300 text-lg leading-relaxed">{description}</p>
+        </div>
+
+        {/* Bullets */}
+        <div className="mb-16 rounded-2xl border border-white/10 bg-white/[0.02] p-8">
+          <h2 className="text-xl font-bold mb-6">{cta}</h2>
+          <ul className="space-y-3">
+            {bullets.map((b) => (
+              <li key={b} className="flex items-start gap-3 text-zinc-300">
+                <Check className="h-4 w-4 text-marcoreid-400 mt-0.5 shrink-0" />
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* FAQ */}
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold mb-8">Frequently asked questions</h2>
+          <div className="space-y-6">
+            {faq.map(({ q, a }) => (
+              <div key={q} className="border-t border-white/5 pt-5">
+                <h3 className="font-semibold text-white mb-2">{q}</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed">{a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer nav */}
+        <div className="pt-8 border-t border-white/5 flex gap-6 text-sm text-zinc-500">
+          <a href="/" className="hover:text-white transition-colors">← Voxlen Home</a>
+          <a href="/#pricing" className="hover:text-white transition-colors">Pricing</a>
+          <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SEO_PAGES: Record<string, SEOPageData> = {
+  "/voice-dictation-for-lawyers": {
+    title: "Voice Dictation for Lawyers",
+    headline: "Voice Dictation Built for Lawyers",
+    subheadline: "Dictate briefs, contracts, and correspondence faster than you can type. AI grammar correction handles the rest.",
+    description: "Voxlen is designed from the ground up for legal professionals. Dictate into any application — Word, your practice management software, email — with real-time Deepgram Nova-3 transcription and Claude AI grammar correction that understands legal language. Custom vocabulary preserves case names, Latin phrases, and client names exactly as spoken.",
+    cta: "Why lawyers choose Voxlen",
+    bullets: [
+      "Real-time transcription directly into any app — briefs, contracts, emails",
+      "Legal Mode: Latin phrase recognition, citation formatting, legal currency",
+      "Custom vocabulary for case names, client names, and firm-specific terms",
+      "AI grammar polish that preserves your voice — not generic rewrites",
+      "Zero-retention endpoints — audio never stored by Voxlen or providers",
+      "Per-client matter tracking with automatic billable time logging",
+      "Works on macOS, Windows, and Linux — no browser required",
+    ],
+    faq: [
+      { q: "Is Voxlen safe for privileged client communications?", a: "Yes. Audio streams directly from your device to the speech-to-text provider over zero-retention endpoints. Voxlen does not store or access your audio or transcripts. Fully offline mode is on the roadmap." },
+      { q: "Does it work with practice management software like Clio or LEAP?", a: "Yes. Voxlen injects text at the cursor using OS-level keyboard simulation — it works in any app with a text field, including Clio, LEAP, Smokeball, and all major practice management platforms." },
+      { q: "How does Legal Mode help?", a: "Legal Mode enables recognition of Latin legal phrases (habeas corpus, mens rea, etc.), legal citation formatting, and jurisdiction-specific smart formatting. Toggle it on in Settings." },
+      { q: "Can I use my own microphone?", a: "Yes. Voxlen supports any connected microphone. External mics like the Blue Yeti or Rode NT-USB are automatically detected and prioritised for better accuracy." },
+    ],
+  },
+  "/legal-dictation-software": {
+    title: "Legal Dictation Software",
+    headline: "The Best Legal Dictation Software in 2026",
+    subheadline: "Professional-grade AI voice dictation for law firms, barristers, and in-house counsel.",
+    description: "Voxlen combines Deepgram Nova-3 real-time transcription with Claude AI grammar correction to deliver the most accurate legal dictation software available. Unlike Dragon Legal, there's no per-seat licence, no training required, and no hardware lock-in. Works on any app, any platform.",
+    cta: "What makes Voxlen the best legal dictation software",
+    bullets: [
+      "Deepgram Nova-3 — best-in-class accuracy for legal terminology",
+      "Injects text directly into any application at cursor position",
+      "Legal Mode with Latin phrase recognition and citation formatting",
+      "Custom vocabulary for case names, opposing counsel, and firm terms",
+      "AI grammar correction that preserves formal legal writing style",
+      "macOS, Windows, Linux — plus iOS keyboard extension",
+      "Fraction of the cost of Dragon Legal ($700+)",
+    ],
+    faq: [
+      { q: "How does Voxlen compare to Dragon Legal?", a: "Voxlen is faster to set up (no voice training), works on any app without plugins, costs less, and has AI grammar correction Dragon doesn't offer. Dragon has an offline mode advantage — Voxlen's offline mode is coming soon." },
+      { q: "Does it support multiple languages?", a: "Yes. Voxlen auto-detects your spoken language and supports transcription in 30+ languages via Deepgram Nova-3." },
+      { q: "Is there a free trial?", a: "Download is free. Sign in with Google at voxlen.ai to get your account token — no credit card required to get started." },
+    ],
+  },
+  "/dictation-software-for-accountants": {
+    title: "Dictation Software for Accountants",
+    headline: "Voice Dictation for Accountants & CPAs",
+    subheadline: "Dictate client correspondence, advisory notes, and reports — faster than typing, more accurate than generic voice-to-text.",
+    description: "Voxlen understands accounting and finance language. Custom vocabulary preserves client names, entity names, and technical terms like EBITDA, amortisation schedules, and tax codes exactly as spoken. Per-client matter tracking logs your billable dictation time automatically.",
+    cta: "Why accountants choose Voxlen",
+    bullets: [
+      "Custom vocabulary for entity names, tax codes, and accounting terms",
+      "Auto billable time tracking — logs dictation time per client matter",
+      "AI grammar correction in professional, formal, or technical style",
+      "Works in any app: accounting software, email, Word, Google Docs",
+      "Speaker diarization — identify multiple speakers in client meetings",
+      "Zero-retention endpoints — client data never stored",
+      "iOS keyboard extension for dictating on iPhone or iPad",
+    ],
+    faq: [
+      { q: "Does Voxlen understand accounting terminology?", a: "Yes. You can add any term to your custom vocabulary — entity names, tax codes, technical accounting terms — and Voxlen will never auto-correct them." },
+      { q: "Can I track billable time automatically?", a: "Yes. Voxlen's per-client matter tracking logs every dictation session with duration, word count, and estimated billable amount at your configured hourly rate." },
+      { q: "Is client financial information secure?", a: "Yes. Audio and transcripts stream directly to AI providers over zero-retention endpoints. Nothing is stored by Voxlen." },
+    ],
+  },
+  "/voice-to-text-for-medical": {
+    title: "Medical Voice-to-Text",
+    headline: "Medical Voice-to-Text for Healthcare Professionals",
+    subheadline: "Accurate, fast, and secure voice-to-text for clinical notes, referral letters, and patient correspondence.",
+    description: "Voxlen's real-time transcription and AI grammar correction help clinicians, specialists, and allied health professionals document faster. Custom vocabulary handles medications, procedures, anatomical terms, and specialist language. Works directly in your EHR or any application.",
+    cta: "Built for medical professionals",
+    bullets: [
+      "Custom vocabulary for medications, procedures, and diagnoses",
+      "Real-time transcription into any EHR or clinical application",
+      "AI grammar correction in clinical or formal writing style",
+      "Zero-retention endpoints — patient audio never stored",
+      "Speaker diarization for multi-party consultations",
+      "iOS keyboard for mobile dictation",
+      "macOS, Windows, Linux desktop app",
+    ],
+    faq: [
+      { q: "Does it work with my EHR?", a: "Voxlen injects text at the cursor using OS-level keyboard simulation, so it works with any application — including Epic, Genie, Medical Director, Best Practice, and web-based EHRs." },
+      { q: "Can it handle drug names and medical terminology?", a: "Yes. Add any term to your custom vocabulary and Voxlen will preserve it exactly. Deepgram Nova-3 also has strong out-of-the-box performance on medical terminology." },
+    ],
+  },
+  "/voice-dictation-mac": {
+    title: "Voice Dictation for Mac",
+    headline: "The Best Voice Dictation App for Mac",
+    subheadline: "Real-time AI dictation that works in any Mac app. Better than Apple Dictation, faster than typing.",
+    description: "Voxlen is a native macOS app built with Tauri — lightweight, fast, and always available from the menu bar. Unlike Apple's built-in dictation, Voxlen adds AI grammar correction, custom vocabulary, voice commands, and per-client billing. Works on Apple Silicon and Intel Macs.",
+    cta: "Why Mac users choose Voxlen over Apple Dictation",
+    bullets: [
+      "Native macOS app — Apple Silicon (M1–M4) and Intel",
+      "Runs in the menu bar — always one shortcut away",
+      "Works in every app via macOS keyboard simulation",
+      "AI grammar correction Apple Dictation doesn't have",
+      "Custom vocabulary, voice commands, translation",
+      "Cmd+Shift+D to toggle, Cmd+Shift+Space for push-to-talk",
+      "Light and dark mode",
+    ],
+    faq: [
+      { q: "Does it work on Apple Silicon?", a: "Yes. Voxlen has a native ARM build for M1, M2, M3, and M4 Macs — no Rosetta required." },
+      { q: "How is it different from Apple Dictation?", a: "Apple Dictation has no grammar correction, no custom vocabulary, no voice commands, and no billable time tracking. Voxlen has all of these, plus it works in every app without special configuration." },
+      { q: "Will it slow down my Mac?", a: "No. Voxlen is built with Tauri (Rust + WebView), which uses far less memory and CPU than Electron apps. It sits silently in the menu bar when not recording." },
+    ],
+  },
+  "/voice-dictation-windows": {
+    title: "Voice Dictation for Windows",
+    headline: "AI Voice Dictation for Windows 10 & 11",
+    subheadline: "Professional dictation that works in every Windows app. Far more powerful than Windows Speech Recognition.",
+    description: "Voxlen on Windows gives you real-time Deepgram transcription and Claude AI grammar correction, injected at the cursor in any app via the Windows SendInput API. Works in Word, Outlook, Edge, Chrome, practice management software, and every other Windows application.",
+    cta: "Why Windows users switch to Voxlen",
+    bullets: [
+      "Native Windows 10 & 11 app (x64)",
+      "Injects text at cursor in any Windows application",
+      "AI grammar correction Windows Speech Recognition lacks",
+      "Custom vocabulary and voice commands",
+      "Ctrl+Shift+D to toggle, Ctrl+Shift+Space for push-to-talk",
+      "Runs minimized to system tray",
+      "No voice training required",
+    ],
+    faq: [
+      { q: "Does it replace Windows Speech Recognition?", a: "It's a better alternative. Voxlen uses Deepgram Nova-3 (much higher accuracy), adds AI grammar correction, custom vocabulary, and voice commands that Windows Speech Recognition doesn't have." },
+      { q: "Does it work with Microsoft Office?", a: "Yes. Voxlen injects text at the cursor in any application, including Word, Outlook, Excel, Teams, and all Office 365 apps." },
+    ],
+  },
+  "/voice-dictation-iphone": {
+    title: "Voice Dictation for iPhone",
+    headline: "Voice Dictation Keyboard for iPhone",
+    subheadline: "Dictate into any iPhone app with a custom AI keyboard extension. Works in iMessage, WhatsApp, Mail, and more.",
+    description: "Voxlen's iOS keyboard extension lets you dictate into any app on your iPhone or iPad. Tap the mic, speak, and your text appears inline. Tap Polish to apply Claude AI grammar correction. Works anywhere the iOS keyboard appears — no app switching required.",
+    cta: "What the Voxlen iPhone keyboard does",
+    bullets: [
+      "Custom keyboard extension for iOS 16+ (iPhone and iPad)",
+      "Works in any app: iMessage, WhatsApp, Mail, legal apps",
+      "Tap mic → dictate → text appears inline",
+      "AI grammar polish with one tap",
+      "Deepgram Nova-3 streaming accuracy",
+      "No app switching — stays in your current app",
+      "App Store listing coming soon — join the waitlist",
+    ],
+    faq: [
+      { q: "How do I install the Voxlen keyboard?", a: "Download Voxlen from the App Store (coming soon), then go to Settings → General → Keyboard → Add New Keyboard and select Voxlen." },
+      { q: "Does it work offline?", a: "Not yet — the keyboard currently requires an internet connection for transcription. Offline mode via on-device Whisper is on the roadmap." },
+    ],
+  },
+  "/voice-dictation-android": {
+    title: "Voice Dictation for Android",
+    headline: "Voice Dictation for Android — Coming Soon",
+    subheadline: "Join the waitlist for the Voxlen Android keyboard with Nova-3 AI dictation.",
+    description: "The Voxlen Android keyboard extension is in development. It will bring the same real-time Deepgram Nova-3 transcription and Claude AI grammar correction to every Android app — Samsung Galaxy, Pixel, and all Android devices. Join the waitlist to be first in line.",
+    cta: "What the Android keyboard will include",
+    bullets: [
+      "Custom keyboard extension for Samsung Galaxy, Pixel, and all Android devices",
+      "Deepgram Nova-3 real-time transcription",
+      "Claude AI grammar correction inline",
+      "Works in any Android app with a text field",
+      "Coming soon — join the waitlist at voxlen.ai",
+    ],
+    faq: [
+      { q: "When will the Android keyboard be available?", a: "We're actively building it. Join the waitlist at voxlen.ai and we'll email you the moment it launches." },
+      { q: "Will it work on Samsung Galaxy?", a: "Yes, Samsung Galaxy and all Android devices that support custom keyboards (Android 8+) are the target." },
+    ],
+  },
+  "/dictation-software-for-solicitors-uk": {
+    title: "Dictation Software for Solicitors UK",
+    headline: "Voice Dictation for UK Solicitors",
+    subheadline: "Professional AI dictation for solicitors, barristers, and legal executives in England, Wales, Scotland, and Northern Ireland.",
+    description: "Voxlen is designed for UK legal professionals. Legal Mode understands English legal terminology, Latin phrases, court citation formats, and UK spelling conventions. Works in your practice management software, email, and any other application — on macOS, Windows, and Linux.",
+    cta: "Built for UK legal practice",
+    bullets: [
+      "UK English spelling and legal terminology",
+      "Latin phrase recognition — pro bono, without prejudice, inter alia",
+      "Works with Osprey, Solcase, SOS, and all UK PMS platforms",
+      "Per-matter billing time tracking",
+      "Zero-retention — GDPR compliant audio pipeline",
+      "iOS keyboard for dictating on iPhone in court or on the move",
+    ],
+    faq: [
+      { q: "Is Voxlen GDPR compliant?", a: "Yes. Audio streams directly from your device to the STT provider over zero-retention endpoints. Voxlen does not store, process, or access your audio or transcripts." },
+      { q: "Does it support UK spelling?", a: "Yes. Set your language to English (UK) and Voxlen will use UK spelling conventions. Custom vocabulary ensures firm-specific terms are preserved exactly." },
+    ],
+  },
+  "/legal-dictation-software-australia": {
+    title: "Legal Dictation Software Australia",
+    headline: "Legal Dictation Software for Australian Lawyers",
+    subheadline: "AI voice dictation for solicitors, barristers, and in-house counsel across Australia.",
+    description: "Voxlen supports Australian English legal terminology, citation formats, and court naming conventions. Works with LEAP, Actionstep, Smokeball, and any other practice management software via OS-level text injection.",
+    cta: "Built for Australian legal practice",
+    bullets: [
+      "Australian English spelling and legal terminology",
+      "Works with LEAP, Actionstep, Smokeball, and all AU PMS",
+      "Court citation formatting for Australian jurisdictions",
+      "Zero-retention — Privacy Act compliant audio pipeline",
+      "Per-client matter tracking and billable time logging",
+    ],
+    faq: [
+      { q: "Does it work with LEAP or Smokeball?", a: "Yes. Voxlen injects text at the cursor via OS-level keyboard simulation — it works in any application including LEAP, Smokeball, Actionstep, and all web-based practice management platforms." },
+      { q: "Does it support Australian English?", a: "Yes. Set your language to English (AU) for Australian spelling. Custom vocabulary handles AU-specific legal terms, court names, and jurisdictional references." },
+    ],
+  },
+  "/legal-voice-dictation-canada": {
+    title: "Legal Voice Dictation Canada",
+    headline: "AI Legal Dictation for Canadian Lawyers",
+    subheadline: "Voice dictation for lawyers, paralegals, and legal professionals across Canada.",
+    description: "Voxlen supports both English (CA) and French (CA) legal terminology. Works with PCLaw, Clio, and all major Canadian practice management platforms. Custom vocabulary handles Canadian court names, citation formats, and bilingual terminology.",
+    cta: "Built for Canadian legal practice",
+    bullets: [
+      "English (CA) and French (CA) language support",
+      "Works with Clio, PCLaw, and all Canadian PMS",
+      "Canadian court citation formatting",
+      "Bilingual vocabulary — add French and English terms",
+      "Zero-retention — PIPEDA compliant audio pipeline",
+    ],
+    faq: [
+      { q: "Does it support French Canadian legal terminology?", a: "Yes. Set your dictation language to French (CA) or English (CA). You can switch languages per session and add bilingual terms to your custom vocabulary." },
+      { q: "Does it work with Clio?", a: "Yes. Voxlen injects text at cursor in any application, including Clio Manage's web interface and desktop apps." },
+    ],
+  },
+  "/legal-dictation-new-zealand": {
+    title: "Legal Dictation New Zealand",
+    headline: "AI Voice Dictation for New Zealand Lawyers",
+    subheadline: "Professional legal dictation for solicitors and barristers in New Zealand.",
+    description: "Voxlen supports New Zealand English legal terminology and citation formats. Works with LEAP NZ, Actionstep, and any other practice management software. Custom vocabulary handles NZ-specific legal terms, Māori legal concepts, and court naming conventions.",
+    cta: "Built for New Zealand legal practice",
+    bullets: [
+      "New Zealand English spelling and terminology",
+      "Works with LEAP NZ, Actionstep, and all NZ PMS",
+      "Support for Māori legal terms and te reo Māori in custom vocabulary",
+      "Per-matter billing and time tracking",
+      "Zero-retention audio pipeline",
+    ],
+    faq: [
+      { q: "Does it support te reo Māori terms?", a: "Yes. Add any Māori legal term or concept to your custom vocabulary and Voxlen will preserve it exactly as entered, never auto-correcting it." },
+    ],
+  },
+  "/voxlen-vs-dragon": {
+    title: "Voxlen vs Dragon NaturallySpeaking",
+    headline: "Voxlen vs Dragon — Which is Better in 2026?",
+    subheadline: "A direct comparison of Voxlen AI dictation and Dragon NaturallySpeaking for legal and professional use.",
+    description: "Dragon NaturallySpeaking has been the standard for professional dictation for 25 years. But the landscape has changed — modern AI models like Deepgram Nova-3 match or exceed Dragon's accuracy without voice training, and at a fraction of the cost. Here's how they compare.",
+    cta: "How Voxlen beats Dragon",
+    bullets: [
+      "No voice training required — works immediately out of the box",
+      "Subscription from $29/mo vs Dragon Legal at $700 one-time (with annual support fees)",
+      "AI grammar correction Dragon doesn't have",
+      "Works on macOS, Windows, and Linux (Dragon is Windows-only for latest versions)",
+      "iOS keyboard extension (Dragon has no mobile equivalent)",
+      "No hardware lock-in — runs on any machine with your account",
+      "Offline mode coming soon — Dragon's key advantage today",
+    ],
+    faq: [
+      { q: "Is Voxlen as accurate as Dragon?", a: "Deepgram Nova-3 matches Dragon's accuracy for most use cases without any voice training. Dragon can edge ahead in very noisy environments — but Voxlen's noise gate and high-pass filter substantially close this gap." },
+      { q: "What does Dragon have that Voxlen doesn't?", a: "Dragon has a mature offline mode. Voxlen's offline mode (Whisper Local) is on the roadmap. Dragon also has deeper macro/scripting features for power users." },
+      { q: "Can I switch from Dragon to Voxlen without retraining?", a: "Yes. Voxlen requires no voice training at all. You can be dictating within minutes of downloading." },
+    ],
+  },
+  "/voxlen-vs-wispr-flow": {
+    title: "Voxlen vs Wispr Flow",
+    headline: "Voxlen vs Wispr Flow — 2026 Comparison",
+    subheadline: "Both are AI dictation tools for professionals. Here's how they differ.",
+    description: "Wispr Flow is a well-designed dictation tool with good accuracy and a clean interface. Voxlen is built specifically for legal and accounting professionals with features Wispr Flow doesn't have.",
+    cta: "Why professionals choose Voxlen over Wispr Flow",
+    bullets: [
+      "Legal Mode — Latin phrases, citation formatting, legal currency",
+      "Per-client matter tracking with automatic billable time",
+      "Custom vocabulary for case names and client-specific terms",
+      "Speaker diarization (identify multiple speakers)",
+      "iOS keyboard extension for mobile dictation",
+      "Real-time translation into 50+ languages",
+      "Voxlen is cheaper for professional teams",
+    ],
+    faq: [
+      { q: "Which has better accuracy?", a: "Both use best-in-class STT models. Voxlen uses Deepgram Nova-3 which is purpose-built for professional and enterprise use cases." },
+      { q: "Does Wispr Flow have billable time tracking?", a: "No. Voxlen's per-client matter tracking is unique — it automatically logs dictation time per client and calculates billable amounts." },
+    ],
+  },
+  "/voxlen-vs-otter": {
+    title: "Voxlen vs Otter.ai",
+    headline: "Voxlen vs Otter.ai — Which Should You Use?",
+    subheadline: "Otter.ai is great for meeting transcription. Voxlen is built for active dictation into any app.",
+    description: "Otter.ai excels at transcribing recorded meetings and conversations after the fact. Voxlen is built for real-time active dictation — injecting text directly at the cursor as you speak, in any application. Different tools for different jobs.",
+    cta: "When to choose Voxlen over Otter",
+    bullets: [
+      "Voxlen injects text directly at your cursor — Otter gives you a transcript to copy",
+      "Voxlen works in any application — Otter is a standalone recorder",
+      "AI grammar correction and custom vocabulary",
+      "Legal Mode and billable time tracking for professionals",
+      "Push-to-talk and global shortcuts for seamless workflow",
+      "iOS keyboard for dictating in any iPhone app",
+    ],
+    faq: [
+      { q: "Can I use both Otter and Voxlen?", a: "Yes — they serve different purposes. Use Otter for recording and transcribing meetings. Use Voxlen for active dictation while drafting documents, emails, and notes." },
+      { q: "Does Voxlen record meetings?", a: "Not currently. Voxlen is focused on real-time active dictation. Meeting transcription may come in a future update." },
+    ],
+  },
+  "/dragon-naturallyspeaking-alternative": {
+    title: "Dragon NaturallySpeaking Alternative",
+    headline: "The Best Dragon NaturallySpeaking Alternative in 2026",
+    subheadline: "Modern AI dictation without Dragon's price tag, hardware lock-in, or mandatory voice training.",
+    description: "Dragon NaturallySpeaking has served professionals well for decades. But at $700+ for Dragon Legal, requiring voice profile training, and being Windows-only in its latest versions, many professionals are looking for an alternative. Voxlen is the modern replacement.",
+    cta: "Why Voxlen is the best Dragon alternative",
+    bullets: [
+      "No voice training — accurate immediately on first use",
+      "Subscription from $29/mo — no $700 upfront cost",
+      "macOS, Windows, and Linux (Dragon is Windows-only for latest)",
+      "AI grammar correction Dragon doesn't have",
+      "iOS keyboard for mobile dictation",
+      "Custom vocabulary, voice commands, translation",
+      "Cloud-based — works on any machine with your account",
+    ],
+    faq: [
+      { q: "Will I lose accuracy switching from Dragon?", a: "Most users find Deepgram Nova-3 matches or exceeds Dragon's accuracy — especially for legal terminology — without any training period." },
+      { q: "Can I import my Dragon vocabulary?", a: "Not directly, but you can manually add your most important terms to Voxlen's custom vocabulary. The import tool is on the roadmap." },
+    ],
+  },
+  "/best-voice-to-text-software": {
+    title: "Best Voice to Text Software 2026",
+    headline: "The Best Voice-to-Text Software in 2026",
+    subheadline: "A ranked guide to the top dictation tools for professionals, lawyers, and power users.",
+    description: "The voice-to-text landscape has been transformed by AI. Deepgram, OpenAI Whisper, and large language models have made professional-grade transcription accessible to everyone. Here's our honest assessment of the best options in 2026.",
+    cta: "What makes the best voice-to-text software",
+    bullets: [
+      "Accuracy on professional and domain-specific vocabulary",
+      "Real-time vs batch transcription latency",
+      "AI grammar correction and post-processing",
+      "Integration with existing workflows and applications",
+      "Privacy and data retention policies",
+      "Platform support — macOS, Windows, Linux, iOS, Android",
+      "Price vs value for professional use cases",
+    ],
+    faq: [
+      { q: "What is the most accurate voice-to-text software?", a: "For professional use, Deepgram Nova-3 (used by Voxlen) and OpenAI Whisper are the most accurate models available. Deepgram is faster for real-time use; Whisper excels for batch accuracy." },
+      { q: "Is free voice-to-text software good enough for professionals?", a: "Apple Dictation and Windows Speech Recognition are free but lack AI grammar correction, custom vocabulary, and professional workflow integration. For legal and accounting use, a professional tool like Voxlen delivers meaningfully better output." },
+    ],
+  },
+  "/ai-dictation-software": {
+    title: "AI Dictation Software",
+    headline: "AI Dictation Software for Professionals",
+    subheadline: "Real-time transcription and AI grammar correction in one tool. Dictate faster and smarter.",
+    description: "Voxlen combines Deepgram Nova-3 real-time speech-to-text with Claude AI grammar correction to give you the most capable AI dictation software available. Speak naturally — Voxlen transcribes accurately and corrects grammar, punctuation, and style in real time.",
+    cta: "What AI dictation software should do",
+    bullets: [
+      "Real-time transcription with Deepgram Nova-3 — lowest latency available",
+      "Claude AI grammar correction — not just spellcheck, but full prose improvement",
+      "Custom vocabulary — domain terms never get auto-corrected",
+      "Tone preservation — fixes errors without changing your voice",
+      "Voice commands — new line, delete that, correct grammar",
+      "Works in any application on macOS, Windows, and Linux",
+      "iOS keyboard for AI dictation on iPhone and iPad",
+    ],
+    faq: [
+      { q: "What AI models does Voxlen use?", a: "Voxlen uses Deepgram Nova-3 for real-time speech-to-text (the most accurate STT model available) and Claude by Anthropic for AI grammar correction." },
+      { q: "Does the AI change what I said?", a: "Only grammar, punctuation, and spelling — never substance. With Preserve Tone enabled, Voxlen only fixes errors and never rephrases or rewrites your content." },
+    ],
+  },
+};

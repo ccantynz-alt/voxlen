@@ -8,6 +8,7 @@ export interface VoxlenUser {
   name: string;
   picture: string;
   isAdmin: boolean;
+  plan?: string;
 }
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
@@ -19,22 +20,29 @@ function b64url(data: Buffer | string): string {
   return Buffer.from(data).toString("base64url");
 }
 
+export type VoxlenPlan = "admin" | "pro" | "professional" | "free_trial" | "free";
+
 /**
- * Mint a long-lived Voxlen desktop token (HS256 JWT). Stateless: any API
- * instance with VOXLEN_TOKEN_SECRET can verify it without a database.
- * Throws if the secret is not configured.
+ * Mint a Voxlen desktop token (HS256 JWT). Stateless — no database needed.
+ * Supports arbitrary plans and TTLs so we can issue free-trial keys with
+ * a specific expiry date.
  */
-export function mintDesktopToken(user: VoxlenUser, ttlDays = 180): { token: string; expiresAt: number } {
+export function mintDesktopToken(
+  user: Pick<VoxlenUser, "sub" | "email" | "name">,
+  opts: { ttlDays?: number; expiresAt?: number; plan?: VoxlenPlan } = {},
+): { token: string; expiresAt: number } {
   const secret = process.env.VOXLEN_TOKEN_SECRET;
   if (!secret) throw new Error("VOXLEN_TOKEN_SECRET not configured");
   const now = Math.floor(Date.now() / 1000);
-  const exp = now + ttlDays * 86400;
+  const exp = opts.expiresAt ?? (now + (opts.ttlDays ?? 180) * 86400);
+  const plan: VoxlenPlan = opts.plan ?? (user.email === ADMIN_EMAIL ? "admin" : "free");
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = b64url(JSON.stringify({
     iss: VOXLEN_ISSUER,
     sub: user.sub,
     email: user.email,
     name: user.name,
+    plan,
     iat: now,
     exp,
   }));
@@ -46,7 +54,7 @@ export function mintDesktopToken(user: VoxlenUser, ttlDays = 180): { token: stri
 function verifyDesktopToken(token: string): VoxlenUser | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
-  let payload: { iss?: string; sub?: string; email?: string; name?: string; exp?: number };
+  let payload: { iss?: string; sub?: string; email?: string; name?: string; plan?: string; exp?: number };
   try {
     payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
   } catch {
@@ -69,7 +77,8 @@ function verifyDesktopToken(token: string): VoxlenUser | null {
     email: payload.email ?? "",
     name: payload.name ?? "",
     picture: "",
-    isAdmin: payload.email === ADMIN_EMAIL,
+    plan: payload.plan,
+    isAdmin: payload.email === ADMIN_EMAIL || payload.plan === "admin",
   };
 }
 
