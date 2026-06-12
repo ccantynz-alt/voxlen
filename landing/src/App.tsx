@@ -280,7 +280,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed"
           >
             The most advanced legal dictation software available. Real-time transcription,
-            AI grammar correction, built-in clause library, and privileged mode for sensitive matters.
+            AI grammar correction, built-in clause library, and zero-retention privacy for sensitive matters.
             Works on Mac, Windows, iPhone, and Android.{" "}
             <span className="text-white font-medium">
               Free 14-day trial — no credit card required.
@@ -559,7 +559,7 @@ function Testimonials() {
       stars: 5,
     },
     {
-      quote: "The privileged mode is what sealed it for us. Client-sensitive matter notes never leave the device. That's non-negotiable in our practice.",
+      quote: "The privacy architecture is what sealed it for us. Session history and client-sensitive vocabulary never leave the device, and nothing is stored on Voxlen's servers. That's non-negotiable in our practice.",
       name: "David K.",
       title: "Criminal Defense Attorney",
       location: "New York, USA",
@@ -840,7 +840,7 @@ function Comparison() {
     { name: "Dragon Legal", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false, android: false, legalMode: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false, android: false, legalMode: false },
     { name: "Otter.ai", price: "$10/mo", realtime: true, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
-    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: false, extMic: true, android: false, legalMode: true, highlight: true },
+    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: "soon" as const, extMic: true, android: false, legalMode: true, highlight: true },
   ];
 
   return (
@@ -893,9 +893,11 @@ function Comparison() {
                     {c.highlight && <Star className="h-3 w-3 text-brand-400 inline ml-1" />}
                   </td>
                   <td className="text-center py-4 px-3 text-zinc-400">{c.price}</td>
-                  {[c.realtime, c.neverInterrupts, c.grammar, c.anyApp, c.offline, c.extMic, c.android, c.legalMode].map((val, i) => (
+                  {[c.realtime, c.neverInterrupts, c.grammar, c.anyApp, c.offline, c.extMic, c.android, c.legalMode].map((val: boolean | string, i) => (
                     <td key={i} className="text-center py-4 px-3">
-                      {val ? (
+                      {val === "soon" ? (
+                        <span className="text-xs text-zinc-400 whitespace-nowrap">🔜 Soon</span>
+                      ) : val ? (
                         <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-brand-400" : "text-green-400"}`} />
                       ) : (
                         <span className="text-zinc-600">-</span>
@@ -1103,8 +1105,8 @@ function Pricing() {
         <p className="text-center text-xs text-zinc-600 mt-4 max-w-2xl mx-auto leading-relaxed">
           Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
           All AI costs (speech-to-text and grammar correction) are included — your subscription
-          covers everything. Audio still streams directly from your device to AI providers and is
-          never routed through or stored by Voxlen.
+          covers everything. Voxlen never stores your audio or transcripts — requests pass through
+          zero-retention endpoints straight to the AI providers, and nothing is retained.
         </p>
       </div>
     </section>
@@ -1115,7 +1117,7 @@ function FAQ() {
   const faqs = [
     {
       q: "What is the best dictation software for lawyers?",
-      a: "Voxlen is purpose-built for legal professionals. It includes a 15+ clause library (indemnity, governing law, confidentiality, court filings), privileged mode that keeps audio 100% on-device for sensitive matters, legal smart formatting for depositions and court filings, and speaker diarization for client meetings. It is more accurate and more feature-rich than Dragon NaturallySpeaking for legal use.",
+      a: "Voxlen is purpose-built for legal professionals. It includes a 15+ clause library (indemnity, governing law, confidentiality, court filings), Privileged Mode (coming soon) that will keep audio 100% on-device for sensitive matters, legal smart formatting for depositions and court filings, and speaker diarization for client meetings. It is more accurate and more feature-rich than Dragon NaturallySpeaking for legal use.",
     },
     {
       q: "Is Voxlen a Dragon NaturallySpeaking alternative?",
@@ -1135,7 +1137,7 @@ function FAQ() {
     },
     {
       q: "How is Voxlen different from Wispr Flow?",
-      a: "Wispr Flow is Mac and iOS only. Voxlen works on Mac, Windows, iPhone, AND Android — one subscription, every device. Voxlen also adds legal-specific features (clause library, privileged mode, legal formatting), billable time tracking via voice commands, and a locally-stored learning flywheel that improves over time. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
+      a: "Wispr Flow is Mac and iOS only. Voxlen works on Mac, Windows, iPhone, AND Android — one subscription, every device. Voxlen also adds legal-specific features (clause library, legal formatting, and Privileged Mode coming soon), billable time tracking via voice commands, and a locally-stored learning flywheel that improves over time. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
     },
     {
       q: "Do I need API keys or separate accounts?",
@@ -1534,21 +1536,18 @@ function WaitlistForm({ platform }: { platform: string }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !email.includes("@")) { setStatus("error"); return; }
-    // Store locally — backend integration point for Voxlen API when ready
+    // Send to the backend; keep a localStorage copy as an offline fallback
+    fetch("/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), platform }),
+    }).catch(() => { /* recorded locally below regardless */ });
     try {
-      // Store in unified key (array of {email, platform} objects)
       type WaitlistEntry = { email: string; platform: string };
       const unified = JSON.parse(localStorage.getItem("voxlen_waitlist") || "[]") as WaitlistEntry[];
       if (!unified.some((e) => e.email === email && e.platform === platform)) {
         unified.push({ email, platform });
         localStorage.setItem("voxlen_waitlist", JSON.stringify(unified));
-      }
-      // Also store in per-platform key for convenience
-      const perPlatformKey = `voxlen_waitlist_${platform.toLowerCase()}`;
-      const existing = JSON.parse(localStorage.getItem(perPlatformKey) || "[]") as string[];
-      if (!existing.includes(email)) {
-        existing.push(email);
-        localStorage.setItem(perPlatformKey, JSON.stringify(existing));
       }
     } catch { /* ignore */ }
     setStatus("submitted");
@@ -1581,10 +1580,65 @@ function WaitlistForm({ platform }: { platform: string }) {
   );
 }
 
+const FOOTER_LINKS: { heading: string; links: { href: string; label: string }[] }[] = [
+  {
+    heading: "By profession",
+    links: [
+      { href: "/voice-dictation-for-lawyers", label: "Dictation for Lawyers" },
+      { href: "/legal-dictation-software", label: "Legal Dictation Software" },
+      { href: "/dictation-software-for-accountants", label: "Dictation for Accountants" },
+      { href: "/voice-to-text-for-medical", label: "Medical Voice-to-Text" },
+    ],
+  },
+  {
+    heading: "By platform",
+    links: [
+      { href: "/voice-dictation-mac", label: "Dictation for Mac" },
+      { href: "/voice-dictation-windows", label: "Dictation for Windows" },
+      { href: "/voice-dictation-iphone", label: "Dictation for iPhone" },
+      { href: "/voice-dictation-android", label: "Dictation for Android" },
+    ],
+  },
+  {
+    heading: "By region",
+    links: [
+      { href: "/dictation-software-for-solicitors-uk", label: "Solicitors (UK)" },
+      { href: "/legal-dictation-software-australia", label: "Legal Dictation (Australia)" },
+      { href: "/legal-voice-dictation-canada", label: "Legal Dictation (Canada)" },
+      { href: "/legal-dictation-new-zealand", label: "Legal Dictation (NZ)" },
+    ],
+  },
+  {
+    heading: "Compare",
+    links: [
+      { href: "/voxlen-vs-dragon", label: "Voxlen vs Dragon" },
+      { href: "/voxlen-vs-wispr-flow", label: "Voxlen vs Wispr Flow" },
+      { href: "/voxlen-vs-otter", label: "Voxlen vs Otter.ai" },
+      { href: "/dragon-naturallyspeaking-alternative", label: "Dragon Alternative" },
+      { href: "/best-voice-to-text-software", label: "Best Voice-to-Text 2026" },
+      { href: "/ai-dictation-software", label: "AI Dictation Software" },
+    ],
+  },
+];
+
 function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => void }) {
   return (
     <footer className="py-12 border-t border-white/5">
       <div className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pb-10 mb-10 border-b border-white/5">
+          {FOOTER_LINKS.map((col) => (
+            <div key={col.heading}>
+              <h4 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-3">{col.heading}</h4>
+              <ul className="space-y-2">
+                {col.links.map((l) => (
+                  <li key={l.href}>
+                    <a href={l.href} className="text-xs text-zinc-500 hover:text-white transition-colors">{l.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded bg-brand-600 flex items-center justify-center">
@@ -1652,23 +1706,24 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">1. Data We Do NOT Collect</h2>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li><strong className="text-zinc-200">Audio recordings</strong> — We never store, log, or retain your voice audio. Audio is streamed to your chosen STT provider and immediately discarded after transcription.</li>
+        <li><strong className="text-zinc-200">Audio recordings</strong> — We never store, log, or retain your voice audio. Audio is streamed over zero-retention endpoints to the speech-to-text provider and immediately discarded after transcription.</li>
         <li><strong className="text-zinc-200">Transcribed text</strong> — Your dictated text stays on your device. We never transmit transcription content to our servers.</li>
-        <li><strong className="text-zinc-200">Grammar-corrected content</strong> — Text sent for AI grammar correction goes directly to your chosen provider (Anthropic or OpenAI) using your own API key. We have no access to this content.</li>
+        <li><strong className="text-zinc-200">Grammar-corrected content</strong> — Text sent for AI grammar correction passes through zero-retention endpoints to the grammar AI provider (Anthropic or OpenAI) — all AI costs are included in your subscription, no API keys to manage. We never store this content.</li>
         <li><strong className="text-zinc-200">Documents or files</strong> — Voxlen never reads, scans, or accesses any files on your device beyond its own configuration.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">2. Data Processing Architecture</h2>
       <p className="text-zinc-300 leading-relaxed">
-        Voxlen operates as a <strong>pass-through</strong> application. Even though paid plans
-        include AI infrastructure as part of your subscription, your data flows directly between
-        your device and the underlying AI providers — never through Voxlen-operated servers:
+        Voxlen operates as a <strong>zero-retention pass-through</strong>. Paid plans include AI
+        infrastructure as part of your subscription, and requests pass through zero-retention
+        endpoints straight to the underlying AI providers — Voxlen never stores your audio or
+        transcripts, and nothing is retained:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams directly from your device to the speech-to-text provider on zero-retention endpoints. In offline mode, audio never leaves your device.</li>
-        <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent directly from your device to the grammar AI provider (Anthropic or OpenAI) on zero-retention endpoints. We have no intermediary server.</li>
+        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams from your device over zero-retention endpoints to the speech-to-text provider and is never stored. Privileged Mode (coming soon) will process everything on-device so audio never leaves your device.</li>
+        <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent from your device over zero-retention endpoints to the grammar AI provider (Anthropic or OpenAI). Nothing is stored or retained.</li>
         <li><strong className="text-zinc-200">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
-        <li><strong className="text-zinc-200">API credentials:</strong> Voxlen provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
+        <li><strong className="text-zinc-200">API credentials:</strong> Voxlen provisions provider access as part of your subscription. Requests are authenticated with your Voxlen account and pass through zero-retention endpoints straight to the providers — no API keys to manage.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">3. Confidentiality for Legal &amp; Accounting Professionals</h2>
@@ -1677,12 +1732,12 @@ function PrivacyContent() {
         privileged or confidential information. Voxlen is designed to respect these obligations:
       </p>
       <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li>No Voxlen-operated server ever receives your content — this is a hard architectural rule</li>
+        <li>Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained</li>
         <li>Session history is stored only on your local device and never synced to our infrastructure</li>
         <li>Custom vocabulary and dictionaries remain local to your device</li>
         <li>All AI provider traffic uses zero-retention endpoints</li>
         <li>Professional plan users get the strictest zero-retention guarantees enabled by default, plus per-matter / per-client vocabulary isolation</li>
-        <li>Offline mode ensures zero external data transmission</li>
+        <li>Privileged Mode (coming soon) will process everything on-device for zero external data transmission</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">4. Analytics &amp; Telemetry</h2>
@@ -1736,16 +1791,17 @@ function TermsContent() {
       <p className="text-zinc-300 leading-relaxed">
         Voxlen is a desktop and mobile application that provides voice-to-text dictation with
         AI-powered grammar correction and universal text injection. The application runs locally
-        on your device and connects to third-party APIs using your own credentials.
+        on your device and connects to third-party AI providers through zero-retention
+        endpoints included with your subscription.
       </p>
 
       <h2 className="text-lg font-bold mt-8">2. AI Services &amp; Third-Party Providers</h2>
       <p className="text-zinc-300 leading-relaxed">
         Paid plans include all AI infrastructure (speech-to-text and grammar correction) as part of
-        your subscription. You do not need to provide your own API keys. Audio streams directly
-        from your device to the relevant AI providers on zero-retention endpoints — Voxlen
-        provisions the credentials, but your content never passes through Voxlen-operated
-        infrastructure. Advanced users may optionally supply their own API keys.
+        your subscription. You do not need to provide your own API keys. Audio and text are sent
+        from your device through zero-retention endpoints to the relevant AI providers — Voxlen
+        never stores your audio or transcripts, and nothing is retained. Advanced users may
+        optionally supply their own API keys.
       </p>
 
       <h2 className="text-lg font-bold mt-8">3. Subscription Plans</h2>
@@ -1873,8 +1929,8 @@ function SupportPage() {
           <h2 className="text-lg font-bold">Frequently Asked Questions</h2>
           {[
             {
-              q: "How do I get my API keys working?",
-              a: "Open Voxlen → Settings → API Keys. Paste your Deepgram key in the Speech-to-Text field and your Anthropic key in the Grammar AI field. Keys are stored securely on your device and never sent to Voxlen servers.",
+              q: "Do I need API keys?",
+              a: "No. All AI costs (Deepgram transcription and Claude grammar correction) are included in your subscription — no API keys to manage. Just sign in and speak. Advanced users who prefer their own keys can optionally add them in Settings → API Keys; keys are stored securely on your device and never sent to Voxlen servers.",
             },
             {
               q: "The iOS keyboard isn't appearing.",
@@ -1886,7 +1942,7 @@ function SupportPage() {
             },
             {
               q: "Is my dictated text private?",
-              a: "Yes. Voxlen is a pass-through app — your audio goes directly from your device to the STT provider and your text goes directly to the grammar AI. Nothing passes through Voxlen-operated servers. Session history is stored on your device only.",
+              a: "Yes. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. Session history is stored on your device only.",
             },
             {
               q: "Can I use Voxlen for privileged client communications?",
