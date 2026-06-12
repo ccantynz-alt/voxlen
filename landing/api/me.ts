@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const user = await verifyAccessToken(token);
     const plan = user.plan ?? (user.isAdmin ? "admin" : "free");
-    const isPaid = user.isAdmin || plan === "admin" || plan === "pro" || plan === "professional";
+    const isPaid = user.isAdmin || plan === "admin" || plan === "pro" || plan === "professional" || plan === "free_trial";
     return res.status(200).set(headers).json({
       sub: user.sub,
       email: user.email,
