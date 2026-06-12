@@ -153,7 +153,7 @@ function Navbar({
     <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-marcoreid-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
             <Mic className="h-4 w-4 text-white" />
           </div>
           <span className="text-lg font-bold tracking-tight">Voxlen</span>
@@ -219,7 +219,7 @@ function Navbar({
           )}
           <a
             href="#download"
-            className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-marcoreid-700 transition-colors"
+            className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-brand-700 transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
             Free Trial
@@ -248,7 +248,6 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
   return (
     <section className="relative pt-32 pb-20 overflow-hidden glow-hero">
       {/* Background orbs */}
-      <div className="glow-orb w-[500px] h-[500px] bg-marcoreid-600 top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
       <div className="max-w-6xl mx-auto px-6 text-center relative z-10">
         <motion.div
@@ -259,7 +258,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
         >
           {/* Badge */}
           <motion.div variants={fadeUp} className="flex justify-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-marcoreid-600/10 border border-marcoreid-600/20 text-marcoreid-400 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-600/10 border border-brand-600/20 text-brand-400 text-xs font-medium">
               <Zap className="h-3 w-3" />
               The Dragon NaturallySpeaking alternative lawyers actually use
             </div>
@@ -296,7 +295,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             {user ? (
               <a
                 href="#download"
-                className="h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:shadow-marcoreid-600/40 hover:scale-[1.02]"
+                className="h-12 px-8 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40 hover:scale-[1.02]"
               >
                 <Download className="h-5 w-5" />
                 Download Voxlen
@@ -304,7 +303,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             ) : (
               <button
                 onClick={() => login()}
-                className="h-12 px-8 rounded-xl bg-marcoreid-600 text-white font-semibold flex items-center gap-2 hover:bg-marcoreid-700 transition-all shadow-lg shadow-marcoreid-600/25 hover:shadow-marcoreid-600/40 hover:scale-[1.02]"
+                className="h-12 px-8 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40 hover:scale-[1.02]"
               >
                 <Download className="h-5 w-5" />
                 Start Free Trial
@@ -358,7 +357,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
                 <div className="w-3 h-3 rounded-full bg-green-500/80" />
               </div>
               <div className="flex items-center gap-2 ml-4">
-                <div className="w-5 h-5 rounded bg-marcoreid-600 flex items-center justify-center">
+                <div className="w-5 h-5 rounded bg-brand-600 flex items-center justify-center">
                   <Mic className="h-3 w-3 text-white" />
                 </div>
                 <span className="text-xs font-semibold text-zinc-300">Voxlen</span>
@@ -372,7 +371,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             <div className="flex">
               {/* Sidebar */}
               <div className="w-48 border-r border-white/5 p-3 space-y-1">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-marcoreid-600/10 text-marcoreid-400 text-xs font-medium">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-600/10 text-brand-400 text-xs font-medium">
                   <Mic className="h-3.5 w-3.5" /> Dictation
                 </div>
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-500 text-xs">
@@ -390,7 +389,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
                   {Array.from({ length: 48 }).map((_, i) => (
                     <div
                       key={i}
-                      className="w-1 rounded-full bg-marcoreid-500"
+                      className="w-1 rounded-full bg-brand-500"
                       style={{
                         height: `${8 + Math.sin(i * 0.4) * 20 + Math.random() * 16}px`,
                         opacity: 0.3 + Math.sin(i * 0.3) * 0.4 + 0.3,
@@ -404,12 +403,12 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
                     <span className="text-[10px] text-zinc-600 font-mono mr-2">10:32:15</span>
                     The quarterly results exceeded all expectations, with revenue growing
                     forty-two percent year over year.
-                    <Sparkles className="h-3 w-3 text-marcoreid-400 inline ml-1" />
+                    <Sparkles className="h-3 w-3 text-brand-400 inline ml-1" />
                   </p>
                   <p className="text-sm text-zinc-500 italic leading-relaxed">
                     <span className="text-[10px] text-zinc-600 font-mono mr-2">10:32:28</span>
                     We should schedule a follow up meeting to discuss the...
-                    <span className="inline-block w-0.5 h-3.5 bg-marcoreid-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-0.5 h-3.5 bg-brand-400 ml-0.5 animate-pulse align-text-bottom" />
                   </p>
                 </div>
               </div>
@@ -497,7 +496,7 @@ function Platforms() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Every Platform
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -532,7 +531,7 @@ function Platforms() {
               <h3 className="text-lg font-bold text-white mb-0.5">{p.name}</h3>
               <p className="text-xs text-zinc-500 mb-3">{p.sub}</p>
               <p className="text-sm text-zinc-400 leading-relaxed">{p.description}</p>
-              <a href={p.href} className="mt-4 inline-flex items-center gap-1.5 text-xs text-marcoreid-400 hover:text-marcoreid-300 transition-colors font-medium">
+              <a href={p.href} className="mt-4 inline-flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition-colors font-medium">
                 {p.badge.includes("coming") ? "Join waitlist" : "Download"} <ArrowRight className="h-3 w-3" />
               </a>
             </motion.div>
@@ -599,7 +598,7 @@ function Testimonials() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Trusted by legal & accounting professionals
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -631,7 +630,7 @@ function Testimonials() {
               <div>
                 <div className="text-sm font-semibold text-white">{t.name}</div>
                 <div className="text-xs text-zinc-500">{t.title}</div>
-                <div className="text-xs text-marcoreid-400 mt-0.5">{t.location}</div>
+                <div className="text-xs text-brand-400 mt-0.5">{t.location}</div>
               </div>
             </motion.div>
           ))}
@@ -739,7 +738,7 @@ function Features() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Features
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -798,7 +797,7 @@ function HowItWorks() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             How it works
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -819,8 +818,8 @@ function HowItWorks() {
               variants={fadeUp}
               className="flex items-start gap-6 p-6 rounded-2xl bg-[#111114] border border-white/5"
             >
-              <div className="shrink-0 w-12 h-12 rounded-xl bg-marcoreid-600/10 border border-marcoreid-600/20 flex items-center justify-center">
-                <span className="text-marcoreid-400 font-bold text-sm">{step.num}</span>
+              <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-600/10 border border-brand-600/20 flex items-center justify-center">
+                <span className="text-brand-400 font-bold text-sm">{step.num}</span>
               </div>
               <div>
                 <h3 className="text-lg font-bold mb-1">{step.title}</h3>
@@ -854,7 +853,7 @@ function Comparison() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Comparison
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -887,17 +886,17 @@ function Comparison() {
               {competitors.map((c) => (
                 <tr
                   key={c.name}
-                  className={`border-b border-white/5 ${c.highlight ? "bg-marcoreid-600/5" : ""}`}
+                  className={`border-b border-white/5 ${c.highlight ? "bg-brand-600/5" : ""}`}
                 >
-                  <td className={`py-4 px-4 font-semibold ${c.highlight ? "text-marcoreid-400" : ""}`}>
+                  <td className={`py-4 px-4 font-semibold ${c.highlight ? "text-brand-400" : ""}`}>
                     {c.name}
-                    {c.highlight && <Star className="h-3 w-3 text-marcoreid-400 inline ml-1" />}
+                    {c.highlight && <Star className="h-3 w-3 text-brand-400 inline ml-1" />}
                   </td>
                   <td className="text-center py-4 px-3 text-zinc-400">{c.price}</td>
                   {[c.realtime, c.neverInterrupts, c.grammar, c.anyApp, c.offline, c.extMic, c.android, c.legalMode].map((val, i) => (
                     <td key={i} className="text-center py-4 px-3">
                       {val ? (
-                        <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-marcoreid-400" : "text-green-400"}`} />
+                        <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-brand-400" : "text-green-400"}`} />
                       ) : (
                         <span className="text-zinc-600">-</span>
                       )}
@@ -1001,7 +1000,7 @@ function Pricing() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Pricing
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
@@ -1025,14 +1024,14 @@ function Pricing() {
               key={t.name}
               variants={fadeUp}
               className={`p-7 rounded-2xl bg-[#111114] relative ${
-                t.highlight ? "border-2 border-marcoreid-600/50" : "border border-white/5"
+                t.highlight ? "border-2 border-brand-600/50" : "border border-white/5"
               }`}
             >
               {t.badge && (
                 <div
                   className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                     t.highlight
-                      ? "bg-marcoreid-600 text-white"
+                      ? "bg-brand-600 text-white"
                       : "bg-white/10 text-zinc-300 border border-white/10"
                   }`}
                 >
@@ -1055,7 +1054,7 @@ function Pricing() {
                   >
                     <Check
                       className={`h-4 w-4 shrink-0 mt-0.5 ${
-                        t.highlight ? "text-marcoreid-400" : "text-zinc-600"
+                        t.highlight ? "text-brand-400" : "text-zinc-600"
                       }`}
                     />
                     {f}
@@ -1068,7 +1067,7 @@ function Pricing() {
                   onClick={() => redirectToCheckout(t.priceId!)}
                   className={`w-full h-11 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
                     t.ctaStyle === "primary"
-                      ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
+                      ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25"
                       : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
                   }`}
                 >
@@ -1079,7 +1078,7 @@ function Pricing() {
                   href="#download"
                   className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
                     t.ctaStyle === "primary"
-                      ? "bg-marcoreid-600 text-white hover:bg-marcoreid-700 shadow-lg shadow-marcoreid-600/25"
+                      ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25"
                       : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
                   }`}
                 >
@@ -1160,7 +1159,7 @@ function FAQ() {
           variants={stagger}
           className="text-center mb-16"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             FAQ
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl font-black tracking-tight">
@@ -1315,7 +1314,6 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
 
   return (
     <section id="download" className="py-24 bg-[#0c0c0f] relative overflow-hidden">
-      <div className="glow-orb w-[600px] h-[600px] bg-marcoreid-600 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
       <div className="max-w-5xl mx-auto px-6 relative z-10">
         <motion.div
           initial="hidden"
@@ -1324,7 +1322,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
           variants={stagger}
           className="text-center"
         >
-          <motion.p variants={fadeUp} className="text-marcoreid-400 text-sm font-semibold tracking-wider uppercase mb-3">
+          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
             Download
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight mb-4">
@@ -1339,7 +1337,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
           {/* Primary auto-detected button — or early access if no release yet */}
           {hasRelease !== true ? (
             <motion.div variants={fadeUp} className="max-w-md mx-auto mb-10">
-              <div className="p-6 rounded-2xl bg-marcoreid-600/10 border border-marcoreid-600/20 text-center">
+              <div className="p-6 rounded-2xl bg-brand-600/10 border border-brand-600/20 text-center">
                 <div className="text-lg font-bold text-white mb-2">🚀 Early Access — Join the Waitlist</div>
                 <p className="text-sm text-zinc-400 mb-4">
                   We're putting the finishing touches on the first public build. Join the waitlist and be first to download when it launches.
@@ -1353,7 +1351,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
               {user ? (
                 <a
                   href={hrefFor(platform as Exclude<Platform, "unknown">)}
-                  className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
+                  className="group h-16 px-10 rounded-2xl bg-brand-600 text-white font-bold flex items-center gap-4 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.02]"
                 >
                   <PrimaryIcon className="h-7 w-7" />
                   <div className="text-left">
@@ -1367,7 +1365,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
               ) : (
                 <button
                   onClick={() => login()}
-                  className="group h-16 px-10 rounded-2xl bg-marcoreid-600 text-white font-bold flex items-center gap-4 hover:bg-marcoreid-700 transition-all shadow-xl shadow-marcoreid-600/30 hover:shadow-marcoreid-600/50 hover:scale-[1.02]"
+                  className="group h-16 px-10 rounded-2xl bg-brand-600 text-white font-bold flex items-center gap-4 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.02]"
                 >
                   <PrimaryIcon className="h-7 w-7" />
                   <div className="text-left">
@@ -1407,19 +1405,19 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
                     variants={fadeUp}
                     className={`relative p-5 rounded-xl border transition-all ${
                       isDetected
-                        ? "bg-marcoreid-600/5 border-marcoreid-600/40"
+                        ? "bg-brand-600/5 border-brand-600/40"
                         : "bg-white/[0.02] border-white/5"
                     }`}
                   >
                     {isDetected && (
-                      <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-marcoreid-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                      <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-brand-600 text-white text-[10px] font-bold uppercase tracking-wider">
                         Detected
                       </div>
                     )}
                     <div className="flex items-start justify-between mb-3">
                       <div
                         className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          isDetected ? "bg-marcoreid-600/20 text-marcoreid-400" : "bg-white/5 text-zinc-400"
+                          isDetected ? "bg-brand-600/20 text-brand-400" : "bg-white/5 text-zinc-400"
                         }`}
                       >
                         <Icon className="h-5 w-5" />
@@ -1441,19 +1439,19 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
                   href={hrefFor(key)}
                   className={`group relative p-5 rounded-xl border transition-all ${
                     isDetected
-                      ? "bg-marcoreid-600/5 border-marcoreid-600/40 hover:border-marcoreid-600/60"
+                      ? "bg-brand-600/5 border-brand-600/40 hover:border-brand-600/60"
                       : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10"
                   }`}
                 >
                   {isDetected && (
-                    <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-marcoreid-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                    <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-brand-600 text-white text-[10px] font-bold uppercase tracking-wider">
                       Detected
                     </div>
                   )}
                   <div className="flex items-start justify-between mb-3">
                     <div
                       className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        isDetected ? "bg-marcoreid-600/20 text-marcoreid-400" : "bg-white/5 text-zinc-400"
+                        isDetected ? "bg-brand-600/20 text-brand-400" : "bg-white/5 text-zinc-400"
                       }`}
                     >
                       <Icon className="h-5 w-5" />
@@ -1478,10 +1476,10 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
           className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5"
         >
           {/* iOS */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-marcoreid-600/10 to-transparent border border-marcoreid-600/20 flex flex-col gap-4">
+          <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-600/10 to-transparent border border-brand-600/20 flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-marcoreid-600/20 border border-marcoreid-600/30 flex items-center justify-center shrink-0">
-                <Apple className="h-6 w-6 text-marcoreid-400" />
+              <div className="w-12 h-12 rounded-xl bg-brand-600/20 border border-brand-600/30 flex items-center justify-center shrink-0">
+                <Apple className="h-6 w-6 text-brand-400" />
               </div>
               <div>
                 <div className="text-base font-bold text-white">iPhone & iPad Keyboard</div>
@@ -1519,7 +1517,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
             href="https://github.com/ccantynz-alt/voxlen/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-marcoreid-400 transition-colors"
+            className="hover:text-brand-400 transition-colors"
           >
             View all releases &amp; changelog →
           </a>
@@ -1571,11 +1569,11 @@ function WaitlistForm({ platform }: { platform: string }) {
         value={email}
         onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
         placeholder="your@email.com"
-        className="flex-1 h-9 px-3 rounded-lg bg-black/40 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-marcoreid-500 transition-colors"
+        className="flex-1 h-9 px-3 rounded-lg bg-black/40 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-brand-500 transition-colors"
       />
       <button
         type="submit"
-        className="h-9 px-4 rounded-lg bg-marcoreid-600 text-white text-sm font-medium hover:bg-marcoreid-700 transition-colors shrink-0"
+        className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shrink-0"
       >
         Notify me
       </button>
@@ -1589,7 +1587,7 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-marcoreid-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded bg-brand-600 flex items-center justify-center">
               <Mic className="h-3 w-3 text-white" />
             </div>
             <span className="text-sm font-bold">Voxlen</span>
@@ -1718,7 +1716,7 @@ function PrivacyContent() {
 
       <h2 className="text-lg font-bold mt-8">6. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-marcoreid-400 hover:underline">privacy@voxlen.ai</a>.
+        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-brand-400 hover:underline">privacy@voxlen.ai</a>.
       </p>
     </div>
   );
@@ -1797,7 +1795,7 @@ function TermsContent() {
 
       <h2 className="text-lg font-bold mt-8">9. Contact</h2>
       <p className="text-zinc-300 leading-relaxed">
-        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-marcoreid-400 hover:underline">legal@voxlen.ai</a>.
+        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-brand-400 hover:underline">legal@voxlen.ai</a>.
       </p>
     </div>
   );
@@ -1809,7 +1807,7 @@ function LegalPage({ type }: { type: "privacy" | "terms" }) {
       <div className="border-b border-white/5 bg-[#0c0c0f]">
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center gap-3">
           <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-7 h-7 rounded-lg bg-marcoreid-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
               <Mic className="h-3.5 w-3.5 text-white" />
             </div>
             <span className="font-bold tracking-tight">Voxlen</span>
@@ -1837,7 +1835,7 @@ function SupportPage() {
       <div className="border-b border-white/5 bg-[#0c0c0f]">
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center gap-3">
           <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-7 h-7 rounded-lg bg-marcoreid-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
               <Mic className="h-3.5 w-3.5 text-white" />
             </div>
             <span className="font-bold tracking-tight">Voxlen</span>
@@ -1857,17 +1855,17 @@ function SupportPage() {
             href="mailto:support@voxlen.ai"
             className="block p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors group"
           >
-            <div className="text-lg font-bold mb-1 group-hover:text-marcoreid-400 transition-colors">Email Support</div>
+            <div className="text-lg font-bold mb-1 group-hover:text-brand-400 transition-colors">Email Support</div>
             <p className="text-zinc-400 text-sm mb-3">General help, billing questions, and account issues.</p>
-            <span className="text-marcoreid-400 text-sm font-medium">support@voxlen.ai →</span>
+            <span className="text-brand-400 text-sm font-medium">support@voxlen.ai →</span>
           </a>
           <a
             href="mailto:legal@voxlen.ai"
             className="block p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors group"
           >
-            <div className="text-lg font-bold mb-1 group-hover:text-marcoreid-400 transition-colors">Legal &amp; Privacy</div>
+            <div className="text-lg font-bold mb-1 group-hover:text-brand-400 transition-colors">Legal &amp; Privacy</div>
             <p className="text-zinc-400 text-sm mb-3">Terms, privacy policy, and data handling enquiries.</p>
-            <span className="text-marcoreid-400 text-sm font-medium">legal@voxlen.ai →</span>
+            <span className="text-brand-400 text-sm font-medium">legal@voxlen.ai →</span>
           </a>
         </div>
 
