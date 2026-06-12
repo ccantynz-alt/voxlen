@@ -220,7 +220,7 @@ export default function ROICalculator() {
               <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cost vs return</div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-zinc-400">Voxlen Pro (annual)</span>
-                <span className="text-white font-semibold">$288 / yr</span>
+                <span className="text-white font-semibold">{fmt$(voxlenCostPerYear)} / yr</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-zinc-400">Billable time recovered</span>
@@ -229,7 +229,7 @@ export default function ROICalculator() {
               <div className="h-px bg-white/5" />
               <div className="flex items-center justify-between text-sm font-semibold">
                 <span className="text-white">Net gain</span>
-                <span className="text-emerald-400">{fmt$(savedBillablePerYear - 288)} / yr</span>
+                <span className="text-emerald-400">{fmt$(savedBillablePerYear - voxlenCostPerYear)} / yr</span>
               </div>
             </div>
 
