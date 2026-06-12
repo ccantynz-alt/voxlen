@@ -948,8 +948,8 @@ function AdvancedSettings() {
             },
             {
               value: "clipboard",
-              label: "Clipboard Paste",
-              description: "Copies to clipboard and pastes (faster)",
+              label: "Clipboard / Citrix Mode",
+              description: "Copies to clipboard then pastes — works in Citrix, VMware Horizon, and VDI sessions",
             },
             {
               value: "buffer",
