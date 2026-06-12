@@ -75,6 +75,7 @@ fn get_config_store() -> &'static parking_lot::RwLock<GrammarConfig> {
 pub async fn correct_grammar(
     text: String,
     custom_vocabulary: Option<Vec<String>>,
+    matter_context: Option<String>,
 ) -> Result<GrammarResult, String> {
     let config = get_config_store().read().clone();
 
@@ -89,12 +90,19 @@ pub async fn correct_grammar(
 
     let vocab = custom_vocabulary.unwrap_or_default();
 
+    // Merge matter context into voxlen_context if provided
+    let effective_context = matter_context
+        .filter(|s| !s.is_empty())
+        .or_else(|| config.voxlen_context.clone());
+
     // Prefer Voxlen proxy (no user API key needed) over direct provider calls
     if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        let mut proxy_config = config.clone();
+        proxy_config.voxlen_context = effective_context.clone();
         return correct_with_voxlen_proxy(
             &text, voxlen_key,
-            config.voxlen_context.as_deref(),
-            &config, &vocab
+            proxy_config.voxlen_context.as_deref(),
+            &proxy_config, &vocab
         ).await;
     }
 
@@ -103,9 +111,14 @@ pub async fn correct_grammar(
         .as_ref()
         .ok_or("No API key configured. Sign in to your Voxlen account in Settings, or add your Anthropic/OpenAI API key.")?;
 
+    let mut effective_config = config.clone();
+    if let Some(ctx) = effective_context {
+        effective_config.voxlen_context = Some(ctx);
+    }
+
     match config.provider {
-        GrammarProvider::Claude => correct_with_claude(&text, api_key, &config, &vocab).await,
-        GrammarProvider::OpenAI => correct_with_openai(&text, api_key, &config, &vocab).await,
+        GrammarProvider::Claude => correct_with_claude(&text, api_key, &effective_config, &vocab).await,
+        GrammarProvider::OpenAI => correct_with_openai(&text, api_key, &effective_config, &vocab).await,
     }
 }
 

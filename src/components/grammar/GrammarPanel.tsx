@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { useSettingsStore } from "@/stores/settings";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
 
 interface GrammarChange {
   original: string;
@@ -29,6 +30,7 @@ export function GrammarPanel() {
   const [score, setScore] = useState<number | null>(null);
   const writingStyle = useSettingsStore((s) => s.writingStyle);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const activeClient = useClientsStore((s) => s.clients.find((c) => c.id === s.activeClientId));
 
   const handleCorrect = useCallback(async () => {
     if (!inputText.trim()) return;
@@ -36,12 +38,14 @@ export function GrammarPanel() {
     setIsProcessing(true);
     try {
       const { invoke } = await import("@tauri-apps/api/core");
+      const matterContext = buildMatterContext(activeClient) || undefined;
+      const customVocabulary = activeClient?.vocabulary?.length ? activeClient.vocabulary : undefined;
       const result = await invoke<{
         original: string;
         corrected: string;
         changes: GrammarChange[];
         score: number;
-      }>("correct_grammar", { text: inputText });
+      }>("correct_grammar", { text: inputText, customVocabulary, matterContext });
 
       setCorrectedText(result.corrected);
       setChanges(result.changes);

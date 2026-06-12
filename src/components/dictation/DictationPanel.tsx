@@ -26,7 +26,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { useHistoryStore } from "@/stores/history";
 import { useFlywheelStore } from "@/stores/flywheel";
-import { useClientsStore } from "@/stores/clients";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
@@ -186,6 +186,13 @@ export function DictationPanel() {
     async (text: string) => {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
+        const { activeClientId: cid, clients: cls } = useClientsStore.getState();
+        const activeClientForGrammar = cls.find((c) => c.id === cid);
+        const matterContext = buildMatterContext(activeClientForGrammar) || undefined;
+        const customVocabulary = activeClientForGrammar?.vocabulary?.length
+          ? activeClientForGrammar.vocabulary
+          : undefined;
+
         const result = await invoke<{
           corrected: string;
           changes: Array<{
@@ -193,7 +200,7 @@ export function DictationPanel() {
             corrected: string;
             reason: string;
           }>;
-        }>("correct_grammar", { text });
+        }>("correct_grammar", { text, customVocabulary, matterContext });
 
         // Update the last segment with corrected text
         if (segments.length > 0) {
