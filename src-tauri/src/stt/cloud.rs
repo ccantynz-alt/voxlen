@@ -156,7 +156,6 @@ pub async fn deepgram_transcribe(
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key."))?;
 
-    // mip_opt_out: never allow Deepgram to use customer audio for model training
     let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true");
 
     if config.punctuate {

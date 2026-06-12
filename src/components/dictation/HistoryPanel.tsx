@@ -44,23 +44,36 @@ export function HistoryPanel() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleExport = (entry: (typeof entries)[0], format: "txt" | "rtf") => {
+  const handleExport = (entry: (typeof entries)[0], format: "txt" | "md") => {
     const date = new Date(entry.timestamp);
     const dateStr = date.toISOString().slice(0, 10);
     let content: string;
     let mimeType: string;
     let ext: string;
-    if (format === "rtf") {
-      const escaped = entry.text.replace(/\\/g, "\\\\").replace(/\{/g, "\\{").replace(/\}/g, "\\}");
-      const dateLabel = date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-      content = `{\\rtf1\\ansi\\ansicpg1252\\deff0{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset0 Arial;}}\\f1\\fs28\\b Voxlen Transcript\\b0\\par\\fs20 ${escaped.replace(/[^\x00-\x7F]/g, (c) => `\\u${c.charCodeAt(0)}?`)}\\par\\par{\\fs18 ${dateLabel} — ${entry.wordCount} words}\\par\\par\\f0\\fs24\\sl360\\slmult1 ${escaped}\\par}`;
-      mimeType = "application/rtf";
-      ext = "rtf";
+
+    if (format === "md") {
+      const lines = [
+        "# Voxlen Transcript",
+        "",
+        `**Date:** ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+        `**Words:** ${entry.wordCount}`,
+        `**Duration:** ${formatDuration(entry.duration)}`,
+        `**Language:** ${entry.language.toUpperCase()}`,
+        entry.grammarCorrected ? "**AI Polished:** Yes" : "",
+        "",
+        "---",
+        "",
+        entry.text,
+      ].filter((l) => l !== undefined);
+      content = lines.join("\n");
+      mimeType = "text/markdown";
+      ext = "md";
     } else {
       content = entry.text;
       mimeType = "text/plain";
       ext = "txt";
     }
+
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -180,26 +193,29 @@ export function HistoryPanel() {
                       <Copy className="h-3 w-3" />
                     )}
                   </Button>
-                  <div className="relative">
+                  <div className="relative group/dl">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setExportMenuId(exportMenuId === entry.id ? null : entry.id)}
                       className="h-7 px-2"
-                      title="Export"
+                      title="Export transcript"
                     >
                       <Download className="h-3 w-3" />
-                      <ChevronDown className="h-2.5 w-2.5 ml-0.5" />
                     </Button>
-                    {exportMenuId === entry.id && (
-                      <div
-                        className="absolute right-0 top-full mt-1 w-36 rounded-lg border border-surface-300/60 bg-surface-50 shadow-lg z-50 py-1"
-                        onMouseLeave={() => setExportMenuId(null)}
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover/dl:flex flex-col z-10 bg-white border border-surface-300/70 rounded-lg shadow-elevation overflow-hidden min-w-[80px]">
+                      <button
+                        onClick={() => handleExport(entry, "txt")}
+                        className="px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 text-left"
                       >
-                        <button onClick={() => { handleExport(entry, "txt"); setExportMenuId(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-surface-900 hover:bg-surface-100">Plain text (.txt)</button>
-                        <button onClick={() => { handleExport(entry, "rtf"); setExportMenuId(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-surface-900 hover:bg-surface-100">Word / RTF (.rtf)</button>
-                      </div>
-                    )}
+                        .txt
+                      </button>
+                      <button
+                        onClick={() => handleExport(entry, "md")}
+                        className="px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 text-left"
+                      >
+                        .md
+                      </button>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"

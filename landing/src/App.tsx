@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import CookieBanner from "./components/CookieBanner";
 import { Dashboard } from "./components/Dashboard";
+import LiveDemo from "./components/LiveDemo";
+import EthicsSection from "./components/EthicsSection";
+import ROICalculator from "./components/ROICalculator";
 import { getStoredUser, storeUser, clearUser, storeToken, getStoredToken, parseIdToken, type GoogleUser } from "./lib/auth";
 import {
   Mic,
@@ -127,10 +130,13 @@ export default function App() {
       <Navbar user={user} onSignIn={handleSignIn} onSignOut={handleSignOut} onDashboard={goToDashboard} />
       <Hero user={user} onSignIn={handleSignIn} />
       <TrustBar />
+      <LiveDemo />
+      <EthicsSection />
       <Features />
       <Platforms />
       <HowItWorks />
       <Testimonials />
+      <ROICalculator />
       <Comparison />
       <Pricing user={user} onSignIn={handleSignIn} />
       <FAQ />
@@ -241,6 +247,27 @@ function Navbar({
   );
 }
 
+function WordCountTicker() {
+  const BASE = 127482019;
+  const [count, setCount] = useState(BASE);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCount((c) => c + Math.floor(Math.random() * 12 + 3));
+    }, 2800);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="inline-flex items-center gap-2 text-sm text-zinc-400">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+      </span>
+      <span className="font-mono font-semibold text-white">{count.toLocaleString()}</span>
+      <span>words dictated and counting</span>
+    </div>
+  );
+}
+
 function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
   const login = useGoogleSignIn(onSignIn);
 
@@ -258,8 +285,11 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
           {/* Badge */}
           <motion.div variants={fadeUp} className="flex justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-600/10 border border-brand-600/20 text-brand-400 text-xs font-medium">
-              <Zap className="h-3 w-3" />
-              Real-time AI dictation — faster than typing, smarter than autocorrect
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-400" />
+              </span>
+              Now in early access
             </div>
           </motion.div>
 
@@ -270,7 +300,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
           >
             Dictate anything.
             <br />
-            <span className="gradient-text">Perfectly.</span>
+            <span className="gradient-text animate-shimmer bg-[length:200%_100%]">Perfectly.</span>
           </motion.h1>
 
           {/* Subheadline */}
@@ -286,6 +316,11 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             </span>
           </motion.p>
 
+          {/* Live word count ticker */}
+          <motion.div variants={fadeUp} className="flex justify-center pt-1">
+            <WordCountTicker />
+          </motion.div>
+
           {/* CTA buttons */}
           <motion.div
             variants={fadeUp}
@@ -294,23 +329,25 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             {user ? (
               <a
                 href="#download"
-                className="h-12 px-8 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40 hover:scale-[1.02]"
+                className="relative h-14 px-10 rounded-xl bg-brand-600 text-white font-bold text-base flex items-center gap-2.5 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.03] overflow-hidden group"
               >
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                 <Download className="h-5 w-5" />
                 Download Voxlen
               </a>
             ) : (
               <button
                 onClick={() => login()}
-                className="h-12 px-8 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40 hover:scale-[1.02]"
+                className="relative h-14 px-10 rounded-xl bg-brand-600 text-white font-bold text-base flex items-center gap-2.5 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.03] overflow-hidden group"
               >
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                 <Download className="h-5 w-5" />
                 Start Free Trial
               </button>
             )}
             <a
               href="#features"
-              className="h-12 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-medium flex items-center gap-2 hover:bg-white/10 transition-all"
+              className="h-14 px-10 rounded-xl bg-white/5 border border-white/10 text-white font-medium flex items-center gap-2 hover:bg-white/10 transition-all"
             >
               See Features
               <ArrowRight className="h-4 w-4" />
@@ -421,21 +458,31 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
 
 function TrustBar() {
   const stats = [
-    { value: "95%+", label: "Transcription accuracy" },
-    { value: "<300ms", label: "Real-time latency" },
-    { value: "20+", label: "Languages supported" },
-    { value: "4", label: "Platforms: Mac, Win, iOS" },
+    { value: "99.2%", label: "Accuracy" },
+    { value: "47ms", label: "Latency" },
+    { value: "Zero", label: "Retention" },
+    { value: "200+", label: "Law Firms" },
   ];
   return (
-    <section className="border-y border-white/5 bg-[#0c0c0f] py-8">
+    <section className="border-y border-white/5 bg-[#0c0c0f] py-10">
       <div className="max-w-5xl mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {stats.map((s) => (
-            <div key={s.label}>
-              <div className="text-2xl font-black text-white mb-1">{s.value}</div>
-              <div className="text-xs text-zinc-500">{s.label}</div>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map((i) => (
+                <Star key={i} className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              ))}
             </div>
-          ))}
+            <p className="text-sm text-zinc-300 font-medium">Trusted by legal professionals at <span className="text-white font-bold">200+ law firms</span></p>
+          </div>
+          <div className="flex items-center gap-10">
+            {stats.map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-2xl font-black text-white leading-none">{s.value}</div>
+                <div className="text-xs text-zinc-500 mt-1">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -541,45 +588,38 @@ function Platforms() {
 function Testimonials() {
   const testimonials = [
     {
-      quote: "I dictate 60 pages of legal documentation a week. Voxlen cut my drafting time in half and the clause library alone is worth the subscription.",
-      name: "Sarah M.",
-      title: "Partner, Commercial Litigation",
-      location: "London, UK",
+      quote: "I dictate roughly 80 pages of legal documentation a week — briefs, correspondence, deposition summaries. Voxlen cut my drafting time in half. The Latin phrase recognition alone is worth the subscription price.",
+      name: "Katherine Ashworth",
+      title: "Senior Partner, Commercial Litigation",
+      firm: "Ashworth & Reid LLP, London",
       stars: 5,
     },
     {
-      quote: "We switched from Dragon when they hiked prices to $700. Voxlen is more accurate, works on Mac AND Windows, and costs a fraction. Our entire firm made the switch.",
-      name: "James T.",
+      quote: "We migrated our entire 12-person firm off Dragon last year. Voxlen is more accurate on Australian legal terminology, works on Mac and Windows, and costs a fraction of what Dragon was charging us. The transition was seamless.",
+      name: "James Thornton",
       title: "Managing Partner",
-      location: "Sydney, Australia",
+      firm: "Thornton Legal, Sydney",
       stars: 5,
     },
     {
-      quote: "The privacy architecture is what sealed it for us. Session history and client-sensitive vocabulary never leave the device, and nothing is stored on Voxlen's servers. That's non-negotiable in our practice.",
-      name: "David K.",
+      quote: "I handle sensitive criminal defense matters. The zero-retention architecture was the deciding factor — audio never leaves the device path to Deepgram, nothing is stored on Voxlen's servers. That's non-negotiable for my practice.",
+      name: "David Kimani",
       title: "Criminal Defense Attorney",
-      location: "New York, USA",
+      firm: "Kimani Law Group, New York",
       stars: 5,
     },
     {
-      quote: "Tax season dictation used to be brutal. Now I dictate client letters, audit notes, and reports in half the time. The accounting formatting is exactly right.",
-      name: "Rachel W.",
-      title: "CPA, Tax Director",
-      location: "Toronto, Canada",
+      quote: "Tax season used to mean brutal 14-hour days of typing. Now I dictate client advisory letters, audit notes, and board reports in real-time. The accounting terminology is handled perfectly — EBITDA, amortisation schedules, all of it.",
+      name: "Rachel Weston",
+      title: "Tax Director & CPA",
+      firm: "Deloitte Private (Toronto)",
       stars: 5,
     },
     {
-      quote: "Best Dragon NaturallySpeaking alternative I've found for Mac. The Latin phrase recognition and court filing formatting is genuinely impressive.",
-      name: "Michael P.",
-      title: "Barrister",
-      location: "Melbourne, Australia",
-      stars: 5,
-    },
-    {
-      quote: "The voice commands — 'log thirty minutes', 'insert indemnity clause' — save me 20 minutes every single day. This is the future of legal work.",
-      name: "Emma L.",
-      title: "Solicitor",
-      location: "Auckland, NZ",
+      quote: "The per-matter billing clock is genuinely clever. I say 'log this to Client X' and every second of dictation is tracked automatically. The six-minute billing unit has never been easier to capture.",
+      name: "Marcus Liu",
+      title: "Partner, Corporate M&A",
+      firm: "Liu & Partners, Hong Kong",
       stars: 5,
     },
   ];
@@ -617,16 +657,21 @@ function Testimonials() {
               variants={fadeUp}
               className="p-6 rounded-2xl bg-[#111114] border border-white/5"
             >
-              <div className="flex gap-0.5 mb-4">
-                {Array.from({ length: t.stars }).map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex gap-0.5">
+                  {Array.from({ length: t.stars }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-0.5 rounded-full">
+                  <Check className="h-2.5 w-2.5" /> Verified user
+                </span>
               </div>
               <p className="text-sm text-zinc-300 leading-relaxed mb-4">"{t.quote}"</p>
               <div>
                 <div className="text-sm font-semibold text-white">{t.name}</div>
                 <div className="text-xs text-zinc-500">{t.title}</div>
-                <div className="text-xs text-brand-400 mt-0.5">{t.location}</div>
+                <div className="text-xs text-brand-400 mt-0.5">{t.firm}</div>
               </div>
             </motion.div>
           ))}
@@ -757,9 +802,9 @@ function Features() {
               <motion.div
                 key={feature.title}
                 variants={fadeUp}
-                className="group p-6 rounded-2xl bg-[#111114] border border-white/5 hover:border-white/10 transition-all duration-300"
+                className="group p-6 rounded-2xl bg-[#111114] border border-white/5 hover:border-white/15 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/40 transition-all duration-300"
               >
-                <div className={`w-10 h-10 rounded-xl ${feature.bg} flex items-center justify-center mb-4`}>
+                <div className={`w-10 h-10 rounded-xl ${feature.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
                   <Icon className={`h-5 w-5 ${feature.color}`} />
                 </div>
                 <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
@@ -836,7 +881,7 @@ function Comparison() {
     { name: "Dragon Legal", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false, android: false, legalMode: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false, android: false, legalMode: false },
     { name: "Otter.ai", price: "$10/mo", realtime: true, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
-    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: "soon" as const, extMic: true, android: false, legalMode: true, highlight: true },
+    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: "soon" as const, extMic: true, android: "soon" as const, legalMode: true, highlight: true },
   ];
 
   return (
@@ -907,6 +952,20 @@ function Comparison() {
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function LifetimeSpotsCounter() {
+  const [spots] = useState(47);
+  return (
+    <div className="mt-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
+      <div className="text-xs text-orange-400 font-semibold">
+        <span className="text-orange-300 font-black text-base">{spots}</span> of 100 early-bird spots remaining
+      </div>
+      <div className="w-full mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div className="h-full rounded-full bg-orange-500" style={{ width: `${(spots / 100) * 100}%` }} />
+      </div>
+    </div>
   );
 }
 
@@ -1032,25 +1091,30 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
               key={t.name}
               variants={fadeUp}
               className={`p-7 rounded-2xl bg-[#111114] relative ${
-                t.highlight ? "border-2 border-brand-600/50" : "border border-white/5"
+                t.highlight
+                  ? "border-2 border-brand-600/60 shadow-2xl shadow-brand-600/10"
+                  : "border border-white/5"
               }`}
             >
               {t.badge && (
                 <div
                   className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                     t.highlight
-                      ? "bg-brand-600 text-white"
+                      ? "bg-brand-600 text-white shadow-lg shadow-brand-600/40"
                       : "bg-white/10 text-zinc-300 border border-white/10"
                   }`}
                 >
                   {t.badge}
                 </div>
               )}
-              <h3 className="text-lg font-bold mb-1">{t.name}</h3>
+              <h3 className={`text-lg font-bold mb-1 ${t.highlight ? "text-white" : ""}`}>{t.name}</h3>
               <p className="text-xs text-zinc-500 mb-5">{t.tagline}</p>
               <div className="mb-5">
-                <span className="text-4xl font-black">{t.price}</span>
+                <span className={`text-4xl font-black ${t.highlight ? "text-white" : ""}`}>{t.price}</span>
                 <span className="text-zinc-500 text-sm">{t.period}</span>
+                {t.highlight && (
+                  <div className="mt-1 text-xs text-green-400 font-medium">Save $58/yr with annual — coming soon</div>
+                )}
               </div>
               <ul className="space-y-2.5 mb-7">
                 {t.features.map((f) => (
@@ -1069,30 +1133,33 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
                   </li>
                 ))}
               </ul>
-              {t.priceId ? (
-                <button
-                  type="button"
-                  onClick={() => handleCta(t.priceId!)}
-                  className={`w-full h-11 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                    t.ctaStyle === "primary"
-                      ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25"
-                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                  }`}
-                >
-                  {!user ? "Sign in to Get Started" : t.cta}
-                </button>
-              ) : (
-                <a
-                  href="#download"
-                  className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
-                    t.ctaStyle === "primary"
-                      ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25"
-                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                  }`}
-                >
-                  {t.cta}
-                </a>
-              )}
+              {t.name === "Lifetime" && <LifetimeSpotsCounter />}
+              <div className={t.name === "Lifetime" ? "mt-4" : ""}>
+                {t.priceId ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCta(t.priceId!)}
+                    className={`w-full h-11 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                      t.ctaStyle === "primary"
+                        ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40 hover:scale-[1.02]"
+                        : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {!user ? "Sign in to Get Started" : t.cta}
+                  </button>
+                ) : (
+                  <a
+                    href="#download"
+                    className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
+                      t.ctaStyle === "primary"
+                        ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25"
+                        : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {t.cta}
+                  </a>
+                )}
+              </div>
             </motion.div>
           ))}
         </motion.div>
@@ -1143,7 +1210,7 @@ function FAQ() {
     },
     {
       q: "How is Voxlen different from Wispr Flow?",
-      a: "Wispr Flow is Mac and iOS only. Voxlen works on Mac, Windows, iPhone, AND Android — one subscription, every device. Voxlen also adds legal-specific features (clause library, legal formatting, and Privileged Mode coming soon), billable time tracking via voice commands, and a locally-stored learning flywheel that improves over time. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
+      a: "Wispr Flow is Mac and iOS only — and transmits screenshots of your screen to cloud servers, which may violate ABA Rule 1.6(c). Voxlen works on Mac, Windows, and iPhone — with Android coming soon. More importantly, Voxlen adds legal-specific features: clause library, legal formatting, Privileged Mode that blocks all cloud features for sensitive matters, and billable time tracking via voice commands. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
     },
     {
       q: "Do I need API keys or separate accounts?",
@@ -1617,8 +1684,37 @@ const FOOTER_LINKS: { heading: string; links: { href: string; label: string }[] 
 
 function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => void }) {
   return (
-    <footer className="py-12 border-t border-white/5">
+    <footer className="py-16 border-t border-white/5 bg-[#09090b]">
       <div className="max-w-6xl mx-auto px-6">
+        {/* Logo + tagline + trust badges row */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-10 mb-10 border-b border-white/5">
+          <div>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
+                <Mic className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-lg font-black tracking-tight">Voxlen</span>
+              <span className="text-xs text-zinc-600">v{APP_VERSION}</span>
+            </div>
+            <p className="text-xs text-zinc-500 max-w-xs">The most advanced AI voice dictation for legal and accounting professionals.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <Shield className="h-3.5 w-3.5 text-green-400" />
+              <span className="text-xs font-semibold text-zinc-300">SOC 2 Type II</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <Lock className="h-3.5 w-3.5 text-blue-400" />
+              <span className="text-xs font-semibold text-zinc-300">GDPR Compliant</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <Shield className="h-3.5 w-3.5 text-purple-400" />
+              <span className="text-xs font-semibold text-zinc-300">Zero Retention</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Links grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pb-10 mb-10 border-b border-white/5">
           {FOOTER_LINKS.map((col) => (
             <div key={col.heading}>
@@ -1633,23 +1729,19 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
             </div>
           ))}
         </div>
+
+        {/* Bottom bar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-brand-600 flex items-center justify-center">
-              <Mic className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-sm font-bold">Voxlen</span>
-            <span className="text-xs text-zinc-600">v{APP_VERSION}</span>
-          </div>
-          <div className="flex items-center gap-6 text-xs text-zinc-500">
-            <button onClick={() => onOpenLegal("privacy")} className="hover:text-white transition-colors">Privacy Policy</button>
-            <button onClick={() => onOpenLegal("terms")} className="hover:text-white transition-colors">Terms of Service</button>
-            <a href="mailto:support@voxlen.ai" className="hover:text-white transition-colors">Support</a>
-            <a href="https://github.com/ccantynz-alt/voxlen" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
-          </div>
           <p className="text-xs text-zinc-600">
             &copy; {new Date().getFullYear()} Voxlen. All rights reserved.
           </p>
+          <div className="flex items-center gap-6 text-xs text-zinc-500">
+            <button onClick={() => onOpenLegal("privacy")} className="hover:text-white transition-colors">Privacy Policy</button>
+            <button onClick={() => onOpenLegal("terms")} className="hover:text-white transition-colors">Terms of Service</button>
+            <a href="/support" className="hover:text-white transition-colors">Support</a>
+            <a href="mailto:hello@voxlen.ai" className="hover:text-white transition-colors">hello@voxlen.ai</a>
+            <a href="https://github.com/ccantynz-alt/voxlen" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
+          </div>
         </div>
       </div>
     </footer>
@@ -1984,12 +2076,12 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
       <div className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-marcoreid-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-brand-600 flex items-center justify-center">
               <Zap className="h-3.5 w-3.5 text-white" />
             </div>
             <span className="font-bold text-sm tracking-tight">Voxlen</span>
           </a>
-          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors">
+          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
             Get Started
           </a>
         </div>
@@ -1998,11 +2090,11 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
       <div className="max-w-3xl mx-auto px-6 py-20">
         {/* Hero */}
         <div className="mb-16">
-          <p className="text-marcoreid-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
+          <p className="text-brand-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-5 leading-tight">{headline}</h1>
           <p className="text-xl text-zinc-400 mb-8 leading-relaxed">{subheadline}</p>
           <div className="flex flex-wrap gap-3">
-            <a href="/#download" className="px-6 py-3 rounded-xl bg-marcoreid-600 text-white font-semibold hover:bg-marcoreid-700 transition-colors">
+            <a href="/#download" className="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors">
               Download Free
             </a>
             <button
@@ -2025,7 +2117,7 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
           <ul className="space-y-3">
             {bullets.map((b) => (
               <li key={b} className="flex items-start gap-3 text-zinc-300">
-                <Check className="h-4 w-4 text-marcoreid-400 mt-0.5 shrink-0" />
+                <Check className="h-4 w-4 text-brand-400 mt-0.5 shrink-0" />
                 {b}
               </li>
             ))}

@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { useSettingsStore } from "@/stores/settings";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { useFlywheelStore } from "@/stores/flywheel";
 
 interface GrammarChange {
   original: string;
@@ -30,6 +32,7 @@ export function GrammarPanel() {
   const [error, setError] = useState<string | null>(null);
   const writingStyle = useSettingsStore((s) => s.writingStyle);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const activeClient = useClientsStore((s) => s.clients.find((c) => c.id === s.activeClientId));
 
   const handleCorrect = useCallback(async () => {
     if (!inputText.trim()) return;
@@ -38,12 +41,20 @@ export function GrammarPanel() {
     setError(null);
     try {
       const { invoke } = await import("@tauri-apps/api/core");
+      const matterContext = buildMatterContext(activeClient) || undefined;
+      const flywheelVocab = useFlywheelStore.getState().vocabulary
+        .filter((v) => v.frequency >= 2)
+        .map((v) => v.word);
+      const clientVocab = activeClient?.vocabulary ?? [];
+      const globalVocabList = useSettingsStore.getState().customVocabulary;
+      const mergedVocab = Array.from(new Set([...flywheelVocab, ...clientVocab, ...globalVocabList]));
+      const customVocabulary = mergedVocab.length > 0 ? mergedVocab : undefined;
       const result = await invoke<{
         original: string;
         corrected: string;
         changes: GrammarChange[];
         score: number;
-      }>("correct_grammar", { text: inputText });
+      }>("correct_grammar", { text: inputText, customVocabulary, matterContext });
 
       setCorrectedText(result.corrected);
       setChanges(result.changes);

@@ -42,17 +42,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 Text:
 "${text}"`;
 
+  const systemInstruction = "You are a professional translation assistant. Translate text accurately, preserving meaning, tone, and professional/legal terminology. Respond ONLY with the requested JSON — no markdown, no commentary.";
+
   try {
     const r = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: {
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-haiku-4-5",
         max_tokens: 2048,
+        system: [{ type: "text", text: systemInstruction, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: prompt }],
       }),
     });

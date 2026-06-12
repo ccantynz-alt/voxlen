@@ -38,7 +38,7 @@ struct ContentView: View {
                                 .cornerRadius(12)
 
                             VStack(alignment: .leading) {
-                                Text("Voxlen")
+                                Text("Voxlen Keyboard")
                                     .font(.title2)
                                     .fontWeight(.bold)
                                 Text("AI Voice Dictation for Professionals")
@@ -208,13 +208,6 @@ struct ContentView: View {
                             Text("Privacy Policy")
                         }
                     }
-                    Link(destination: URL(string: "https://voxlen.ai/terms")!) {
-                        HStack {
-                            Image(systemName: "doc.text.fill")
-                                .foregroundColor(.purple)
-                            Text("Terms of Service")
-                        }
-                    }
                     Link(destination: URL(string: "https://voxlen.ai/support")!) {
                         HStack {
                             Image(systemName: "questionmark.circle.fill")
@@ -273,7 +266,7 @@ enum STTEngine: String, CaseIterable {
 // MARK: - Settings Manager
 
 class SettingsManager: ObservableObject {
-    private let defaults = UserDefaults(suiteName: "group.ai.voxlen")!
+    private let defaults = UserDefaults(suiteName: "group.com.voxlen.app")!
 
     @Published var isKeyboardEnabled: Bool = false
     @Published var autoCorrectEnabled: Bool {

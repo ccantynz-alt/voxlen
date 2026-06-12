@@ -6,7 +6,7 @@ import { toast } from "@/components/ui/Toast";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useHistoryStore } from "@/stores/history";
-import { useClientsStore } from "@/stores/clients";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { applySmartFormat } from "@/lib/smartFormat";
 import { applyContextFormat } from "@/lib/contextFormat";
 import type { VoxlenContext } from "@/lib/contextFormat";
@@ -125,7 +125,39 @@ export function useTauriEvents(): void {
                   const minutes = minuteMap[output] ?? 30;
                   const { logTime } = useFlywheelStore.getState();
                   const { billableRatePerHour } = useSettingsStore.getState() as { billableRatePerHour?: number };
-                  logTime(minutes, "", parsed.remainingText || "", billableRatePerHour ?? 0);
+                  const note = parsed.remainingText || "";
+                  logTime(minutes, "", note, billableRatePerHour ?? 0);
+                  // Also log to active client so it appears in billing dashboard
+                  const { activeClientId: vcClientId, clients: vcClients, addEntry: vcAddEntry } = useClientsStore.getState();
+                  if (vcClientId) {
+                    const vcClient = vcClients.find((c) => c.id === vcClientId);
+                    if (vcClient) {
+                      const rate = vcClient.billableRate > 0 ? vcClient.billableRate : (billableRatePerHour ?? 0);
+                      vcAddEntry({
+                        clientId: vcClientId,
+                        date: Date.now(),
+                        durationSeconds: minutes * 60,
+                        wordCount: 0,
+                        billableAmount: (minutes / 60) * rate,
+                        note,
+                      });
+                    }
+                  }
+                  dictation.setCurrentTranscript("");
+                  return;
+                }
+
+                // Review uncertain words — show a toast with count
+                if (parsed.action === "review_uncertain") {
+                  const segs = useDictationStore.getState().segments;
+                  const uncertain = segs.flatMap((s) =>
+                    (s.words ?? []).filter((w) => w.confidence < 0.75)
+                  );
+                  if (uncertain.length > 0) {
+                    toast(`${uncertain.length} uncertain word${uncertain.length !== 1 ? "s" : ""} highlighted in transcript`, "info", 4000);
+                  } else {
+                    toast("No uncertain words in transcript", "info", 3000);
+                  }
                   dictation.setCurrentTranscript("");
                   return;
                 }
@@ -278,11 +310,20 @@ export function useTauriEvents(): void {
                   // Step 1: grammar correction
                   if (grammarEnabled) {
                     try {
+                      const flyVocab = useFlywheelStore.getState().vocabulary
+                        .filter((v) => v.frequency >= 2)
+                        .map((v) => v.word);
+                      const { activeClientId: acid, clients: acls } = useClientsStore.getState();
+                      const activeClientForAuto = acls.find((c) => c.id === acid);
+                      const clientVocabAuto = activeClientForAuto?.vocabulary ?? [];
+                      const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocabAuto, ...settings.customVocabulary]));
+                      const matterContextAuto = buildMatterContext(activeClientForAuto) || undefined;
                       const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
                         "correct_grammar",
                         {
                           text: finalText,
-                          customVocabulary: settings.customVocabulary,
+                          customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
+                          matterContext: matterContextAuto,
                         }
                       );
                       if (grammarResult?.corrected) {
@@ -291,6 +332,20 @@ export function useTauriEvents(): void {
                           correctedText: grammarResult.corrected,
                           grammarApplied: true,
                         });
+                        // Feed corrections back into flywheel
+                        if (grammarResult.changes?.length) {
+                          const fw = useFlywheelStore.getState();
+                          for (const c of grammarResult.changes) {
+                            if (c.original && c.corrected && c.original !== c.corrected) {
+                              fw.recordCorrection(
+                                c.original,
+                                c.corrected,
+                                (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
+                              );
+                            }
+                          }
+                          fw.recordCorrectionFeedback(true);
+                        }
                       }
                     } catch {
                       // Grammar unavailable (no API key etc.) — continue with raw text.
@@ -350,7 +405,7 @@ export function useTauriEvents(): void {
         });
 
         const unlistenReconnecting = await listen<number>("streaming-reconnecting", (event) => {
-          toast(`Reconnecting to Deepgram… (attempt ${event.payload})`, "info", 3000);
+          toast(`Reconnecting to transcription service… (attempt ${event.payload})`, "info", 3000);
         });
 
         unlisten = () => {
@@ -445,6 +500,21 @@ export function useTauriEvents(): void {
               }
             })();
           }
+        }
+
+        // Session summary toast
+        if (segments.length > 0) {
+          const wc = segments.reduce(
+            (n, s) => n + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
+            0
+          );
+          const corrected = segments.filter((s) => s.grammarApplied).length;
+          const mins = Math.floor(useDictationStore.getState().sessionDuration / 60);
+          const secs = useDictationStore.getState().sessionDuration % 60;
+          const duration = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+          const parts = [`${wc} word${wc !== 1 ? "s" : ""}`, duration];
+          if (corrected > 0) parts.push(`${corrected} correction${corrected !== 1 ? "s" : ""}`);
+          toast(`Session saved — ${parts.join(" · ")}`, "success", 4000);
         }
       }
       lastStatus = current;

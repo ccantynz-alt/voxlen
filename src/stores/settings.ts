@@ -213,7 +213,7 @@ export async function hydrateSecrets(): Promise<void> {
   if (grammarApiKey) updates.grammarApiKey = grammarApiKey;
   if (voxlenApiKey) updates.voxlenApiKey = voxlenApiKey;
   if (Object.keys(updates).length > 0) {
-    useSettingsStore.setState(updates);
+    useSettingsStore.getState().updateSettings(updates);
   }
 }
 

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_store::StoreExt;
 
 use crate::stt::{SttConfig, SttEngineType, SttState};
@@ -181,6 +182,7 @@ pub fn update_settings(
     *get_settings_store().write() = settings.clone();
     persist_settings(&app, &settings)?;
     apply_settings_to_engines(&stt_state.0, &settings);
+    apply_autostart(&app, settings.launch_at_login);
     Ok(())
 }
 
@@ -193,6 +195,7 @@ pub fn reset_settings(
     *get_settings_store().write() = defaults.clone();
     persist_settings(&app, &defaults)?;
     apply_settings_to_engines(&stt_state.0, &defaults);
+    apply_autostart(&app, defaults.launch_at_login);
     Ok(defaults)
 }
 
@@ -341,4 +344,15 @@ pub fn get_privileged_mode() -> bool {
 /// Returns a snapshot of the current settings for use by non-command code.
 pub fn get_current_settings() -> AppSettings {
     get_settings_store().read().clone()
+}
+
+/// Apply the launch-at-login setting to the OS autostart mechanism.
+/// Silently ignores errors (not all platforms support autostart).
+fn apply_autostart(app: &AppHandle, enable: bool) {
+    let mgr = app.autolaunch();
+    if enable {
+        let _ = mgr.enable();
+    } else {
+        let _ = mgr.disable();
+    }
 }
