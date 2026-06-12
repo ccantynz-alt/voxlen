@@ -1975,19 +1975,7 @@ interface SEOPageData {
 }
 
 function SEOPage({ title, headline, subheadline, description, bullets, faq, cta, onSignIn }: SEOPageData & { onSignIn: (u: GoogleUser) => void }) {
-  const login = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (response) => {
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${response.access_token}` },
-        });
-        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
-        storeToken(response.access_token);
-        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
-      } catch {}
-    },
-  });
+  const login = useGoogleSignIn(onSignIn);
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white">
