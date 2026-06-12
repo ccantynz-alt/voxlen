@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import CookieBanner from "./components/CookieBanner";
 import LiveDemo from "./components/LiveDemo";
 import EthicsSection from "./components/EthicsSection";
+import ROICalculator from "./components/ROICalculator";
 import {
   Mic,
   Zap,
@@ -53,6 +54,7 @@ export default function App() {
       <Platforms />
       <HowItWorks />
       <Testimonials />
+      <ROICalculator />
       <Comparison />
       <Pricing />
       <FAQ />
