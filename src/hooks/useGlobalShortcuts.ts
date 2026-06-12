@@ -144,7 +144,11 @@ export function useGlobalShortcuts(enabled: boolean): void {
                 const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocab, ...globalVocab]));
                 const matterContext = buildMatterContext(activeClient) || undefined;
 
-                const result = await invoke<{ corrected: string }>(
+                const result = await invoke<{
+                  corrected: string;
+                  changes: Array<{ original: string; corrected: string; reason: string; category: string }>;
+                  score: number;
+                }>(
                   "correct_grammar",
                   {
                     text: textToCorrect,
@@ -158,6 +162,21 @@ export function useGlobalShortcuts(enabled: boolean): void {
                     correctedText: result.corrected,
                     grammarApplied: true,
                   });
+                }
+
+                // Feed corrections back into flywheel (same as auto-grammar path)
+                if (result.changes?.length) {
+                  const fw = useFlywheelStore.getState();
+                  for (const c of result.changes) {
+                    if (c.original && c.corrected && c.original !== c.corrected) {
+                      fw.recordCorrection(
+                        c.original,
+                        c.corrected,
+                        (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
+                      );
+                    }
+                  }
+                  fw.recordCorrectionFeedback(true);
                 }
 
                 // Inject corrected text into the focused app.
