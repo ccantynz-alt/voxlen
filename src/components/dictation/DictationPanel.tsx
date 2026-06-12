@@ -80,6 +80,22 @@ export function DictationPanel() {
       sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
+
+        // Merge active client's matter vocabulary into STT config before starting
+        const { activeClientId: cid, clients: cls } = useClientsStore.getState();
+        const activeClientForSTT = cls.find((c) => c.id === cid);
+        const matterVocab = activeClientForSTT?.vocabulary ?? [];
+        const globalVocab = useSettingsStore.getState().customVocabulary;
+        const mergedVocab = [...new Set([...globalVocab, ...matterVocab])];
+        if (mergedVocab.length !== globalVocab.length) {
+          try {
+            const currentCfg = await invoke<Record<string, unknown>>("get_stt_config");
+            await invoke("set_stt_config", { config: { ...currentCfg, custom_vocabulary: mergedVocab } });
+          } catch {
+            // Non-fatal — proceed without updating vocabulary
+          }
+        }
+
         await invoke("start_dictation");
         setStatus("listening");
       } catch {
