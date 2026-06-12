@@ -145,6 +145,13 @@ async fn correct_with_claude(
         )
     };
 
+    let context_instruction = config
+        .voxlen_context
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|ctx| format!("\n- Context: {ctx}"))
+        .unwrap_or_default();
+
     let prompt = format!(
         r#"You are a grammar and writing assistant. Correct the following text to be {style}.
 {preserve}
@@ -153,7 +160,7 @@ Rules:
 - Fix spelling, grammar, and punctuation errors
 - Improve sentence structure where needed
 - Keep the original meaning intact
-- Do NOT add information or change the intent{vocab}
+- Do NOT add information or change the intent{vocab}{context}
 
 Respond ONLY with valid JSON in this exact format:
 {{"corrected": "the corrected text", "changes": [{{"original": "wrong", "corrected": "right", "reason": "why", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
@@ -167,6 +174,7 @@ Text to correct:
             ""
         },
         vocab = vocab_instruction,
+        context = context_instruction,
         text = text
     );
 
@@ -252,15 +260,23 @@ async fn correct_with_openai(
         )
     };
 
+    let context_instruction = config
+        .voxlen_context
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|ctx| format!(" Context: {ctx}.", ))
+        .unwrap_or_default();
+
     let prompt = format!(
         r#"Correct this text to be {style}. Fix grammar, spelling, punctuation. Keep meaning intact.
-{preserve}{vocab}
+{preserve}{vocab}{context}
 Respond ONLY with JSON: {{"corrected": "text", "changes": [{{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
 
 Text: "{text}""#,
         style = style_instruction,
         preserve = if config.preserve_tone { "Preserve tone." } else { "" },
         vocab = vocab_instruction,
+        context = context_instruction,
         text = text
     );
 
