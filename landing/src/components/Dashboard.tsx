@@ -74,6 +74,50 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
+function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
+  // Prefer a long-lived desktop token; fall back to the (1-hour) Google
+  // session token if the endpoint isn't configured yet.
+  const [desktopToken, setDesktopToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/desktop-token", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((json: { token?: string }) => {
+        if (!cancelled && json.token) setDesktopToken(json.token);
+      })
+      .catch(() => { /* fall back to session token */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  const key = desktopToken ?? accessToken;
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Zap className="h-5 w-5 text-brand-400" />
+        <h2 className="font-bold">Connect Desktop App</h2>
+      </div>
+      <p className="text-zinc-500 text-sm mb-4">
+        Copy your account key and paste it into <strong className="text-zinc-300">Voxlen Settings → Voxlen Account</strong> (or the onboarding Connect step). Transcription and AI grammar are included — no other keys needed.
+      </p>
+      <div className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-zinc-400 break-all">
+        <span className="flex-1 truncate">{loading ? "Generating your key…" : key}</span>
+        {!loading && <CopyButton value={key} />}
+      </div>
+      <p className="text-[11px] text-zinc-600 mt-2">
+        {desktopToken
+          ? "This key is valid for 180 days. Come back any time to generate a fresh one."
+          : "This session token expires after about an hour — re-copy from this page if the app asks you to reconnect."}
+      </p>
+    </div>
+  );
+}
+
 export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; accessToken: string | null; onSignOut: () => void }) {
   const isAdmin = user.email === ADMIN_EMAIL;
   const [assets, setAssets] = useState<ReleaseAsset[] | null>(null);
@@ -203,22 +247,7 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
         )}
 
         {/* Connect Desktop App */}
-        {accessToken && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <Zap className="h-5 w-5 text-brand-400" />
-              <h2 className="font-bold">Connect Desktop App</h2>
-            </div>
-            <p className="text-zinc-500 text-sm mb-4">
-              Copy your session token and paste it into <strong className="text-zinc-300">Voxlen Settings → Voxlen Account</strong> to use the app without entering API keys.
-            </p>
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-zinc-400 break-all">
-              <span className="flex-1 truncate">{accessToken}</span>
-              <CopyButton value={accessToken} />
-            </div>
-            <p className="text-[11px] text-zinc-600 mt-2">This token expires when you sign out. Re-copy if you sign in again.</p>
-          </div>
-        )}
+        {accessToken && <ConnectDesktopApp accessToken={accessToken} />}
 
         {/* Subscription (non-admin) */}
         {!isAdmin && (
