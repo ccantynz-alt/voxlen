@@ -116,7 +116,7 @@ function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <Key className="h-5 w-5 text-marcoreid-400" />
+          <Key className="h-5 w-5 text-brand-400" />
           <h2 className="font-bold">Your API Key</h2>
         </div>
         <button
@@ -364,7 +364,7 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <p className="text-zinc-300 font-medium">Free Plan</p>
-                <p className="text-zinc-500 text-sm mt-0.5">Add an API key to unlock grammar AI, or upgrade for managed access.</p>
+                <p className="text-zinc-500 text-sm mt-0.5">Upgrade to Pro or Professional to unlock grammar AI and unlimited dictation.</p>
               </div>
               <a
                 href="/#pricing"
@@ -378,17 +378,17 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
 
         {/* Upgrade prompt (non-admin) */}
         {!isAdmin && (
-          <div className="rounded-2xl border border-marcoreid-600/20 bg-marcoreid-600/5 p-6">
+          <div className="rounded-2xl border border-brand-600/20 bg-brand-600/5 p-6">
             <div className="flex items-center gap-2 mb-2">
-              <Zap className="h-5 w-5 text-marcoreid-400" />
-              <h2 className="font-bold text-marcoreid-300">Unlock Full Access</h2>
+              <Zap className="h-5 w-5 text-brand-400" />
+              <h2 className="font-bold text-brand-300">Unlock Full Access</h2>
             </div>
             <p className="text-zinc-400 text-sm mb-4">
               Upgrade to a Pro or Professional plan — Voxlen supplies all AI keys. No Deepgram or Anthropic accounts needed.
             </p>
             <a
               href="/#pricing"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
             >
               View Plans
             </a>

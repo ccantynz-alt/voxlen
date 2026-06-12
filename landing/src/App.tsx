@@ -1984,12 +1984,12 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
       <div className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-marcoreid-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-brand-600 flex items-center justify-center">
               <Zap className="h-3.5 w-3.5 text-white" />
             </div>
             <span className="font-bold text-sm tracking-tight">Voxlen</span>
           </a>
-          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors">
+          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
             Get Started
           </a>
         </div>
@@ -1998,11 +1998,11 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
       <div className="max-w-3xl mx-auto px-6 py-20">
         {/* Hero */}
         <div className="mb-16">
-          <p className="text-marcoreid-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
+          <p className="text-brand-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-5 leading-tight">{headline}</h1>
           <p className="text-xl text-zinc-400 mb-8 leading-relaxed">{subheadline}</p>
           <div className="flex flex-wrap gap-3">
-            <a href="/#download" className="px-6 py-3 rounded-xl bg-marcoreid-600 text-white font-semibold hover:bg-marcoreid-700 transition-colors">
+            <a href="/#download" className="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors">
               Download Free
             </a>
             <button
@@ -2025,7 +2025,7 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
           <ul className="space-y-3">
             {bullets.map((b) => (
               <li key={b} className="flex items-start gap-3 text-zinc-300">
-                <Check className="h-4 w-4 text-marcoreid-400 mt-0.5 shrink-0" />
+                <Check className="h-4 w-4 text-brand-400 mt-0.5 shrink-0" />
                 {b}
               </li>
             ))}
