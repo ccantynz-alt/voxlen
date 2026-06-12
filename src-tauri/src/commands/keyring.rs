@@ -1,6 +1,6 @@
 use keyring::Entry;
 
-const SERVICE_NAME: &str = "ai.voxlen";
+const SERVICE_NAME: &str = "com.voxlen.app";
 
 fn entry_for(key: &str) -> Result<Entry, String> {
     Entry::new(SERVICE_NAME, key).map_err(|e| format!("Keyring init error: {e}"))

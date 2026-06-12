@@ -11,7 +11,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     private var partialLabel: UILabel!
     private var polishButton: UIButton!
     private var micButton: UIButton!
-    private let defaults = UserDefaults(suiteName: "group.ai.voxlen")
+    private let defaults = UserDefaults(suiteName: "group.com.voxlen.app")
 
     // MARK: - State
 

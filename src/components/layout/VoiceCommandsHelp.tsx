@@ -60,6 +60,13 @@ const ALL_COMMANDS: CommandEntry[] = [
   { command: "insert engagement terms", description: "Insert accounting engagement terms", category: "clause" },
   { command: "insert accountant liability cap", description: "Insert accountant liability cap clause", category: "clause" },
   { command: "insert without prejudice", description: "Insert WITHOUT PREJUDICE header", category: "clause" },
+  { command: "insert arbitration clause", description: "Insert arbitration / dispute resolution clause", category: "clause" },
+  { command: "insert dispute resolution clause", description: "Insert negotiation + mediation clause", category: "clause" },
+  { command: "insert warranty disclaimer", description: "Insert AS IS warranty disclaimer", category: "clause" },
+  { command: "insert governing law New Zealand", description: "Insert governing law (New Zealand)", category: "clause" },
+  { command: "insert governing law Ontario", description: "Insert governing law (Ontario, Canada)", category: "clause" },
+  { command: "insert payment terms", description: "Insert payment terms (30-day, 1.5%/mo interest)", category: "clause" },
+  { command: "insert termination for cause", description: "Insert termination for cause clause", category: "clause" },
 ];
 
 type Category = "all" | "formatting" | "control" | "billing" | "clause";

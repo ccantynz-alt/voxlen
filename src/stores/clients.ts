@@ -9,6 +9,10 @@ export interface Client {
   color: string; // hex for UI identification
   archived: boolean;
   createdAt: number;
+  /** Custom vocabulary terms for this client — fed into grammar correction context. */
+  vocabulary?: string[];
+  /** Optional brief matter description — used as grammar correction context. */
+  matterDescription?: string;
 }
 
 export interface MatterEntry {
@@ -28,6 +32,8 @@ interface ClientsState {
 
   addClient: (client: Omit<Client, "id" | "createdAt" | "archived">) => string;
   updateClient: (id: string, updates: Partial<Client>) => void;
+  addVocabularyTerm: (clientId: string, term: string) => void;
+  removeVocabularyTerm: (clientId: string, term: string) => void;
   archiveClient: (id: string) => void;
   deleteClient: (id: string) => void;
   setActiveClient: (id: string | null) => void;
@@ -38,6 +44,18 @@ interface ClientsState {
   getClientEntries: (clientId: string) => MatterEntry[];
   getTotalBillable: (clientId: string) => number;
   getTotalHours: (clientId: string) => number;
+}
+
+/** Build a grammar-correction context string for the active client. */
+export function buildMatterContext(client: Client | undefined): string {
+  if (!client) return "";
+  const parts: string[] = [];
+  if (client.matterDescription) parts.push(`Matter: ${client.matterDescription}`);
+  if (client.matterNumber) parts.push(`Matter number: ${client.matterNumber}`);
+  if (client.vocabulary?.length) {
+    parts.push(`Preferred terms / proper nouns: ${client.vocabulary.join(", ")}`);
+  }
+  return parts.join(". ");
 }
 
 const CLIENT_COLORS = [
@@ -97,6 +115,28 @@ export const useClientsStore = create<ClientsState>()(
       },
 
       setActiveClient: (id) => set({ activeClientId: id }),
+
+      addVocabularyTerm: (clientId, term) => {
+        const trimmed = term.trim();
+        if (!trimmed) return;
+        set((s) => ({
+          clients: s.clients.map((c) =>
+            c.id === clientId
+              ? { ...c, vocabulary: [...new Set([...(c.vocabulary ?? []), trimmed])] }
+              : c
+          ),
+        }));
+      },
+
+      removeVocabularyTerm: (clientId, term) => {
+        set((s) => ({
+          clients: s.clients.map((c) =>
+            c.id === clientId
+              ? { ...c, vocabulary: (c.vocabulary ?? []).filter((v) => v !== term) }
+              : c
+          ),
+        }));
+      },
 
       addEntry: (data) => {
         const id = `entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;

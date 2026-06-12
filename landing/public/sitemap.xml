@@ -6,7 +6,7 @@
   <!-- Home -->
   <url>
     <loc>https://voxlen.ai/</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <!-- hreflang alternates -->
@@ -22,31 +22,31 @@
   <!-- Key landing page sections (Google indexes fragment anchors for featured snippets) -->
   <url>
     <loc>https://voxlen.ai/#features</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/#platforms</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/#pricing</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/#faq</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/#download</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -68,37 +68,37 @@
   <!-- High-value SEO landing pages (to be built — included now so Google discovers them) -->
   <url>
     <loc>https://voxlen.ai/legal-dictation-software</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/dictation-software-for-accountants</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/dragon-naturallyspeaking-alternative</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voxlen-vs-dragon</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voxlen-vs-wispr-flow</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voxlen-vs-otter</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -106,45 +106,45 @@
   <!-- Country / region landing pages -->
   <url>
     <loc>https://voxlen.ai/legal-dictation-software-australia</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/dictation-software-for-solicitors-uk</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/legal-voice-dictation-canada</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/legal-dictation-new-zealand</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- New SEO pages — AI dictation, best voice to text, voice dictation for lawyers -->
+  <!-- AI & general voice-to-text pages -->
   <url>
     <loc>https://voxlen.ai/ai-dictation-software</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/best-voice-to-text-software</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voice-dictation-for-lawyers</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -152,57 +152,39 @@
   <!-- Platform pages -->
   <url>
     <loc>https://voxlen.ai/voice-dictation-mac</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voice-dictation-windows</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voice-dictation-iphone</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voice-dictation-android</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-  <url>
-    <loc>https://voxlen.ai/ai-dictation-software</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://voxlen.ai/best-voice-to-text-software</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://voxlen.ai/voice-dictation-for-lawyers</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
 
-  <!-- New SEO pages — accountants UK, medical dictation -->
+  <!-- Accountants UK, medical dictation -->
   <url>
     <loc>https://voxlen.ai/dictation-software-for-accountants-uk</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://voxlen.ai/voice-to-text-for-medical</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

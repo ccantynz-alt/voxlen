@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Briefcase, Archive, Trash2, Edit2, Check, X, Download } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Briefcase, Archive, Trash2, Edit2, Check, X, Download, BookOpen } from "lucide-react";
 import { useClientsStore, type Client } from "../../stores/clients";
 import { useSettingsStore } from "../../stores/settings";
 import { exportBillingCsv, exportAllBillingCsv, downloadBillingExport } from "../../lib/export";
@@ -113,11 +113,14 @@ function AddClientModal({ onClose }: { onClose: () => void }) {
 }
 
 function ClientCard({ client }: { client: Client }) {
-  const { updateClient, archiveClient, deleteClient, getClientEntries, getTotalBillable, getTotalHours } = useClientsStore();
+  const { updateClient, archiveClient, deleteClient, getClientEntries, getTotalBillable, getTotalHours, addVocabularyTerm, removeVocabularyTerm } = useClientsStore();
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(client.name);
   const [editMatter, setEditMatter] = useState(client.matterNumber ?? "");
   const [editRate, setEditRate] = useState(client.billableRate);
+  const [editDescription, setEditDescription] = useState(client.matterDescription ?? "");
+  const [newVocabTerm, setNewVocabTerm] = useState("");
+  const vocabInputRef = useRef<HTMLInputElement>(null);
 
   const entries = getClientEntries(client.id);
   const totalBillable = getTotalBillable(client.id);
@@ -129,8 +132,17 @@ function ClientCard({ client }: { client: Client }) {
       name: editName.trim() || client.name,
       matterNumber: editMatter.trim() || undefined,
       billableRate: editRate,
+      matterDescription: editDescription.trim() || undefined,
     });
     setEditing(false);
+  };
+
+  const handleAddVocab = () => {
+    const term = newVocabTerm.trim();
+    if (!term) return;
+    addVocabularyTerm(client.id, term);
+    setNewVocabTerm("");
+    vocabInputRef.current?.focus();
   };
 
   return (
@@ -170,6 +182,13 @@ function ClientCard({ client }: { client: Client }) {
                   {editRate === 0 ? "Default" : `$${editRate}/hr`}
                 </span>
               </div>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Matter description (used by AI for context-aware correction)"
+                rows={2}
+                className="w-full bg-[#09090b] border border-[#3f3f46] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#7345d1] resize-none"
+              />
             </div>
           ) : (
             <>
@@ -254,6 +273,57 @@ function ClientCard({ client }: { client: Client }) {
           ))}
         </div>
       )}
+
+      {/* Vocabulary section */}
+      <div className="p-3 border-t border-[#27272a]">
+        <div className="flex items-center gap-1.5 mb-2">
+          <BookOpen className="w-3 h-3 text-zinc-500" />
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
+            Matter Vocabulary
+          </p>
+          {client.vocabulary && client.vocabulary.length > 0 && (
+            <span className="text-[10px] text-zinc-600 ml-auto">{client.vocabulary.length} terms</span>
+          )}
+        </div>
+        {client.vocabulary && client.vocabulary.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {client.vocabulary.map((term) => (
+              <span
+                key={term}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#27272a] text-xs text-zinc-300"
+              >
+                {term}
+                <button
+                  onClick={() => removeVocabularyTerm(client.id, term)}
+                  className="text-zinc-600 hover:text-red-400 transition-colors"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-1.5">
+          <input
+            ref={vocabInputRef}
+            value={newVocabTerm}
+            onChange={(e) => setNewVocabTerm(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddVocab(); } }}
+            placeholder="Add term (party names, case refs…)"
+            className="flex-1 bg-[#09090b] border border-[#3f3f46] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#7345d1]"
+          />
+          <button
+            onClick={handleAddVocab}
+            disabled={!newVocabTerm.trim()}
+            className="px-2 py-1 rounded bg-[#27272a] text-zinc-400 hover:text-white hover:bg-[#3f3f46] transition-colors disabled:opacity-40 text-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {client.matterDescription && (
+          <p className="text-[10px] text-zinc-600 mt-2 italic leading-relaxed">{client.matterDescription}</p>
+        )}
+      </div>
     </div>
   );
 }

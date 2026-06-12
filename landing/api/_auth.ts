@@ -16,8 +16,8 @@ const GOOGLE_TOKENINFO = "https://oauth2.googleapis.com/tokeninfo";
 const GOOGLE_USERINFO = "https://www.googleapis.com/oauth2/v3/userinfo";
 const VOXLEN_ISSUER = "voxlen.ai";
 
-function b64url(data: Buffer | string): string {
-  return Buffer.from(data).toString("base64url");
+function b64url(data: string): string {
+  return Buffer.from(data, "utf8").toString("base64url");
 }
 
 export type VoxlenPlan = "admin" | "pro" | "professional" | "free_trial" | "free";
@@ -66,7 +66,7 @@ function verifyDesktopToken(token: string): VoxlenUser | null {
   if (!secret) throw new Error("Voxlen token received but VOXLEN_TOKEN_SECRET not configured");
   const expected = createHmac("sha256", secret).update(`${parts[0]}.${parts[1]}`).digest();
   const actual = Buffer.from(parts[2], "base64url");
-  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+  if (expected.length !== actual.length || !timingSafeEqual(new Uint8Array(expected), new Uint8Array(actual))) {
     throw new Error("Invalid token signature");
   }
   if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {

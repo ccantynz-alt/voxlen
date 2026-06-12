@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     dgUrl += `&language=${encodeURIComponent(language)}`;
   }
   for (const term of keyterms) {
-    dgUrl += `&keyterm=${term}`;
+    dgUrl += `&keyterm=${encodeURIComponent(term)}`;
   }
 
   // Buffer the incoming body

@@ -23,6 +23,15 @@ export default {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
         mono: ["JetBrains Mono", "SF Mono", "monospace"],
       },
+      keyframes: {
+        shimmer: {
+          "0%": { backgroundPosition: "200% center" },
+          "100%": { backgroundPosition: "-200% center" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 4s linear infinite",
+      },
     },
   },
   plugins: [],
