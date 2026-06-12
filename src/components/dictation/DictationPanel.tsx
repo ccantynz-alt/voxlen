@@ -272,9 +272,12 @@ export function DictationPanel() {
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
   const setActiveClient = useClientsStore((s) => s.setActiveClient);
 
+  const currentTranscript = useDictationStore((s) => s.currentTranscript);
   const isActive = status === "listening" || status === "processing";
   const showControls = isActive || status === "paused";
-  const hasContent = segments.length > 0;
+  // Include the live interim transcript so the very first utterance is
+  // visible while it's still being spoken
+  const hasContent = segments.length > 0 || !!currentTranscript;
 
   const CONTEXTS = [
     { value: "", label: "General" },
