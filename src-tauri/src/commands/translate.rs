@@ -59,10 +59,16 @@ pub async fn translate_text(
     }
 
     let config = get_grammar_config()?;
+
+    // Prefer Voxlen proxy (no user API key needed) over direct provider calls
+    if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        return translate_with_voxlen_proxy(&text, &target_language, voxlen_key).await;
+    }
+
     let api_key = config
         .api_key
         .clone()
-        .ok_or("No translation API key configured. Set the Grammar API key in Settings.")?;
+        .ok_or("No translation API key configured. Sign in to your Voxlen account in Settings, or add your Anthropic/OpenAI API key.")?;
 
     match config.provider {
         GrammarProvider::Claude => translate_with_claude(&text, &target_language, &api_key).await,
@@ -210,5 +216,42 @@ Text: "{text}""#,
             .to_string(),
         target_language: target_code.to_string(),
         detected_source: parsed["detected_source"].as_str().map(|s| s.to_string()),
+    })
+}
+
+async fn translate_with_voxlen_proxy(
+    text: &str,
+    target_code: &str,
+    voxlen_key: &str,
+) -> Result<TranslationResult, String> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://api.voxlen.com/v1/translate")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .header("content-type", "application/json")
+        .json(&serde_json::json!({
+            "text": text,
+            "target_language": target_code,
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Voxlen translation request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Voxlen translation API returned {}: {}", status, body));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Voxlen translation response: {}", e))?;
+
+    Ok(TranslationResult {
+        original: text.to_string(),
+        translated: result["translated"].as_str().unwrap_or(text).to_string(),
+        target_language: target_code.to_string(),
+        detected_source: result["detected_source"].as_str().map(|s| s.to_string()),
     })
 }
