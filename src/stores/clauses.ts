@@ -276,10 +276,12 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
     persistCustomClauses(get());
   },
 
-  markUsed: (id) =>
+  markUsed: (id) => {
     set((state) => ({
       recentlyUsed: [id, ...state.recentlyUsed.filter((x) => x !== id)].slice(0, 10),
-    })),
+    }));
+    persistCustomClauses(get());
+  },
 
   findByTrigger: (text: string) => {
     const lower = text.toLowerCase();
