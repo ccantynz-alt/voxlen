@@ -38,7 +38,7 @@ struct ContentView: View {
                                 .cornerRadius(12)
 
                             VStack(alignment: .leading) {
-                                Text("Marco Reid Voice Keyboard")
+                                Text("Voxlen Keyboard")
                                     .font(.title2)
                                     .fontWeight(.bold)
                                 Text("AI-Powered Grammar Correction")
@@ -73,7 +73,7 @@ struct ContentView: View {
                                     Text("Keyboard Not Enabled")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
-                                    Text("Go to Settings > General > Keyboard > Keyboards > Add New Keyboard > Marco Reid Voice")
+                                    Text("Go to Settings > General > Keyboard > Keyboards > Add New Keyboard > Voxlen")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -201,14 +201,14 @@ struct ContentView: View {
                         Text("2.0.0")
                             .foregroundColor(.secondary)
                     }
-                    Link(destination: URL(string: "https://marcoreid.com/privacy")!) {
+                    Link(destination: URL(string: "https://voxlen.ai/privacy")!) {
                         HStack {
                             Image(systemName: "hand.raised.fill")
                                 .foregroundColor(.blue)
                             Text("Privacy Policy")
                         }
                     }
-                    Link(destination: URL(string: "https://marcoreid.com/support")!) {
+                    Link(destination: URL(string: "https://voxlen.ai/support")!) {
                         HStack {
                             Image(systemName: "questionmark.circle.fill")
                                 .foregroundColor(.blue)
@@ -219,7 +219,7 @@ struct ContentView: View {
                     Label("About", systemImage: "info.circle")
                 }
             }
-            .navigationTitle("Marco Reid Voice")
+            .navigationTitle("Voxlen")
         }
     }
 
@@ -266,7 +266,7 @@ enum STTEngine: String, CaseIterable {
 // MARK: - Settings Manager
 
 class SettingsManager: ObservableObject {
-    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")!
+    private let defaults = UserDefaults(suiteName: "group.com.voxlen.app")!
 
     @Published var isKeyboardEnabled: Bool = false
     @Published var autoCorrectEnabled: Bool {
