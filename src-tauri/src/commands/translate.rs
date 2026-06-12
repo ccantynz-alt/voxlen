@@ -59,10 +59,16 @@ pub async fn translate_text(
     }
 
     let config = get_grammar_config()?;
+
+    // Prefer Voxlen proxy — no user API key required
+    if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        return translate_with_voxlen_proxy(&text, &target_language, voxlen_key).await;
+    }
+
     let api_key = config
         .api_key
         .clone()
-        .ok_or("No translation API key configured. Set the Grammar API key in Settings.")?;
+        .ok_or("No translation API key configured. Connect your Voxlen account in Settings → Account.")?;
 
     match config.provider {
         GrammarProvider::Claude => translate_with_claude(&text, &target_language, &api_key).await,
@@ -94,6 +100,42 @@ fn language_name(code: &str) -> &str {
         "uk" => "Ukrainian",
         _ => code,
     }
+}
+
+async fn translate_with_voxlen_proxy(
+    text: &str,
+    target_language: &str,
+    voxlen_key: &str,
+) -> Result<TranslationResult, String> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://voxlen.ai/api/translate")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .header("Content-Type", "application/json")
+        .json(&serde_json::json!({
+            "text": text,
+            "target_language": target_language,
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Translation proxy request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let err = response.text().await.unwrap_or_default();
+        return Err(format!("Translation proxy error: {}", err));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse proxy response: {}", e))?;
+
+    Ok(TranslationResult {
+        original: text.to_string(),
+        translated: result["translated"].as_str().unwrap_or(text).to_string(),
+        target_language: target_language.to_string(),
+        detected_source: result["detected_source"].as_str().map(|s| s.to_string()),
+    })
 }
 
 async fn translate_with_claude(

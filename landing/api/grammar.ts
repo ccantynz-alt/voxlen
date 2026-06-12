@@ -34,9 +34,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     writingStyle?: string;
     style?: string;
     preserveTone?: boolean;
+    preserve_tone?: boolean;
     custom_vocabulary?: string[];
   };
-  const { text, context, preserveTone } = body;
+  const { text, context } = body;
+  const preserveTone = body.preserve_tone ?? body.preserveTone;
   const writingStyle = body.writingStyle ?? body.style;
   const customVocabulary = body.custom_vocabulary ?? [];
 
