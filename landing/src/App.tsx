@@ -478,7 +478,7 @@ function Platforms() {
       description: "Custom keyboard for all Android devices including Samsung Galaxy. Voice dictation in every app. Same Nova-3 accuracy as desktop. Galaxy S / Z Fold optimised.",
       badge: "Coming soon — join waitlist",
       badgeColor: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-      href: "#download",
+      href: "#android-waitlist",
     },
   ];
 
@@ -1486,7 +1486,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
             <WaitlistForm platform="iOS" />
           </div>
           {/* Android */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-zinc-800/30 to-transparent border border-white/10 flex flex-col gap-4">
+          <div id="android-waitlist" className="p-6 rounded-2xl bg-gradient-to-br from-zinc-800/30 to-transparent border border-white/10 flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
                 <Smartphone className="h-6 w-6 text-zinc-400" />
