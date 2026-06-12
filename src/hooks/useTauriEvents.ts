@@ -6,7 +6,7 @@ import { toast } from "@/components/ui/Toast";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useHistoryStore } from "@/stores/history";
-import { useClientsStore } from "@/stores/clients";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { applySmartFormat } from "@/lib/smartFormat";
 import { applyContextFormat } from "@/lib/contextFormat";
 import type { VoxlenContext } from "@/lib/contextFormat";
@@ -281,12 +281,17 @@ export function useTauriEvents(): void {
                       const flyVocab = useFlywheelStore.getState().vocabulary
                         .filter((v) => v.frequency >= 2)
                         .map((v) => v.word);
-                      const mergedVocab = Array.from(new Set([...flyVocab, ...settings.customVocabulary]));
+                      const { activeClientId: acid, clients: acls } = useClientsStore.getState();
+                      const activeClientForAuto = acls.find((c) => c.id === acid);
+                      const clientVocabAuto = activeClientForAuto?.vocabulary ?? [];
+                      const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocabAuto, ...settings.customVocabulary]));
+                      const matterContextAuto = buildMatterContext(activeClientForAuto) || undefined;
                       const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
                         "correct_grammar",
                         {
                           text: finalText,
                           customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
+                          matterContext: matterContextAuto,
                         }
                       );
                       if (grammarResult?.corrected) {
