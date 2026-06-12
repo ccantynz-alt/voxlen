@@ -75,10 +75,20 @@ fn get_config_store() -> &'static parking_lot::RwLock<GrammarConfig> {
 pub async fn correct_grammar(
     text: String,
     custom_vocabulary: Option<Vec<String>>,
+    matter_context: Option<String>,
 ) -> Result<GrammarResult, String> {
     let config = get_config_store().read().clone();
 
-    if !config.enabled {
+    if text.trim().is_empty() {
+        return Ok(GrammarResult {
+            original: text.clone(),
+            corrected: text,
+            changes: vec![],
+            score: 1.0,
+        });
+    }
+
+    if !config.enabled || crate::commands::settings::get_privileged_mode() {
         return Ok(GrammarResult {
             original: text.clone(),
             corrected: text,
@@ -89,12 +99,19 @@ pub async fn correct_grammar(
 
     let vocab = custom_vocabulary.unwrap_or_default();
 
+    // Merge matter context into voxlen_context if provided
+    let effective_context = matter_context
+        .filter(|s| !s.is_empty())
+        .or_else(|| config.voxlen_context.clone());
+
     // Prefer Voxlen proxy (no user API key needed) over direct provider calls
     if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        let mut proxy_config = config.clone();
+        proxy_config.voxlen_context = effective_context.clone();
         return correct_with_voxlen_proxy(
             &text, voxlen_key,
-            config.voxlen_context.as_deref(),
-            &config, &vocab
+            proxy_config.voxlen_context.as_deref(),
+            &proxy_config, &vocab
         ).await;
     }
 
@@ -103,9 +120,14 @@ pub async fn correct_grammar(
         .as_ref()
         .ok_or("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key.")?;
 
+    let mut effective_config = config.clone();
+    if let Some(ctx) = effective_context {
+        effective_config.voxlen_context = Some(ctx);
+    }
+
     match config.provider {
-        GrammarProvider::Claude => correct_with_claude(&text, api_key, &config, &vocab).await,
-        GrammarProvider::OpenAI => correct_with_openai(&text, api_key, &config, &vocab).await,
+        GrammarProvider::Claude => correct_with_claude(&text, api_key, &effective_config, &vocab).await,
+        GrammarProvider::OpenAI => correct_with_openai(&text, api_key, &effective_config, &vocab).await,
     }
 }
 
@@ -132,6 +154,13 @@ async fn correct_with_claude(
         )
     };
 
+    let context_instruction = config
+        .voxlen_context
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|ctx| format!("\n- Context: {ctx}"))
+        .unwrap_or_default();
+
     let prompt = format!(
         r#"You are a grammar and writing assistant. Correct the following text to be {style}.
 {preserve}
@@ -140,7 +169,7 @@ Rules:
 - Fix spelling, grammar, and punctuation errors
 - Improve sentence structure where needed
 - Keep the original meaning intact
-- Do NOT add information or change the intent{vocab}
+- Do NOT add information or change the intent{vocab}{context}
 
 Respond ONLY with valid JSON in this exact format:
 {{"corrected": "the corrected text", "changes": [{{"original": "wrong", "corrected": "right", "reason": "why", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
@@ -154,6 +183,7 @@ Text to correct:
             ""
         },
         vocab = vocab_instruction,
+        context = context_instruction,
         text = text
     );
 
@@ -239,15 +269,23 @@ async fn correct_with_openai(
         )
     };
 
+    let context_instruction = config
+        .voxlen_context
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|ctx| format!(" Context: {ctx}.", ))
+        .unwrap_or_default();
+
     let prompt = format!(
         r#"Correct this text to be {style}. Fix grammar, spelling, punctuation. Keep meaning intact.
-{preserve}{vocab}
+{preserve}{vocab}{context}
 Respond ONLY with JSON: {{"corrected": "text", "changes": [{{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
 
 Text: "{text}""#,
         style = style_instruction,
         preserve = if config.preserve_tone { "Preserve tone." } else { "" },
         vocab = vocab_instruction,
+        context = context_instruction,
         text = text
     );
 

@@ -14,19 +14,21 @@ import {
   ChevronDown,
   HelpCircle,
   Download,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
-import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
+import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { useHistoryStore } from "@/stores/history";
 import { useFlywheelStore } from "@/stores/flywheel";
-import { useClientsStore } from "@/stores/clients";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
@@ -49,10 +51,26 @@ export function DictationPanel() {
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
   const showWaveform = useSettingsStore((s) => s.showWaveform);
 
+  const restoreDraft = useDictationStore((s) => s.restoreDraft);
+  const discardDraft = useDictationStore((s) => s.discardDraft);
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
 
+  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof loadDraftRecord>>(null);
+
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+
+  // Check for unsaved draft on mount
+  useEffect(() => {
+    if (segments.length === 0) {
+      const draft = loadDraftRecord();
+      if (draft && draft.segments.length > 0) {
+        setPendingDraft(draft);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Session timer
   useEffect(() => {
@@ -78,12 +96,23 @@ export function DictationPanel() {
     if (status === "idle" || status === "paused" || status === "error") {
       sessionStartRef.current = new Date();
       try {
-        const { invoke, isTauri } = await import("@tauri-apps/api/core");
-        if (!isTauri()) {
-          // Browser demo mode — no Tauri runtime available
-          setStatus("listening");
-          return;
+        const { invoke } = await import("@tauri-apps/api/core");
+
+        // Merge active client's matter vocabulary into STT config before starting
+        const { activeClientId: cid, clients: cls } = useClientsStore.getState();
+        const activeClientForSTT = cls.find((c) => c.id === cid);
+        const matterVocab = activeClientForSTT?.vocabulary ?? [];
+        const globalVocab = useSettingsStore.getState().customVocabulary;
+        const mergedVocab = [...new Set([...globalVocab, ...matterVocab])];
+        if (mergedVocab.length !== globalVocab.length) {
+          try {
+            const currentCfg = await invoke<Record<string, unknown>>("get_stt_config");
+            await invoke("set_stt_config", { config: { ...currentCfg, custom_vocabulary: mergedVocab } });
+          } catch {
+            // Non-fatal — proceed without updating vocabulary
+          }
         }
+
         await invoke("start_dictation");
         setStatus("listening");
       } catch (e) {
@@ -197,6 +226,17 @@ export function DictationPanel() {
     async (text: string) => {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
+        const { activeClientId: cid, clients: cls } = useClientsStore.getState();
+        const activeClientForGrammar = cls.find((c) => c.id === cid);
+        const matterContext = buildMatterContext(activeClientForGrammar) || undefined;
+        const flywheelVocab = useFlywheelStore.getState().vocabulary
+          .filter((v) => v.frequency >= 2)
+          .map((v) => v.word);
+        const clientVocab = activeClientForGrammar?.vocabulary ?? [];
+        const globalVocabList = useSettingsStore.getState().customVocabulary;
+        const mergedVocab = Array.from(new Set([...flywheelVocab, ...clientVocab, ...globalVocabList]));
+        const customVocabulary = mergedVocab.length > 0 ? mergedVocab : undefined;
+
         const result = await invoke<{
           corrected: string;
           changes: Array<{
@@ -204,7 +244,7 @@ export function DictationPanel() {
             corrected: string;
             reason: string;
           }>;
-        }>("correct_grammar", { text });
+        }>("correct_grammar", { text, customVocabulary, matterContext });
 
         // Update the last segment with corrected text
         if (segments.length > 0) {
@@ -257,6 +297,7 @@ export function DictationPanel() {
   }, [clearSession]);
 
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
+  const privilegedMode = useSettingsStore((s) => s.privilegedMode);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const [contextOpen, setContextOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -298,6 +339,44 @@ export function DictationPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Privileged mode banner */}
+      {privilegedMode && (
+        <div className="flex items-center gap-2.5 px-5 py-2.5 bg-emerald-950/60 border-b border-emerald-500/20">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" strokeWidth={1.75} />
+          <p className="text-[11px] text-emerald-300 font-medium">
+            Privileged mode active — attorney-client privilege protected. Cloud grammar and translation disabled.
+          </p>
+          <button
+            onClick={() => updateSetting("privilegedMode", false)}
+            className="ml-auto text-[10px] text-emerald-600 hover:text-emerald-400 underline transition-colors shrink-0"
+          >
+            Disable
+          </button>
+        </div>
+      )}
+      {/* Draft recovery banner */}
+      {pendingDraft && (
+        <div className="flex items-center gap-2.5 px-5 py-2.5 bg-amber-950/60 border-b border-amber-500/20">
+          <FileText className="h-3.5 w-3.5 text-amber-400 shrink-0" strokeWidth={1.75} />
+          <p className="text-[11px] text-amber-300 font-medium">
+            Unsaved draft from {new Date(pendingDraft.savedAt).toLocaleString()} ({pendingDraft.segments.length} segment{pendingDraft.segments.length !== 1 ? "s" : ""}) — restore?
+          </p>
+          <div className="ml-auto flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => { restoreDraft(pendingDraft); setPendingDraft(null); }}
+              className="text-[10px] text-amber-400 hover:text-amber-200 font-semibold underline transition-colors"
+            >
+              Restore
+            </button>
+            <button
+              onClick={() => { discardDraft(); setPendingDraft(null); }}
+              className="text-[10px] text-amber-600 hover:text-amber-400 underline transition-colors"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
       {/* Main dictation area */}
       <div className="flex-1 flex flex-col p-8 gap-7 overflow-hidden">
         {/* Mic control + waveform */}
@@ -591,6 +670,23 @@ export function DictationPanel() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => updateSetting("privilegedMode", !privilegedMode)}
+            title={privilegedMode ? "Privileged mode ON — click to disable" : "Enable privileged mode (ABA 1.6 safe)"}
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
+              privilegedMode
+                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/15"
+                : "text-surface-600 hover:bg-surface-100 hover:text-surface-800"
+            )}
+          >
+            {privilegedMode ? (
+              <ShieldCheck className="h-3.5 w-3.5" strokeWidth={1.75} />
+            ) : (
+              <ShieldOff className="h-3.5 w-3.5" strokeWidth={1.75} />
+            )}
+            {privilegedMode ? "Privileged" : "Privilege"}
+          </button>
           <Button
             variant="ghost"
             size="sm"

@@ -57,15 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!keyRes.ok) {
       const err = await keyRes.text();
-      // Deepgram temporary key creation may not be available on all plans —
-      // fall back to returning a usage-scoped key derived from the master key
       console.error("Deepgram temp key error:", err);
-      // Safe fallback: return the main key directly (only for admin/verified users)
-      return res.status(200).set(headers).json({
-        key: DEEPGRAM_API_KEY,
-        ttl: null,
-        fallback: true,
-      });
+      return res.status(503).set(headers).json({ error: "STT token generation failed" });
     }
 
     const { key } = await keyRes.json() as { key: { api_key: string } };
@@ -75,11 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fallback: false,
     });
   } catch (e) {
-    // Safe fallback for verified users
-    return res.status(200).set(headers).json({
-      key: DEEPGRAM_API_KEY,
-      ttl: null,
-      fallback: true,
-    });
+    const msg = e instanceof Error ? e.message : "STT token unavailable";
+    return res.status(503).set(headers).json({ error: msg });
   }
 }

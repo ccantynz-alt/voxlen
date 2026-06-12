@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useClientsStore } from "./clients";
+import { useClientsStore, buildMatterContext } from "./clients";
 
 // Reset store state before each test
 beforeEach(() => {
@@ -93,6 +93,68 @@ describe("addEntry and getTotalBillable", () => {
     store.addEntry({ ...base, clientId: id1, billableAmount: 100 });
     store.addEntry({ ...base, clientId: id2, billableAmount: 999 });
     expect(useClientsStore.getState().getTotalBillable(id1)).toBe(100);
+  });
+});
+
+describe("vocabulary", () => {
+  it("adds terms to a client", () => {
+    const store = useClientsStore.getState();
+    const id = store.addClient({ name: "Law Corp", billableRate: 500, color: "" });
+    store.addVocabularyTerm(id, "Smith v. Jones");
+    store.addVocabularyTerm(id, "Exhibit A");
+    const client = useClientsStore.getState().clients.find((c) => c.id === id);
+    expect(client?.vocabulary).toEqual(["Smith v. Jones", "Exhibit A"]);
+  });
+
+  it("deduplicates terms", () => {
+    const store = useClientsStore.getState();
+    const id = store.addClient({ name: "Firm", billableRate: 400, color: "" });
+    store.addVocabularyTerm(id, "GDPR");
+    store.addVocabularyTerm(id, "GDPR");
+    const client = useClientsStore.getState().clients.find((c) => c.id === id);
+    expect(client?.vocabulary).toHaveLength(1);
+  });
+
+  it("removes terms", () => {
+    const store = useClientsStore.getState();
+    const id = store.addClient({ name: "Firm B", billableRate: 300, color: "" });
+    store.addVocabularyTerm(id, "plaintiff");
+    store.addVocabularyTerm(id, "defendant");
+    store.removeVocabularyTerm(id, "plaintiff");
+    const client = useClientsStore.getState().clients.find((c) => c.id === id);
+    expect(client?.vocabulary).toEqual(["defendant"]);
+  });
+
+  it("ignores blank terms", () => {
+    const store = useClientsStore.getState();
+    const id = store.addClient({ name: "Firm C", billableRate: 200, color: "" });
+    store.addVocabularyTerm(id, "  ");
+    const client = useClientsStore.getState().clients.find((c) => c.id === id);
+    expect(client?.vocabulary ?? []).toHaveLength(0);
+  });
+});
+
+describe("buildMatterContext", () => {
+  it("returns empty string for undefined client", () => {
+    expect(buildMatterContext(undefined)).toBe("");
+  });
+
+  it("includes matter description, number and vocabulary", () => {
+    const ctx = buildMatterContext({
+      id: "x",
+      name: "Test",
+      matterNumber: "2024-001",
+      matterDescription: "Contract dispute",
+      vocabulary: ["Acme Inc", "Section 5.2"],
+      billableRate: 0,
+      color: "",
+      archived: false,
+      createdAt: 0,
+    });
+    expect(ctx).toContain("Contract dispute");
+    expect(ctx).toContain("2024-001");
+    expect(ctx).toContain("Acme Inc");
+    expect(ctx).toContain("Section 5.2");
   });
 });
 

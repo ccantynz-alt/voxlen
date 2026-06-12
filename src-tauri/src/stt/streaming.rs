@@ -54,22 +54,22 @@ enum SessionOutcome {
     Disconnected(Duration),
 }
 
-/// Fetch a short-lived Deepgram key from the Voxlen proxy.
-async fn fetch_proxy_deepgram_key(voxlen_key: &str) -> anyhow::Result<String> {
+/// Exchange a Voxlen API key for a short-lived Deepgram temp key via the Voxlen proxy.
+async fn fetch_deepgram_temp_key(voxlen_key: &str) -> anyhow::Result<String> {
     let client = reqwest::Client::new();
-    let res = client
-        .post("https://voxlen.ai/api/deepgram-token")
+    let resp = client
+        .post("https://api.voxlen.com/v1/deepgram-token")
         .header("Authorization", format!("Bearer {}", voxlen_key))
         .send()
         .await?;
-    if !res.status().is_success() {
-        anyhow::bail!("deepgram-token endpoint error: {}", res.status());
+    if !resp.status().is_success() {
+        anyhow::bail!("Voxlen token exchange failed: {}", resp.status());
     }
-    let json: serde_json::Value = res.json().await?;
-    json["key"]
+    let body: serde_json::Value = resp.json().await?;
+    body["key"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| anyhow::anyhow!("No key in deepgram-token response"))
+        .ok_or_else(|| anyhow::anyhow!("No key in Voxlen deepgram-token response"))
 }
 
 /// Start a real-time streaming session with Deepgram using full SttConfig.
@@ -78,11 +78,13 @@ pub fn start_streaming(
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
 ) -> anyhow::Result<StreamingSession> {
-    // Validate that we have some form of auth before spawning the task
-    let has_direct_key = config.api_key.as_deref().filter(|k| !k.is_empty()).is_some();
-    let has_voxlen_key = config.voxlen_api_key.as_deref().filter(|k| !k.is_empty()).is_some();
-    if !has_direct_key && !has_voxlen_key {
-        anyhow::bail!("Not connected to a Voxlen account — open Settings → Account to connect before dictating");
+    // Voxlen keys are not Deepgram keys — they must be exchanged for a temp
+    // Deepgram key via the Voxlen proxy before opening the WebSocket.
+    let direct_key = config.api_key.clone().filter(|k| !k.is_empty());
+    let voxlen_key = config.voxlen_api_key.clone().filter(|k| !k.is_empty());
+
+    if direct_key.is_none() && voxlen_key.is_none() {
+        anyhow::bail!("No API key configured for Deepgram streaming");
     }
 
     let stop_flag = Arc::new(AtomicBool::new(false));
@@ -124,8 +126,21 @@ pub fn start_streaming(
                 break;
             }
 
+            // Resolve the Deepgram key: use the direct key if present, otherwise
+            // exchange the Voxlen account key for a short-lived Deepgram temp key.
+            let resolved_key = match direct_key.as_deref() {
+                Some(k) => k.to_string(),
+                None => match fetch_deepgram_temp_key(voxlen_key.as_deref().unwrap_or("")).await {
+                    Ok(k) => k,
+                    Err(e) => {
+                        let _ = app_handle.emit("transcription-error", format!("Token exchange failed: {}", e));
+                        break;
+                    }
+                },
+            };
+
             match run_streaming_session(
-                &api_key,
+                &resolved_key,
                 &language,
                 auto_detect,
                 &custom_vocabulary,
@@ -199,7 +214,7 @@ async fn run_streaming_session(
             Ok(SessionOutcome::AuthFailed) => {
                 let _ = app_handle.emit(
                     "transcription-error",
-                    "Authentication failed — check your Deepgram API key",
+                    "Authentication failed — check your API key in Settings",
                 );
                 break;
             }
@@ -264,7 +279,7 @@ async fn run_session_once(
 
     // Build Deepgram WebSocket URL
     let mut url = String::from(
-        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-3&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1000&vad_events=true&endpointing=200&no_delay=true&mip_opt_out=true"
+        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-3&mip_opt_out=true&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1000&vad_events=true&endpointing=200&no_delay=true"
     );
 
     if auto_detect {

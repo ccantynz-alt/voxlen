@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import CookieBanner from "./components/CookieBanner";
 import { Dashboard } from "./components/Dashboard";
+import LiveDemo from "./components/LiveDemo";
+import EthicsSection from "./components/EthicsSection";
+import ROICalculator from "./components/ROICalculator";
 import { getStoredUser, storeUser, clearUser, storeToken, getStoredToken, parseIdToken, type GoogleUser } from "./lib/auth";
 import {
   Mic,
@@ -127,10 +130,13 @@ export default function App() {
       <Navbar user={user} onSignIn={handleSignIn} onSignOut={handleSignOut} onDashboard={goToDashboard} />
       <Hero user={user} onSignIn={handleSignIn} />
       <TrustBar />
+      <LiveDemo />
+      <EthicsSection />
       <Features />
       <Platforms />
       <HowItWorks />
       <Testimonials />
+      <ROICalculator />
       <Comparison />
       <Pricing user={user} onSignIn={handleSignIn} />
       <FAQ />
@@ -875,7 +881,7 @@ function Comparison() {
     { name: "Dragon Legal", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false, android: false, legalMode: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false, android: false, legalMode: false },
     { name: "Otter.ai", price: "$10/mo", realtime: true, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
-    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: "soon" as const, extMic: true, android: false, legalMode: true, highlight: true },
+    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: "soon" as const, extMic: true, android: "soon" as const, legalMode: true, highlight: true },
   ];
 
   return (
@@ -1204,7 +1210,7 @@ function FAQ() {
     },
     {
       q: "How is Voxlen different from Wispr Flow?",
-      a: "Wispr Flow is Mac and iOS only. Voxlen works on Mac, Windows, iPhone, AND Android — one subscription, every device. Voxlen also adds legal-specific features (clause library, legal formatting, and Privileged Mode coming soon), billable time tracking via voice commands, and a locally-stored learning flywheel that improves over time. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
+      a: "Wispr Flow is Mac and iOS only — and transmits screenshots of your screen to cloud servers, which may violate ABA Rule 1.6(c). Voxlen works on Mac, Windows, and iPhone — with Android coming soon. More importantly, Voxlen adds legal-specific features: clause library, legal formatting, Privileged Mode that blocks all cloud features for sensitive matters, and billable time tracking via voice commands. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
     },
     {
       q: "Do I need API keys or separate accounts?",
@@ -2070,12 +2076,12 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
       <div className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-marcoreid-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-brand-600 flex items-center justify-center">
               <Zap className="h-3.5 w-3.5 text-white" />
             </div>
             <span className="font-bold text-sm tracking-tight">Voxlen</span>
           </a>
-          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors">
+          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
             Get Started
           </a>
         </div>
@@ -2084,11 +2090,11 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
       <div className="max-w-3xl mx-auto px-6 py-20">
         {/* Hero */}
         <div className="mb-16">
-          <p className="text-marcoreid-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
+          <p className="text-brand-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-5 leading-tight">{headline}</h1>
           <p className="text-xl text-zinc-400 mb-8 leading-relaxed">{subheadline}</p>
           <div className="flex flex-wrap gap-3">
-            <a href="/#download" className="px-6 py-3 rounded-xl bg-marcoreid-600 text-white font-semibold hover:bg-marcoreid-700 transition-colors">
+            <a href="/#download" className="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors">
               Download Free
             </a>
             <button
@@ -2111,7 +2117,7 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
           <ul className="space-y-3">
             {bullets.map((b) => (
               <li key={b} className="flex items-start gap-3 text-zinc-300">
-                <Check className="h-4 w-4 text-marcoreid-400 mt-0.5 shrink-0" />
+                <Check className="h-4 w-4 text-brand-400 mt-0.5 shrink-0" />
                 {b}
               </li>
             ))}

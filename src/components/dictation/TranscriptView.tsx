@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
-import { Copy, Check, Wand2, Languages, Pencil, Trash2, Replace, AlignLeft, List } from "lucide-react";
+import { useFlywheelStore } from "@/stores/flywheel";
+import { Copy, Check, Wand2, Languages, Pencil, Trash2, Replace, AlignLeft, List, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -367,6 +368,18 @@ export function TranscriptView({
                           </span>
                         )}
                         <span className="inline-flex items-center gap-0.5 ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity align-middle">
+                          {segment.grammarApplied && segment.correctedText && (
+                            <button
+                              onClick={() => {
+                                updateSegment(segment.id, { correctedText: undefined, grammarApplied: false });
+                                useFlywheelStore.getState().recordCorrectionFeedback(false);
+                              }}
+                              className="p-0.5 rounded text-surface-400 hover:text-amber-500 transition-colors"
+                              title="Revert to original transcription"
+                            >
+                              <RotateCcw className="h-2.5 w-2.5" strokeWidth={2} />
+                            </button>
+                          )}
                           <button
                             onClick={() => startEdit(segment.id, segment.correctedText ?? segment.text)}
                             className="p-0.5 rounded text-surface-400 hover:text-brass-500 transition-colors"

@@ -185,7 +185,7 @@ function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <Key className="h-5 w-5 text-marcoreid-400" />
+          <Key className="h-5 w-5 text-brand-400" />
           <h2 className="font-bold">Your API Key</h2>
         </div>
         <button

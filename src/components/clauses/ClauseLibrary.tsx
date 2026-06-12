@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useClauseStore, Clause } from "@/stores/clauses";
 import { useDictationStore } from "@/stores/dictation";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { Search, FileText, Copy, Check, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Search, FileText, Copy, Check, Plus, Pencil, Trash2, X, Download, Upload } from "lucide-react";
 
 const CATEGORY_LABELS: Record<string, string> = {
   contract: "Contract",
@@ -51,6 +51,54 @@ export function ClauseLibrary() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClauseFormState>(EMPTY_FORM);
   const [formError, setFormError] = useState("");
+  const [importError, setImportError] = useState("");
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const exportCustomClauses = () => {
+    const custom = clauses.filter((c) => customClauseIds.includes(c.id));
+    if (custom.length === 0) return;
+    const blob = new Blob([JSON.stringify(custom, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `voxlen-clauses-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError("");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string) as unknown[];
+        if (!Array.isArray(parsed)) throw new Error("Expected an array of clauses");
+        let imported = 0;
+        for (const item of parsed) {
+          const c = item as Partial<Clause>;
+          if (!c.title || !c.text) continue;
+          addClause({
+            id: crypto.randomUUID(),
+            title: String(c.title),
+            category: (["contract","liability","ip","employment","gdpr","accounting","general"] as const).includes(c.category as never)
+              ? (c.category as Clause["category"])
+              : "general",
+            voiceTrigger: c.voiceTrigger ? String(c.voiceTrigger) : String(c.title).toLowerCase(),
+            text: String(c.text),
+            tags: Array.isArray(c.tags) ? c.tags.map(String) : [],
+          });
+          imported++;
+        }
+        if (imported === 0) setImportError("No valid clauses found in file.");
+      } catch {
+        setImportError("Invalid file — expected a JSON array of clause objects.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   const filtered = clauses.filter((c) => {
     const matchesSearch =
@@ -145,11 +193,33 @@ export function ClauseLibrary() {
             Voice-insert standard legal &amp; accounting clauses
           </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={openNew}>
-          <Plus className="h-3 w-3" strokeWidth={2} />
-          New Clause
-        </Button>
+        <div className="flex items-center gap-1.5">
+          {customClauseIds.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={exportCustomClauses} title="Export custom clauses as JSON">
+              <Download className="h-3 w-3" strokeWidth={1.75} />
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={() => importRef.current?.click()} title="Import clauses from JSON">
+            <Upload className="h-3 w-3" strokeWidth={1.75} />
+          </Button>
+          <input
+            ref={importRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button variant="secondary" size="sm" onClick={openNew}>
+            <Plus className="h-3 w-3" strokeWidth={2} />
+            New Clause
+          </Button>
+        </div>
       </div>
+      {importError && (
+        <div className="px-5 py-2 bg-red-500/10 border-b border-red-500/20 text-[11px] text-red-500">
+          {importError}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-surface-300/50 px-5 gap-4">
