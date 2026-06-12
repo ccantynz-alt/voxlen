@@ -79,8 +79,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await upstream.json() as { content: Array<{ text: string }> };
-    const corrected = data.content?.[0]?.text ?? text;
-    return res.status(200).set(headers).json({ corrected });
+    const rawContent = data.content?.[0]?.text ?? text;
+
+    let parsed: { corrected?: string; changes?: unknown[]; score?: number };
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch {
+      // Model didn't return JSON — treat the whole content as the corrected text
+      parsed = { corrected: rawContent };
+    }
+
+    return res.status(200).set(headers).json({
+      corrected: parsed.corrected ?? rawContent,
+      changes: parsed.changes ?? [],
+      score: parsed.score ?? 1.0,
+    });
   } catch (e) {
     return res.status(502).set(headers).json({ error: "Grammar request failed" });
   }
@@ -90,7 +103,9 @@ function buildStableCore(): string {
   return [
     "You are a grammar correction assistant for legal and accounting professionals.",
     "Correct grammar, punctuation, and spelling in the user's dictated text.",
-    "Return ONLY the corrected text — no explanation, no commentary, no quotes.",
+    "Return ONLY a JSON object with this exact shape (no markdown, no code fences):",
+    '{"corrected":"<corrected text>","changes":[{"original":"<original phrase>","corrected":"<corrected phrase>","reason":"<one-line reason>","category":"grammar|spelling|punctuation|style"}],"score":<0.0-1.0 quality score of original>}',
+    "The changes array should list only the actual corrections made. If no changes were needed, return an empty array.",
     "Do not add or remove substantive content.",
   ].join(" ");
 }
