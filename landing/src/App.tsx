@@ -33,6 +33,28 @@ import {
   PRICE_LIFETIME,
 } from "./lib/stripe";
 
+/** Shared hook — wraps useGoogleLogin with userinfo fetch so every component uses the same flow. */
+function useGoogleSignIn(onSignIn: (u: GoogleUser) => void) {
+  return useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (response) => {
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${response.access_token}` },
+        });
+        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
+        storeToken(response.access_token);
+        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
+      } catch {
+        if ("id_token" in response && typeof response.id_token === "string") {
+          const u = parseIdToken(response.id_token);
+          if (u) onSignIn(u);
+        }
+      }
+    },
+  });
+}
+
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
@@ -136,24 +158,7 @@ function Navbar({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const login = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (response) => {
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${response.access_token}` },
-        });
-        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
-        storeToken(response.access_token);
-        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
-      } catch {
-        if ("id_token" in response && typeof response.id_token === "string") {
-          const u = parseIdToken(response.id_token);
-          if (u) onSignIn(u);
-        }
-      }
-    },
-  });
+  const login = useGoogleSignIn(onSignIn);
 
   return (
     <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
@@ -237,19 +242,7 @@ function Navbar({
 }
 
 function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
-  const login = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (response) => {
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${response.access_token}` },
-        });
-        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
-        storeToken(response.access_token);
-        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
-      } catch {}
-    },
-  });
+  const login = useGoogleSignIn(onSignIn);
 
   return (
     <section className="relative pt-32 pb-20 overflow-hidden glow-hero">
@@ -287,7 +280,7 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
           >
             The AI voice dictation tool built for professionals who can't afford mistakes.
             Real-time transcription, Claude AI grammar correction, and zero-retention privacy.
-            Works in every app on Mac, Windows, iPhone, and Android.{" "}
+            Works in every app on Mac, Windows, and iPhone.{" "}
             <span className="text-white font-medium">
               Loved by lawyers, accountants, doctors, and executives.
             </span>
@@ -340,9 +333,6 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             </span>
             <span className="flex items-center gap-1.5">
               <Smartphone className="h-3.5 w-3.5" /> iOS
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5" /> Android
             </span>
           </motion.div>
         </motion.div>
@@ -434,7 +424,7 @@ function TrustBar() {
     { value: "95%+", label: "Transcription accuracy" },
     { value: "<300ms", label: "Real-time latency" },
     { value: "20+", label: "Languages supported" },
-    { value: "4", label: "Platforms: Mac, Win, iOS, Android" },
+    { value: "4", label: "Platforms: Mac, Win, iOS" },
   ];
   return (
     <section className="border-y border-white/5 bg-[#0c0c0f] py-8">
@@ -511,7 +501,7 @@ function Platforms() {
             <span className="text-zinc-500">Every device you own.</span>
           </motion.h2>
           <motion.p variants={fadeUp} className="mt-4 text-zinc-400 max-w-xl mx-auto">
-            Unlike Dragon (Windows-only) or Wispr Flow (Mac/iOS-only), Voxlen works everywhere. Mac, Windows, iPhone, and Android — same account, same vocabulary, same AI.
+            Unlike Dragon (Windows-only) or Wispr Flow (Mac/iOS-only), Voxlen works everywhere. Mac, Windows, and iPhone — same account, same vocabulary, same AI.
           </motion.p>
         </motion.div>
 
@@ -713,8 +703,8 @@ function Features() {
     },
     {
       icon: Keyboard,
-      title: "Android Keyboard",
-      description: "Full custom keyboard for Android with Deepgram Nova-3 streaming STT, AI grammar polish, haptic feedback, and dark mode. Replace your stock keyboard with professional-grade dictation.",
+      title: "iOS Keyboard Extension",
+      description: "Custom keyboard for iPhone and iPad — dictate in any app including iMessage, WhatsApp, Mail, and legal practice software. Same Nova-3 accuracy as the desktop app.",
       color: "text-green-400",
       bg: "bg-green-400/10",
     },
@@ -921,21 +911,7 @@ function Comparison() {
 }
 
 function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
-  const login = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (response) => {
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${response.access_token}` },
-        });
-        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
-        storeToken(response.access_token);
-        const u = { email: info.email, name: info.name, picture: info.picture, sub: info.sub };
-        onSignIn(u);
-        // After sign-in, proceed to checkout (will scroll to download if Stripe not configured)
-      } catch {}
-    },
-  });
+  const login = useGoogleSignIn(onSignIn);
 
   const handleCta = (priceId: string) => {
     if (!user) {
@@ -972,7 +948,7 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
         "Text injection (any app)",
         "Voice commands",
         "20+ languages",
-        "iOS + Android keyboard",
+        "iOS keyboard extension",
         "macOS, Windows, Linux",
         "Priority email support",
       ],
@@ -1151,7 +1127,7 @@ function FAQ() {
     },
     {
       q: "Is Voxlen a Dragon NaturallySpeaking alternative?",
-      a: "Yes — and a better one. Voxlen uses Deepgram Nova-3 (more accurate than Dragon's aging engine), costs a fraction of Dragon's $699+ license, works on Mac AND Windows AND iPhone AND Android (Dragon is Windows-only), and includes AI grammar correction that Dragon lacks. No one-time $700 fee, no USB dongle, no outdated acoustic models.",
+      a: "Yes — and a better one. Voxlen uses Deepgram Nova-3 (more accurate than Dragon's aging engine), costs a fraction of Dragon's $699+ license, works on Mac AND Windows AND iPhone (Dragon is Windows-only), and includes AI grammar correction that Dragon lacks. No one-time $700 fee, no USB dongle, no outdated acoustic models.",
     },
     {
       q: "Does Voxlen work on iPhone and Samsung Android?",
@@ -1297,19 +1273,7 @@ const DOWNLOADS: Record<
 function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
   const [platform, setPlatform] = useState<Platform>("unknown");
 
-  const login = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (response) => {
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${response.access_token}` },
-        });
-        const info = await res.json() as { email: string; name: string; picture: string; sub: string };
-        storeToken(response.access_token);
-        onSignIn({ email: info.email, name: info.name, picture: info.picture, sub: info.sub });
-      } catch {}
-    },
-  });
+  const login = useGoogleSignIn(onSignIn);
   const [liveAssets, setLiveAssets] = useState<ReleaseAsset[] | null>(null);
   const [hasRelease, setHasRelease] = useState<boolean | null>(null);
 
