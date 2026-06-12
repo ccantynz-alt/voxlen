@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
+import { useFlywheelStore } from "@/stores/flywheel";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
 
 /**
  * Registers all four configured global shortcuts with the Tauri
@@ -132,9 +134,23 @@ export function useGlobalShortcuts(enabled: boolean): void {
                 const textToCorrect = selection || lastSegment?.correctedText || lastSegment?.text || "";
                 if (!textToCorrect.trim()) return;
 
+                const flyVocab = useFlywheelStore.getState().vocabulary
+                  .filter((v) => v.frequency >= 2)
+                  .map((v) => v.word);
+                const { activeClientId, clients } = useClientsStore.getState();
+                const activeClient = clients.find((c) => c.id === activeClientId);
+                const clientVocab = activeClient?.vocabulary ?? [];
+                const globalVocab = useSettingsStore.getState().customVocabulary;
+                const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocab, ...globalVocab]));
+                const matterContext = buildMatterContext(activeClient) || undefined;
+
                 const result = await invoke<{ corrected: string }>(
                   "correct_grammar",
-                  { text: textToCorrect }
+                  {
+                    text: textToCorrect,
+                    customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
+                    matterContext,
+                  }
                 );
 
                 if (lastSegment && !selection) {
