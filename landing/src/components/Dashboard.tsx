@@ -74,6 +74,50 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
+function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
+  // Prefer a long-lived desktop token; fall back to the (1-hour) Google
+  // session token if the endpoint isn't configured yet.
+  const [desktopToken, setDesktopToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/desktop-token", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((json: { token?: string }) => {
+        if (!cancelled && json.token) setDesktopToken(json.token);
+      })
+      .catch(() => { /* fall back to session token */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [accessToken]);
+
+  const key = desktopToken ?? accessToken;
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <Zap className="h-5 w-5 text-brand-400" />
+        <h2 className="font-bold">Connect Desktop App</h2>
+      </div>
+      <p className="text-zinc-500 text-sm mb-4">
+        Copy your account key and paste it into <strong className="text-zinc-300">Voxlen Settings → Voxlen Account</strong> (or the onboarding Connect step). Transcription and AI grammar are included — no other keys needed.
+      </p>
+      <div className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-zinc-400 break-all">
+        <span className="flex-1 truncate">{loading ? "Generating your key…" : key}</span>
+        {!loading && <CopyButton value={key} />}
+      </div>
+      <p className="text-[11px] text-zinc-600 mt-2">
+        {desktopToken
+          ? "This key is valid for 180 days. Come back any time to generate a fresh one."
+          : "This session token expires after about an hour — re-copy from this page if the app asks you to reconnect."}
+      </p>
+    </div>
+  );
+}
+
 export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; accessToken: string | null; onSignOut: () => void }) {
   const isAdmin = user.email === ADMIN_EMAIL;
   const [assets, setAssets] = useState<ReleaseAsset[] | null>(null);
@@ -107,7 +151,7 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
       <div className="border-b border-white/5 bg-[#0c0c0f]">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-marcoreid-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
             <span className="font-bold tracking-tight">Voxlen</span>
@@ -148,9 +192,9 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
               <span className="text-amber-300 font-semibold text-sm">Admin — Full Access</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-marcoreid-600/10 border border-marcoreid-600/30">
-              <Shield className="h-4 w-4 text-marcoreid-400" />
-              <span className="text-marcoreid-300 font-semibold text-sm">Free Plan</span>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600/10 border border-brand-600/30">
+              <Shield className="h-4 w-4 text-brand-400" />
+              <span className="text-brand-300 font-semibold text-sm">Free Plan</span>
             </div>
           )}
         </div>
@@ -203,22 +247,7 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
         )}
 
         {/* Connect Desktop App */}
-        {accessToken && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <Zap className="h-5 w-5 text-marcoreid-400" />
-              <h2 className="font-bold">Connect Desktop App</h2>
-            </div>
-            <p className="text-zinc-500 text-sm mb-4">
-              Copy your session token and paste it into <strong className="text-zinc-300">Voxlen Settings → Voxlen Account</strong> to use the app without entering API keys.
-            </p>
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-zinc-400 break-all">
-              <span className="flex-1 truncate">{accessToken}</span>
-              <CopyButton value={accessToken} />
-            </div>
-            <p className="text-[11px] text-zinc-600 mt-2">This token expires when you sign out. Re-copy if you sign in again.</p>
-          </div>
-        )}
+        {accessToken && <ConnectDesktopApp accessToken={accessToken} />}
 
         {/* Subscription (non-admin) */}
         {!isAdmin && (
@@ -234,7 +263,7 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
               </div>
               <a
                 href="/#pricing"
-                className="px-4 py-2 rounded-lg bg-marcoreid-600 text-white text-sm font-semibold hover:bg-marcoreid-700 transition-colors"
+                className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
               >
                 Upgrade
               </a>
@@ -292,7 +321,7 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
                 href={GH_RELEASES_PAGE}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 mt-3 text-sm text-marcoreid-400 hover:text-marcoreid-300"
+                className="inline-flex items-center gap-1.5 mt-3 text-sm text-brand-400 hover:text-brand-300"
               >
                 Watch GitHub releases <ExternalLink className="h-3 w-3" />
               </a>
@@ -308,8 +337,8 @@ export function Dashboard({ user, accessToken, onSignOut }: { user: GoogleUser; 
                     href={href}
                     className="group flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 transition-all"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-marcoreid-600/20 transition-colors">
-                      <Icon className="h-4.5 w-4.5 text-zinc-400 group-hover:text-marcoreid-400 transition-colors" />
+                    <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-brand-600/20 transition-colors">
+                      <Icon className="h-4.5 w-4.5 text-zinc-400 group-hover:text-brand-400 transition-colors" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-white">{p.label}</p>

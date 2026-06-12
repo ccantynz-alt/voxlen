@@ -1,14 +1,14 @@
 # Copyright & Trademark Notice
 
-**Marco Reid Voice**
+**Voxlen**
 
-Copyright © 2026 Marco Reid. All rights reserved.
+Copyright © 2026 Voxlen. All rights reserved.
 
-The Marco Reid Voice software, including its source code, compiled
+The Voxlen software, including its source code, compiled
 binaries, UI designs, iconography, documentation, landing-page content,
 marketing copy, and accompanying materials ("the **Work**"), is the
-copyrighted work of Marco Reid. The Work is licensed — not sold — under
-the Marco Reid Voice Proprietary Licence (`LICENSE`) and the End User
+copyrighted work of Voxlen. The Work is licensed — not sold — under
+the Voxlen Proprietary Licence (`LICENSE`) and the End User
 Licence Agreement (`legal/EULA.md`).
 
 Unauthorised reproduction, distribution, public display, public
@@ -19,10 +19,10 @@ criminal liability.
 
 ## Trademarks
 
-**Marco Reid®**, **Marco Reid Voice™**, the Marco Reid wordmark, and the
-Marco Reid "brass pin" emblem are trademarks of Marco Reid. Use is
+**Voxlen®**, **Voxlen™**, the Voxlen wordmark, and the
+Voxlen "brass pin" emblem are trademarks of Voxlen. Use is
 permitted only in accordance with our Trademark Guidelines (available on
-request at `legal@marcoreid.com`) and the End User Licence Agreement.
+request at `legal@voxlen.ai`) and the End User Licence Agreement.
 
 Other product, company, and service names used within the Work may be
 trademarks or registered trademarks of their respective owners. Use of
@@ -30,9 +30,9 @@ those names is for identification only and does not imply endorsement.
 
 ## DMCA / copyright-infringement notices
 
-If you believe that material available through or within Marco Reid Voice
+If you believe that material available through or within Voxlen
 infringes your copyright, send a written notice to
-`copyright@marcoreid.com` that includes:
+`copyright@voxlen.ai` that includes:
 
 1. your physical or electronic signature;
 2. identification of the copyrighted work claimed to be infringed;
@@ -55,4 +55,4 @@ remain subject to their original licences.
 
 ## Contact
 
-`legal@marcoreid.com`
+`legal@voxlen.ai`

@@ -1,50 +1,46 @@
 # Sub-processors
 
-**Marco Reid Voice**
-**Last updated: 16 April 2026**
+**Voxlen**
+**Last updated: 12 June 2026**
 
-This page lists the service providers Marco Reid engages to process
-personal information on Marco Reid's behalf (**"Sub-processors"**), as
+This page lists the service providers Voxlen engages to process
+personal information on Voxlen's behalf (**"Sub-processors"**), as
 required by the Data Processing Addendum (`legal/DPA.md`).
 
-Because Marco Reid Voice runs on your device and does not send Your Content
-to Marco Reid-operated servers, most processing never involves a Marco
-Reid Sub-processor. This list covers only the ancillary services Marco
-Reid uses to operate its business (email, billing, release hosting, etc.).
+Because Voxlen runs on your device and never stores Your Content on
+Voxlen-operated servers (account requests pass transiently through
+zero-retention endpoints), most processing never involves a Voxlen
+Sub-processor. This list covers only the ancillary services Voxlen uses to operate its business (email, billing, release hosting, etc.).
 
 ## Current Sub-processors
 
 | Sub-processor     | Purpose                                                                            | Location of processing |
 | ----------------- | ---------------------------------------------------------------------------------- | ---------------------- |
 | GitHub, Inc.      | Source control, release hosting (installer downloads), auto-update manifest        | United States           |
-| Cloudflare, Inc.  | CDN, TLS termination, DDoS protection for `marcoreid.com` and release endpoints    | Global                  |
+| Cloudflare, Inc.  | CDN, TLS termination, DDoS protection for `voxlen.ai` and release endpoints    | Global                  |
 | Stripe, Inc.      | Payment processing, subscription billing (if you purchase a paid tier)             | United States           |
 | Amazon Web Services | Email relay and secure file storage for support attachments                      | Sydney (ap-southeast-2) |
-| Google Workspace  | Support email, calendar, document collaboration for Marco Reid staff               | United States / EU      |
-| Anthropic, PBC    | Internal productivity use (Marco Reid's own staff) — **not** used to process any Customer Personal Data | United States |
+| Google Workspace  | Support email, calendar, document collaboration for Voxlen staff               | United States / EU      |
+| Vercel, Inc.      | Hosting for `voxlen.ai` and the zero-retention API endpoints (transit only — no Customer content stored) | United States |
+| Deepgram, Inc.    | Speech-to-text processing when you use a Voxlen account (model-training opt-out enforced on every request) | United States |
+| Anthropic, PBC    | Language-model grammar correction (Claude) when you use a Voxlen account | United States |
+| OpenAI, L.L.C.    | Speech-to-text (Whisper) and language-model grammar correction when you use a Voxlen account | United States |
 
 ### Customer-configured third parties (not Sub-processors)
 
-The following services receive Customer content only when **Customer**
-configures the Service with Customer's own API credentials. They are not
-Marco Reid Sub-processors; they are independent providers engaged by
-Customer under their own terms:
-
-- Deepgram, Inc. — streaming speech-to-text.
-- OpenAI, L.L.C. — speech-to-text (Whisper) and language-model grammar
-  correction.
-- Anthropic, PBC — language-model grammar correction (Claude).
-
-Customer is responsible for executing its own data-processing agreement
-with each of those providers where required.
+If you configure the Service with your own API credentials instead of a
+Voxlen account, the providers above act as independent processors engaged
+directly by you under your own terms, and you are responsible for
+executing your own data-processing agreement with each of them where
+required.
 
 ## Changes
 
-Marco Reid will update this page before engaging a new Sub-processor or
+Voxlen will update this page before engaging a new Sub-processor or
 replacing an existing one. Customers who have signed the DPA may object in
 writing within fourteen (14) days of the update on reasonable data-
 protection grounds.
 
 ## Contact
 
-`privacy@marcoreid.com`.
+`privacy@voxlen.ai`.

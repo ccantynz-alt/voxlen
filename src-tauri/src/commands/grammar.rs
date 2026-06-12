@@ -101,7 +101,7 @@ pub async fn correct_grammar(
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or("No API key configured. Sign in to your Voxlen account in Settings, or add your Anthropic/OpenAI API key.")?;
+        .ok_or("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key.")?;
 
     match config.provider {
         GrammarProvider::Claude => correct_with_claude(&text, api_key, &config, &vocab).await,

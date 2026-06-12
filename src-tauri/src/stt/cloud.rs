@@ -6,26 +6,34 @@ async fn voxlen_proxy_transcribe(
     voxlen_key: &str,
     config: &SttConfig,
 ) -> anyhow::Result<TranscriptionResult> {
-    let part = reqwest::multipart::Part::bytes(wav_data.to_vec())
-        .file_name("audio.wav")
-        .mime_str("audio/wav")?;
-
-    let form = reqwest::multipart::Form::new()
-        .part("audio", part)
-        .text("language", if config.auto_detect_language { "auto".to_string() } else { config.language.clone() })
-        .text("context", config.voxlen_context.clone().unwrap_or_else(|| "general".to_string()))
-        .text("smart_format", config.smart_format.to_string())
-        .text("punctuate", config.punctuate.to_string())
-        .text("diarize", config.speaker_diarization.to_string());
-
+    // The proxy expects a raw audio body with settings carried in headers
+    // (sending multipart here would forward form boundaries to Deepgram as
+    // if they were audio).
     let client = reqwest::Client::new();
     let mut req = client
         .post("https://voxlen.ai/api/stt")
-        .header("Authorization", format!("Bearer {}", voxlen_key));
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .header("Content-Type", "audio/wav")
+        .header("X-Language", config.language.clone())
+        .header("X-Auto-Detect", config.auto_detect_language.to_string())
+        .header("X-Context", config.voxlen_context.clone().unwrap_or_else(|| "general".to_string()))
+        .header("X-Smart-Format", config.smart_format.to_string())
+        .header("X-Punctuate", config.punctuate.to_string())
+        .header("X-Diarize", config.speaker_diarization.to_string());
+    if !config.custom_vocabulary.is_empty() {
+        // URL-encoded so header stays ASCII-safe; server splits on commas
+        let keyterms = config
+            .custom_vocabulary
+            .iter()
+            .map(|w| urlencoding(w))
+            .collect::<Vec<_>>()
+            .join(",");
+        req = req.header("X-Keyterms", keyterms);
+    }
     if let Some(tid) = config.voxlen_tenant_id.as_deref().filter(|s| !s.is_empty()) {
         req = req.header("X-Tenant-ID", tid);
     }
-    let response = req.multipart(form).send().await?;
+    let response = req.body(wav_data.to_vec()).send().await?;
 
     if !response.status().is_success() {
         let error_text = response.text().await?;
@@ -146,9 +154,10 @@ pub async fn deepgram_transcribe(
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("No API key configured. Sign in to your Voxlen account in Settings, or add your Deepgram API key."))?;
+        .ok_or_else(|| anyhow::anyhow!("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key."))?;
 
-    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3");
+    // mip_opt_out: never allow Deepgram to use customer audio for model training
+    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true");
 
     if config.punctuate {
         url.push_str("&punctuate=true");
@@ -165,9 +174,9 @@ pub async fn deepgram_transcribe(
         url.push_str(&format!("&language={}", config.language));
     }
 
-    // Add custom vocabulary as keywords
+    // Nova-3 uses keyterm prompting; the old `keywords` param is ignored on nova-3
     for word in &config.custom_vocabulary {
-        url.push_str(&format!("&keywords={}", urlencoding(word)));
+        url.push_str(&format!("&keyterm={}", urlencoding(word)));
     }
 
     if config.speaker_diarization {
@@ -265,12 +274,15 @@ pub async fn deepgram_transcribe(
     })
 }
 
-fn urlencoding(s: &str) -> String {
-    s.chars()
-        .map(|c| match c {
-            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' | '~' => c.to_string(),
-            ' ' => "%20".to_string(),
-            _ => format!("%{:02X}", c as u32),
-        })
-        .collect()
+pub(crate) fn urlencoding(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() * 3);
+    for byte in s.as_bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(*byte as char)
+            }
+            _ => out.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+    out
 }

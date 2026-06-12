@@ -18,6 +18,12 @@ impl StreamingSession {
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::Relaxed);
     }
+
+    /// True once the session has been stopped or its worker task has exited
+    /// (clean shutdown, auth failure, or retries exhausted).
+    pub fn is_stopped(&self) -> bool {
+        self.stop_flag.load(Ordering::Relaxed)
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -76,7 +82,7 @@ pub fn start_streaming(
     let has_direct_key = config.api_key.as_deref().filter(|k| !k.is_empty()).is_some();
     let has_voxlen_key = config.voxlen_api_key.as_deref().filter(|k| !k.is_empty()).is_some();
     if !has_direct_key && !has_voxlen_key {
-        anyhow::bail!("No API key configured for Deepgram streaming");
+        anyhow::bail!("Not connected to a Voxlen account — open Settings → Account to connect before dictating");
     }
 
     let stop_flag = Arc::new(AtomicBool::new(false));
@@ -90,7 +96,9 @@ pub fn start_streaming(
     let diarization = config.speaker_diarization;
     let tenant_id = config.voxlen_tenant_id.clone();
 
+    let stop_on_exit = stop_flag.clone();
     let handle = tokio::spawn(async move {
+        let session_task = async {
         // Resolve the actual Deepgram API key to use for this session.
         // If the user has a direct Deepgram key, use it. Otherwise fetch a
         // short-lived proxy key from the Voxlen backend.
@@ -145,6 +153,10 @@ pub fn start_streaming(
                 }
             }
         }
+        };
+        session_task.await;
+        // Mark the session ended so the processor knows to start a fresh one
+        stop_on_exit.store(true, Ordering::Relaxed);
     });
 
     Ok(StreamingSession {
@@ -252,7 +264,7 @@ async fn run_session_once(
 
     // Build Deepgram WebSocket URL
     let mut url = String::from(
-        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-3&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1000&vad_events=true&endpointing=200&no_delay=true"
+        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-3&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1000&vad_events=true&endpointing=200&no_delay=true&mip_opt_out=true"
     );
 
     if auto_detect {
@@ -265,9 +277,10 @@ async fn run_session_once(
         url.push_str("&diarize=true");
     }
 
+    // Nova-3 uses keyterm prompting (the old `keywords` param is silently
+    // ignored on nova-3), so custom vocabulary must go through `keyterm`.
     for word in custom_vocabulary {
-        let encoded = word.replace(' ', "%20");
-        url.push_str(&format!("&keywords={}:1.5", encoded));
+        url.push_str(&format!("&keyterm={}", super::cloud::urlencoding(word)));
     }
 
     log::info!("Connecting to Deepgram streaming...");

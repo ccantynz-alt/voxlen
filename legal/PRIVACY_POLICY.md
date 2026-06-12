@@ -1,19 +1,19 @@
 # Privacy Policy
 
-**Marco Reid Voice**
+**Voxlen**
 **Effective 16 April 2026**
 
-Marco Reid ("**Marco Reid**", "**we**", "**us**", "**our**") respects your
+Voxlen ("**Voxlen**", "**we**", "**us**", "**our**") respects your
 privacy. This Privacy Policy explains what personal information we and the
-Marco Reid Voice software ("**the Software**") do and do not collect, how it
+Voxlen software ("**the Software**") do and do not collect, how it
 is used, the choices you have, and the rights you may have under applicable
 law.
 
 This policy applies to:
 
-- the Marco Reid Voice desktop application (macOS, Windows, Linux);
-- the Marco Reid Voice iOS keyboard extension;
-- the `marcoreid.com` marketing website (the "**Site**"); and
+- the Voxlen desktop application (macOS, Windows, Linux);
+- the Voxlen iOS keyboard extension;
+- the `voxlen.ai` marketing website (the "**Site**"); and
 - any direct support communications you have with us.
 
 It does **not** cover the third-party services you choose to integrate with
@@ -21,7 +21,7 @@ the Software (see section 5).
 
 ## 1. The short version
 
-- Marco Reid Voice runs **on your own device**. Your audio, transcripts,
+- Voxlen runs **on your own device**. Your audio, transcripts,
   settings, and credentials stay on your device unless you explicitly send
   them to a third-party provider that you have configured.
 - **We do not operate servers that receive, store, or process your audio or
@@ -37,18 +37,18 @@ the Software (see section 5).
 ## 2. Who the "controller" is
 
 For the desktop and iOS software, **you** are the data controller of Your
-Content (your audio, your transcripts, your settings). Marco Reid is not a
+Content (your audio, your transcripts, your settings). Voxlen is not a
 controller, joint controller, or processor of that content — it never leaves
 your device in a form that reaches us.
 
 For information you submit to us directly (for example, by emailing support
-or purchasing a licence through the Site), Marco Reid is the controller. Our
-contact point is `privacy@marcoreid.com`.
+or purchasing a licence through the Site), Voxlen is the controller. Our
+contact point is `privacy@voxlen.ai`.
 
 ## 3. What the Software processes locally (on your device)
 
 The following data is stored on your device by the Software. It is **not**
-transmitted to Marco Reid.
+transmitted to Voxlen.
 
 | Local data            | Where it is stored                                   |
 | --------------------- | ---------------------------------------------------- |
@@ -82,17 +82,17 @@ situations, and only to the destinations listed:
 | ----------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Audio frames                  | Deepgram **or** OpenAI Whisper                     | While dictation is active, only to the speech-to-text engine you selected                           |
 | Transcript text               | Anthropic **or** OpenAI                            | Only when you enable grammar correction and trigger a polish pass                                   |
-| Update check                  | GitHub Releases / Marco Reid update endpoint        | When the built-in updater runs (configurable; you can disable auto-update in Settings)              |
+| Update check                  | GitHub Releases / Voxlen update endpoint        | When the built-in updater runs (configurable; you can disable auto-update in Settings)              |
 
 **No other outbound traffic originates from the Software.** The Software
-does not send anything to Marco Reid-operated servers as part of normal
+does not send anything to Voxlen-operated servers as part of normal
 operation.
 
 ## 5. Third-party providers you configure
 
 When you enter your own API key for a provider and use a feature that calls
 that provider, the Software connects directly from your device to the
-provider. Marco Reid does not proxy, log, or intercept this traffic.
+provider. Voxlen does not proxy, log, or intercept this traffic.
 
 - **Deepgram** — <https://deepgram.com/privacy>
 - **OpenAI (Whisper, GPT models)** — <https://openai.com/policies/privacy-policy>
@@ -100,7 +100,7 @@ provider. Marco Reid does not proxy, log, or intercept this traffic.
 
 Those providers act as independent controllers or processors in respect of
 the content you send them. Their privacy policies and data-processing terms
-apply. You are responsible for reviewing and accepting them. Marco Reid is
+apply. You are responsible for reviewing and accepting them. Voxlen is
 not a party to the data relationship between you and any of them, does not
 act as your processor in respect of that content, and does not hold a data
 processing agreement with those providers on your behalf.
@@ -158,7 +158,7 @@ service providers operate. Where required, we rely on adequacy
 determinations, the UK International Data Transfer Addendum, EU Standard
 Contractual Clauses, or equivalent safeguards to protect cross-border
 transfers. Copies of the relevant safeguards are available on request at
-`privacy@marcoreid.com`.
+`privacy@voxlen.ai`.
 
 ## 9. Retention
 
@@ -172,7 +172,7 @@ purpose it was collected, or as required by law. Indicative periods:
   thereafter to handle refunds and disputes.
 
 Locally-stored Software data is retained by you and deleted when you delete
-it. Marco Reid cannot delete data that never reached Marco Reid.
+it. Voxlen cannot delete data that never reached Voxlen.
 
 ## 10. Your rights
 
@@ -200,11 +200,11 @@ rights over personal information we hold about you:
 California residents additionally have the right to non-discrimination for
 exercising a CCPA/CPRA right, to know the categories of personal information
 collected in the prior 12 months, the sources, the purposes, and the
-categories of third parties with whom it is shared. Marco Reid does not
+categories of third parties with whom it is shared. Voxlen does not
 "sell" or "share" personal information as those terms are defined in
 CCPA/CPRA.
 
-To exercise any right, email `privacy@marcoreid.com`. We may need to verify
+To exercise any right, email `privacy@voxlen.ai`. We may need to verify
 your identity before responding.
 
 ## 11. Security
@@ -222,7 +222,7 @@ See `docs/SECURITY.md` for our vulnerability-disclosure policy.
 
 The Software is not directed to children under 16 and we do not knowingly
 collect personal information from children under 16. If you believe a child
-has provided personal information to us, email `privacy@marcoreid.com` and
+has provided personal information to us, email `privacy@voxlen.ai` and
 we will delete it.
 
 ## 13. Automated decision-making
@@ -230,7 +230,7 @@ we will delete it.
 The Software uses third-party machine-learning models to transcribe and
 polish text. Those are not "decisions producing legal or similarly
 significant effects" within the meaning of GDPR Article 22; the Output is
-drafting assistance that you must review. Marco Reid does not use your data
+drafting assistance that you must review. Voxlen does not use your data
 to make automated decisions about you.
 
 ## 14. Do Not Track
@@ -247,13 +247,13 @@ top reflects the latest version.
 
 ## 16. Contact
 
-**Marco Reid — Privacy**
-Email: `privacy@marcoreid.com`
+**Voxlen — Privacy**
+Email: `privacy@voxlen.ai`
 Postal: *to be published before public launch*
 
 If you are in the European Economic Area or the United Kingdom and require
 a representative under Article 27 of the GDPR or the UK GDPR, contact
-`privacy@marcoreid.com` and we will provide details of our appointed
+`privacy@voxlen.ai` and we will provide details of our appointed
 representative.
 
 ---

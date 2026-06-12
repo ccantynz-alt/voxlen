@@ -23,7 +23,7 @@
     "name": "Voxlen",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "macOS, Windows, iOS",
-    "description": "Voice dictation software purpose-built for lawyers. Features a legal clause library, Latin legal phrase recognition, offline Privileged Mode for attorney-client privilege, court-filing formatting, GDPR compliance, and billable time tracking.",
+    "description": "Voice dictation software purpose-built for lawyers. Features a legal clause library, Latin legal phrase recognition, zero-retention privacy for attorney-client privilege (offline Privileged Mode coming soon), court-filing formatting, GDPR compliance, and billable time tracking.",
     "url": "https://voxlen.ai/",
     "offers": [
       {
@@ -38,7 +38,7 @@
         "name": "Pro",
         "price": "29",
         "priceCurrency": "USD",
-        "description": "Unlimited dictation, legal clause library, Privileged Mode, billable time tracking"
+        "description": "Unlimited dictation, legal clause library, billable time tracking, Privileged Mode (coming soon)"
       },
       {
         "@type": "Offer",
@@ -74,7 +74,7 @@
         "name": "Is Voxlen GDPR compliant for law firms?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. Voxlen is designed with privacy as a foundational principle, not an afterthought. In Privileged Mode, all audio and transcripts are processed entirely on-device — nothing is sent to any Voxlen server or any third-party server. When using cloud transcription, audio is processed by your chosen provider (Deepgram or OpenAI) using your own API key under your own data processing agreements. Voxlen itself never stores or accesses client content. Law firms in EU jurisdictions can use Privileged Mode exclusively to remain fully GDPR compliant and satisfy bar association guidance on data protection obligations."
+          "text": "Yes. Voxlen is designed with privacy as a foundational principle, not an afterthought. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode (coming soon) will process all audio and transcripts entirely on-device, so nothing is sent to any server at all — helping law firms in EU jurisdictions remain fully GDPR compliant and satisfy bar association guidance on data protection obligations."
         }
       },
       {
@@ -98,7 +98,7 @@
         "name": "Can I use Voxlen for privileged client communications?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, and it is specifically designed for this use case. Privileged Mode enables fully offline dictation with zero audio or text leaving your device — making it safe for attorney-client privileged communications, grand jury matters, M&A transactions, and any matter where absolute confidentiality is required. In Privileged Mode, transcription runs on a local AI model with no external network calls. Nothing is stored on Voxlen servers. Nothing is sent to any cloud service. The privilege never breaks."
+          "text": "Yes. Today, Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. Session history and custom vocabulary stay on your device only. Privileged Mode (coming soon) will go further: fully offline dictation with zero audio or text leaving your device, with transcription running on a local AI model with no external network calls — designed for attorney-client privileged communications, grand jury matters, M&A transactions, and any matter where absolute confidentiality is required."
         }
       }
     ]
@@ -710,7 +710,7 @@
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      Privileged Mode — offline, zero cloud
+      Privileged Mode — offline, zero cloud (coming soon)
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -761,8 +761,8 @@
       <div class="feature-card featured">
         <div class="feature-badge">Pro</div>
         <div class="feature-icon">🛡️</div>
-        <h3>Privileged Mode (Offline)</h3>
-        <p>The most important feature for any legal dictation tool. Privileged Mode runs all transcription and AI processing entirely on-device — no audio, no transcript, nothing leaves your machine. Designed for attorney-client privileged communications, grand jury matters, and any work requiring absolute confidentiality.</p>
+        <h3>Privileged Mode (Offline) — Coming Soon</h3>
+        <p>The most important feature on our roadmap for any legal dictation tool. Privileged Mode (coming soon) will run all transcription and AI processing entirely on-device — no audio, no transcript, nothing leaving your machine. Designed for attorney-client privileged communications, grand jury matters, and any work requiring absolute confidentiality. Today, all requests pass through zero-retention endpoints and nothing is retained.</p>
       </div>
 
       <div class="feature-card featured">
@@ -858,7 +858,7 @@
           </tr>
           <tr>
             <td class="feature-name">Fully Offline Mode</td>
-            <td class="voxlen-col"><span class="yes">✓ Privileged Mode</span></td>
+            <td class="voxlen-col">🔜 Coming soon</td>
             <td><span class="yes">✓ Yes</span></td>
             <td><span class="no">✗ Cloud required</span></td>
             <td><span class="no">✗ Cloud required</span></td>
@@ -918,7 +918,7 @@
         <div class="step-num">1</div>
         <div>
           <h3>Install &amp; Configure</h3>
-          <p>Download the Mac or Windows app, enter your API key (Deepgram or OpenAI), and optionally enable Privileged Mode for fully offline operation. Takes under 3 minutes. No voice training period required — unlike Dragon, which can take hours.</p>
+          <p>Download the Mac or Windows app and sign in — all AI costs are included in your subscription, no API keys to manage. Takes under 3 minutes. No voice training period required — unlike Dragon, which can take hours.</p>
         </div>
       </div>
       <div class="step">
@@ -932,7 +932,7 @@
         <div class="step-num">3</div>
         <div>
           <h3>AI Polishes the Output</h3>
-          <p>The built-in AI grammar layer — powered by Claude or GPT-4o via your own API key — cleans up spoken fillers, applies legal formatting, inserts correct punctuation, and resolves legal terminology. The result is document-ready text. Billable time is automatically logged.</p>
+          <p>The built-in AI grammar layer — powered by Claude or GPT-4o, included in your subscription — cleans up spoken fillers, applies legal formatting, inserts correct punctuation, and resolves legal terminology. The result is document-ready text. Billable time is automatically logged.</p>
         </div>
       </div>
     </div>
@@ -968,7 +968,7 @@
         <ul>
           <li><span class="check">✓</span> Unlimited dictation</li>
           <li><span class="check">✓</span> Legal clause library (500 terms)</li>
-          <li><span class="check">✓</span> Privileged Mode (fully offline)</li>
+          <li><span class="check">🔜</span> Privileged Mode (fully offline) — coming soon</li>
           <li><span class="check">✓</span> Legal formatting templates</li>
           <li><span class="check">✓</span> 26 Latin legal phrases</li>
           <li><span class="check">✓</span> Billable time tracking</li>
@@ -1023,7 +1023,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Yes. Voxlen is designed with privacy as a foundational principle. In Privileged Mode, all audio and transcripts are processed entirely on-device — nothing is sent to any Voxlen server or any third-party server. When using cloud transcription, audio is processed by your chosen provider (Deepgram or OpenAI) under your own API key and your own data processing agreements. Voxlen itself never stores or accesses client content. Law firms in EU jurisdictions can use Privileged Mode exclusively to remain fully GDPR compliant and satisfy bar association guidance on data protection obligations.
+            Yes. Voxlen is designed with privacy as a foundational principle. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode (coming soon) will process all audio and transcripts entirely on-device, so nothing is sent to any server at all — helping law firms in EU jurisdictions remain fully GDPR compliant and satisfy bar association guidance on data protection obligations.
           </div>
         </div>
       </div>
@@ -1059,7 +1059,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Yes — and this is specifically what Privileged Mode is designed for. In Privileged Mode, all transcription and AI processing runs on-device with zero external network calls. No audio leaves your device. No transcript is transmitted to any server. No data is stored by Voxlen. The mode is designed for attorney-client privileged communications, grand jury matters, M&amp;A transactions, criminal defence work, and any matter where absolute confidentiality is required. When you engage Privileged Mode, the privilege never breaks.
+            Yes. Today, Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. Session history and custom vocabulary stay on your device only. Privileged Mode (coming soon) will go further: all transcription and AI processing running on-device with zero external network calls — no audio leaving your device, no transcript transmitted to any server. It is designed for attorney-client privileged communications, grand jury matters, M&amp;A transactions, criminal defence work, and any matter where absolute confidentiality is required.
           </div>
         </div>
       </div>
