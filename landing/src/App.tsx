@@ -75,6 +75,14 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  // Redirect unauthenticated /dashboard visits to home — must be before any early returns
+  useEffect(() => {
+    if (path === "/dashboard" && !user) {
+      setPath("/");
+      window.history.replaceState({}, "", "/");
+    }
+  }, [path, user]);
+
   if (path === "/privacy") {
     return <LegalPage type="privacy" />;
   }
@@ -91,12 +99,6 @@ export default function App() {
   if (path === "/dashboard" && user) {
     return <Dashboard user={user} accessToken={getStoredToken()} onSignOut={handleSignOut} />;
   }
-  useEffect(() => {
-    if (path === "/dashboard" && !user) {
-      setPath("/");
-      window.history.replaceState({}, "", "/");
-    }
-  }, [path, user]);
 
   return (
     <div className="min-h-screen bg-[#09090b]">
