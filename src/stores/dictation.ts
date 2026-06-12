@@ -58,6 +58,46 @@ export interface BackendSessionRecord {
   segments: BackendSessionSegment[];
 }
 
+const DRAFT_KEY = "voxlen_draft";
+
+export interface DraftRecord {
+  savedAt: number;
+  sessionStartedAtMs: number | null;
+  segments: Array<Omit<TranscriptionSegment, "timestamp"> & { timestampMs: number }>;
+}
+
+function persistDraft(state: { segments: TranscriptionSegment[]; sessionStartedAtMs: number | null }) {
+  if (state.segments.length === 0) return;
+  const draft: DraftRecord = {
+    savedAt: Date.now(),
+    sessionStartedAtMs: state.sessionStartedAtMs,
+    segments: state.segments.map((s) => ({
+      ...s,
+      timestampMs: s.timestamp.getTime(),
+      timestamp: undefined as unknown as Date,
+    })),
+  };
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // storage quota — silently ignore
+  }
+}
+
+export function loadDraftRecord(): DraftRecord | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as DraftRecord;
+  } catch {
+    return null;
+  }
+}
+
+export function clearDraftRecord() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
 interface DictationState {
   status: DictationStatus;
   segments: TranscriptionSegment[];
@@ -87,6 +127,8 @@ interface DictationState {
   getFullTranscript: () => string;
   setCapsLock: (value: boolean) => void;
   toggleCapsLock: () => void;
+  restoreDraft: (draft: DraftRecord) => void;
+  discardDraft: () => void;
 }
 
 export const useDictationStore = create<DictationState>((set, get) => ({
@@ -119,15 +161,18 @@ export const useDictationStore = create<DictationState>((set, get) => ({
           count + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
         0
       );
+      persistDraft({ segments, sessionStartedAtMs: state.sessionStartedAtMs });
       return { segments, wordCount };
     }),
 
   updateSegment: (id, updates) =>
-    set((state) => ({
-      segments: state.segments.map((s) =>
+    set((state) => {
+      const segments = state.segments.map((s) =>
         s.id === id ? { ...s, ...updates } : s
-      ),
-    })),
+      );
+      persistDraft({ segments, sessionStartedAtMs: state.sessionStartedAtMs });
+      return { segments };
+    }),
 
   popLastSegment: () =>
     set((state) => {
@@ -166,6 +211,7 @@ export const useDictationStore = create<DictationState>((set, get) => ({
           count + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
         0
       );
+      persistDraft({ segments, sessionStartedAtMs: state.sessionStartedAtMs });
       return { segments, wordCount };
     }),
 
@@ -176,7 +222,8 @@ export const useDictationStore = create<DictationState>((set, get) => ({
   incrementDuration: () =>
     set((state) => ({ sessionDuration: state.sessionDuration + 1 })),
 
-  clearSession: () =>
+  clearSession: () => {
+    clearDraftRecord();
     set({
       segments: [],
       currentTranscript: "",
@@ -187,7 +234,8 @@ export const useDictationStore = create<DictationState>((set, get) => ({
       error: null,
       status: "idle",
       sessionStartedAtMs: null,
-    }),
+    });
+  },
 
   clearCurrentTranscript: () => set({ currentTranscript: "" }),
 
@@ -200,6 +248,24 @@ export const useDictationStore = create<DictationState>((set, get) => ({
 
   setCapsLock: (value) => set({ capsLock: value }),
   toggleCapsLock: () => set((state) => ({ capsLock: !state.capsLock })),
+
+  restoreDraft: (draft) => {
+    const segments: TranscriptionSegment[] = draft.segments.map((s) => ({
+      ...s,
+      timestamp: new Date(s.timestampMs),
+    }));
+    const wordCount = segments.reduce(
+      (count, s) =>
+        count + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
+      0
+    );
+    clearDraftRecord();
+    set({ segments, wordCount, sessionStartedAtMs: draft.sessionStartedAtMs });
+  },
+
+  discardDraft: () => {
+    clearDraftRecord();
+  },
 }));
 
 /**

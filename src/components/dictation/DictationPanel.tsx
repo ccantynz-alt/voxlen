@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
-import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
+import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
@@ -50,10 +50,26 @@ export function DictationPanel() {
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
   const showWaveform = useSettingsStore((s) => s.showWaveform);
 
+  const restoreDraft = useDictationStore((s) => s.restoreDraft);
+  const discardDraft = useDictationStore((s) => s.discardDraft);
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
 
+  const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof loadDraftRecord>>(null);
+
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+
+  // Check for unsaved draft on mount
+  useEffect(() => {
+    if (segments.length === 0) {
+      const draft = loadDraftRecord();
+      if (draft && draft.segments.length > 0) {
+        setPendingDraft(draft);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Session timer
   useEffect(() => {
@@ -323,6 +339,29 @@ export function DictationPanel() {
           >
             Disable
           </button>
+        </div>
+      )}
+      {/* Draft recovery banner */}
+      {pendingDraft && (
+        <div className="flex items-center gap-2.5 px-5 py-2.5 bg-amber-950/60 border-b border-amber-500/20">
+          <FileText className="h-3.5 w-3.5 text-amber-400 shrink-0" strokeWidth={1.75} />
+          <p className="text-[11px] text-amber-300 font-medium">
+            Unsaved draft from {new Date(pendingDraft.savedAt).toLocaleString()} ({pendingDraft.segments.length} segment{pendingDraft.segments.length !== 1 ? "s" : ""}) — restore?
+          </p>
+          <div className="ml-auto flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => { restoreDraft(pendingDraft); setPendingDraft(null); }}
+              className="text-[10px] text-amber-400 hover:text-amber-200 font-semibold underline transition-colors"
+            >
+              Restore
+            </button>
+            <button
+              onClick={() => { discardDraft(); setPendingDraft(null); }}
+              className="text-[10px] text-amber-600 hover:text-amber-400 underline transition-colors"
+            >
+              Discard
+            </button>
+          </div>
         </div>
       )}
       {/* Main dictation area */}
