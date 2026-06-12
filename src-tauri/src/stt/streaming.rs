@@ -277,9 +277,10 @@ async fn run_session_once(
         url.push_str("&diarize=true");
     }
 
+    // Nova-3 uses keyterm prompting (the old `keywords` param is silently
+    // ignored on nova-3), so custom vocabulary must go through `keyterm`.
     for word in custom_vocabulary {
-        let encoded = word.replace(' ', "%20");
-        url.push_str(&format!("&keywords={}:1.5", encoded));
+        url.push_str(&format!("&keyterm={}", super::cloud::urlencoding(word)));
     }
 
     log::info!("Connecting to Deepgram streaming...");

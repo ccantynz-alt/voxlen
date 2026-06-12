@@ -32,11 +32,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Read raw body for multipart — forward directly to Deepgram
   const contentType = req.headers["content-type"] ?? "audio/wav";
   const language = (req.headers["x-language"] as string) || "en";
-  const context = (req.headers["x-context"] as string) || "general";
   const smartFormat = req.headers["x-smart-format"] !== "false";
   const punctuate = req.headers["x-punctuate"] !== "false";
   const diarize = req.headers["x-diarize"] === "true";
   const autoDetect = req.headers["x-auto-detect"] === "true";
+  // Comma-separated, URL-encoded custom vocabulary for Nova-3 keyterm prompting
+  const keyterms = ((req.headers["x-keyterms"] as string) || "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
 
   let dgUrl = "https://api.deepgram.com/v1/listen?model=nova-3";
   if (punctuate) dgUrl += "&punctuate=true";
@@ -46,6 +50,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     dgUrl += "&detect_language=true";
   } else {
     dgUrl += `&language=${encodeURIComponent(language)}`;
+  }
+  for (const term of keyterms) {
+    dgUrl += `&keyterm=${term}`;
   }
 
   // Buffer the incoming body
