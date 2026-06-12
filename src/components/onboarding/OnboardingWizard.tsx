@@ -35,7 +35,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
   const [micTestLevel, setMicTestLevel] = useState(0);
   const [isTesting, setIsTesting] = useState(false);
-  const [voxlenKeyValid, setVoxlenKeyValid] = useState<boolean | null>(null);
+  const [voxlenKeyValid, setVoxlenKeyValid] = useState<boolean | "unverified" | null>(null);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
 
@@ -150,8 +150,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         setVoxlenKeyValid(false);
       }
     } catch {
-      // API not live yet — accept the key optimistically
-      setVoxlenKeyValid(true);
+      // Couldn't reach voxlen.ai — let the user continue, but be honest that
+      // the key hasn't been verified instead of pretending it's valid.
+      setVoxlenKeyValid("unverified");
     }
   }, [settings]);
 
@@ -379,21 +380,21 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             ) : (
               <div className="rounded-xl border border-surface-300/60 bg-surface-50/60 p-5 space-y-4">
+                <ol className="space-y-2 text-[12px] text-surface-700 leading-relaxed list-decimal list-inside">
+                  <li>Open your Voxlen dashboard and sign in (or create a free account).</li>
+                  <li>In <span className="font-medium text-surface-900">Connect Desktop App</span>, copy your account key.</li>
+                  <li>Paste it below — that's it. Transcription and AI grammar are included.</li>
+                </ol>
                 <a
-                  href="https://voxlen.ai/#download"
+                  href="https://voxlen.ai/dashboard"
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-center gap-2 w-full bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
                 >
-                  Get your Voxlen API key
+                  Open voxlen.ai/dashboard
                 </a>
-                <div className="relative flex items-center gap-3">
-                  <div className="flex-1 h-px bg-surface-300/40" />
-                  <span className="text-[10px] text-surface-400 uppercase tracking-wider whitespace-nowrap">already have a key</span>
-                  <div className="flex-1 h-px bg-surface-300/40" />
-                </div>
                 <Input
-                  label="Voxlen API Key"
+                  label="Voxlen Account Key"
                   type="password"
                   value={settings.voxlenApiKey}
                   onChange={(e) => {
@@ -401,11 +402,17 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     setVoxlenKeyValid(null);
                   }}
                   onBlur={() => { if (settings.voxlenApiKey) handleValidateVoxlenKey(); }}
-                  placeholder="vx-..."
+                  placeholder="Paste your account key"
                   icon={<Key className="h-4 w-4" />}
                   success={voxlenKeyValid === true ? "Key verified" : undefined}
-                  error={voxlenKeyValid === false ? "Invalid key" : undefined}
+                  error={voxlenKeyValid === false ? "Invalid key — re-copy it from voxlen.ai/dashboard" : undefined}
                 />
+                {voxlenKeyValid === "unverified" && (
+                  <p className="text-[11px] text-amber-500 leading-relaxed">
+                    Couldn't reach voxlen.ai to verify this key. You can continue — Voxlen will
+                    verify it the first time you dictate.
+                  </p>
+                )}
               </div>
             )}
 

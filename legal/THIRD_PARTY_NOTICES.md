@@ -1,19 +1,18 @@
 # Third-Party Notices
 
-**Marco Reid Voice**
+**Voxlen**
 **Last updated: 16 April 2026**
 
-Marco Reid Voice incorporates open-source components listed below. Those
-components remain subject to their original licences. Nothing in the Marco
-Reid licence terms modifies, overrides, or limits those licences. The
+Voxlen incorporates open-source components listed below. Those
+components remain subject to their original licences. Nothing in the Voxlen licence terms modifies, overrides, or limits those licences. The
 relevant licence texts are included with each component's package in the
 installed distribution.
 
-No component used by Marco Reid Voice carries a copyleft obligation (GPL,
-LGPL, AGPL, MPL, or similar) that would require Marco Reid to publish the
-source code of Marco Reid Voice itself. All components are under permissive
+No component used by Voxlen carries a copyleft obligation (GPL,
+LGPL, AGPL, MPL, or similar) that would require Voxlen to publish the
+source code of Voxlen itself. All components are under permissive
 licences (MIT, Apache-2.0, BSD variants, ISC, or Unlicense). Where a
-component is dual-licensed, Marco Reid elects the most permissive option.
+component is dual-licensed, Voxlen elects the most permissive option.
 
 ## Desktop application — Rust dependencies (`src-tauri/Cargo.toml`)
 
@@ -64,7 +63,7 @@ component is dual-licensed, Marco Reid elects the most permissive option.
 
 ## Typefaces
 
-Marco Reid Voice uses the following typefaces. Webfont files or references
+Voxlen uses the following typefaces. Webfont files or references
 are bundled subject to their licences:
 
 - **Fraunces** — SIL Open Font Licence 1.1.
@@ -92,4 +91,4 @@ cargo license --all-features --direct-deps-only
 
 ## Reporting an omission
 
-Licensing or attribution concerns: `legal@marcoreid.com`.
+Licensing or attribution concerns: `legal@voxlen.ai`.

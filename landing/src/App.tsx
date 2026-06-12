@@ -1105,7 +1105,7 @@ function Pricing() {
           Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
           All AI costs (speech-to-text and grammar correction) are included — your subscription
           covers everything. Audio still streams directly from your device to AI providers and is
-          never routed through or stored by Marco Reid.
+          never routed through or stored by Voxlen.
         </p>
       </div>
     </section>
@@ -1598,11 +1598,11 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
           <div className="flex items-center gap-6 text-xs text-zinc-500">
             <button onClick={() => onOpenLegal("privacy")} className="hover:text-white transition-colors">Privacy Policy</button>
             <button onClick={() => onOpenLegal("terms")} className="hover:text-white transition-colors">Terms of Service</button>
-            <a href="mailto:support@marcoreid.com" className="hover:text-white transition-colors">Support</a>
+            <a href="mailto:support@voxlen.ai" className="hover:text-white transition-colors">Support</a>
             <a href="https://github.com/ccantynz-alt/voxlen" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
           </div>
           <p className="text-xs text-zinc-600">
-            &copy; {new Date().getFullYear()} Marco Reid. All rights reserved.
+            &copy; {new Date().getFullYear()} Voxlen. All rights reserved.
           </p>
         </div>
       </div>

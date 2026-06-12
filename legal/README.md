@@ -1,6 +1,6 @@
-# Marco Reid Voice — Legal
+# Voxlen — Legal
 
-This directory contains the binding legal documents for Marco Reid Voice.
+This directory contains the binding legal documents for Voxlen.
 Use of the Software is subject to all of them, read together.
 
 | Document                                      | What it covers                                                          |
@@ -22,11 +22,11 @@ arbitration seated in Auckland. See `TERMS.md` §14 and `EULA.md` §15.
 
 ## Contacts
 
-- `legal@marcoreid.com` — contracts, licensing, general legal
-- `privacy@marcoreid.com` — privacy rights and data-protection requests
-- `security@marcoreid.com` — vulnerability disclosure (see also `../docs/SECURITY.md`)
-- `abuse@marcoreid.com` — acceptable-use complaints
-- `copyright@marcoreid.com` — copyright and DMCA notices
+- `legal@voxlen.ai` — contracts, licensing, general legal
+- `privacy@voxlen.ai` — privacy rights and data-protection requests
+- `security@voxlen.ai` — vulnerability disclosure (see also `../docs/SECURITY.md`)
+- `abuse@voxlen.ai` — acceptable-use complaints
+- `copyright@voxlen.ai` — copyright and DMCA notices
 
 ## Order of precedence
 
@@ -41,7 +41,7 @@ Where two documents conflict:
 
 ## Updates
 
-Marco Reid may update these documents from time to time. Material changes
+Voxlen may update these documents from time to time. Material changes
 will be communicated via in-product notice or email. Continued use of the
 Software after an update constitutes acceptance; if you do not accept, you
 must stop using the Software.

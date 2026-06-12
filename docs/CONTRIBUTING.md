@@ -1,4 +1,4 @@
-# Contributing to Marco Reid Voice
+# Contributing to Voxlen
 
 Thanks for your interest in contributing. This document covers the conventions we follow and how to get a dev environment running.
 
@@ -76,4 +76,4 @@ See [RELEASE.md](./RELEASE.md) for the release process, including auto-updater k
 
 ## Reporting bugs
 
-File an issue with clear reproduction steps and your platform (OS + version, Marco Reid Voice version). For security-sensitive reports, follow [SECURITY.md](./SECURITY.md) instead.
+File an issue with clear reproduction steps and your platform (OS + version, Voxlen version). For security-sensitive reports, follow [SECURITY.md](./SECURITY.md) instead.

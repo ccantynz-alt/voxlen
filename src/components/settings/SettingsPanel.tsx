@@ -448,7 +448,7 @@ function SttSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Speech-to-Text Engine"
-        description="Choose your transcription engine. Cloud engines offer better accuracy; local offers privacy."
+        description="Choose your transcription engine. Offline mode (Whisper Local) is coming soon."
       />
 
       <SettingRow>

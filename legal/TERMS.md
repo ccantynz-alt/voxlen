@@ -1,12 +1,12 @@
 # Terms of Service
 
-**Marco Reid Voice**
+**Voxlen**
 **Effective 16 April 2026**
 
 These Terms of Service (the **"Terms"**) govern access to and use of the
-Marco Reid Voice desktop application, iOS keyboard extension, associated
+Voxlen desktop application, iOS keyboard extension, associated
 websites, landing pages, and supporting materials (together, the
-**"Service"**) provided by **Marco Reid** (**"Marco Reid"**, **"we"**,
+**"Service"**) provided by **Voxlen** (**"Voxlen"**, **"we"**,
 **"us"**, **"our"**). By accessing or using the Service you (**"you"**,
 **"your"**) agree to these Terms, to the End User Licence Agreement
 (`legal/EULA.md`), the Privacy Policy (`legal/PRIVACY_POLICY.md`), the
@@ -37,17 +37,17 @@ any third-party credentials you use with the Service.
 2.2 You must keep any credentials (including third-party API keys stored in
 the app's local configuration) secure. You are responsible for all activity
 that occurs through your installation or your credentials. Notify us
-immediately at `security@marcoreid.com` if you suspect any unauthorised
+immediately at `security@voxlen.ai` if you suspect any unauthorised
 access.
 
 ## 3. Your responsibilities
 
 3.1 **Your content.** You retain all rights in any audio, transcripts,
 prompts, vocabulary lists, document context, and other materials you input
-into or generate with the Service (**"Your Content"**). You grant Marco Reid
+into or generate with the Service (**"Your Content"**). You grant Voxlen
 only the technical licences strictly necessary to operate the Service on
-your device. Marco Reid does not receive, process, or store Your Content on
-Marco Reid-operated servers.
+your device. Voxlen does not receive, process, or store Your Content on
+Voxlen-operated servers.
 
 3.2 **Lawful use.** You will use the Service only for lawful purposes, in
 accordance with the Acceptable Use Policy, and in compliance with all laws,
@@ -78,7 +78,7 @@ The Service integrates, at your option, with third-party speech-to-text and
 language-model services such as Deepgram, OpenAI, and Anthropic
 (**"Third-Party Services"**). The relationship between you and each
 Third-Party Service is governed solely by that provider's terms and privacy
-policy. Marco Reid is not a party to that relationship, does not resell the
+policy. Voxlen is not a party to that relationship, does not resell the
 services, and does not act as a data processor, reseller, or intermediary
 in respect of any content you transmit to them. You are solely responsible
 for ensuring that your use of each Third-Party Service complies with that
@@ -87,13 +87,12 @@ provider's terms and with all laws applicable to you.
 ## 5. Intellectual property
 
 5.1 **Our IP.** The Service, including all software, designs, logos,
-trademarks, content, and documentation, is the exclusive property of Marco
-Reid and its licensors and is protected by New Zealand and international
+trademarks, content, and documentation, is the exclusive property of Voxlen and its licensors and is protected by New Zealand and international
 intellectual property laws. No rights are granted to you other than as
 expressly set out in the EULA.
 
-5.2 **Trademarks.** "Marco Reid", "Marco Reid Voice", the Marco Reid
-wordmark, and any associated logos are trademarks of Marco Reid. You may not
+5.2 **Trademarks.** "Voxlen", the Voxlen
+wordmark, and any associated logos are trademarks of Voxlen. You may not
 use them without our prior written consent.
 
 5.3 **Feedback.** If you provide us feedback or suggestions, you grant us a
@@ -110,9 +109,9 @@ non-refundable. Recurring subscriptions renew automatically unless cancelled
 before the renewal date.
 
 6.3 You are responsible for all taxes, duties, and levies associated with
-your use of the Service, excluding taxes on Marco Reid's net income.
+your use of the Service, excluding taxes on Voxlen's net income.
 
-6.4 Marco Reid may change fees on at least thirty (30) days' prior notice.
+6.4 Voxlen may change fees on at least thirty (30) days' prior notice.
 
 ## 7. Beta features
 
@@ -124,15 +123,15 @@ Agreement.
 
 ## 8. Changes to the Service
 
-Marco Reid may modify, suspend, or discontinue the Service (or any part of
-it) at any time, with or without notice. Marco Reid will not be liable for
+Voxlen may modify, suspend, or discontinue the Service (or any part of
+it) at any time, with or without notice. Voxlen will not be liable for
 any modification, suspension, or discontinuance.
 
 ## 9. Suspension and termination
 
-9.1 Marco Reid may suspend or terminate your access to the Service
+9.1 Voxlen may suspend or terminate your access to the Service
 immediately, without notice or liability, if (a) you breach the Agreement or
-the Acceptable Use Policy; (b) your use exposes Marco Reid or any third
+the Acceptable Use Policy; (b) your use exposes Voxlen or any third
 party to material risk of legal liability, reputational harm, or security
 compromise; or (c) continued provision becomes unlawful or commercially
 impracticable.
@@ -143,13 +142,13 @@ the Service, and you must delete all copies in your possession.
 ## 10. Disclaimer of warranties
 
 THE SERVICE IS PROVIDED **"AS IS"** AND **"AS AVAILABLE"**, WITH ALL FAULTS.
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, MARCO REID EXPRESSLY DISCLAIMS ALL
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, VOXLEN EXPRESSLY DISCLAIMS ALL
 WARRANTIES, EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, TITLE,
 QUIET ENJOYMENT, ACCURACY, UNINTERRUPTED OR ERROR-FREE OPERATION, AND ANY
 WARRANTY ARISING FROM COURSE OF DEALING, USAGE, OR TRADE.
 
-MARCO REID DOES NOT WARRANT THAT OUTPUT WILL BE ACCURATE, COMPLETE,
+VOXLEN DOES NOT WARRANT THAT OUTPUT WILL BE ACCURATE, COMPLETE,
 RELIABLE, OR SUITABLE FOR ANY PARTICULAR PURPOSE. OUTPUT IS GENERATED BY
 THIRD-PARTY MACHINE-LEARNING MODELS AND MAY BE INACCURATE OR FABRICATED.
 YOU MUST HAVE ALL OUTPUT INDEPENDENTLY REVIEWED BY A QUALIFIED PROFESSIONAL
@@ -164,16 +163,16 @@ consumer guarantees do not apply.
 
 ## 11. Limitation of liability
 
-11.1 TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL MARCO REID OR
+11.1 TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL VOXLEN OR
 ITS AFFILIATES, LICENSORS, OFFICERS, DIRECTORS, EMPLOYEES, OR AGENTS BE
 LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR
 PUNITIVE DAMAGES, OR FOR ANY LOST PROFITS, REVENUE, DATA, GOODWILL,
 SUBSTITUTE PROCUREMENT, OR PROFESSIONAL-LIABILITY EXPOSURE, REGARDLESS OF
 THE LEGAL THEORY AND EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
-11.2 MARCO REID'S TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS ARISING OUT OF
+11.2 VOXLEN'S TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS ARISING OUT OF
 OR RELATED TO THE SERVICE AND THE AGREEMENT WILL NOT EXCEED THE GREATER OF
-(A) THE AMOUNTS PAID BY YOU TO MARCO REID FOR THE SERVICE IN THE TWELVE
+(A) THE AMOUNTS PAID BY YOU TO VOXLEN FOR THE SERVICE IN THE TWELVE
 (12) MONTHS IMMEDIATELY PRECEDING THE FIRST EVENT GIVING RISE TO THE CLAIM,
 OR (B) NZD $100.
 
@@ -182,14 +181,14 @@ applicable law.
 
 ## 12. Indemnity
 
-You agree to defend, indemnify, and hold harmless Marco Reid, its
+You agree to defend, indemnify, and hold harmless Voxlen, its
 Affiliates, and their respective officers, directors, employees,
 contractors, and agents from and against any and all claims, liabilities,
 damages, losses, fines, penalties, costs, and expenses (including reasonable
 legal fees) arising out of or related to (a) Your Content or Output; (b)
 your use or misuse of the Service; (c) your use of any Third-Party Service;
 (d) your breach of the Agreement; or (e) your violation of any law,
-regulation, or third-party right. Marco Reid may assume exclusive control of
+regulation, or third-party right. Voxlen may assume exclusive control of
 the defence and settlement of any indemnified matter at your expense.
 
 ## 13. Confidentiality
@@ -260,7 +259,7 @@ remainder continues in full force.
 parties regarding its subject matter and supersedes any prior or
 contemporaneous understandings.
 
-17.6 **Contact.** `legal@marcoreid.com`.
+17.6 **Contact.** `legal@voxlen.ai`.
 
 ---
 

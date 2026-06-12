@@ -1,11 +1,11 @@
 # Acceptable Use Policy
 
-**Marco Reid Voice**
+**Voxlen**
 **Effective 16 April 2026**
 
-This Acceptable Use Policy ("**AUP**") governs your use of Marco Reid Voice
+This Acceptable Use Policy ("**AUP**") governs your use of Voxlen
 (the "**Service**"). It is incorporated into the End User Licence Agreement
-and the Terms of Service. If you violate this AUP, Marco Reid may suspend or
+and the Terms of Service. If you violate this AUP, Voxlen may suspend or
 terminate your access, with or without notice.
 
 ## 1. You must not
@@ -75,21 +75,21 @@ You must not use, attempt to use, or help another person use the Service to:
 
 You are solely responsible for Your Content, any Output generated from it,
 and any consequences that flow from its use, disclosure, or distribution.
-Marco Reid does not review Your Content and does not endorse any Output.
+Voxlen does not review Your Content and does not endorse any Output.
 
 ## 3. Reporting
 
 If you believe another user is violating this AUP or that the Service has
-been used to cause harm to you, report it to `abuse@marcoreid.com` with as
+been used to cause harm to you, report it to `abuse@voxlen.ai` with as
 much detail as you can provide. For security issues, use
-`security@marcoreid.com` and follow `docs/SECURITY.md`.
+`security@voxlen.ai` and follow `docs/SECURITY.md`.
 
 ## 4. Enforcement
 
-Marco Reid may investigate suspected violations and take any action it
+Voxlen may investigate suspected violations and take any action it
 considers appropriate, including removing features, suspending access,
 terminating licences, preserving evidence, and cooperating with law
-enforcement. Marco Reid's exercise (or failure to exercise) any enforcement
+enforcement. Voxlen's exercise (or failure to exercise) any enforcement
 right is not a waiver of any other right.
 
 ## 5. Changes

@@ -146,7 +146,7 @@ pub async fn deepgram_transcribe(
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("No API key configured. Sign in to your Voxlen account in Settings, or add your Deepgram API key."))?;
+        .ok_or_else(|| anyhow::anyhow!("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key."))?;
 
     let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3");
 

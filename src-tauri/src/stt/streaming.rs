@@ -18,6 +18,12 @@ impl StreamingSession {
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::Relaxed);
     }
+
+    /// True once the session has been stopped or its worker task has exited
+    /// (clean shutdown, auth failure, or retries exhausted).
+    pub fn is_stopped(&self) -> bool {
+        self.stop_flag.load(Ordering::Relaxed)
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -76,7 +82,7 @@ pub fn start_streaming(
     let has_direct_key = config.api_key.as_deref().filter(|k| !k.is_empty()).is_some();
     let has_voxlen_key = config.voxlen_api_key.as_deref().filter(|k| !k.is_empty()).is_some();
     if !has_direct_key && !has_voxlen_key {
-        anyhow::bail!("No API key configured for Deepgram streaming");
+        anyhow::bail!("Not connected to a Voxlen account — open Settings → Account to connect before dictating");
     }
 
     let stop_flag = Arc::new(AtomicBool::new(false));
@@ -90,7 +96,9 @@ pub fn start_streaming(
     let diarization = config.speaker_diarization;
     let tenant_id = config.voxlen_tenant_id.clone();
 
+    let stop_on_exit = stop_flag.clone();
     let handle = tokio::spawn(async move {
+        let session_task = async {
         // Resolve the actual Deepgram API key to use for this session.
         // If the user has a direct Deepgram key, use it. Otherwise fetch a
         // short-lived proxy key from the Voxlen backend.
@@ -145,6 +153,10 @@ pub fn start_streaming(
                 }
             }
         }
+        };
+        session_task.await;
+        // Mark the session ended so the processor knows to start a fresh one
+        stop_on_exit.store(true, Ordering::Relaxed);
     });
 
     Ok(StreamingSession {
