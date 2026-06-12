@@ -881,7 +881,7 @@ function Comparison() {
     { name: "Dragon Legal", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false, android: false, legalMode: false },
     { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false, android: false, legalMode: false },
     { name: "Otter.ai", price: "$10/mo", realtime: true, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
-    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: "soon" as const, extMic: true, android: false, legalMode: true, highlight: true },
+    { name: "Voxlen ⭐", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: "soon" as const, extMic: true, android: "soon" as const, legalMode: true, highlight: true },
   ];
 
   return (
