@@ -54,9 +54,12 @@ export default function App() {
 
   const handleSignIn = useCallback((u: GoogleUser) => {
     storeUser(u);
+    // Set user and path in the same React batch so we never render
+    // path="/dashboard" with user=null (which returns null → black screen).
     setUser(u);
-    navigate("/dashboard");
-  }, [navigate]);
+    setPath("/dashboard");
+    window.history.pushState({}, "", "/dashboard");
+  }, []);
 
   const handleSignOut = useCallback(() => {
     clearUser();
@@ -90,13 +93,10 @@ export default function App() {
   }
   useEffect(() => {
     if (path === "/dashboard" && !user) {
-      navigate("/");
+      setPath("/");
+      window.history.replaceState({}, "", "/");
     }
-  }, [path, user, navigate]);
-
-  if (path === "/dashboard" && !user) {
-    return null;
-  }
+  }, [path, user]);
 
   return (
     <div className="min-h-screen bg-[#09090b]">
