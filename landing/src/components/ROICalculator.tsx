@@ -84,8 +84,8 @@ export default function ROICalculator() {
   const savedMinutesPerYear = savedMinutesPerDay * daysPerWeek * 50; // 50 weeks
   const savedHoursPerYear = savedMinutesPerYear / 60;
   const savedBillablePerYear = savedHoursPerYear * rate;
-  const voxlenCostPerYear = 199 * 12 / 12 * 12; // pro plan ~$199/mo annually = $2388 — actually let's use real pricing
-  const roiMultiple = Math.round(savedBillablePerYear / 288); // $288/yr pro plan
+  const voxlenCostPerYear = 29 * 12; // Pro plan: $29/mo billed monthly
+  const roiMultiple = Math.round(savedBillablePerYear / voxlenCostPerYear);
 
   return (
     <section id="roi-calculator" className="py-24 px-6 bg-[#0c0c0f]">
