@@ -91,6 +91,13 @@ const EXTENDED_COMMANDS: Array<{
   { patterns: ["insert engagement terms"], action: "insert_clause:insert engagement terms" },
   { patterns: ["insert accountant liability cap"], action: "insert_clause:insert accountant liability cap" },
   { patterns: ["insert without prejudice"], action: "insert_clause:insert without prejudice" },
+  { patterns: ["insert arbitration clause"], action: "insert_clause:insert arbitration clause" },
+  { patterns: ["insert dispute resolution clause"], action: "insert_clause:insert dispute resolution clause" },
+  { patterns: ["insert warranty disclaimer"], action: "insert_clause:insert warranty disclaimer" },
+  { patterns: ["insert governing law new zealand"], action: "insert_clause:insert governing law new zealand" },
+  { patterns: ["insert governing law ontario"], action: "insert_clause:insert governing law ontario" },
+  { patterns: ["insert payment terms"], action: "insert_clause:insert payment terms" },
+  { patterns: ["insert termination for cause"], action: "insert_clause:insert termination for cause" },
   // Billable time — start/stop billing
   { patterns: ["start billing", "start timer", "start billable time"], action: "billing_start" },
   { patterns: ["stop billing", "stop timer", "stop billable time"], action: "billing_stop" },
