@@ -119,7 +119,7 @@ Text:
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&serde_json::json!({
-            "model": "claude-haiku-4-5-20251001",
+            "model": "claude-haiku-4-5",
             "max_tokens": 2048,
             "messages": [{ "role": "user", "content": prompt }]
         }))
