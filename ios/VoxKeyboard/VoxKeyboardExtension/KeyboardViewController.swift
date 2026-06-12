@@ -370,7 +370,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
 
     private func startDeepgramDictation(apiKey: String) {
         let lang = defaults?.string(forKey: "language") ?? "en"
-        let urlStr = "wss://api.deepgram.com/v1/listen?model=nova-3&punctuate=true&smart_format=true&language=\(lang)&interim_results=true&endpointing=200&no_delay=true&encoding=linear16&sample_rate=16000&channels=1"
+        let urlStr = "wss://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true&punctuate=true&smart_format=true&language=\(lang)&interim_results=true&endpointing=200&no_delay=true&encoding=linear16&sample_rate=16000&channels=1"
 
         guard let url = URL(string: urlStr) else {
             grammarLabel.text = "Invalid Deepgram URL"
