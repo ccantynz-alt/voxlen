@@ -1210,7 +1210,7 @@ function FAQ() {
     },
     {
       q: "How is Voxlen different from Wispr Flow?",
-      a: "Wispr Flow is Mac and iOS only. Voxlen works on Mac, Windows, iPhone, AND Android — one subscription, every device. Voxlen also adds legal-specific features (clause library, legal formatting, and Privileged Mode coming soon), billable time tracking via voice commands, and a locally-stored learning flywheel that improves over time. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
+      a: "Wispr Flow is Mac and iOS only — and transmits screenshots of your screen to cloud servers, which may violate ABA Rule 1.6(c). Voxlen works on Mac, Windows, and iPhone — with Android coming soon. More importantly, Voxlen adds legal-specific features: clause library, legal formatting, Privileged Mode that blocks all cloud features for sensitive matters, and billable time tracking via voice commands. Voxlen is built for professionals with confidentiality obligations, not just speed typists.",
     },
     {
       q: "Do I need API keys or separate accounts?",
