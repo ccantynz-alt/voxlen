@@ -125,7 +125,24 @@ export function useTauriEvents(): void {
                   const minutes = minuteMap[output] ?? 30;
                   const { logTime } = useFlywheelStore.getState();
                   const { billableRatePerHour } = useSettingsStore.getState() as { billableRatePerHour?: number };
-                  logTime(minutes, "", parsed.remainingText || "", billableRatePerHour ?? 0);
+                  const note = parsed.remainingText || "";
+                  logTime(minutes, "", note, billableRatePerHour ?? 0);
+                  // Also log to active client so it appears in billing dashboard
+                  const { activeClientId: vcClientId, clients: vcClients, addEntry: vcAddEntry } = useClientsStore.getState();
+                  if (vcClientId) {
+                    const vcClient = vcClients.find((c) => c.id === vcClientId);
+                    if (vcClient) {
+                      const rate = vcClient.billableRate > 0 ? vcClient.billableRate : (billableRatePerHour ?? 0);
+                      vcAddEntry({
+                        clientId: vcClientId,
+                        date: Date.now(),
+                        durationSeconds: minutes * 60,
+                        wordCount: 0,
+                        billableAmount: (minutes / 60) * rate,
+                        note,
+                      });
+                    }
+                  }
                   dictation.setCurrentTranscript("");
                   return;
                 }
