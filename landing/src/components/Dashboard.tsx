@@ -1089,7 +1089,7 @@ export function Dashboard({
         {accessToken && <ConnectDesktopApp accessToken={accessToken} />}
 
         {/* Admin key issuer */}
-        {isAdmin && accessToken && <AdminKeyIssuer accessToken={accessToken} />}
+        {isAdmin && accessToken && <AdminKeyIssuer accessToken={accessToken} onIssued={() => {}} />}
 
         {/* Subscription (non-admin) */}
         {!isAdmin && (
