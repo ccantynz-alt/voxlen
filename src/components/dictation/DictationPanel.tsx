@@ -223,9 +223,13 @@ export function DictationPanel() {
         const { activeClientId: cid, clients: cls } = useClientsStore.getState();
         const activeClientForGrammar = cls.find((c) => c.id === cid);
         const matterContext = buildMatterContext(activeClientForGrammar) || undefined;
-        const customVocabulary = activeClientForGrammar?.vocabulary?.length
-          ? activeClientForGrammar.vocabulary
-          : undefined;
+        const flywheelVocab = useFlywheelStore.getState().vocabulary
+          .filter((v) => v.frequency >= 2)
+          .map((v) => v.word);
+        const clientVocab = activeClientForGrammar?.vocabulary ?? [];
+        const globalVocabList = useSettingsStore.getState().customVocabulary;
+        const mergedVocab = Array.from(new Set([...flywheelVocab, ...clientVocab, ...globalVocabList]));
+        const customVocabulary = mergedVocab.length > 0 ? mergedVocab : undefined;
 
         const result = await invoke<{
           corrected: string;

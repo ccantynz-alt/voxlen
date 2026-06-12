@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { useSettingsStore } from "@/stores/settings";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { useFlywheelStore } from "@/stores/flywheel";
 
 interface GrammarChange {
   original: string;
@@ -39,7 +40,13 @@ export function GrammarPanel() {
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const matterContext = buildMatterContext(activeClient) || undefined;
-      const customVocabulary = activeClient?.vocabulary?.length ? activeClient.vocabulary : undefined;
+      const flywheelVocab = useFlywheelStore.getState().vocabulary
+        .filter((v) => v.frequency >= 2)
+        .map((v) => v.word);
+      const clientVocab = activeClient?.vocabulary ?? [];
+      const globalVocabList = useSettingsStore.getState().customVocabulary;
+      const mergedVocab = Array.from(new Set([...flywheelVocab, ...clientVocab, ...globalVocabList]));
+      const customVocabulary = mergedVocab.length > 0 ? mergedVocab : undefined;
       const result = await invoke<{
         original: string;
         corrected: string;
