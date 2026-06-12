@@ -15,6 +15,14 @@ const DEMO_PHRASES = [
     raw: "the deposition revealed that the witness had no recollection of the meeting that took place on march third despite the contemporaneous email chain",
     corrected: "The deposition revealed that the witness had no recollection of the meeting that took place on March 3rd, despite the contemporaneous email chain.",
   },
+  {
+    raw: "the company reported ebitda of four point two million for the quarter representing a twelve percent improvement over the prior year period after adjusting for one off restructuring charges",
+    corrected: "The company reported EBITDA of $4.2 million for the quarter, representing a 12% improvement over the prior year period after adjusting for one-off restructuring charges.",
+  },
+  {
+    raw: "pursuant to rule ten b five of the securities exchange act of nineteen thirty four we recommend the board adopt a written trading policy prohibiting insider transactions during blackout periods",
+    corrected: "Pursuant to Rule 10b-5 of the Securities Exchange Act of 1934, we recommend the board adopt a written trading policy prohibiting insider transactions during blackout periods.",
+  },
 ];
 
 type DemoState = "idle" | "listening" | "processing" | "done";
