@@ -28,12 +28,19 @@ body {
   border-radius: 3px;
 }
 
-/* Static, understated headline accent — no animation. */
+/* Shimmer headline accent. */
 .gradient-text {
-  background: linear-gradient(120deg, #598bff 0%, #8eb4ff 100%);
+  background: linear-gradient(120deg, #598bff 0%, #8eb4ff 40%, #bcd2ff 50%, #8eb4ff 60%, #598bff 100%);
+  background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: shimmer-text 4s linear infinite;
+}
+
+@keyframes shimmer-text {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
 }
 
 /* Faint ambient tint at the top of the hero — kept very subtle. */
