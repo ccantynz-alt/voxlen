@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import CookieBanner from "./components/CookieBanner";
+import LiveDemo from "./components/LiveDemo";
+import EthicsSection from "./components/EthicsSection";
 import {
   Mic,
   Zap,
@@ -45,6 +47,8 @@ export default function App() {
       <Navbar />
       <Hero />
       <TrustBar />
+      <LiveDemo />
+      <EthicsSection />
       <Features />
       <Platforms />
       <HowItWorks />
@@ -137,7 +141,7 @@ function Hero() {
           >
             The most advanced legal dictation software available. Real-time transcription,
             AI grammar correction, built-in clause library, and privileged mode for sensitive matters.
-            Works on Mac, Windows, iPhone, and Android.{" "}
+            Works on Mac, Windows, and iPhone.{" "}
             <span className="text-white font-medium">
               Free 14-day trial — no credit card required.
             </span>
@@ -180,9 +184,6 @@ function Hero() {
             </span>
             <span className="flex items-center gap-1.5">
               <Smartphone className="h-3.5 w-3.5" /> iOS
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5" /> Android
             </span>
           </motion.div>
         </motion.div>
