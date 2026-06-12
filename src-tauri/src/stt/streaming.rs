@@ -264,7 +264,7 @@ async fn run_session_once(
 
     // Build Deepgram WebSocket URL
     let mut url = String::from(
-        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-3&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1000&vad_events=true&endpointing=200&no_delay=true"
+        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-3&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1000&vad_events=true&endpointing=200&no_delay=true&mip_opt_out=true"
     );
 
     if auto_detect {

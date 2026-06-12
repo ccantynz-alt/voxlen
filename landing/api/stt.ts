@@ -42,7 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .map((k) => k.trim())
     .filter(Boolean);
 
-  let dgUrl = "https://api.deepgram.com/v1/listen?model=nova-3";
+  // mip_opt_out: never allow Deepgram to use customer audio for model training
+  let dgUrl = "https://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true";
   if (punctuate) dgUrl += "&punctuate=true";
   if (smartFormat) dgUrl += "&smart_format=true";
   if (diarize) dgUrl += "&diarize=true";
