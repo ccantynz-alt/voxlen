@@ -148,7 +148,7 @@ pub async fn deepgram_transcribe(
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("No API key configured. Sign in to your Voxlen account in Settings, or add your Deepgram API key."))?;
 
-    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3");
+    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true");
 
     if config.punctuate {
         url.push_str("&punctuate=true");
