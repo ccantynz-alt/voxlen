@@ -83,6 +83,16 @@ pub struct AppSettings {
     pub voxlen_tenant_id: Option<String>,
     #[serde(default)]
     pub voxlen_context: Option<String>,
+
+    // Frontend-only fields that Rust round-trips but does not act on.
+    // Keeping them here prevents persist_settings() from silently dropping
+    // them whenever update_settings is invoked from the frontend.
+    #[serde(default)]
+    pub billable_rate_per_hour: f64,
+    #[serde(default)]
+    pub legal_accepted_version: Option<String>,
+    #[serde(default)]
+    pub legal_accepted_at: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -137,6 +147,10 @@ impl Default for AppSettings {
             voxlen_api_key: None,
             voxlen_tenant_id: None,
             voxlen_context: None,
+
+            billable_rate_per_hour: 0.0,
+            legal_accepted_version: None,
+            legal_accepted_at: None,
         }
     }
 }
