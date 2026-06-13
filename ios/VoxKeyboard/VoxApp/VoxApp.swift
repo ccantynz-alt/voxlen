@@ -287,7 +287,7 @@ enum STTEngine: String, CaseIterable {
 // MARK: - Settings Manager
 
 class SettingsManager: ObservableObject {
-    private let defaults = UserDefaults(suiteName: "group.com.voxlen.app")!
+    private let defaults = UserDefaults(suiteName: "group.com.voxlen.app") ?? UserDefaults.standard
 
     @Published var isKeyboardEnabled: Bool = false
     @Published var autoCorrectEnabled: Bool {
