@@ -248,7 +248,7 @@ fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
 
     for i in 0..output_len {
         let src_idx = i as f64 / ratio;
-        let idx_floor = src_idx.floor() as usize;
+        let idx_floor = (src_idx.floor() as usize).min(samples.len() - 1);
         let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
         let frac = src_idx - idx_floor as f64;
 
