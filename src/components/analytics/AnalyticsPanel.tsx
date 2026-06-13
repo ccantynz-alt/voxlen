@@ -21,11 +21,11 @@ export function AnalyticsPanel() {
   const timeEntries = useFlywheelStore((s) => s.timeEntries);
 
   const totalHours = useMemo(
-    () => timeEntries.reduce((s, e) => s + e.minutes / 60, 0),
+    () => timeEntries.reduce((s, e) => s + (e.minutes || 0) / 60, 0),
     [timeEntries]
   );
   const totalBillable = useMemo(
-    () => timeEntries.reduce((s, e) => s + e.amount, 0),
+    () => timeEntries.reduce((s, e) => s + (e.amount || 0), 0),
     [timeEntries]
   );
 

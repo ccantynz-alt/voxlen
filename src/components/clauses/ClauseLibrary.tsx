@@ -170,6 +170,7 @@ export function ClauseLibrary() {
     if (!form.title.trim()) { setFormError("Title is required."); return; }
     if (!form.text.trim()) { setFormError("Clause text is required."); return; }
     if (!form.voiceTrigger.trim()) { setFormError("Voice trigger is required."); return; }
+    setFormError("");
     if (editingId) {
       updateClause(editingId, { title: form.title.trim(), category: form.category, voiceTrigger: form.voiceTrigger.trim().toLowerCase(), text: form.text.trim() });
     } else {
