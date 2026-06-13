@@ -830,15 +830,37 @@ function DiagnosticsTab({ accessToken }: { accessToken: string }) {
     try {
       const r = await fetch(`${VOXLEN_BASE}/api/admin/health`, {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(6000),
       });
-      const json = (await r.json()) as HealthData & { error?: string };
+
+      // Read the body once as text, then parse defensively. A non-JSON payload
+      // (an HTML error page from a misconfigured deploy, an empty body, a proxy
+      // error) must NOT be reported as a network failure — the server clearly
+      // responded, so saying "is the API reachable?" contradicts the endpoint
+      // pings, which already show it answering in ~40ms.
+      const raw = await r.text();
+      let json: (HealthData & { error?: string }) | null = null;
+      try {
+        json = raw ? (JSON.parse(raw) as HealthData & { error?: string }) : null;
+      } catch {
+        json = null;
+      }
+
       if (!r.ok) {
-        setHealthError(json.error ?? "Failed");
+        setHealthError(json?.error ?? `HTTP ${r.status} ${r.statusText}`.trim());
+      } else if (!json) {
+        setHealthError(`Reachable, but returned a non-JSON response (HTTP ${r.status}).`);
       } else {
         setHealth(json);
       }
-    } catch {
-      setHealthError("Network error — is the API reachable?");
+    } catch (err) {
+      // Only a thrown fetch is a genuine transport failure. Distinguish a
+      // timeout from an unreachable host so the banner matches reality.
+      setHealthError(
+        err instanceof DOMException && err.name === "TimeoutError"
+          ? "Request timed out — the API did not respond within 6s."
+          : "Network error — is the API reachable?"
+      );
     }
     setHealthLoading(false);
   }, [accessToken]);
