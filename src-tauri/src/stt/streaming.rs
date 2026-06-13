@@ -393,7 +393,11 @@ async fn run_session_once(
 
                     match msg_type {
                         "Results" => {
-                            let channel = &json["channel"]["alternatives"][0];
+                            let alternatives = &json["channel"]["alternatives"];
+                            let channel = match alternatives.as_array().and_then(|a| a.first()) {
+                                Some(c) => c,
+                                None => continue,
+                            };
                             let transcript = channel["transcript"].as_str().unwrap_or("");
 
                             if !transcript.is_empty() {
@@ -504,6 +508,9 @@ fn to_mono(samples: &[f32], channels: u16) -> Vec<f32> {
 fn simple_resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     if from_rate == to_rate {
         return samples.to_vec();
+    }
+    if samples.is_empty() {
+        return Vec::new();
     }
     let ratio = to_rate as f64 / from_rate as f64;
     let output_len = (samples.len() as f64 * ratio) as usize;
