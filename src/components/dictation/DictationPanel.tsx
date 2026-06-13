@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
-import { useShallow } from "zustand/react/shallow";
 import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";

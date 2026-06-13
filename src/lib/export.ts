@@ -104,11 +104,13 @@ function formatAsJson(segments: TranscriptionSegment[]): string {
 }
 
 function formatAsSrt(segments: TranscriptionSegment[]): string {
+  const originMs = segments[0]?.timestamp.getTime() ?? 0;
   return segments
     .map((s, i) => {
-      const start = formatSrtTime(s.timestamp);
-      const endTime = new Date(s.timestamp.getTime() + 3000);
-      const end = formatSrtTime(endTime);
+      const startMs = s.timestamp.getTime() - originMs;
+      const endMs = startMs + 3000;
+      const start = formatSrtTimestamp(startMs);
+      const end = formatSrtTimestamp(endMs);
       return `${i + 1}\n${start} --> ${end}\n${s.correctedText || s.text}\n`;
     })
     .join("\n");
@@ -154,11 +156,12 @@ function formatAsRtf(segments: TranscriptionSegment[]): string {
   return `${header}\n${body}\n}`;
 }
 
-function formatSrtTime(date: Date): string {
-  const h = String(date.getHours()).padStart(2, "0");
-  const m = String(date.getMinutes()).padStart(2, "0");
-  const s = String(date.getSeconds()).padStart(2, "0");
-  return `${h}:${m}:${s},000`;
+function formatSrtTimestamp(ms: number): string {
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  const s = Math.floor((ms % 60_000) / 1_000);
+  const cs = Math.floor((ms % 1_000) / 10);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(cs).padStart(3, "0")}`;
 }
 
 export function exportBillingCsv(

@@ -61,9 +61,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ttlDays = plan === "admin" ? 365 : 180;
   }
 
+  // Use a deterministic sub for admin-issued keys targeting other users
+  // (we don't have their Google sub, so derive one from their email).
+  const targetSub = targetEmail === caller.email
+    ? caller.sub
+    : `email:${targetEmail}`;
+
   try {
     const { token: apiKey, expiresAt: exp } = mintDesktopToken(
-      { sub: caller.sub, email: targetEmail, name: targetName },
+      { sub: targetSub, email: targetEmail, name: targetName },
       { ttlDays, expiresAt, plan },
     );
 

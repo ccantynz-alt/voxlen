@@ -29,7 +29,7 @@ export class VoxlenGrammar {
     if (!apiKey) throw new Error("Anthropic API key required for grammar correction");
 
     const style = this.config.writingStyle || "professional";
-    const prompt = `Fix grammar, spelling, and punctuation in this text. Make it ${style}. Respond ONLY with JSON: {"corrected": "text", "changes": [{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}], "score": 0.95}\n\nText: "${text}"`;
+    const prompt = `Fix grammar, spelling, and punctuation in this text. Make it ${style}. Respond ONLY with JSON: {"corrected": "text", "changes": [{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}], "score": 0.95}\n\n<text_to_correct>\n${text}\n</text_to_correct>`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -54,13 +54,17 @@ export class VoxlenGrammar {
     const content = result.content?.[0]?.text;
     if (!content) throw new Error("Empty response from Claude");
 
-    const parsed = JSON.parse(content);
-    return {
-      original: text,
-      corrected: parsed.corrected || text,
-      changes: parsed.changes || [],
-      score: parsed.score || 1.0,
-    };
+    try {
+      const parsed = JSON.parse(content);
+      return {
+        original: text,
+        corrected: parsed.corrected || text,
+        changes: parsed.changes || [],
+        score: parsed.score || 1.0,
+      };
+    } catch {
+      return { original: text, corrected: content, changes: [], score: 1.0 };
+    }
   }
 
   private async correctWithOpenAI(text: string): Promise<GrammarResult> {
@@ -68,7 +72,7 @@ export class VoxlenGrammar {
     if (!apiKey) throw new Error("OpenAI API key required for grammar correction");
 
     const style = this.config.writingStyle || "professional";
-    const prompt = `Fix grammar, spelling, and punctuation. Make it ${style}. Respond ONLY with JSON: {"corrected": "text", "changes": [{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}], "score": 0.95}\n\nText: "${text}"`;
+    const prompt = `Fix grammar, spelling, and punctuation. Make it ${style}. Respond ONLY with JSON: {"corrected": "text", "changes": [{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}], "score": 0.95}\n\n<text_to_correct>\n${text}\n</text_to_correct>`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -92,7 +96,12 @@ export class VoxlenGrammar {
     const content = result.choices?.[0]?.message?.content;
     if (!content) throw new Error("Empty response from OpenAI");
 
-    const parsed = JSON.parse(content);
+    let parsed: { corrected?: string; changes?: import("./types").GrammarChange[]; score?: number };
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      return { original: text, corrected: content, changes: [], score: 1.0 };
+    }
     return {
       original: text,
       corrected: parsed.corrected || text,
