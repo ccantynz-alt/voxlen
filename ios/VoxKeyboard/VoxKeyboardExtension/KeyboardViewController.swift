@@ -356,6 +356,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     }
 
     private func startDictation() {
+        guard !isListening else { return }
         let engine = defaults?.string(forKey: "sttEngine") ?? "deepgram"
         let deepgramKey = defaults?.string(forKey: "deepgramApiKey") ?? ""
         let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
@@ -455,9 +456,10 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
             }
 
             guard status != .error, error == nil else { return }
+            guard let channelData = convertedBuffer.int16ChannelData?.first else { return }
 
             let audioData = Data(
-                bytes: convertedBuffer.int16ChannelData![0],
+                bytes: channelData,
                 count: Int(convertedBuffer.frameLength) * 2
             )
 
