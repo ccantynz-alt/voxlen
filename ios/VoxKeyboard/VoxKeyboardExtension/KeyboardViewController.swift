@@ -709,19 +709,48 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     // MARK: - AI Grammar Correction
 
     private func correctGrammar(_ text: String) async throws -> String {
-        let provider = defaults?.string(forKey: "aiProvider") ?? "claude"
-        let apiKey = defaults?.string(forKey: "apiKey") ?? ""
+        let provider = defaults?.string(forKey: "grammarProvider") ?? "claude"
         let style = defaults?.string(forKey: "writingStyle") ?? "professional"
+
+        // Prefer Voxlen account key (proxied), fall back to direct BYOK key
+        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
+        if !voxlenKey.isEmpty {
+            return try await correctWithVoxlenProxy(text: text, voxlenKey: voxlenKey, style: style)
+        }
+
+        let apiKey = provider == "openai"
+            ? (defaults?.string(forKey: "openaiApiKey") ?? defaults?.string(forKey: "grammarApiKey") ?? "")
+            : (defaults?.string(forKey: "grammarApiKey") ?? "")
 
         guard !apiKey.isEmpty else {
             throw GrammarError.noApiKey
         }
 
-        if provider == "claude" {
-            return try await correctWithClaude(text: text, apiKey: apiKey, style: style)
-        } else {
+        if provider == "openai" {
             return try await correctWithOpenAI(text: text, apiKey: apiKey, style: style)
+        } else {
+            return try await correctWithClaude(text: text, apiKey: apiKey, style: style)
         }
+    }
+
+    private func correctWithVoxlenProxy(text: String, voxlenKey: String, style: String) async throws -> String {
+        let url = URL(string: "https://voxlen.ai/api/grammar")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(voxlenKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = ["text": text, "style": style, "preserve_tone": true]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw GrammarError.apiError
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return (json?["corrected"] as? String ?? text)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func correctWithClaude(text: String, apiKey: String, style: String) async throws -> String {
@@ -734,7 +763,10 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
 
         let prompt = """
         Fix grammar, spelling, and punctuation in this text. Make it \(style). \
-        Return ONLY the corrected text, nothing else: "\(text)"
+        Return ONLY the corrected text, nothing else.
+        <text>
+        \(text)
+        </text>
         """
 
         let body: [String: Any] = [
@@ -769,7 +801,10 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
 
         let prompt = """
         Fix grammar, spelling, and punctuation. Make it \(style). \
-        Return ONLY the corrected text: "\(text)"
+        Return ONLY the corrected text.
+        <text>
+        \(text)
+        </text>
         """
 
         let body: [String: Any] = [
