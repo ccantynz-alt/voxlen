@@ -147,21 +147,6 @@ export function useTauriEvents(): void {
                   return;
                 }
 
-                // Review uncertain words — show a toast with count
-                if (parsed.action === "review_uncertain") {
-                  const segs = useDictationStore.getState().segments;
-                  const uncertain = segs.flatMap((s) =>
-                    (s.words ?? []).filter((w) => w.confidence < 0.75)
-                  );
-                  if (uncertain.length > 0) {
-                    toast(`${uncertain.length} uncertain word${uncertain.length !== 1 ? "s" : ""} highlighted in transcript`, "info", 4000);
-                  } else {
-                    toast("No uncertain words in transcript", "info", 3000);
-                  }
-                  dictation.setCurrentTranscript("");
-                  return;
-                }
-
                 // Review uncertain words — count and toast
                 if (parsed.action === "review_uncertain") {
                   const segs = useDictationStore.getState().segments;

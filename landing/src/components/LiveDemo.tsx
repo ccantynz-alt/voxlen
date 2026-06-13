@@ -137,7 +137,7 @@ export default function LiveDemo() {
         if (e.results[i].isFinal) final += t;
         else interim += t;
       }
-      setTranscript((prev) => prev + final || interim);
+      setTranscript((prev) => prev + (final || interim));
     };
 
     rec.onend = () => {

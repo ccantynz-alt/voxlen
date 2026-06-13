@@ -155,6 +155,7 @@ export const useDictationStore = create<DictationState>((set, get) => ({
 
   addSegment: (segment) =>
     set((state) => {
+      if (!(segment.correctedText || segment.text).trim()) return state;
       const segments = [...state.segments, segment];
       const wordCount = segments.reduce(
         (count, s) =>
@@ -234,6 +235,7 @@ export const useDictationStore = create<DictationState>((set, get) => ({
       error: null,
       status: "idle",
       sessionStartedAtMs: null,
+      capsLock: false,
     });
   },
 

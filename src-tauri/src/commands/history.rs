@@ -25,7 +25,7 @@ pub struct SessionRecord {
 }
 
 const HISTORY_STORE_FILE: &str = "history.json";
-const HISTORY_KEY: &str = "sessions";
+const HISTORY_KEY: &str = "sessions_full";
 const MAX_SESSIONS: usize = 500;
 
 fn load_sessions(app: &AppHandle) -> Result<Vec<SessionRecord>, String> {

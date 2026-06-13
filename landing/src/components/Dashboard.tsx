@@ -152,7 +152,7 @@ interface GeneratedKey {
   email: string;
 }
 
-function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
+function ConnectDesktopApp({ accessToken, onKeyReady }: { accessToken: string; onKeyReady?: (token: string) => void }) {
   const [apiKey, setApiKey] = useState<GeneratedKey | null>(null);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
@@ -170,6 +170,7 @@ function ConnectDesktopApp({ accessToken }: { accessToken: string }) {
       if (r.ok) {
         const json = (await r.json()) as GeneratedKey;
         setApiKey(json);
+        onKeyReady?.(json.token);
       } else {
         setGenError(`Failed to generate key (${r.status}). Please try again.`);
       }
@@ -1013,7 +1014,7 @@ export function Dashboard({
   const isAdmin = user.email === ADMIN_EMAIL;
   const [assets, setAssets] = useState<ReleaseAsset[] | null>(null);
   const [hasRelease, setHasRelease] = useState<boolean | null>(null);
-  const [hasApiKey] = useState(false); // future: check from backend
+  const [hasApiKey, setHasApiKey] = useState(false);
 
   useEffect(() => {
     fetch(GH_API_LATEST, { headers: { Accept: "application/vnd.github+json" } })
@@ -1099,10 +1100,10 @@ export function Dashboard({
         {isAdmin && accessToken && <AdminPanel accessToken={accessToken} />}
 
         {/* Connect Desktop App */}
-        {accessToken && <ConnectDesktopApp accessToken={accessToken} />}
+        {accessToken && <ConnectDesktopApp accessToken={accessToken} onKeyReady={() => setHasApiKey(true)} />}
 
-        {/* Admin key issuer */}
-        {isAdmin && accessToken && <AdminKeyIssuer accessToken={accessToken} onIssued={() => {}} />}
+        {/* Getting started checklist (non-admin) */}
+        {!isAdmin && <GettingStarted hasApiKey={hasApiKey} />}
 
         {/* Subscription (non-admin) */}
         {!isAdmin && (
