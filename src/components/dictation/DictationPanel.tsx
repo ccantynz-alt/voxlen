@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   Mic,
   MicOff,
@@ -310,10 +311,12 @@ export function DictationPanel() {
   const autoDetectLanguage = useSettingsStore((s) => s.autoDetectLanguage);
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === sttLanguage) ?? SUPPORTED_LANGUAGES[0];
   const activeClientId = useClientsStore((s) => s.activeClientId);
-  // useShallow memoises the derived array by shallow equality. Without it,
-  // `.filter()` returns a brand-new array reference on every render, which makes
-  // Zustand v5's useSyncExternalStore snapshot change every render and triggers
-  // an infinite update loop (React error #185 — "Maximum update depth exceeded").
+  // NOTE: `.filter()` allocates a fresh array on every call. Passing that
+  // selector straight to Zustand v5 (which is backed by useSyncExternalStore)
+  // makes the snapshot reference change on every render, which React detects
+  // as a never-settling store and force-re-renders into an infinite loop
+  // ("Maximum update depth exceeded", React error #185). useShallow memoises
+  // the result with a shallow compare so the reference stays stable.
   const allClients = useClientsStore(useShallow((s) => s.clients.filter((c) => !c.archived)));
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
   const setActiveClient = useClientsStore((s) => s.setActiveClient);
