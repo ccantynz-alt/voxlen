@@ -196,7 +196,8 @@ function formatLegalPhrases(input: string): string {
   let out = input;
   // Protect known Latin and legal abbreviations from further transforms
   for (const [spoken, written] of Object.entries(LATIN_PHRASES)) {
-    const re = new RegExp(`\\b${spoken}\\b`, "gi");
+    const escaped = spoken.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`\\b${escaped}\\b`, "gi");
     out = out.replace(re, written);
   }
   return out;

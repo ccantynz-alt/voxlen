@@ -1598,7 +1598,7 @@ function WaitlistForm({ platform }: { platform: string }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !email.includes("@")) { setStatus("error"); return; }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setStatus("error"); return; }
     // Send to the backend; keep a localStorage copy as an offline fallback
     fetch("/api/waitlist", {
       method: "POST",
