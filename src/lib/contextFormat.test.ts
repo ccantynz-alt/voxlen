@@ -117,6 +117,12 @@ describe("applyContextFormat — accounting_tax", () => {
     expect(out).toContain("15%");
   });
 
+  it("leaves text unchanged when percent phrase cannot be parsed as a number", () => {
+    const out = applyContextFormat("inflation rate percent", { context: "accounting_tax" });
+    expect(out).toContain("inflation rate percent");
+    expect(out).not.toContain("inflation rate%");
+  });
+
   it("uppercases GST", () => {
     const out = applyContextFormat("add gst to the invoice", { context: "accounting_tax" });
     expect(out).toContain("GST");
