@@ -46,9 +46,14 @@ function collapseDigitRuns(input: string): string {
   };
 
   for (const word of words) {
-    const key = word.replace(/[.,!?;:]+$/g, "").toLowerCase();
+    const trailing = word.match(/[.,!?;:]+$/)?.[0] ?? "";
+    const key = word.slice(0, word.length - trailing.length).toLowerCase();
     if (key && DIGIT_WORDS[key] !== undefined) {
-      run.push(word);
+      run.push(key);
+      if (trailing) {
+        flush();
+        if (out.length) out[out.length - 1] += trailing;
+      }
     } else {
       if (run.length) flush();
       out.push(word);
@@ -196,7 +201,8 @@ function formatLegalPhrases(input: string): string {
   let out = input;
   // Protect known Latin and legal abbreviations from further transforms
   for (const [spoken, written] of Object.entries(LATIN_PHRASES)) {
-    const re = new RegExp(`\\b${spoken}\\b`, "gi");
+    const escaped = spoken.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`\\b${escaped}\\b`, "gi");
     out = out.replace(re, written);
   }
   return out;

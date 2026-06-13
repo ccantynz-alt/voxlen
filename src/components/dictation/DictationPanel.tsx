@@ -167,6 +167,7 @@ export function DictationPanel() {
               durationSeconds: currentDuration,
               wordCount: wc,
               billableAmount: billable,
+              rateAtTime: rate,
             });
           }
         }

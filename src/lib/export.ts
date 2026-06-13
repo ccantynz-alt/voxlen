@@ -174,7 +174,7 @@ export function exportBillingCsv(
   for (const e of entries) {
     const date = new Date(e.date).toLocaleDateString("en-GB");
     const mins = (e.durationSeconds / 60).toFixed(1);
-    const rate = client.billableRate.toFixed(2);
+    const rate = (e.rateAtTime ?? client.billableRate).toFixed(2);
     const amount = e.billableAmount.toFixed(2);
     const note = `"${(e.note ?? "").replace(/"/g, '""')}"`;
     rows.push([date, mins, e.wordCount, rate, amount, note].join(","));
@@ -205,7 +205,7 @@ export function exportAllBillingCsv(
     if (!c) continue;
     const date = new Date(e.date).toLocaleDateString("en-GB");
     const mins = (e.durationSeconds / 60).toFixed(1);
-    const rate = c.billableRate.toFixed(2);
+    const rate = (e.rateAtTime ?? c.billableRate).toFixed(2);
     const amount = e.billableAmount.toFixed(2);
     const note = `"${(e.note ?? "").replace(/"/g, '""')}"`;
     const matter = `"${(c.matterNumber ?? "").replace(/"/g, '""')}"`;

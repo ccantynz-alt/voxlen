@@ -61,9 +61,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(503).set(headers).json({ error: "STT token generation failed" });
     }
 
-    const { key } = await keyRes.json() as { key: { api_key: string } };
+    const dgJson = await keyRes.json() as { key?: { api_key?: string } };
+    const apiKey = dgJson?.key?.api_key;
+    if (!apiKey) {
+      return res.status(503).set(headers).json({ error: "STT token generation failed" });
+    }
     return res.status(200).set(headers).json({
-      key: key.api_key,
+      key: apiKey,
       ttl: 30,
       fallback: false,
     });

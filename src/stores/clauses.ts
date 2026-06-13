@@ -27,7 +27,7 @@ interface ClauseStore {
   updateClause: (id: string, updates: Partial<Omit<Clause, "id">>) => void;
   markUsed: (id: string) => void;
   findByTrigger: (text: string) => Clause | undefined;
-  findTemplatByTrigger: (text: string) => DocumentTemplate | undefined;
+  findTemplateByTrigger: (text: string) => DocumentTemplate | undefined;
 }
 
 const BUILT_IN_CLAUSES: Clause[] = [
@@ -272,6 +272,9 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
   updateClause: (id, updates) => {
     set((state) => ({
       clauses: state.clauses.map((c) => c.id === id ? { ...c, ...updates } : c),
+      customClauseIds: state.customClauseIds.includes(id)
+        ? state.customClauseIds
+        : [...state.customClauseIds, id],
     }));
     persistCustomClauses(get());
   },
@@ -280,7 +283,7 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
     set((state) => ({
       recentlyUsed: [id, ...state.recentlyUsed.filter((x) => x !== id)].slice(0, 10),
     }));
-    persistCustomClauses(get());
+    // recentlyUsed is transient UI state — no need to persist custom clauses here
   },
 
   findByTrigger: (text: string) => {
@@ -292,7 +295,7 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
     );
   },
 
-  findTemplatByTrigger: (text: string) => {
+  findTemplateByTrigger: (text: string) => {
     const lower = text.toLowerCase();
     return get().templates.find(
       (t) =>

@@ -238,6 +238,9 @@ fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     if from_rate == to_rate {
         return samples.to_vec();
     }
+    if samples.is_empty() {
+        return Vec::new();
+    }
 
     let ratio = to_rate as f64 / from_rate as f64;
     let output_len = (samples.len() as f64 * ratio) as usize;

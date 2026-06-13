@@ -72,13 +72,15 @@ function verifyDesktopToken(token: string): VoxlenUser | null {
   if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
     throw new Error("Token expired — sign in at voxlen.ai/dashboard and copy a fresh key");
   }
+  const VALID_PLANS: VoxlenPlan[] = ["admin", "pro", "professional", "free_trial", "free"];
+  const plan = VALID_PLANS.includes(payload.plan as VoxlenPlan) ? (payload.plan as VoxlenPlan) : "free";
   return {
     sub: payload.sub ?? "",
     email: payload.email ?? "",
     name: payload.name ?? "",
     picture: "",
-    plan: payload.plan,
-    isAdmin: payload.email === ADMIN_EMAIL || payload.plan === "admin",
+    plan,
+    isAdmin: payload.email === ADMIN_EMAIL || plan === "admin",
   };
 }
 

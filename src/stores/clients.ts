@@ -22,6 +22,7 @@ export interface MatterEntry {
   durationSeconds: number;
   wordCount: number;
   billableAmount: number; // $
+  rateAtTime?: number; // $/hr rate locked at entry creation
   note?: string; // brief description of what was dictated
 }
 

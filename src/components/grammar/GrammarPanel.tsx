@@ -66,7 +66,7 @@ export function GrammarPanel() {
       setError("Grammar correction unavailable. Check your API key in Settings.");
     }
     setIsProcessing(false);
-  }, [inputText]);
+  }, [inputText, activeClient]);
 
   const handleCopy = async () => {
     const text = correctedText || inputText;
