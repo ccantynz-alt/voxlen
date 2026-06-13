@@ -96,11 +96,10 @@ export function Waveform({
   }, [waveformData, status, barCount]);
 
   useEffect(() => {
-    draw();
-
-    if (status === "listening" || status === "processing") {
-      animationRef.current = requestAnimationFrame(draw);
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
     }
+    draw();
 
     return () => {
       if (animationRef.current) {
