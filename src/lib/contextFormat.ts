@@ -85,9 +85,9 @@ function formatLegalDeposition(text: string, speakerLabel?: string): string {
 function formatAccountingTax(text: string): string {
   let out = text;
   // Tax rates: "thirty percent" → "30%"
-  out = out.replace(/\b([\w\s]+)\s+percent\b/gi, (_, amount) => {
+  out = out.replace(/\b([\w\s]+)\s+percent\b/gi, (match, amount) => {
     const n = wordsToNumber(amount.trim());
-    return n !== null ? `${n}%` : `${amount.trim()}%`;
+    return n !== null ? `${n}%` : match;
   });
   // Tax year: "twenty twenty four twenty five" → "2024/25"
   out = out.replace(/\btax year\s+(\d{4})[\s\/\\-]+(\d{2,4})\b/gi,
