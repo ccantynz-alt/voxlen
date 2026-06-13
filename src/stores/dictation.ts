@@ -184,6 +184,7 @@ export const useDictationStore = create<DictationState>((set, get) => ({
           count + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
         0
       );
+      persistDraft({ segments, sessionStartedAtMs: state.sessionStartedAtMs });
       return { segments, wordCount };
     }),
 

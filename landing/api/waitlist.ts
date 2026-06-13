@@ -36,10 +36,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const kvToken = process.env.KV_REST_API_TOKEN;
   if (kvUrl && kvToken) {
     try {
-      await fetch(`${kvUrl}/lpush/voxlen:waitlist/${encodeURIComponent(JSON.stringify(entry))}`, {
+      const r = await fetch(`${kvUrl}/lpush/voxlen:waitlist/${encodeURIComponent(JSON.stringify(entry))}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${kvToken}` },
       });
+      if (!r.ok) console.error("WAITLIST_KV_ERROR", r.status, await r.text());
     } catch (e) {
       console.error("WAITLIST_KV_ERROR", e);
     }

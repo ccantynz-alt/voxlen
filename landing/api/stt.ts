@@ -85,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       method: "POST",
       headers: {
         Authorization: `Token ${DEEPGRAM_API_KEY}`,
-        "Content-Type": contentType.includes("multipart") ? "audio/wav" : contentType,
+        "Content-Type": contentType,
       },
       body,
     });
