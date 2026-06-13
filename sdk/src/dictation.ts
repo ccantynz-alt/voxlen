@@ -45,7 +45,9 @@ export class VoxlenDictation {
     }
 
     if (this.deepgramWs) {
-      this.deepgramWs.send(JSON.stringify({ type: "CloseStream" }));
+      if (this.deepgramWs.readyState === WebSocket.OPEN) {
+        this.deepgramWs.send(JSON.stringify({ type: "CloseStream" }));
+      }
       this.deepgramWs.close();
       this.deepgramWs = null;
     }

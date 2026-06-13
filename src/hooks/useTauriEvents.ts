@@ -103,9 +103,10 @@ export function useTauriEvents(): void {
                       punctuatedWord: w.punctuated_word,
                       speaker: w.speaker,
                     })),
-                    speakerLabel: result.words?.find(w => w.speaker !== undefined)
-                      ? `Speaker ${(result.words!.find(w => w.speaker !== undefined)!.speaker! + 1)}`
-                      : undefined,
+                    speakerLabel: (() => {
+                      const sw = result.words?.find(w => w.speaker !== undefined);
+                      return sw !== undefined ? `Speaker ${sw.speaker! + 1}` : undefined;
+                    })(),
                   });
                 }
 
@@ -211,9 +212,10 @@ export function useTauriEvents(): void {
               : text;
             const capsLock = useDictationStore.getState().capsLock;
             // Context-aware formatting
-            const speakerLabelForContext = result.words?.find((w) => w.speaker !== undefined)
-              ? `Speaker ${(result.words!.find((w) => w.speaker !== undefined)!.speaker! + 1)}`
-              : undefined;
+            const speakerLabelForContext = (() => {
+              const sw = result.words?.find((w) => w.speaker !== undefined);
+              return sw !== undefined ? `Speaker ${sw.speaker! + 1}` : undefined;
+            })();
             const withContext = settings.voxlenContext && settings.voxlenContext !== "general"
               ? applyContextFormat(shaped, {
                   context: settings.voxlenContext as VoxlenContext,
