@@ -10,6 +10,8 @@ export class VoxlenDictation {
   private config: VoxlenConfig;
   private recognition: SpeechRecognition | null = null;
   private deepgramWs: WebSocket | null = null;
+  private deepgramAudioContext: AudioContext | null = null;
+  private deepgramProcessor: ScriptProcessorNode | null = null;
   private mediaStream: MediaStream | null = null;
   private isListening = false;
   private stopVoxlenStream: (() => void) | null = null;
@@ -46,6 +48,16 @@ export class VoxlenDictation {
       this.deepgramWs.send(JSON.stringify({ type: "CloseStream" }));
       this.deepgramWs.close();
       this.deepgramWs = null;
+    }
+
+    if (this.deepgramProcessor) {
+      this.deepgramProcessor.disconnect();
+      this.deepgramProcessor = null;
+    }
+
+    if (this.deepgramAudioContext) {
+      this.deepgramAudioContext.close();
+      this.deepgramAudioContext = null;
     }
 
     if (this.stopVoxlenStream) {
@@ -147,11 +159,11 @@ export class VoxlenDictation {
 
     this.deepgramWs.onopen = () => {
       // Start streaming audio
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      const source = audioContext.createMediaStreamSource(this.mediaStream!);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      this.deepgramAudioContext = new AudioContext({ sampleRate: 16000 });
+      const source = this.deepgramAudioContext.createMediaStreamSource(this.mediaStream!);
+      this.deepgramProcessor = this.deepgramAudioContext.createScriptProcessor(4096, 1, 1);
 
-      processor.onaudioprocess = (e) => {
+      this.deepgramProcessor.onaudioprocess = (e) => {
         if (this.deepgramWs?.readyState !== WebSocket.OPEN) return;
 
         const float32 = e.inputBuffer.getChannelData(0);
@@ -163,8 +175,8 @@ export class VoxlenDictation {
         this.deepgramWs!.send(int16.buffer);
       };
 
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+      source.connect(this.deepgramProcessor);
+      this.deepgramProcessor.connect(this.deepgramAudioContext.destination);
     };
 
     this.deepgramWs.onmessage = (event) => {
