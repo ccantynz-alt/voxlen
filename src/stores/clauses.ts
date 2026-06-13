@@ -272,6 +272,9 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
   updateClause: (id, updates) => {
     set((state) => ({
       clauses: state.clauses.map((c) => c.id === id ? { ...c, ...updates } : c),
+      customClauseIds: state.customClauseIds.includes(id)
+        ? state.customClauseIds
+        : [...state.customClauseIds, id],
     }));
     persistCustomClauses(get());
   },
@@ -280,7 +283,7 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
     set((state) => ({
       recentlyUsed: [id, ...state.recentlyUsed.filter((x) => x !== id)].slice(0, 10),
     }));
-    persistCustomClauses(get());
+    // recentlyUsed is transient UI state — no need to persist custom clauses here
   },
 
   findByTrigger: (text: string) => {
