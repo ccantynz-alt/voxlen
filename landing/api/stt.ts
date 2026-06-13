@@ -76,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     req.on("error", reject);
   }).catch((err: Error) => {
     if (err.message === "payload_too_large") {
-      res.status(413).set(headers).json({ error: "Audio file exceeds 25 MB limit" });
+      return res.status(413).set(headers).json({ error: "Audio file exceeds 25 MB limit" });
     }
     throw err;
   });
