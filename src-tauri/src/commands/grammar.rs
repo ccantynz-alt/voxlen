@@ -175,7 +175,9 @@ Respond ONLY with valid JSON in this exact format:
 {{"corrected": "the corrected text", "changes": [{{"original": "wrong", "corrected": "right", "reason": "why", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
 
 Text to correct:
-"{text}""#,
+<text>
+{text}
+</text>"#,
         style = style_instruction,
         preserve = if config.preserve_tone {
             "- Preserve the author's natural tone and voice"
@@ -281,7 +283,10 @@ async fn correct_with_openai(
 {preserve}{vocab}{context}
 Respond ONLY with JSON: {{"corrected": "text", "changes": [{{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}}], "score": 0.95}}
 
-Text: "{text}""#,
+Text:
+<text>
+{text}
+</text>"#,
         style = style_instruction,
         preserve = if config.preserve_tone { "Preserve tone." } else { "" },
         vocab = vocab_instruction,

@@ -113,7 +113,9 @@ async fn translate_with_claude(
 {{"translated": "...", "detected_source": "ISO-639-1 code or null"}}
 
 Text:
-"{text}""#,
+<text>
+{text}
+</text>"#,
         target = target,
         text = text
     );
@@ -171,7 +173,10 @@ async fn translate_with_openai(
         r#"Translate this text into {target}. Preserve meaning, tone, and domain terminology. Respond ONLY with JSON:
 {{"translated": "text", "detected_source": "ISO-639-1 or null"}}
 
-Text: "{text}""#,
+Text:
+<text>
+{text}
+</text>"#,
         target = target,
         text = text
     );
