@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
+import { useShallow } from "zustand/react/shallow";
 import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
@@ -309,7 +310,11 @@ export function DictationPanel() {
   const autoDetectLanguage = useSettingsStore((s) => s.autoDetectLanguage);
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === sttLanguage) ?? SUPPORTED_LANGUAGES[0];
   const activeClientId = useClientsStore((s) => s.activeClientId);
-  const allClients = useClientsStore((s) => s.clients.filter((c) => !c.archived));
+  // useShallow memoises the derived array by shallow equality. Without it,
+  // `.filter()` returns a brand-new array reference on every render, which makes
+  // Zustand v5's useSyncExternalStore snapshot change every render and triggers
+  // an infinite update loop (React error #185 — "Maximum update depth exceeded").
+  const allClients = useClientsStore(useShallow((s) => s.clients.filter((c) => !c.archived)));
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
   const setActiveClient = useClientsStore((s) => s.setActiveClient);
 
