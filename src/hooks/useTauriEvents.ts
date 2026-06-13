@@ -139,6 +139,7 @@ export function useTauriEvents(): void {
                         durationSeconds: minutes * 60,
                         wordCount: 0,
                         billableAmount: (minutes / 60) * rate,
+                        rateAtTime: rate,
                         note,
                       });
                     }
@@ -466,6 +467,7 @@ export function useTauriEvents(): void {
                   durationSeconds: dictState.sessionDuration,
                   wordCount: wc,
                   billableAmount: billable,
+                  rateAtTime: rate,
                 });
               }
             }
