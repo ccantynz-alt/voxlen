@@ -171,8 +171,13 @@ export const useDictationStore = create<DictationState>((set, get) => ({
       const segments = state.segments.map((s) =>
         s.id === id ? { ...s, ...updates } : s
       );
+      const wordCount = segments.reduce(
+        (count, s) =>
+          count + (s.correctedText || s.text).split(/\s+/).filter(Boolean).length,
+        0
+      );
       persistDraft({ segments, sessionStartedAtMs: state.sessionStartedAtMs });
-      return { segments };
+      return { segments, wordCount };
     }),
 
   popLastSegment: () =>

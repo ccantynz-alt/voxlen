@@ -46,9 +46,14 @@ function collapseDigitRuns(input: string): string {
   };
 
   for (const word of words) {
-    const key = word.replace(/[.,!?;:]+$/g, "").toLowerCase();
+    const trailing = word.match(/[.,!?;:]+$/)?.[0] ?? "";
+    const key = word.slice(0, word.length - trailing.length).toLowerCase();
     if (key && DIGIT_WORDS[key] !== undefined) {
-      run.push(word);
+      run.push(key);
+      if (trailing) {
+        flush();
+        if (out.length) out[out.length - 1] += trailing;
+      }
     } else {
       if (run.length) flush();
       out.push(word);
