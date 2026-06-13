@@ -27,7 +27,7 @@ interface ClauseStore {
   updateClause: (id: string, updates: Partial<Omit<Clause, "id">>) => void;
   markUsed: (id: string) => void;
   findByTrigger: (text: string) => Clause | undefined;
-  findTemplatByTrigger: (text: string) => DocumentTemplate | undefined;
+  findTemplateByTrigger: (text: string) => DocumentTemplate | undefined;
 }
 
 const BUILT_IN_CLAUSES: Clause[] = [
@@ -292,7 +292,7 @@ export const useClauseStore = create<ClauseStore>((set, get) => ({
     );
   },
 
-  findTemplatByTrigger: (text: string) => {
+  findTemplateByTrigger: (text: string) => {
     const lower = text.toLowerCase();
     return get().templates.find(
       (t) =>
