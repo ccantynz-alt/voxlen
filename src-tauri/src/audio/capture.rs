@@ -84,7 +84,8 @@ pub fn start_capture_with_options(
 
         // Buffer to accumulate samples before sending chunks
         let chunk_duration_ms: u64 = 100; // Send 100ms chunks
-        let samples_per_chunk = (sample_rate as usize * channels as usize * chunk_duration_ms as usize) / 1000;
+        let samples_per_chunk = (sample_rate as u64 * channels as u64 * chunk_duration_ms) / 1000;
+        let samples_per_chunk = samples_per_chunk as usize;
         let buffer = Arc::new(RwLock::new(Vec::with_capacity(samples_per_chunk)));
         let buffer_clone = buffer.clone();
         let waveform_last_emit = Arc::new(Mutex::new(Instant::now()));

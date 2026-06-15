@@ -31,7 +31,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Read raw body for multipart — forward directly to Deepgram
   const contentType = req.headers["content-type"] ?? "audio/wav";
-  const language = (req.headers["x-language"] as string) || "en";
+  const rawLang = (req.headers["x-language"] as string) || "en";
+  const VALID_LANGS = new Set(["en","en-US","en-GB","en-AU","en-NZ","fr","de","es","it","pt","nl","ja","ko","zh","ar","hi","ru","pl","sv","da","no","fi","tr"]);
+  const language = VALID_LANGS.has(rawLang) ? rawLang : "en";
   const smartFormat = req.headers["x-smart-format"] !== "false";
   const punctuate = req.headers["x-punctuate"] !== "false";
   const diarize = req.headers["x-diarize"] === "true";
@@ -39,8 +41,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Comma-separated, URL-encoded custom vocabulary for Nova-3 keyterm prompting
   const keyterms = ((req.headers["x-keyterms"] as string) || "")
     .split(",")
-    .map((k) => k.trim())
-    .filter(Boolean);
+    .map((k) => k.trim().slice(0, 100))
+    .filter((k) => k.length > 0 && k.length <= 100)
+    .slice(0, 50);
 
   // mip_opt_out: never allow Deepgram to use customer audio for model training
   let dgUrl = "https://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true";
@@ -73,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     req.on("error", reject);
   }).catch((err: Error) => {
     if (err.message === "payload_too_large") {
-      res.status(413).set(headers).json({ error: "Audio file exceeds 25 MB limit" });
+      return res.status(413).set(headers).json({ error: "Audio file exceeds 25 MB limit" });
     }
     throw err;
   });

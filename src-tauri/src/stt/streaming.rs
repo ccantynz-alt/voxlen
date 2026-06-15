@@ -565,8 +565,6 @@ fn simple_resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     let mut output = Vec::with_capacity(output_len);
     for i in 0..output_len {
         let src_idx = i as f64 / ratio;
-        // Clamp BOTH indices — when upsampling, idx_floor can otherwise reach
-        // samples.len() on the final samples and panic with out-of-bounds.
         let idx_floor = (src_idx.floor() as usize).min(samples.len() - 1);
         let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
         let frac = src_idx - idx_floor as f64;

@@ -129,8 +129,12 @@ function buildDynamicSuffix(
   const contextNote = context && context !== "general"
     ? `The text is for a ${context.replace(/_/g, " ")} context.`
     : "";
-  const vocabNote = customVocabulary && customVocabulary.length > 0
-    ? `Preserve these domain-specific terms exactly as-is: ${customVocabulary.join(", ")}.`
+  const sanitizedVocab = customVocabulary
+    ?.map((t) => t.replace(/[\n\r\t"'\\]/g, " ").trim().slice(0, 60))
+    .filter((t) => t.length > 0 && t.length <= 60)
+    .slice(0, 50);
+  const vocabNote = sanitizedVocab && sanitizedVocab.length > 0
+    ? `Preserve these domain-specific terms exactly as-is: ${sanitizedVocab.join(", ")}.`
     : "";
   const toneNote = preserveTone
     ? "Preserve the author's voice and tone exactly — only fix errors, do not rephrase."

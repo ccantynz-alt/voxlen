@@ -187,7 +187,7 @@ function ClientCard({ client }: { client: Client }) {
                 onChange={(e) => setEditDescription(e.target.value)}
                 placeholder="Matter description (used by AI for context-aware correction)"
                 rows={2}
-                className="w-full bg-[#09090b] border border-[#3f3f46] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#7345d1] resize-none"
+                className="w-full bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-marcoreid-500 resize-none dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
               />
             </div>
           ) : (
@@ -310,12 +310,12 @@ function ClientCard({ client }: { client: Client }) {
             onChange={(e) => setNewVocabTerm(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddVocab(); } }}
             placeholder="Add term (party names, case refs…)"
-            className="flex-1 bg-[#09090b] border border-[#3f3f46] rounded px-2 py-1 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#7345d1]"
+            className="flex-1 bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-marcoreid-500 dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
           />
           <button
             onClick={handleAddVocab}
             disabled={!newVocabTerm.trim()}
-            className="px-2 py-1 rounded bg-[#27272a] text-zinc-400 hover:text-white hover:bg-[#3f3f46] transition-colors disabled:opacity-40 text-xs"
+            className="px-2 py-1 rounded bg-surface-200 text-surface-600 hover:text-surface-900 hover:bg-surface-300 transition-colors disabled:opacity-40 text-xs dark:bg-surface-800 dark:text-surface-400 dark:hover:text-surface-100 dark:hover:bg-surface-700"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>

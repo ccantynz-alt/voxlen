@@ -227,12 +227,12 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
 
   getTotalBillableHours: (): number => {
     const entries: TimeEntry[] = get().timeEntries;
-    return entries.reduce((sum: number, e: TimeEntry) => sum + e.minutes / 60, 0);
+    return entries.reduce((sum: number, e: TimeEntry) => sum + (e.minutes || 0) / 60, 0);
   },
 
   getTotalBillableAmount: (): number => {
     const entries: TimeEntry[] = get().timeEntries;
-    return entries.reduce((sum: number, e: TimeEntry) => sum + e.amount, 0);
+    return entries.reduce((sum: number, e: TimeEntry) => sum + (e.amount || 0), 0);
   },
 
   clearAll: () => {
