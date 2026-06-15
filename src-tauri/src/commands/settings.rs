@@ -345,6 +345,22 @@ pub fn load_settings_from_disk(app: AppHandle) -> Result<AppSettings, String> {
         }
     };
 
+    // API keys are deliberately NOT persisted to the settings store (privacy:
+    // they live in the OS keychain only). Hydrate them back from the keychain
+    // here so the backend STT / grammar engines have the keys on first launch.
+    // Without this, the first dictation after a restart fails with
+    // "No API key configured" and the streaming layer enters a reconnect storm.
+    let mut loaded = loaded;
+    if loaded.stt_api_key.as_deref().unwrap_or("").is_empty() {
+        loaded.stt_api_key = crate::commands::keyring::read_secret("sttApiKey");
+    }
+    if loaded.grammar_api_key.as_deref().unwrap_or("").is_empty() {
+        loaded.grammar_api_key = crate::commands::keyring::read_secret("grammarApiKey");
+    }
+    if loaded.voxlen_api_key.as_deref().unwrap_or("").is_empty() {
+        loaded.voxlen_api_key = crate::commands::keyring::read_secret("voxlenApiKey");
+    }
+
     *get_settings_store().write() = loaded.clone();
     Ok(loaded)
 }

@@ -151,6 +151,11 @@ async fn run_streaming_session(
 ) {
     let mut backoff_ms: u64 = 1000;
     let mut attempt: u32 = 0;
+    // Stop retrying after this many consecutive unhealthy sessions so a bad key
+    // or a persistently failing endpoint produces ONE clear error instead of an
+    // endless reconnect storm of toasts.
+    const MAX_CONSECUTIVE_FAILURES: u32 = 5;
+    let mut consecutive_failures: u32 = 0;
     let mut current_key = initial_key.to_string();
 
     loop {
@@ -211,6 +216,21 @@ async fn run_streaming_session(
                 if session_duration_was_healthy {
                     backoff_ms = 1000;
                     attempt = 0;
+                    consecutive_failures = 0;
+                } else {
+                    consecutive_failures += 1;
+                    if consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
+                        let _ = app_handle.emit(
+                            "transcription-error",
+                            "Could not connect to the transcription service after several \
+                             attempts. Check your internet connection and API key in Settings.",
+                        );
+                        log::error!(
+                            "Giving up streaming after {} consecutive failures",
+                            consecutive_failures
+                        );
+                        break;
+                    }
                 }
 
                 // Refresh Deepgram temp key for Voxlen users before reconnecting
@@ -517,7 +537,9 @@ fn simple_resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     let mut output = Vec::with_capacity(output_len);
     for i in 0..output_len {
         let src_idx = i as f64 / ratio;
-        let idx_floor = src_idx.floor() as usize;
+        // Clamp BOTH indices — when upsampling, idx_floor can otherwise reach
+        // samples.len() on the final samples and panic with out-of-bounds.
+        let idx_floor = (src_idx.floor() as usize).min(samples.len() - 1);
         let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
         let frac = src_idx - idx_floor as f64;
         let interpolated = samples[idx_floor] as f64 * (1.0 - frac)
