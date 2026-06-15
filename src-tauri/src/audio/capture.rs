@@ -51,6 +51,18 @@ pub fn start_capture_with_options(
     let sample_rate = config.sample_rate().0;
     let channels = config.channels();
 
+    // Reject misreporting / virtual devices up front. A zero sample rate or
+    // channel count would yield a zero chunk size, turning the chunk-draining
+    // loop into an infinite tight loop (app appears frozen) and causing
+    // divide-by-zero downstream.
+    if sample_rate == 0 || channels == 0 {
+        return Err(anyhow::anyhow!(
+            "Input device reported an invalid configuration (rate={}, channels={})",
+            sample_rate,
+            channels
+        ));
+    }
+
     log::info!(
         "Starting capture: device={:?}, rate={}, channels={}",
         device_id,
