@@ -23,16 +23,20 @@ export class VoxlenDictation {
   /** Start listening for voice input */
   async start(): Promise<void> {
     if (this.isListening) return;
+    this.isListening = true; // set eagerly to prevent concurrent start() calls
 
-    if (this.config.voxlenApiKey) {
-      await this.startVoxlenStream();
-    } else if (this.config.deepgramApiKey) {
-      await this.startDeepgram();
-    } else {
-      this.startWebSpeech();
+    try {
+      if (this.config.voxlenApiKey) {
+        await this.startVoxlenStream();
+      } else if (this.config.deepgramApiKey) {
+        await this.startDeepgram();
+      } else {
+        this.startWebSpeech();
+      }
+    } catch (err) {
+      this.isListening = false;
+      throw err;
     }
-
-    this.isListening = true;
   }
 
   /** Stop listening */
@@ -174,7 +178,11 @@ export class VoxlenDictation {
           const clamped = Math.max(-1, Math.min(1, float32[i]));
           int16[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
         }
-        this.deepgramWs!.send(int16.buffer);
+        try {
+          this.deepgramWs!.send(int16.buffer);
+        } catch {
+          // WebSocket closed between readyState check and send — harmless
+        }
       };
 
       source.connect(this.deepgramProcessor);
@@ -198,6 +206,8 @@ export class VoxlenDictation {
     };
 
     this.deepgramWs.onerror = () => {
+      // Clean up media stream if WS fails before stop() is called
+      this.mediaStream?.getTracks().forEach((t) => t.stop());
       this.config.onError?.(new Error("Deepgram WebSocket connection failed"));
     };
   }
