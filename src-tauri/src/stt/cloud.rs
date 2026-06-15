@@ -80,7 +80,8 @@ pub async fn whisper_transcribe(
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("OpenAI API key not configured"))?;
+        .filter(|k| !k.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("OpenAI API key not configured. Add an OpenAI key in Settings, or switch the STT engine to Deepgram / connect a Voxlen account."))?;
 
     let part = reqwest::multipart::Part::bytes(wav_data.to_vec())
         .file_name("audio.wav")
@@ -146,15 +147,30 @@ pub async fn deepgram_transcribe(
     wav_data: &[u8],
     config: &SttConfig,
 ) -> anyhow::Result<TranscriptionResult> {
-    // Route through Voxlen proxy when account key is present
+    let has_direct_key = config.api_key.as_ref().filter(|k| !k.is_empty()).is_some();
+
+    // Route through the Voxlen proxy when an account key is present (Voxlen
+    // first). On failure, fall back to the user's direct Deepgram key if set.
     if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
-        return voxlen_proxy_transcribe(wav_data, voxlen_key, config).await;
+        match voxlen_proxy_transcribe(wav_data, voxlen_key, config).await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                if has_direct_key {
+                    log::warn!(
+                        "Voxlen transcription proxy failed ({e}); falling back to direct Deepgram key"
+                    );
+                } else {
+                    return Err(e);
+                }
+            }
+        }
     }
 
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key."))?;
+        .filter(|k| !k.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("No transcription key configured. Open Settings → Account to connect a Voxlen account, or add your own Deepgram key."))?;
 
     let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true");
 

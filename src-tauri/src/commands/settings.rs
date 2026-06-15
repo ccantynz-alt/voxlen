@@ -250,13 +250,11 @@ fn apply_settings_to_engines(
 
     let voxlen_key = s.voxlen_api_key.clone().filter(|k| !k.is_empty());
 
-    // When a Voxlen account key is present, STT is proxied through
-    // voxlen.ai/api — user does not need their own provider keys.
-    let resolved_api_key = if voxlen_key.is_some() {
-        None // voxlen_api_key takes precedence; direct key unused
-    } else {
-        s.stt_api_key.clone().filter(|k| !k.is_empty())
-    };
+    // Keep the user's direct provider key even when a Voxlen account key is
+    // present. The engine layer applies Voxlen-first precedence and uses the
+    // direct key as a fallback; blanking it here silently destroyed a working
+    // BYOK key the moment a (possibly bad) Voxlen key was entered.
+    let resolved_api_key = s.stt_api_key.clone().filter(|k| !k.is_empty());
 
     let stt_config = SttConfig {
         engine: stt_engine_type,
@@ -286,11 +284,9 @@ fn apply_settings_to_engines(
         "technical" => WritingStyle::Technical,
         _ => WritingStyle::Professional,
     };
-    let grammar_api_key = if voxlen_key.is_some() {
-        None
-    } else {
-        s.grammar_api_key.clone().filter(|k| !k.is_empty())
-    };
+    // Keep the direct grammar key as a fallback even when a Voxlen key is set
+    // (engine applies Voxlen-first precedence with BYOK fallback).
+    let grammar_api_key = s.grammar_api_key.clone().filter(|k| !k.is_empty());
 
     let grammar_config = GrammarConfig {
         enabled: s.grammar_enabled,
