@@ -117,8 +117,12 @@ impl AudioProcessor {
 
                         // --- Batch processing path (Whisper / fallback) ---
                         sample_rate = chunk.sample_rate;
-                        let chunk_duration_ms = (chunk.samples.len() as u64 * 1000)
-                            / (chunk.sample_rate as u64 * chunk.channels as u64);
+                        // Guard the denominator: a misreporting / virtual device can
+                        // report sample_rate == 0 or channels == 0, which would make
+                        // this an integer divide-by-zero and panic the processor task.
+                        let denom =
+                            (chunk.sample_rate as u64).max(1) * (chunk.channels as u64).max(1);
+                        let chunk_duration_ms = (chunk.samples.len() as u64 * 1000) / denom;
 
                         let mono_samples = if chunk.channels > 1 {
                             to_mono(&chunk.samples, chunk.channels)
@@ -248,7 +252,11 @@ fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
 
     for i in 0..output_len {
         let src_idx = i as f64 / ratio;
-        let idx_floor = src_idx.floor() as usize;
+        // Clamp BOTH indices: when upsampling (from_rate < to_rate) the final
+        // output indices push src_idx up to samples.len(), so idx_floor can land
+        // one past the end. Without clamping, samples[idx_floor] panics with an
+        // out-of-bounds index and takes the capture pipeline down.
+        let idx_floor = (src_idx.floor() as usize).min(samples.len() - 1);
         let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
         let frac = src_idx - idx_floor as f64;
 
@@ -258,4 +266,35 @@ fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     }
 
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resample_upsampling_does_not_panic() {
+        // Regression: a low-rate (e.g. 8kHz telephony/Bluetooth HFP) device
+        // upsampled to 16kHz used to index one past the end and panic.
+        let samples: Vec<f32> = (0..160).map(|i| (i as f32) * 0.01).collect();
+        let out = resample(&samples, 8000, 16000);
+        assert!(out.len() >= samples.len());
+        assert!(out.iter().all(|s| s.is_finite()));
+    }
+
+    #[test]
+    fn resample_downsampling_and_identity() {
+        let samples: Vec<f32> = (0..480).map(|i| (i as f32) * 0.01).collect();
+        let down = resample(&samples, 48000, 16000);
+        assert!(down.len() < samples.len());
+        let same = resample(&samples, 16000, 16000);
+        assert_eq!(same.len(), samples.len());
+    }
+
+    #[test]
+    fn resample_handles_single_and_empty_input() {
+        assert!(resample(&[], 8000, 16000).is_empty());
+        let one = resample(&[0.5], 8000, 16000);
+        assert!(one.iter().all(|s| s.is_finite()));
+    }
 }

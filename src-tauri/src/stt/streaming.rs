@@ -72,6 +72,44 @@ async fn fetch_deepgram_temp_key(voxlen_key: &str) -> anyhow::Result<String> {
         .ok_or_else(|| anyhow::anyhow!("No key in Voxlen deepgram-token response"))
 }
 
+/// Acquire a Deepgram key following the product's precedence rule:
+/// the Voxlen account key takes precedence (exchanged for a short-lived temp
+/// key via the proxy), and the user's direct BYOK key is used as a fallback if
+/// the exchange fails or no Voxlen key is configured. Returns `None` (after
+/// emitting a clear `transcription-error`) when no key can be obtained.
+async fn acquire_deepgram_key(
+    direct_key: Option<&str>,
+    voxlen_key: Option<&str>,
+    app_handle: &AppHandle,
+) -> Option<String> {
+    if let Some(vk) = voxlen_key {
+        match fetch_deepgram_temp_key(vk).await {
+            Ok(k) => return Some(k),
+            Err(e) => {
+                if let Some(dk) = direct_key {
+                    log::warn!(
+                        "Voxlen token exchange failed ({e}); falling back to direct provider key"
+                    );
+                    return Some(dk.to_string());
+                }
+                let _ = app_handle.emit(
+                    "transcription-error",
+                    format!("Voxlen account key rejected: {}. Check it in Settings.", e),
+                );
+                return None;
+            }
+        }
+    }
+    if let Some(dk) = direct_key {
+        return Some(dk.to_string());
+    }
+    let _ = app_handle.emit(
+        "transcription-error",
+        "No API key configured — add a Voxlen account key or a provider key in Settings",
+    );
+    None
+}
+
 /// Start a real-time streaming session with Deepgram using full SttConfig.
 pub fn start_streaming(
     config: SttConfig,
@@ -99,17 +137,15 @@ pub fn start_streaming(
     let stop_on_exit = stop_flag.clone();
     let handle = tokio::spawn(async move {
         let session_task = async {
-            // Fetch the initial Deepgram key
-            let initial_key = match direct_key.as_deref() {
-                Some(k) => k.to_string(),
-                None => match fetch_deepgram_temp_key(voxlen_key.as_deref().unwrap_or("")).await {
-                    Ok(k) => k,
-                    Err(e) => {
-                        let _ = app_handle.emit("transcription-error", format!("Token exchange failed: {}", e));
-                        return;
-                    }
-                },
-            };
+            // Acquire the initial Deepgram key using the Voxlen-first / direct
+            // BYOK fallback precedence.
+            let initial_key =
+                match acquire_deepgram_key(direct_key.as_deref(), voxlen_key.as_deref(), &app_handle)
+                    .await
+                {
+                    Some(k) => k,
+                    None => return, // error already emitted
+                };
 
             run_streaming_session(
                 &initial_key,
@@ -151,6 +187,11 @@ async fn run_streaming_session(
 ) {
     let mut backoff_ms: u64 = 1000;
     let mut attempt: u32 = 0;
+    // Stop retrying after this many consecutive unhealthy sessions so a bad key
+    // or a persistently failing endpoint produces ONE clear error instead of an
+    // endless reconnect storm of toasts.
+    const MAX_CONSECUTIVE_FAILURES: u32 = 5;
+    let mut consecutive_failures: u32 = 0;
     let mut current_key = initial_key.to_string();
 
     loop {
@@ -171,22 +212,18 @@ async fn run_streaming_session(
         ).await {
             Ok(SessionOutcome::StoppedByUser) => break,
             Ok(SessionOutcome::AuthFailed) => {
-                // For Voxlen users the temp key may have expired (30s TTL).
-                // Try to fetch a fresh one before giving up.
-                if let Some(vk) = voxlen_key.filter(|_| direct_key.is_none()) {
-                    match fetch_deepgram_temp_key(vk).await {
-                        Ok(new_key) => {
-                            log::info!("Refreshed Deepgram temp key after auth failure");
+                // For Voxlen users the temp key may simply have expired (30s
+                // TTL) — re-acquire (which also keeps the BYOK fallback) before
+                // giving up. For a direct-only key, auth failure means the key
+                // itself is bad, so fail fast with a clear message.
+                if voxlen_key.is_some() {
+                    match acquire_deepgram_key(direct_key, voxlen_key, &app_handle).await {
+                        Some(new_key) => {
+                            log::info!("Re-acquired Deepgram key after auth failure");
                             current_key = new_key;
                             // Fall through to reconnect logic below
                         }
-                        Err(e) => {
-                            let _ = app_handle.emit(
-                                "transcription-error",
-                                format!("Token refresh failed: {}", e),
-                            );
-                            break;
-                        }
+                        None => break, // error already emitted
                     }
                 } else {
                     let _ = app_handle.emit(
@@ -211,19 +248,30 @@ async fn run_streaming_session(
                 if session_duration_was_healthy {
                     backoff_ms = 1000;
                     attempt = 0;
+                    consecutive_failures = 0;
+                } else {
+                    consecutive_failures += 1;
+                    if consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
+                        let _ = app_handle.emit(
+                            "transcription-error",
+                            "Could not connect to the transcription service after several \
+                             attempts. Check your internet connection and API key in Settings.",
+                        );
+                        log::error!(
+                            "Giving up streaming after {} consecutive failures",
+                            consecutive_failures
+                        );
+                        break;
+                    }
                 }
 
-                // Refresh Deepgram temp key for Voxlen users before reconnecting
-                if let Some(vk) = voxlen_key.filter(|_| direct_key.is_none()) {
-                    match fetch_deepgram_temp_key(vk).await {
-                        Ok(new_key) => { current_key = new_key; }
-                        Err(e) => {
-                            let _ = app_handle.emit(
-                                "transcription-error",
-                                format!("Token refresh failed: {}", e),
-                            );
-                            break;
-                        }
+                // Re-acquire the Deepgram key before reconnecting. Voxlen temp
+                // keys are short-lived, so this refreshes them (and re-applies
+                // the BYOK fallback). Direct-only keys need no refresh.
+                if voxlen_key.is_some() {
+                    match acquire_deepgram_key(direct_key, voxlen_key, &app_handle).await {
+                        Some(new_key) => { current_key = new_key; }
+                        None => break, // error already emitted
                     }
                 }
 
@@ -517,7 +565,9 @@ fn simple_resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     let mut output = Vec::with_capacity(output_len);
     for i in 0..output_len {
         let src_idx = i as f64 / ratio;
-        let idx_floor = src_idx.floor() as usize;
+        // Clamp BOTH indices — when upsampling, idx_floor can otherwise reach
+        // samples.len() on the final samples and panic with out-of-bounds.
+        let idx_floor = (src_idx.floor() as usize).min(samples.len() - 1);
         let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
         let frac = src_idx - idx_floor as f64;
         let interpolated = samples[idx_floor] as f64 * (1.0 - frac)

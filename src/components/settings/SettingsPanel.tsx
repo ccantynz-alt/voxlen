@@ -931,7 +931,23 @@ function UsageMeter({ apiKey }: { apiKey: string }) {
       headers: { Authorization: `Bearer ${apiKey}` },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data: AccountInfo) => { if (!cancelled) setInfo(data); })
+      .then((data: unknown) => {
+        if (cancelled) return;
+        // Validate the payload shape before storing it — a freshly deployed or
+        // misconfigured API can return HTTP 200 with an unexpected body (error
+        // envelope, missing fields). Accessing info.plan/info.features blindly
+        // throws during render and crashes the app right after connecting a key.
+        if (!data || typeof data !== "object") return;
+        const d = data as Partial<AccountInfo>;
+        if (typeof d.plan !== "string") return;
+        setInfo({
+          plan: d.plan,
+          features: Array.isArray(d.features) ? d.features : [],
+          name: typeof d.name === "string" ? d.name : "",
+          email: typeof d.email === "string" ? d.email : "",
+          isAdmin: Boolean(d.isAdmin),
+        });
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [apiKey]);
@@ -1012,9 +1028,12 @@ function VoxlenApiSettings() {
         setKeyError("Token invalid or expired. Sign in again at voxlen.ai/dashboard.");
       }
     } catch {
-      // Network unreachable — accept token anyway
+      // Network unreachable — accept the token so offline setup still works,
+      // but warn the user it could not be verified rather than silently
+      // treating an unchecked (possibly invalid) token as fully connected.
       settings.updateSetting("voxlenApiKey", key);
       setKeyInput("");
+      setKeyError("Saved, but couldn't verify the token (no connection). It will be checked when you go online.");
     }
     setVerifying(false);
   };

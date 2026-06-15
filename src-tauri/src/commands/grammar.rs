@@ -104,21 +104,37 @@ pub async fn correct_grammar(
         .filter(|s| !s.is_empty())
         .or_else(|| config.voxlen_context.clone());
 
-    // Prefer Voxlen proxy (no user API key needed) over direct provider calls
+    let has_direct_key = config.api_key.as_ref().filter(|k| !k.is_empty()).is_some();
+
+    // Prefer Voxlen proxy (no user API key needed) over direct provider calls.
+    // Voxlen-first with BYOK fallback: if the proxy call fails and the user has
+    // their own provider key, fall back to it rather than failing the request.
     if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
         let mut proxy_config = config.clone();
         proxy_config.voxlen_context = effective_context.clone();
-        return correct_with_voxlen_proxy(
+        match correct_with_voxlen_proxy(
             &text, voxlen_key,
             proxy_config.voxlen_context.as_deref(),
             &proxy_config, &vocab
-        ).await;
+        ).await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                if has_direct_key {
+                    log::warn!(
+                        "Voxlen grammar proxy failed ({e}); falling back to direct provider key"
+                    );
+                } else {
+                    return Err(e);
+                }
+            }
+        }
     }
 
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or("Not connected to a Voxlen account. Open Settings → Account, sign in at voxlen.ai/dashboard, and paste your account key.")?;
+        .filter(|k| !k.is_empty())
+        .ok_or("No grammar AI key configured. Open Settings → Account to connect a Voxlen account, or add your own provider key under Grammar.")?;
 
     let mut effective_config = config.clone();
     if let Some(ctx) = effective_context {
