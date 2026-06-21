@@ -10,6 +10,7 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  SendHorizonal,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -26,6 +27,7 @@ export function HistoryPanel() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [injectedId, setInjectedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -41,6 +43,20 @@ export function HistoryPanel() {
     await navigator.clipboard.writeText(entry.text);
     setCopiedId(entry.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleInject = async (entry: (typeof entries)[0]) => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("inject_text", { text: entry.text });
+      setInjectedId(entry.id);
+      setTimeout(() => setInjectedId(null), 2000);
+    } catch {
+      // Not in Tauri or injection failed — fall back to clipboard.
+      await navigator.clipboard.writeText(entry.text);
+      setCopiedId(entry.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleExport = (entry: (typeof entries)[0], format: "txt" | "md") => {
@@ -183,8 +199,22 @@ export function HistoryPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => handleInject(entry)}
+                    className="h-7 px-2"
+                    title="Type into active app"
+                  >
+                    {injectedId === entry.id ? (
+                      <Check className="h-3 w-3 text-green-400" />
+                    ) : (
+                      <SendHorizonal className="h-3 w-3" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleCopy(entry)}
                     className="h-7 px-2"
+                    title="Copy to clipboard"
                   >
                     {copiedId === entry.id ? (
                       <Check className="h-3 w-3 text-green-400" />

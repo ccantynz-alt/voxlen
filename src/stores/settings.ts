@@ -66,7 +66,6 @@ export interface AppSettings {
 }
 
 interface SettingsState extends AppSettings {
-  isLoaded: boolean;
   activeTab: string;
   updateSetting: <K extends keyof AppSettings>(
     key: K,
@@ -245,7 +244,6 @@ export async function hydrateSecrets(): Promise<void> {
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   ...defaultSettings,
-  isLoaded: false,
   activeTab: "voxlen-api",
 
   updateSetting: (key, value) => {
