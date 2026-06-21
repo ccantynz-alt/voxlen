@@ -27,7 +27,6 @@ import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
-import { useHistoryStore } from "@/stores/history";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
@@ -125,53 +124,17 @@ export function DictationPanel() {
         toast(msg.length > 100 ? msg.slice(0, 100) + "…" : msg, "error", 6000);
       }
     } else if (status === "listening") {
-      // Capture session BEFORE status flip so autosave in useTauriEvents
-      // has a consistent view. The autosave subscription handles save_session.
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("stop_dictation");
       } catch {
         // Demo mode
       }
-      // Save session to history if there are segments
-      const currentSegments = useDictationStore.getState().segments;
-      const currentDuration = useDictationStore.getState().sessionDuration;
-      if (currentSegments.length > 0) {
-        const fullText = currentSegments.map((s) => s.correctedText || s.text).join(" ");
-        const wc = fullText.split(/\s+/).filter(Boolean).length;
-        const hasGrammar = currentSegments.some((s) => s.grammarApplied);
-        useHistoryStore.getState().addEntry({
-          id: crypto.randomUUID(),
-          text: fullText,
-          duration: currentDuration * 1000,
-          wordCount: wc,
-          language: currentSegments[0].language || "en",
-          timestamp: new Date().toISOString(),
-          grammarCorrected: hasGrammar,
-        });
-
-        const engine = useSettingsStore.getState().sttEngine;
-        useFlywheelStore.getState().recordSession(wc, currentDuration, engine);
-
-        // Record billable entry for active client
-        const { activeClientId, clients, addEntry } = useClientsStore.getState();
-        if (activeClientId) {
-          const client = clients.find((c) => c.id === activeClientId);
-          if (client) {
-            const defaultRate = useSettingsStore.getState().billableRatePerHour ?? 350;
-            const rate = client.billableRate > 0 ? client.billableRate : defaultRate;
-            const billable = (currentDuration / 3600) * rate;
-            addEntry({
-              clientId: activeClientId,
-              date: Date.now(),
-              durationSeconds: currentDuration,
-              wordCount: wc,
-              billableAmount: billable,
-              rateAtTime: rate,
-            });
-          }
-        }
-      }
+      // Setting status to idle triggers the autosave subscription in
+      // useTauriEvents, which is the single source of truth for recording
+      // history, flywheel sessions, and billable time. Don't duplicate
+      // that logic here — it causes double-entries when grammar correction
+      // updates correctedText between the two saves.
       setStatus("idle");
     }
   }, [status, setStatus]);
