@@ -192,13 +192,29 @@ function schedulePersist() {
       }
     }
 
-    // Persist API keys to OS keychain (delete when cleared)
-    if (state.sttApiKey) await setSecret("sttApiKey", state.sttApiKey);
-    else await deleteSecret("sttApiKey").catch(() => {});
-    if (state.grammarApiKey) await setSecret("grammarApiKey", state.grammarApiKey);
-    else await deleteSecret("grammarApiKey").catch(() => {});
-    if (state.voxlenApiKey) await setSecret("voxlenApiKey", state.voxlenApiKey);
-    else await deleteSecret("voxlenApiKey").catch(() => {});
+    // Persist API keys to OS keychain (delete when cleared).
+    // If keychain_set throws inside the Tauri app (isTauri() is true), we
+    // surface the error so the user knows — silently losing a key causes
+    // confusing auth failures on next startup.
+    const keychainOps: Array<Promise<void>> = [];
+    if (state.sttApiKey) keychainOps.push(setSecret("sttApiKey", state.sttApiKey));
+    else keychainOps.push(deleteSecret("sttApiKey").catch(() => {}));
+    if (state.grammarApiKey) keychainOps.push(setSecret("grammarApiKey", state.grammarApiKey));
+    else keychainOps.push(deleteSecret("grammarApiKey").catch(() => {}));
+    if (state.voxlenApiKey) keychainOps.push(setSecret("voxlenApiKey", state.voxlenApiKey));
+    else keychainOps.push(deleteSecret("voxlenApiKey").catch(() => {}));
+    try {
+      await Promise.all(keychainOps);
+    } catch (err) {
+      console.error("Failed to save API key to OS keychain:", err);
+      // Import lazily to avoid a hard dependency in non-Tauri builds.
+      try {
+        const { toast } = await import("@/components/ui/Toast");
+        toast("Could not save API key to system keychain — please re-enter it after restart.", "error", 8000);
+      } catch {
+        // Toast not available (e.g. during tests).
+      }
+    }
 
     // Push settings to the Rust engine layer so changes take effect immediately
     // (without this, API key / grammar / STT changes only apply after restart).

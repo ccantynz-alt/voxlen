@@ -79,6 +79,8 @@ export function useTauriEvents(): void {
 
             const dictation = useDictationStore.getState();
             const settings = useSettingsStore.getState();
+            const autoInject = settings.injectionMode !== "buffer";
+            const injectQueue: string[] = [];
 
             // Voice commands: only consume when enabled.
             if (settings.voiceCommandsEnabled) {
@@ -108,6 +110,7 @@ export function useTauriEvents(): void {
                       return sw !== undefined ? `Speaker ${sw.speaker! + 1}` : undefined;
                     })(),
                   });
+                  if (autoInject) injectQueue.push(parsed.remainingText + " ");
                 }
 
                 const output = executeVoiceCommand(parsed.action);
@@ -195,6 +198,21 @@ export function useTauriEvents(): void {
                       grammarApplied: false,
                     });
                   }
+                  if (autoInject && !output.startsWith("__LOG_TIME")) {
+                    injectQueue.push(output);
+                  }
+                }
+
+                if (autoInject && injectQueue.length > 0) {
+                  const textToInject = injectQueue.join("");
+                  (async () => {
+                    try {
+                      const { invoke } = await import("@tauri-apps/api/core");
+                      await invoke("inject_text", { text: textToInject });
+                    } catch {
+                      // Non-Tauri or injection unavailable.
+                    }
+                  })();
                 }
 
                 dictation.setCurrentTranscript("");
@@ -240,6 +258,15 @@ export function useTauriEvents(): void {
                 grammarApplied: false,
               });
               dictation.setCurrentTranscript("");
+              if (autoInject) {
+                const clauseText = matchedClause.text;
+                (async () => {
+                  try {
+                    const { invoke } = await import("@tauri-apps/api/core");
+                    await invoke("inject_text", { text: clauseText });
+                  } catch { /* Non-Tauri. */ }
+                })();
+              }
               return;
             }
             if (matchedTemplate) {
@@ -254,6 +281,14 @@ export function useTauriEvents(): void {
                 grammarApplied: false,
               });
               dictation.setCurrentTranscript("");
+              if (autoInject) {
+                (async () => {
+                  try {
+                    const { invoke } = await import("@tauri-apps/api/core");
+                    await invoke("inject_text", { text: templateText });
+                  } catch { /* Non-Tauri. */ }
+                })();
+              }
               return;
             }
 
@@ -289,8 +324,6 @@ export function useTauriEvents(): void {
               settings.translationEnabled &&
               settings.translationTargetLanguage &&
               settings.translationTargetLanguage !== (result.language ?? "");
-            // "buffer" mode means the user wants to review in the panel before injecting manually.
-            const autoInject = settings.injectionMode !== "buffer";
 
             (async () => {
               try {
