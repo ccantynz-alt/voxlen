@@ -31,20 +31,3 @@ export function usePersistedSettings() {
     loadSettings().then(() => hydrateSecrets());
   }, [updateSettings]);
 }
-
-export async function saveSettings(settings: Partial<AppSettings>) {
-  try {
-    const { load } = await import("@tauri-apps/plugin-store");
-    const store = await load("settings.json");
-    const existing = (await store.get<Partial<AppSettings>>("settings")) || {};
-    await store.set("settings", { ...existing, ...settings });
-    await store.save();
-  } catch {
-    try {
-      const existing = JSON.parse(localStorage.getItem("voxlen_settings") || "{}");
-      localStorage.setItem("voxlen_settings", JSON.stringify({ ...existing, ...settings }));
-    } catch {
-      // Ignore
-    }
-  }
-}
