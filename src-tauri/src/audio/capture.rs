@@ -22,6 +22,15 @@ impl CaptureHandle {
     }
 }
 
+impl Drop for CaptureHandle {
+    fn drop(&mut self) {
+        // Ensure the capture thread exits even if stop() was never called
+        // explicitly (e.g. when start_capture_with_options overwrites the
+        // handle while a capture is already running).
+        self.stop_flag.store(true, Ordering::Relaxed);
+    }
+}
+
 pub fn start_capture(
     device_id: Option<String>,
     sender: Sender<AudioChunk>,
