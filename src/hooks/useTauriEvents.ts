@@ -283,88 +283,100 @@ export function useTauriEvents(): void {
             // Post-processing pipeline (runs async so it doesn't block the UI):
             // 1. Grammar correction (if enabled)
             // 2. Translation (if enabled, runs on grammar-corrected text)
+            // 3. Auto-inject into the currently focused app (unless injectionMode is "buffer")
             const grammarEnabled = settings.grammarEnabled;
             const translationEnabled =
               settings.translationEnabled &&
               settings.translationTargetLanguage &&
               settings.translationTargetLanguage !== (result.language ?? "");
+            // "buffer" mode means the user wants to review in the panel before injecting manually.
+            const autoInject = settings.injectionMode !== "buffer";
 
-            if (grammarEnabled || translationEnabled) {
-              (async () => {
-                try {
-                  const { invoke } = await import("@tauri-apps/api/core");
-                  let processedText = finalText;
+            (async () => {
+              try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                let processedText = finalText;
 
-                  // Step 1: grammar correction
-                  if (grammarEnabled) {
-                    try {
-                      const flyVocab = useFlywheelStore.getState().vocabulary
-                        .filter((v) => v.frequency >= 2)
-                        .map((v) => v.word);
-                      const { activeClientId: acid, clients: acls } = useClientsStore.getState();
-                      const activeClientForAuto = acls.find((c) => c.id === acid);
-                      const clientVocabAuto = activeClientForAuto?.vocabulary ?? [];
-                      const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocabAuto, ...settings.customVocabulary]));
-                      const matterContextAuto = buildMatterContext(activeClientForAuto) || undefined;
-                      const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
-                        "correct_grammar",
-                        {
-                          text: finalText,
-                          customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
-                          matterContext: matterContextAuto,
-                        }
-                      );
-                      if (grammarResult?.corrected) {
-                        processedText = grammarResult.corrected;
-                        useDictationStore.getState().updateSegment(segmentId, {
-                          correctedText: grammarResult.corrected,
-                          grammarApplied: true,
-                        });
-                        // Feed corrections back into flywheel
-                        if (grammarResult.changes?.length) {
-                          const fw = useFlywheelStore.getState();
-                          for (const c of grammarResult.changes) {
-                            if (c.original && c.corrected && c.original !== c.corrected) {
-                              fw.recordCorrection(
-                                c.original,
-                                c.corrected,
-                                (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
-                              );
-                            }
+                // Step 1: grammar correction
+                if (grammarEnabled) {
+                  try {
+                    const flyVocab = useFlywheelStore.getState().vocabulary
+                      .filter((v) => v.frequency >= 2)
+                      .map((v) => v.word);
+                    const { activeClientId: acid, clients: acls } = useClientsStore.getState();
+                    const activeClientForAuto = acls.find((c) => c.id === acid);
+                    const clientVocabAuto = activeClientForAuto?.vocabulary ?? [];
+                    const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocabAuto, ...settings.customVocabulary]));
+                    const matterContextAuto = buildMatterContext(activeClientForAuto) || undefined;
+                    const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
+                      "correct_grammar",
+                      {
+                        text: finalText,
+                        customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
+                        matterContext: matterContextAuto,
+                      }
+                    );
+                    if (grammarResult?.corrected) {
+                      processedText = grammarResult.corrected;
+                      useDictationStore.getState().updateSegment(segmentId, {
+                        correctedText: grammarResult.corrected,
+                        grammarApplied: true,
+                      });
+                      // Feed corrections back into flywheel
+                      if (grammarResult.changes?.length) {
+                        const fw = useFlywheelStore.getState();
+                        for (const c of grammarResult.changes) {
+                          if (c.original && c.corrected && c.original !== c.corrected) {
+                            fw.recordCorrection(
+                              c.original,
+                              c.corrected,
+                              (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
+                            );
                           }
-                          fw.recordCorrectionFeedback(true);
                         }
+                        fw.recordCorrectionFeedback(true);
                       }
-                    } catch {
-                      // Grammar unavailable (no API key etc.) — continue with raw text.
                     }
+                  } catch {
+                    // Grammar unavailable (no API key etc.) — continue with raw text.
                   }
-
-                  // Step 2: translation (on grammar-corrected or raw text)
-                  if (translationEnabled) {
-                    try {
-                      const translation = await invoke<{ translated: string }>(
-                        "translate_text",
-                        {
-                          text: processedText,
-                          targetLanguage: settings.translationTargetLanguage,
-                        }
-                      );
-                      if (translation?.translated) {
-                        useDictationStore.getState().updateSegment(segmentId, {
-                          translatedText: translation.translated,
-                          translatedToLanguage: settings.translationTargetLanguage,
-                        });
-                      }
-                    } catch {
-                      // Translation failure — leave segment as-is.
-                    }
-                  }
-                } catch {
-                  // Non-Tauri environment — skip.
                 }
-              })();
-            }
+
+                // Step 2: translation (on grammar-corrected or raw text)
+                if (translationEnabled) {
+                  try {
+                    const translation = await invoke<{ translated: string }>(
+                      "translate_text",
+                      {
+                        text: processedText,
+                        targetLanguage: settings.translationTargetLanguage,
+                      }
+                    );
+                    if (translation?.translated) {
+                      processedText = translation.translated;
+                      useDictationStore.getState().updateSegment(segmentId, {
+                        translatedText: translation.translated,
+                        translatedToLanguage: settings.translationTargetLanguage,
+                      });
+                    }
+                  } catch {
+                    // Translation failure — leave segment as-is.
+                  }
+                }
+
+                // Step 3: inject into the focused app
+                if (autoInject) {
+                  try {
+                    await invoke("inject_text", { text: processedText });
+                  } catch {
+                    // Injection failure (e.g. Accessibility permissions not granted on macOS).
+                    // Text is still visible in the Voxlen panel for manual copy.
+                  }
+                }
+              } catch {
+                // Non-Tauri environment — skip.
+              }
+            })();
           }
         );
 
