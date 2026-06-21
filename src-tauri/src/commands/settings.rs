@@ -172,16 +172,6 @@ fn get_settings_store() -> &'static parking_lot::RwLock<AppSettings> {
     SETTINGS.get_or_init(|| parking_lot::RwLock::new(AppSettings::default()))
 }
 
-fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
-    let store = app
-        .store(SETTINGS_STORE_FILE)
-        .map_err(|e| e.to_string())?;
-    let value = serde_json::to_value(settings).map_err(|e| e.to_string())?;
-    store.set(SETTINGS_KEY, value);
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 #[tauri::command]
 pub fn get_settings() -> Result<AppSettings, String> {
     Ok(get_settings_store().read().clone())
@@ -194,7 +184,9 @@ pub fn update_settings(
     settings: AppSettings,
 ) -> Result<(), String> {
     *get_settings_store().write() = settings.clone();
-    persist_settings(&app, &settings)?;
+    // The frontend (schedulePersist) owns the Tauri store and writes it in camelCase.
+    // Writing snake_case from here would overwrite that and break frontend reads on
+    // the next startup. We only update the in-memory engine config.
     apply_settings_to_engines(&stt_state.0, &settings);
     apply_autostart(&app, settings.launch_at_login);
     Ok(())
@@ -207,7 +199,6 @@ pub fn reset_settings(
 ) -> Result<AppSettings, String> {
     let defaults = AppSettings::default();
     *get_settings_store().write() = defaults.clone();
-    persist_settings(&app, &defaults)?;
     apply_settings_to_engines(&stt_state.0, &defaults);
     apply_autostart(&app, defaults.launch_at_login);
     Ok(defaults)
@@ -309,53 +300,35 @@ fn apply_settings_to_engines(
 }
 
 /// Load settings from disk into the in-memory cache. Called once during app
-/// startup. If the store file does not exist or the `settings` key is missing,
-/// defaults are written to disk so subsequent reads are consistent.
+/// startup before the window opens.
+///
+/// The Tauri store (`settings.json`) is owned by the frontend and written in
+/// camelCase. Rust must NOT read or write that JSON to avoid a snake_case /
+/// camelCase mismatch that silently resets all user settings to defaults on
+/// every restart. The frontend's `usePersistedSettings` hook owns loading
+/// camelCase settings into the Zustand store.
+///
+/// This function's only job is to:
+///   1. Open the store (initialises the app data directory).
+///   2. Hydrate API keys from the OS keychain so that STT / grammar engines
+///      have them before the first dictation.
 #[tauri::command]
 pub fn load_settings_from_disk(app: AppHandle) -> Result<AppSettings, String> {
-    let store = app
-        .store(SETTINGS_STORE_FILE)
-        .map_err(|e| e.to_string())?;
+    // Open the store so the app data directory is initialised. We deliberately
+    // ignore the contents — the frontend owns the camelCase JSON.
+    let _ = app.store(SETTINGS_STORE_FILE).map_err(|e| e.to_string())?;
 
-    let loaded = match store.get(SETTINGS_KEY) {
-        Some(value) => match serde_json::from_value::<AppSettings>(value) {
-            Ok(s) => s,
-            Err(e) => {
-                log::warn!(
-                    "Failed to parse persisted settings ({}). Falling back to defaults.",
-                    e
-                );
-                let defaults = AppSettings::default();
-                let v = serde_json::to_value(&defaults).map_err(|e| e.to_string())?;
-                store.set(SETTINGS_KEY, v);
-                store.save().map_err(|e| e.to_string())?;
-                defaults
-            }
-        },
-        None => {
-            let defaults = AppSettings::default();
-            let v = serde_json::to_value(&defaults).map_err(|e| e.to_string())?;
-            store.set(SETTINGS_KEY, v);
-            store.save().map_err(|e| e.to_string())?;
-            defaults
-        }
-    };
+    // Start from in-process defaults; the frontend will push its camelCase
+    // settings to us via `update_settings` after the window loads.
+    let mut loaded = AppSettings::default();
 
-    // API keys are deliberately NOT persisted to the settings store (privacy:
-    // they live in the OS keychain only). Hydrate them back from the keychain
-    // here so the backend STT / grammar engines have the keys on first launch.
-    // Without this, the first dictation after a restart fails with
-    // "No API key configured" and the streaming layer enters a reconnect storm.
-    let mut loaded = loaded;
-    if loaded.stt_api_key.as_deref().unwrap_or("").is_empty() {
-        loaded.stt_api_key = crate::commands::keyring::read_secret("sttApiKey");
-    }
-    if loaded.grammar_api_key.as_deref().unwrap_or("").is_empty() {
-        loaded.grammar_api_key = crate::commands::keyring::read_secret("grammarApiKey");
-    }
-    if loaded.voxlen_api_key.as_deref().unwrap_or("").is_empty() {
-        loaded.voxlen_api_key = crate::commands::keyring::read_secret("voxlenApiKey");
-    }
+    // API keys live in the OS keychain only (never in plain JSON). Hydrate
+    // them now so the STT / grammar engines work on the very first dictation
+    // after a restart, before the frontend has had a chance to call
+    // `update_settings`.
+    loaded.stt_api_key = crate::commands::keyring::read_secret("sttApiKey");
+    loaded.grammar_api_key = crate::commands::keyring::read_secret("grammarApiKey");
+    loaded.voxlen_api_key = crate::commands::keyring::read_secret("voxlenApiKey");
 
     *get_settings_store().write() = loaded.clone();
     Ok(loaded)

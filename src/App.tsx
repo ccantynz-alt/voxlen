@@ -16,7 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { loadHistory } from "@/stores/history";
-import { usePersistedSettings, saveSettings } from "@/hooks/usePersistedSettings";
+import { usePersistedSettings } from "@/hooks/usePersistedSettings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadFlywheel } from "@/stores/flywheel";
@@ -58,79 +58,35 @@ export default function App() {
   // Register all global shortcuts; re-registers on setting changes.
   useGlobalShortcuts(showOnboarding === false);
 
-  // Check if first launch + hydrate settings from backend
+  // Check if first launch (onboarding) and whether legal terms need re-acceptance.
+  // Settings are loaded by usePersistedSettings() above — we only read the
+  // legalAcceptedVersion from the raw store here to avoid a race where
+  // updateSettings triggers schedulePersist before the window is fully ready.
   useEffect(() => {
     async function checkFirstLaunch() {
       try {
         const { load } = await import("@tauri-apps/plugin-store");
         const store = await load("settings.json");
         const hasCompletedOnboarding = await store.get<boolean>("onboarding_complete");
-
-        // Load saved settings first so we can check legalAcceptedVersion
         const savedSettings = await store.get<Record<string, unknown>>("settings");
-        if (savedSettings) {
-          useSettingsStore.getState().updateSettings(savedSettings);
-        }
-
-        // Re-show onboarding if legal terms have been updated since last acceptance
-        const acceptedVersion = useSettingsStore.getState().legalAcceptedVersion;
+        const acceptedVersion = (savedSettings?.legalAcceptedVersion as string | null) ?? null;
         const needsLegalAcceptance = acceptedVersion !== LEGAL_POLICY_VERSION;
         setShowOnboarding(!hasCompletedOnboarding || needsLegalAcceptance);
       } catch {
-        // Not in Tauri - check localStorage
+        // Not in Tauri — check localStorage
         const completed = localStorage.getItem("voxlen_onboarding_complete");
         const acceptedVersion = useSettingsStore.getState().legalAcceptedVersion;
         const needsLegalAcceptance = acceptedVersion !== LEGAL_POLICY_VERSION;
         setShowOnboarding(!completed || needsLegalAcceptance);
-
-        // Load saved settings from localStorage
-        try {
-          const saved = localStorage.getItem("voxlen_settings") ?? localStorage.getItem("marcoreid_settings");
-          if (saved) {
-            useSettingsStore.getState().updateSettings(JSON.parse(saved));
-          }
-        } catch {
-          // ignore
-        }
       }
-
     }
     checkFirstLaunch();
   }, []);
 
-  // Persist settings on every change.
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let lastSerialized = "";
-
-    const unsub = useSettingsStore.subscribe((state) => {
-      // Strip transient UI-only fields.
-      const {
-        isLoaded: _isLoaded,
-        activeTab: _activeTab,
-        updateSetting: _us,
-        updateSettings: _uss,
-        setActiveTab: _sat,
-        resetToDefaults: _rtd,
-        ...appSettings
-      } = state;
-      void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
-
-      const serialized = JSON.stringify(appSettings);
-      if (serialized === lastSerialized) return;
-      lastSerialized = serialized;
-
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        saveSettings(appSettings);
-      }, 300);
-    });
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      unsub();
-    };
-  }, []);
+  // Settings persistence is handled by schedulePersist() inside the Zustand
+  // store (stores/settings.ts). It correctly excludes API keys (those go to
+  // the OS keychain) and calls invoke("update_settings") to push the snapshot
+  // to the Rust engine layer. No additional subscription is needed here.
 
   // Load history on startup
   useEffect(() => {
@@ -218,20 +174,6 @@ export default function App() {
     } catch {
       localStorage.setItem("voxlen_onboarding_complete", "true");
     }
-
-    // Save current settings through the persistence pipeline
-    const state = useSettingsStore.getState();
-    const {
-      isLoaded: _isLoaded,
-      activeTab: _activeTab,
-      updateSetting: _us,
-      updateSettings: _uss,
-      setActiveTab: _sat,
-      resetToDefaults: _rtd,
-      ...appSettings
-    } = state;
-    void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
-    await saveSettings(appSettings);
 
     setShowOnboarding(false);
   }, []);
