@@ -25,6 +25,13 @@ const ALL_COMMANDS: CommandEntry[] = [
   { command: "tab / tab key", description: "Insert a tab character", category: "formatting" },
   { command: "caps on / all caps", description: "Enable caps lock mode", category: "formatting" },
   { command: "caps off", description: "Disable caps lock mode", category: "formatting" },
+  { command: "new section / new heading", description: "Insert a section break (double newline)", category: "formatting" },
+  { command: "new clause / next clause", description: "Insert a clause break (double newline)", category: "formatting" },
+  { command: "number one", description: "Insert numbered list item 1. (\\n1. )", category: "formatting" },
+  { command: "number two", description: "Insert numbered list item 2. (\\n2. )", category: "formatting" },
+  { command: "number three", description: "Insert numbered list item 3. (\\n3. )", category: "formatting" },
+  { command: "number four", description: "Insert numbered list item 4. (\\n4. )", category: "formatting" },
+  { command: "number five", description: "Insert numbered list item 5. (\\n5. )", category: "formatting" },
   // Control
   { command: "stop listening / stop dictation", description: "Stop the current dictation session", category: "control" },
   { command: "pause dictation / pause recording", description: "Pause recording", category: "control" },
