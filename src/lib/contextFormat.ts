@@ -89,7 +89,7 @@ function formatAccountingTax(text: string): string {
     const n = wordsToNumber(amount.trim());
     return n !== null ? `${n}%` : match;
   });
-  // Tax year: "twenty twenty four twenty five" → "2024/25"
+  // Tax year: "tax year 2024 25" → "tax year 2024/25" (STT engines output digits)
   out = out.replace(/\btax year\s+(\d{4})[\s\/\\-]+(\d{2,4})\b/gi,
     (_, y1, y2) => `tax year ${y1}/${y2.slice(-2)}`);
   // IRD/ATO/HMRC reference numbers

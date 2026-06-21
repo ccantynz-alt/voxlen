@@ -248,6 +248,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   updateSetting: (key, value) => {
     set({ [key]: value });
+    // API keys must reach the keychain immediately — the 500ms debounce
+    // would lose them if the user closes the app before the timer fires.
+    if (key === "sttApiKey" || key === "grammarApiKey" || key === "voxlenApiKey") {
+      const strValue = value as string;
+      if (strValue) {
+        setSecret(key, strValue).catch((e) => console.error("keychain write failed:", e));
+      } else {
+        deleteSecret(key).catch(() => {});
+      }
+    }
     schedulePersist();
   },
 

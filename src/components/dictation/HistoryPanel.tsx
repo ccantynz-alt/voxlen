@@ -74,12 +74,12 @@ export function HistoryPanel() {
         `**Words:** ${entry.wordCount}`,
         `**Duration:** ${formatDuration(entry.duration)}`,
         `**Language:** ${entry.language.toUpperCase()}`,
-        entry.grammarCorrected ? "**AI Polished:** Yes" : "",
+        entry.grammarCorrected ? "**AI Polished:** Yes" : null,
         "",
         "---",
         "",
         entry.text,
-      ].filter((l) => l !== undefined);
+      ].filter((l): l is string => l !== null);
       content = lines.join("\n");
       mimeType = "text/markdown";
       ext = "md";
