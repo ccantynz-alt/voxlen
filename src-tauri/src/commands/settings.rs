@@ -189,6 +189,7 @@ pub fn update_settings(
     // the next startup. We only update the in-memory engine config.
     apply_settings_to_engines(&stt_state.0, &settings);
     apply_autostart(&app, settings.launch_at_login);
+    apply_injection_mode(&app, &settings.injection_mode);
     Ok(())
 }
 
@@ -211,6 +212,7 @@ pub fn apply_loaded_settings_to_engines(app: &AppHandle) {
     if let Some(stt_state) = app.try_state::<SttState>() {
         apply_settings_to_engines(&stt_state.0, &settings);
     }
+    apply_injection_mode(app, &settings.injection_mode);
 }
 
 /// Map an `AppSettings` snapshot onto the in-process STT + grammar engine
@@ -353,5 +355,19 @@ fn apply_autostart(app: &AppHandle, enable: bool) {
         let _ = mgr.enable();
     } else {
         let _ = mgr.disable();
+    }
+}
+
+/// Apply the text injection mode from settings to the in-process TextInjector.
+/// Without this, changing injection_mode in Settings only takes effect after restart.
+fn apply_injection_mode(app: &AppHandle, mode_str: &str) {
+    use crate::text_injection::{InjectionMode, InjectorState};
+    let mode = match mode_str {
+        "clipboard" => InjectionMode::ClipboardPaste,
+        "buffer" => InjectionMode::BufferOnly,
+        _ => InjectionMode::KeyboardSimulation,
+    };
+    if let Some(state) = app.try_state::<InjectorState>() {
+        state.0.read().set_mode(mode);
     }
 }
