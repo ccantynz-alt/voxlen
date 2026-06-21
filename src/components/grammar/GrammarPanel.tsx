@@ -6,6 +6,7 @@ import {
   Copy,
   Check,
   Sparkles,
+  SendHorizonal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -28,6 +29,7 @@ export function GrammarPanel() {
   const [changes, setChanges] = useState<GrammarChange[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [injected, setInjected] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const writingStyle = useSettingsStore((s) => s.writingStyle);
@@ -73,6 +75,21 @@ export function GrammarPanel() {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleInject = async () => {
+    const text = correctedText || inputText;
+    if (!text.trim()) return;
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("inject_text", { text });
+      setInjected(true);
+      setTimeout(() => setInjected(false), 2000);
+    } catch {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const categoryColors: Record<string, string> = {
@@ -159,9 +176,24 @@ export function GrammarPanel() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={handleInject}
+              disabled={!correctedText}
+              className="h-7 px-2 text-[11px]"
+              title="Type into active app"
+            >
+              {injected ? (
+                <Check className="h-3 w-3 text-green-400" strokeWidth={2} />
+              ) : (
+                <SendHorizonal className="h-3 w-3" strokeWidth={1.75} />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleCopy}
               disabled={!correctedText}
               className="h-7 px-2 text-[11px]"
+              title="Copy to clipboard"
             >
               {copied ? (
                 <Check className="h-3 w-3 text-brass-500" strokeWidth={2} />

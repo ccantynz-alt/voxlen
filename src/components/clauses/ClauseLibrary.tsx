@@ -3,7 +3,7 @@ import { useClauseStore, Clause } from "@/stores/clauses";
 import { useDictationStore } from "@/stores/dictation";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { Search, FileText, Copy, Check, Plus, Pencil, Trash2, X, Download, Upload } from "lucide-react";
+import { Search, FileText, Copy, Check, Plus, Pencil, Trash2, X, Download, Upload, SendHorizonal } from "lucide-react";
 
 const CATEGORY_LABELS: Record<string, string> = {
   contract: "Contract",
@@ -47,6 +47,7 @@ export function ClauseLibrary() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"clauses" | "templates">("clauses");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [injectedId, setInjectedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClauseFormState>(EMPTY_FORM);
@@ -150,6 +151,20 @@ export function ClauseLibrary() {
     await navigator.clipboard.writeText(clause.text);
     setCopiedId(clause.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const injectClause = async (clause: Clause) => {
+    markUsed(clause.id);
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("inject_text", { text: clause.text });
+      setInjectedId(clause.id);
+      setTimeout(() => setInjectedId(null), 2000);
+    } catch {
+      await navigator.clipboard.writeText(clause.text);
+      setCopiedId(clause.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const openNew = () => {
@@ -312,6 +327,17 @@ export function ClauseLibrary() {
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => injectClause(clause)}
+                      title="Type into active app"
+                      className="p-1.5 rounded hover:bg-surface-200 text-surface-500 hover:text-surface-900 transition-colors"
+                    >
+                      {injectedId === clause.id ? (
+                        <Check className="h-3 w-3 text-green-400" strokeWidth={2} />
+                      ) : (
+                        <SendHorizonal className="h-3 w-3" strokeWidth={1.75} />
+                      )}
+                    </button>
                     <button
                       onClick={() => copyClause(clause)}
                       title="Copy to clipboard"
