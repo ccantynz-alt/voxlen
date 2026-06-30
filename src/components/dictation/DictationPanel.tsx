@@ -21,6 +21,13 @@ import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
+import { useFlywheelStore } from "@/stores/flywheel";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
+import { SUPPORTED_LANGUAGES } from "@/lib/constants";
+import { toast } from "@/components/ui/Toast";
+import { downloadExport } from "@/lib/export";
+import type { ExportFormat } from "@/lib/export";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -73,14 +80,17 @@ export function DictationPanel() {
         setStatus("listening");
       }
     } else if (status === "listening") {
-      // Capture session BEFORE status flip so autosave in useTauriEvents
-      // has a consistent view. The autosave subscription handles save_session.
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("stop_dictation");
       } catch {
         // Demo mode
       }
+      // Setting status to idle triggers the autosave subscription in
+      // useTauriEvents, which is the single source of truth for recording
+      // history, flywheel sessions, and billable time. Don't duplicate
+      // that logic here — it causes double-entries when grammar correction
+      // updates correctedText between the two saves.
       setStatus("idle");
     }
   }, [status, setStatus, segments, sessionDuration, wordCount]);

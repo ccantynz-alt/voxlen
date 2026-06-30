@@ -160,12 +160,34 @@ export function HistoryPanel() {
     setSessions((prev) => prev.filter((s) => s.id !== session.id));
   };
 
-  const handleClearAll = async () => {
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("clear_history");
-    } catch {
-      // Degrade: still clear locally.
+  const handleExport = (entry: (typeof entries)[0], format: "txt" | "md") => {
+    const date = new Date(entry.timestamp);
+    const dateStr = date.toISOString().slice(0, 10);
+    let content: string;
+    let mimeType: string;
+    let ext: string;
+
+    if (format === "md") {
+      const lines = [
+        "# Voxlen Transcript",
+        "",
+        `**Date:** ${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+        `**Words:** ${entry.wordCount}`,
+        `**Duration:** ${formatDuration(entry.duration)}`,
+        `**Language:** ${entry.language.toUpperCase()}`,
+        entry.grammarCorrected ? "**AI Polished:** Yes" : null,
+        "",
+        "---",
+        "",
+        entry.text,
+      ].filter((l): l is string => l !== null);
+      content = lines.join("\n");
+      mimeType = "text/markdown";
+      ext = "md";
+    } else {
+      content = entry.text;
+      mimeType = "text/plain";
+      ext = "txt";
     }
     setSessions([]);
     setConfirmClear(false);
