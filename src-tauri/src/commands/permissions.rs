@@ -116,15 +116,11 @@ fn check_admin_status() -> bool {
 #[cfg(target_os = "windows")]
 fn check_text_injection_permission(
     _missing: &mut Vec<String>,
-    suggestions: &mut Vec<String>,
+    _suggestions: &mut Vec<String>,
 ) -> PermissionState {
-    // On Windows, SendInput works without admin but may need UI Access
-    let granted = true; // SendInput generally works
-    if !granted {
-        suggestions.push("Run Voxlen as Administrator for text injection to work in elevated apps".to_string());
-    }
+    // SendInput works without admin for regular apps; elevated targets require UI Access.
     PermissionState {
-        granted,
+        granted: true,
         name: "Text Injection".to_string(),
         description: "Type text into other applications via SendInput API".to_string(),
     }
@@ -263,16 +259,11 @@ fn check_audio_permission(
 fn check_autostart_support() -> bool {
     // Check if autostart mechanisms are available
     if cfg!(target_os = "linux") {
-        // Check for ~/.config/autostart directory
-        std::path::Path::new(&format!(
-            "{}/.config/autostart",
-            std::env::var("HOME").unwrap_or_default()
-        ))
-        .exists()
-            || std::path::Path::new(&format!(
-                "{}/.config/autostart",
-                std::env::var("HOME").unwrap_or_default()
-            ))
+        let home = std::env::var("HOME").unwrap_or_default();
+        // Check for ~/.config/autostart directory or its parent
+        let autostart = std::path::Path::new(&format!("{}/.config/autostart", home));
+        autostart.exists()
+            || autostart
             .parent()
             .map(|p| p.exists())
             .unwrap_or(false)

@@ -113,7 +113,7 @@ function CopyButton({ value }: { value: string }) {
     navigator.clipboard.writeText(value).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }).catch(() => {/* clipboard unavailable — silent fail */});
   };
   return (
     <button

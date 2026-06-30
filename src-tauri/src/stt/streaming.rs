@@ -246,6 +246,7 @@ async fn run_streaming_session(
                 };
 
                 if session_duration_was_healthy {
+                    // Healthy session that just dropped — reset to a fast retry.
                     backoff_ms = 1000;
                     attempt = 0;
                     consecutive_failures = 0;
@@ -263,6 +264,8 @@ async fn run_streaming_session(
                         );
                         break;
                     }
+                    attempt += 1;
+                    backoff_ms = (backoff_ms * 2).min(16000);
                 }
 
                 // Re-acquire the Deepgram key before reconnecting. Voxlen temp
@@ -275,7 +278,6 @@ async fn run_streaming_session(
                     }
                 }
 
-                attempt += 1;
                 let _ = app_handle.emit("streaming-reconnecting", attempt);
                 log::warn!(
                     "Deepgram disconnected, reconnecting in {}ms (attempt {})",
@@ -293,8 +295,6 @@ async fn run_streaming_session(
                     // Also drain the audio receiver so queue doesn't backlog
                     while let Ok(_) = audio_receiver.try_recv() {}
                 }
-
-                backoff_ms = (backoff_ms * 2).min(16000);
             }
         }
     }

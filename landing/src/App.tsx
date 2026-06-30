@@ -1625,21 +1625,26 @@ function WaitlistForm({ platform }: { platform: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
-        placeholder="your@email.com"
-        className="flex-1 h-9 px-3 rounded-lg bg-black/40 border border-white/10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-brand-500 transition-colors"
-      />
-      <button
-        type="submit"
-        className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shrink-0"
-      >
-        Notify me
-      </button>
-    </form>
+    <div className="flex flex-col gap-1.5">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
+          placeholder="your@email.com"
+          className={`flex-1 h-9 px-3 rounded-lg bg-black/40 border text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors ${status === "error" ? "border-red-500 focus:border-red-400" : "border-white/10 focus:border-brand-500"}`}
+        />
+        <button
+          type="submit"
+          className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shrink-0"
+        >
+          Notify me
+        </button>
+      </form>
+      {status === "error" && (
+        <p className="text-xs text-red-400">Please enter a valid email address.</p>
+      )}
+    </div>
   );
 }
 
