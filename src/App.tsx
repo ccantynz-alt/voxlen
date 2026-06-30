@@ -1,55 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { ShortcutsCheatsheet } from "@/components/layout/ShortcutsCheatsheet";
 import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
-import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
-import { AdminPanel } from "@/components/settings/AdminPanel";
-import { ClauseLibrary } from "@/components/clauses/ClauseLibrary";
-import { AnalyticsPanel } from "@/components/analytics/AnalyticsPanel";
-import { ClientsPanel } from "@/components/clients/ClientsPanel";
-import { OnboardingWizard, LEGAL_POLICY_VERSION } from "@/components/onboarding/OnboardingWizard";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
-import { loadHistory } from "@/stores/history";
-import { usePersistedSettings } from "@/hooks/usePersistedSettings";
+import { useHistoryStore } from "@/stores/history";
+import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
-import { loadFlywheel } from "@/stores/flywheel";
-import { loadCustomClauses } from "@/stores/clauses";
-import { ToastContainer } from "@/components/ui/Toast";
 
-type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin" | "clauses" | "analytics" | "clients";
+type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
 export default function App() {
-  // Load saved settings from disk/localStorage on startup
-  usePersistedSettings();
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
-  const theme = useSettingsStore((s) => s.theme);
-
-  // Apply theme class to document root
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove("dark", "light", "system");
-    if (theme === "light") {
-      root.classList.add("light");
-    } else if (theme === "system") {
-      root.classList.add("system");
-    }
-    // dark is the default (no class needed, :root vars apply)
-  }, [theme]);
-
-  // Load flywheel data on startup
-  useEffect(() => {
-    loadFlywheel();
-    loadCustomClauses();
-  }, []);
+  const updateSettingsStore = useSettingsStore((s) => s.updateSettings);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
   // Hook handles its own cleanup and is safe outside Tauri.
@@ -58,39 +29,86 @@ export default function App() {
   // Register all global shortcuts; re-registers on setting changes.
   useGlobalShortcuts(showOnboarding === false);
 
-  // Check if first launch (onboarding) and whether legal terms need re-acceptance.
-  // Settings are loaded by usePersistedSettings() above — we only read the
-  // legalAcceptedVersion from the raw store here to avoid a race where
-  // updateSettings triggers schedulePersist before the window is fully ready.
+  // Check if first launch + hydrate settings from backend
   useEffect(() => {
     async function checkFirstLaunch() {
       try {
         const { load } = await import("@tauri-apps/plugin-store");
         const store = await load("settings.json");
         const hasCompletedOnboarding = await store.get<boolean>("onboarding_complete");
+        setShowOnboarding(!hasCompletedOnboarding);
+
+        // Load saved settings
         const savedSettings = await store.get<Record<string, unknown>>("settings");
-        const acceptedVersion = (savedSettings?.legalAcceptedVersion as string | null) ?? null;
-        const needsLegalAcceptance = acceptedVersion !== LEGAL_POLICY_VERSION;
-        setShowOnboarding(!hasCompletedOnboarding || needsLegalAcceptance);
+        if (savedSettings) {
+          useSettingsStore.getState().updateSettings(savedSettings);
+        }
       } catch {
-        // Not in Tauri — check localStorage
-        const completed = localStorage.getItem("voxlen_onboarding_complete");
-        const acceptedVersion = useSettingsStore.getState().legalAcceptedVersion;
-        const needsLegalAcceptance = acceptedVersion !== LEGAL_POLICY_VERSION;
-        setShowOnboarding(!completed || needsLegalAcceptance);
+        // Not in Tauri - check localStorage
+        const completed = localStorage.getItem("marcoreid_onboarding_complete");
+        setShowOnboarding(!completed);
+
+        // Load saved settings from localStorage
+        try {
+          const saved = localStorage.getItem("voxlen_settings");
+          if (saved) {
+            useSettingsStore.getState().updateSettings(JSON.parse(saved));
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Hydrate settings from backend on boot.
+      try {
+        const backendSettings = await loadSettings();
+        if (backendSettings) {
+          updateSettingsStore(backendSettings);
+        }
+      } catch {
+        // Already handled inside loadSettings.
       }
     }
     checkFirstLaunch();
-  }, []);
+  }, [updateSettingsStore]);
 
-  // Settings persistence is handled by schedulePersist() inside the Zustand
-  // store (stores/settings.ts). It correctly excludes API keys (those go to
-  // the OS keychain) and calls invoke("update_settings") to push the snapshot
-  // to the Rust engine layer. No additional subscription is needed here.
+  // Persist settings on every change.
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let lastSerialized = "";
+
+    const unsub = useSettingsStore.subscribe((state) => {
+      // Strip transient UI-only fields.
+      const {
+        isLoaded: _isLoaded,
+        activeTab: _activeTab,
+        updateSetting: _us,
+        updateSettings: _uss,
+        setActiveTab: _sat,
+        resetToDefaults: _rtd,
+        ...appSettings
+      } = state;
+      void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+
+      const serialized = JSON.stringify(appSettings);
+      if (serialized === lastSerialized) return;
+      lastSerialized = serialized;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        persistSettings(appSettings);
+      }, 300);
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      unsub();
+    };
+  }, []);
 
   // Load history on startup
   useEffect(() => {
-    loadHistory();
+    useHistoryStore.getState().loadFromStore();
   }, []);
 
   // Load audio devices on mount (when not in onboarding)
@@ -172,22 +190,24 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("voxlen_onboarding_complete", "true");
+      localStorage.setItem("marcoreid_onboarding_complete", "true");
     }
+
+    // Save current settings through the persistence pipeline
+    const state = useSettingsStore.getState();
+    const {
+      isLoaded: _isLoaded,
+      activeTab: _activeTab,
+      updateSetting: _us,
+      updateSettings: _uss,
+      setActiveTab: _sat,
+      resetToDefaults: _rtd,
+      ...appSettings
+    } = state;
+    void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+    await persistSettings(appSettings);
 
     setShowOnboarding(false);
-  }, []);
-
-  const handleReopenSetup = useCallback(async () => {
-    try {
-      const { load } = await import("@tauri-apps/plugin-store");
-      const store = await load("settings.json");
-      await store.delete("onboarding_complete");
-      await store.save();
-    } catch {
-      localStorage.removeItem("voxlen_onboarding_complete");
-    }
-    setShowOnboarding(true);
   }, []);
 
   const renderView = useCallback(() => {
@@ -210,40 +230,10 @@ export default function App() {
             <HistoryPanel />
           </ErrorBoundary>
         );
-      case "flywheel":
-        return (
-          <ErrorBoundary label="Flywheel">
-            <FlywheelPanel />
-          </ErrorBoundary>
-        );
       case "settings":
         return (
           <ErrorBoundary label="Settings">
-            <SettingsPanel onReopenSetup={handleReopenSetup} />
-          </ErrorBoundary>
-        );
-      case "admin":
-        return (
-          <ErrorBoundary label="Admin">
-            <AdminPanel />
-          </ErrorBoundary>
-        );
-      case "clauses":
-        return (
-          <ErrorBoundary label="Clauses">
-            <ClauseLibrary />
-          </ErrorBoundary>
-        );
-      case "analytics":
-        return (
-          <ErrorBoundary label="Analytics">
-            <AnalyticsPanel />
-          </ErrorBoundary>
-        );
-      case "clients":
-        return (
-          <ErrorBoundary label="Clients">
-            <ClientsPanel />
+            <SettingsPanel />
           </ErrorBoundary>
         );
     }
@@ -260,11 +250,7 @@ export default function App() {
 
   // Show onboarding wizard for first-time users
   if (showOnboarding) {
-    return (
-      <ErrorBoundary>
-        <OnboardingWizard onComplete={handleOnboardingComplete} />
-      </ErrorBoundary>
-    );
+    return <OnboardingWizard onComplete={handleOnboardingComplete} />;
   }
 
   return (
@@ -277,8 +263,6 @@ export default function App() {
         />
         <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
       </div>
-      <ShortcutsCheatsheet />
-      <ToastContainer />
     </div>
   );
 }

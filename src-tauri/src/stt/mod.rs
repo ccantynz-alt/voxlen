@@ -166,3 +166,22 @@ impl SttState {
         Self(Arc::new(RwLock::new(engine)))
     }
 }
+
+/// Holds the active real-time streaming session so it can be stopped on demand.
+pub struct SttSessionState(pub Arc<RwLock<Option<streaming::StreamingSession>>>);
+
+impl SttSessionState {
+    pub fn new() -> Self {
+        Self(Arc::new(RwLock::new(None)))
+    }
+
+    pub fn set(&self, session: streaming::StreamingSession) {
+        *self.0.write() = Some(session);
+    }
+
+    pub fn stop(&self) {
+        if let Some(session) = self.0.write().take() {
+            session.stop();
+        }
+    }
+}
