@@ -1,35 +1,35 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY!;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
   if (req.method === "OPTIONS") {
-    return res.status(204).set(headers).end();
+    return applyHeaders(res, headers).status(204).end();
   }
   if (req.method !== "POST") {
-    return res.status(405).set(headers).json({ error: "Method not allowed" });
+    return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
   }
 
   const token = extractBearer(req.headers.authorization);
   if (!token) {
-    return res.status(401).set(headers).json({ error: "Missing Authorization header" });
+    return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
   }
 
   try {
     await verifyAccessToken(token);
   } catch {
-    return res.status(401).set(headers).json({ error: "Invalid token" });
+    return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
   }
 
   if (!DEEPGRAM_API_KEY) {
-    return res.status(503).set(headers).json({ error: "STT service not configured" });
+    return applyHeaders(res, headers).status(503).json({ error: "STT service not configured" });
   }
 
   const { name, terms } = req.body as { name?: string; terms?: string[] };
   if (!Array.isArray(terms) || terms.length === 0) {
-    return res.status(400).set(headers).json({ error: "terms array required" });
+    return applyHeaders(res, headers).status(400).json({ error: "terms array required" });
   }
 
   // Store vocabulary as a Deepgram keyword list (project-level custom vocab)
@@ -38,11 +38,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: { Authorization: `Token ${DEEPGRAM_API_KEY}` },
     });
     if (!dgRes.ok) {
-      return res.status(200).set(headers).json({ ok: true, stored: "local" });
+      return applyHeaders(res, headers).status(200).json({ ok: true, stored: "local" });
     }
     // Deepgram's keyword API is per-request, not persistent — just acknowledge
-    return res.status(200).set(headers).json({ ok: true, name, count: terms.length });
+    return applyHeaders(res, headers).status(200).json({ ok: true, name, count: terms.length });
   } catch {
-    return res.status(200).set(headers).json({ ok: true, stored: "local" });
+    return applyHeaders(res, headers).status(200).json({ ok: true, stored: "local" });
   }
 }

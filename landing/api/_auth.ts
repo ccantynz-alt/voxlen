@@ -133,3 +133,20 @@ export function corsHeaders() {
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
   };
 }
+
+/**
+ * VercelResponse is `ServerResponse & {send, json, status, redirect}` — unlike
+ * Express, it has no `.set()`. Every handler chaining `res.status(n).set(headers)`
+ * was throwing "res.status(...).set is not a function" on every single request
+ * (crashing every endpoint in production, since corsHeaders() is applied on every
+ * response path). Use this in its place: `applyHeaders(res, headers).status(n)`.
+ */
+export function applyHeaders<T extends { setHeader: (name: string, value: string) => void }>(
+  res: T,
+  headers: Record<string, string>
+): T {
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+  return res;
+}

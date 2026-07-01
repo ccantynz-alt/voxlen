@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY!;
 
@@ -8,25 +8,25 @@ export const config = { api: { bodyParser: false } };
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
   if (req.method === "OPTIONS") {
-    return res.status(204).set(headers).end();
+    return applyHeaders(res, headers).status(204).end();
   }
   if (req.method !== "POST") {
-    return res.status(405).set(headers).json({ error: "Method not allowed" });
+    return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
   }
 
   const token = extractBearer(req.headers.authorization);
   if (!token) {
-    return res.status(401).set(headers).json({ error: "Missing Authorization header" });
+    return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
   }
 
   try {
     await verifyAccessToken(token);
   } catch {
-    return res.status(401).set(headers).json({ error: "Invalid token" });
+    return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
   }
 
   if (!DEEPGRAM_API_KEY) {
-    return res.status(503).set(headers).json({ error: "STT service not configured" });
+    return applyHeaders(res, headers).status(503).json({ error: "STT service not configured" });
   }
 
   // Read raw body for multipart — forward directly to Deepgram
@@ -76,12 +76,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     req.on("error", reject);
   }).catch((err: Error) => {
     if (err.message === "payload_too_large") {
-      return res.status(413).set(headers).json({ error: "Audio file exceeds 25 MB limit" });
+      return applyHeaders(res, headers).status(413).json({ error: "Audio file exceeds 25 MB limit" });
     }
     throw err;
   });
   if (res.headersSent) return;
-  const body = Buffer.concat(chunks);
+  // @types/node's Buffer.concat signature wants Uint8Array<ArrayBuffer>[], but Buffer's
+  // own backing ArrayBufferLike is wider (includes SharedArrayBuffer) — a type-only
+  // mismatch; Buffer.concat(Buffer[]) is Node's normal, always-safe usage at runtime.
+  const body = Buffer.concat(chunks as unknown as Uint8Array<ArrayBuffer>[]);
 
   try {
     const dgRes = await fetch(dgUrl, {
@@ -90,24 +93,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Authorization: `Token ${DEEPGRAM_API_KEY}`,
         "Content-Type": contentType,
       },
-      body,
+      body: new Uint8Array(body),
     });
 
     if (!dgRes.ok) {
       const err = await dgRes.text();
-      return res.status(502).set(headers).json({ error: "Deepgram error", detail: err });
+      return applyHeaders(res, headers).status(502).json({ error: "Deepgram error", detail: err });
     }
 
     const result = await dgRes.json() as {
       results?: { channels?: Array<{ alternatives?: Array<{ transcript?: string; confidence?: number; words?: unknown[] }> }> };
     };
     const alt = result.results?.channels?.[0]?.alternatives?.[0];
-    return res.status(200).set(headers).json({
+    return applyHeaders(res, headers).status(200).json({
       text: alt?.transcript ?? "",
       confidence: alt?.confidence ?? 0.95,
       words: alt?.words ?? [],
     });
   } catch (e) {
-    return res.status(502).set(headers).json({ error: "STT request failed" });
+    return applyHeaders(res, headers).status(502).json({ error: "STT request failed" });
   }
 }

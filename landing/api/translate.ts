@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -13,28 +13,28 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
-  if (req.method === "OPTIONS") return res.status(204).set(headers).end();
-  if (req.method !== "POST") return res.status(405).set(headers).json({ error: "Method not allowed" });
+  if (req.method === "OPTIONS") return applyHeaders(res, headers).status(204).end();
+  if (req.method !== "POST") return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
 
   const token = extractBearer(req.headers.authorization);
-  if (!token) return res.status(401).set(headers).json({ error: "Missing Authorization header" });
+  if (!token) return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
 
   try {
     await verifyAccessToken(token);
   } catch {
-    return res.status(401).set(headers).json({ error: "Invalid token" });
+    return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
   }
 
   if (!ANTHROPIC_API_KEY) {
-    return res.status(503).set(headers).json({ error: "Translation service not configured" });
+    return applyHeaders(res, headers).status(503).json({ error: "Translation service not configured" });
   }
 
   const { text, target_language } = req.body as { text?: string; target_language?: string };
   if (!text || typeof text !== "string") {
-    return res.status(400).set(headers).json({ error: "text is required" });
+    return applyHeaders(res, headers).status(400).json({ error: "text is required" });
   }
   if (text.length > 50_000) {
-    return res.status(413).set(headers).json({ error: "text exceeds maximum length of 50,000 characters" });
+    return applyHeaders(res, headers).status(413).json({ error: "text exceeds maximum length of 50,000 characters" });
   }
   const target = target_language ?? "en";
   const targetName = LANGUAGE_NAMES[target] ?? target;
@@ -67,7 +67,7 @@ ${text}
 
     if (!r.ok) {
       const err = await r.text();
-      return res.status(502).set(headers).json({ error: "Translation failed", detail: err });
+      return applyHeaders(res, headers).status(502).json({ error: "Translation failed", detail: err });
     }
 
     const data = await r.json() as { content?: Array<{ text?: string }> };
@@ -80,12 +80,12 @@ ${text}
       parsed = { translated: content };
     }
 
-    return res.status(200).set(headers).json({
+    return applyHeaders(res, headers).status(200).json({
       translated: parsed.translated ?? text,
       detected_source: parsed.detected_source ?? null,
       target_language: target,
     });
   } catch (e) {
-    return res.status(502).set(headers).json({ error: "Translation request failed" });
+    return applyHeaders(res, headers).status(502).json({ error: "Translation request failed" });
   }
 }

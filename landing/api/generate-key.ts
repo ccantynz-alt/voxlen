@@ -1,22 +1,22 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, mintDesktopToken, corsHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, mintDesktopToken, corsHeaders, applyHeaders } from "./_auth";
 import type { VoxlenPlan } from "./_auth";
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
-  if (req.method === "OPTIONS") return res.status(204).set(headers).end();
-  if (req.method !== "POST") return res.status(405).set(headers).json({ error: "Method not allowed" });
+  if (req.method === "OPTIONS") return applyHeaders(res, headers).status(204).end();
+  if (req.method !== "POST") return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
 
   const token = extractBearer(req.headers.authorization);
-  if (!token) return res.status(401).set(headers).json({ error: "Missing Authorization header" });
+  if (!token) return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
 
   let caller;
   try {
     caller = await verifyAccessToken(token);
   } catch {
-    return res.status(401).set(headers).json({ error: "Invalid token" });
+    return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
   }
 
   const body = req.body as {
@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Admin can issue keys for anyone. Regular users can only issue for themselves.
   const isAdmin = caller.isAdmin || caller.email === ADMIN_EMAIL;
   if (body.targetEmail && body.targetEmail !== caller.email && !isAdmin) {
-    return res.status(403).set(headers).json({ error: "Only admins can issue keys for other users" });
+    return applyHeaders(res, headers).status(403).json({ error: "Only admins can issue keys for other users" });
   }
 
   const targetEmail = body.targetEmail ?? caller.email;
@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { ttlDays, expiresAt, plan },
     );
 
-    return res.status(200).set(headers).json({
+    return applyHeaders(res, headers).status(200).json({
       token: apiKey,
       expiresAt: exp,
       expiresDate: new Date(exp * 1000).toISOString().split("T")[0],
@@ -82,6 +82,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Key generation failed";
-    return res.status(503).set(headers).json({ error: msg });
+    return applyHeaders(res, headers).status(503).json({ error: msg });
   }
 }

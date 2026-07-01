@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -7,25 +7,25 @@ const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
   if (req.method === "OPTIONS") {
-    return res.status(204).set(headers).end();
+    return applyHeaders(res, headers).status(204).end();
   }
   if (req.method !== "POST") {
-    return res.status(405).set(headers).json({ error: "Method not allowed" });
+    return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
   }
 
   const token = extractBearer(req.headers.authorization);
   if (!token) {
-    return res.status(401).set(headers).json({ error: "Missing Authorization header" });
+    return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
   }
 
   try {
     await verifyAccessToken(token);
   } catch {
-    return res.status(401).set(headers).json({ error: "Invalid token" });
+    return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
   }
 
   if (!ANTHROPIC_API_KEY) {
-    return res.status(503).set(headers).json({ error: "Grammar service not configured" });
+    return applyHeaders(res, headers).status(503).json({ error: "Grammar service not configured" });
   }
 
   const body = req.body as {
@@ -41,10 +41,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const customVocabulary = body.custom_vocabulary ?? [];
 
   if (!text || typeof text !== "string") {
-    return res.status(400).set(headers).json({ error: "text is required" });
+    return applyHeaders(res, headers).status(400).json({ error: "text is required" });
   }
   if (text.length > 50_000) {
-    return res.status(413).set(headers).json({ error: "text exceeds maximum length of 50,000 characters" });
+    return applyHeaders(res, headers).status(413).json({ error: "text exceeds maximum length of 50,000 characters" });
   }
 
   const stableCore = buildStableCore();
@@ -76,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!upstream.ok) {
       const err = await upstream.text();
-      return res.status(502).set(headers).json({ error: "Upstream error", detail: err });
+      return applyHeaders(res, headers).status(502).json({ error: "Upstream error", detail: err });
     }
 
     const data = await upstream.json() as { content: Array<{ text: string }> };
@@ -90,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         score?: number;
       };
       if (parsed.corrected) {
-        return res.status(200).set(headers).json({
+        return applyHeaders(res, headers).status(200).json({
           corrected: parsed.corrected,
           changes: parsed.changes ?? [],
           score: parsed.score ?? 1.0,
@@ -100,13 +100,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Plain text response — wrap it
     }
 
-    return res.status(200).set(headers).json({
+    return applyHeaders(res, headers).status(200).json({
       corrected: raw,
       changes: [],
       score: 1.0,
     });
   } catch {
-    return res.status(502).set(headers).json({ error: "Grammar request failed" });
+    return applyHeaders(res, headers).status(502).json({ error: "Grammar request failed" });
   }
 }
 

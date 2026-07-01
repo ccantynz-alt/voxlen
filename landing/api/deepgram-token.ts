@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY!;
 const DEEPGRAM_KEYS_URL = "https://api.deepgram.com/v1/projects";
@@ -10,25 +10,25 @@ const DEEPGRAM_KEYS_URL = "https://api.deepgram.com/v1/projects";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
   if (req.method === "OPTIONS") {
-    return res.status(204).set(headers).end();
+    return applyHeaders(res, headers).status(204).end();
   }
   if (req.method !== "POST") {
-    return res.status(405).set(headers).json({ error: "Method not allowed" });
+    return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
   }
 
   const token = extractBearer(req.headers.authorization);
   if (!token) {
-    return res.status(401).set(headers).json({ error: "Missing Authorization header" });
+    return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
   }
 
   try {
     await verifyAccessToken(token);
   } catch {
-    return res.status(401).set(headers).json({ error: "Invalid token" });
+    return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
   }
 
   if (!DEEPGRAM_API_KEY) {
-    return res.status(503).set(headers).json({ error: "STT service not configured" });
+    return applyHeaders(res, headers).status(503).json({ error: "STT service not configured" });
   }
 
   try {
@@ -58,21 +58,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!keyRes.ok) {
       const err = await keyRes.text();
       console.error("Deepgram temp key error:", err);
-      return res.status(503).set(headers).json({ error: "STT token generation failed" });
+      return applyHeaders(res, headers).status(503).json({ error: "STT token generation failed" });
     }
 
     const dgJson = await keyRes.json() as { key?: { api_key?: string } };
     const apiKey = dgJson?.key?.api_key;
     if (!apiKey) {
-      return res.status(503).set(headers).json({ error: "STT token generation failed" });
+      return applyHeaders(res, headers).status(503).json({ error: "STT token generation failed" });
     }
-    return res.status(200).set(headers).json({
+    return applyHeaders(res, headers).status(200).json({
       key: apiKey,
       ttl: 30,
       fallback: false,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "STT token unavailable";
-    return res.status(503).set(headers).json({ error: msg });
+    return applyHeaders(res, headers).status(503).json({ error: msg });
   }
 }

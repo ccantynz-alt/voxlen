@@ -29,7 +29,11 @@ const ADMIN_EMAIL = "ccantynz@gmail.com";
 const GH_API_LATEST = "https://api.github.com/repos/ccantynz-alt/voxlen/releases/latest";
 const GH_API_RELEASES = "https://api.github.com/repos/ccantynz-alt/voxlen/releases";
 const GH_RELEASES_PAGE = "https://github.com/ccantynz-alt/voxlen/releases/latest";
-const VOXLEN_BASE = "https://voxlen.ai";
+// Must be the canonical (www) host: the apex domain 307-redirects here, and
+// browsers refuse to follow a redirect on a CORS preflight (OPTIONS) request —
+// every cross-origin POST/Authorization-header fetch to the apex silently
+// failed with "Network error" for exactly that reason.
+const VOXLEN_BASE = "https://www.voxlen.ai";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
