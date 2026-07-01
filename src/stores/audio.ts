@@ -12,12 +12,17 @@ export interface AudioDevice {
 interface AudioState {
   devices: AudioDevice[];
   selectedDeviceId: string | null;
+  /** The device actually in use for the current/last capture — may differ
+   * from selectedDeviceId (the preference) when it was unavailable and
+   * capture fell back to the best connected device. */
+  activeDeviceName: string | null;
   inputLevel: number;
   waveformData: number[];
   isLoadingDevices: boolean;
 
   setDevices: (devices: AudioDevice[]) => void;
   setSelectedDevice: (id: string | null) => void;
+  setActiveDeviceName: (name: string | null) => void;
   setInputLevel: (level: number) => void;
   pushWaveformSample: (sample: number) => void;
   setWaveformData: (samples: number[]) => void;
@@ -29,6 +34,7 @@ export const WAVEFORM_LENGTH = 64;
 export const useAudioStore = create<AudioState>((set) => ({
   devices: [],
   selectedDeviceId: null,
+  activeDeviceName: null,
   inputLevel: 0,
   waveformData: new Array(WAVEFORM_LENGTH).fill(0),
   isLoadingDevices: false,
@@ -36,6 +42,8 @@ export const useAudioStore = create<AudioState>((set) => ({
   setDevices: (devices) => set({ devices }),
 
   setSelectedDevice: (id) => set({ selectedDeviceId: id }),
+
+  setActiveDeviceName: (name) => set({ activeDeviceName: name }),
 
   setInputLevel: (level) => set({ inputLevel: level }),
 

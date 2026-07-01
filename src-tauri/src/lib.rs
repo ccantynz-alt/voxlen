@@ -130,6 +130,7 @@ pub fn run() {
             commands::audio::get_selected_device,
             commands::audio::set_audio_device,
             commands::audio::get_input_level,
+            commands::audio::get_active_device,
             // Dictation commands
             commands::dictation::start_dictation,
             commands::dictation::stop_dictation,

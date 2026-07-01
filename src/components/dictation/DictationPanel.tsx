@@ -34,6 +34,8 @@ export function DictationPanel() {
   const incrementDuration = useDictationStore((s) => s.incrementDuration);
   const selectedDeviceId = useAudioStore((s) => s.selectedDeviceId);
   const devices = useAudioStore((s) => s.devices);
+  const activeDeviceName = useAudioStore((s) => s.activeDeviceName);
+  const setActiveDeviceName = useAudioStore((s) => s.setActiveDeviceName);
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
   const showWaveform = useSettingsStore((s) => s.showWaveform);
 
@@ -69,6 +71,8 @@ export function DictationPanel() {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("start_dictation");
         setStatus("listening");
+        const active = await invoke<string | null>("get_active_device");
+        setActiveDeviceName(active);
       } catch {
         setStatus("listening");
       }
@@ -82,8 +86,9 @@ export function DictationPanel() {
         // Demo mode
       }
       setStatus("idle");
+      setActiveDeviceName(null);
     }
-  }, [status, setStatus, segments, sessionDuration, wordCount]);
+  }, [status, setStatus, segments, sessionDuration, wordCount, setActiveDeviceName]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
@@ -208,18 +213,23 @@ export function DictationPanel() {
               {status === "paused" && "Paused"}
               {status === "error" && "An error occurred"}
             </p>
-            {selectedDevice && (
+            {(activeDeviceName || selectedDevice) && (
               <p className="text-xs text-surface-600 mt-1 flex items-center justify-center gap-1">
                 <Mic className="h-3 w-3" />
-                {selectedDevice.name}
-                {selectedDevice.isExternal && (
+                {activeDeviceName || selectedDevice!.name}
+                {selectedDevice?.isExternal && (
                   <Badge variant="info" className="ml-1 text-[10px] py-0">
                     External
                   </Badge>
                 )}
+                {activeDeviceName && activeDeviceName !== selectedDevice?.name && (
+                  <Badge variant="warning" className="ml-1 text-[10px] py-0">
+                    Fallback
+                  </Badge>
+                )}
               </p>
             )}
-            {!selectedDevice && (
+            {!activeDeviceName && !selectedDevice && (
               <p className="text-xs text-amber-400 mt-1">
                 No microphone selected - go to Settings
               </p>

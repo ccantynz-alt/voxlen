@@ -261,7 +261,8 @@ fn check_autostart_support() -> bool {
     if cfg!(target_os = "linux") {
         let home = std::env::var("HOME").unwrap_or_default();
         // Check for ~/.config/autostart directory or its parent
-        let autostart = std::path::Path::new(&format!("{}/.config/autostart", home));
+        let autostart_path = format!("{}/.config/autostart", home);
+        let autostart = std::path::Path::new(&autostart_path);
         autostart.exists()
             || autostart
             .parent()

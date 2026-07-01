@@ -36,8 +36,9 @@ pub fn start_capture(
     sender: Sender<AudioChunk>,
     input_level: Arc<RwLock<f32>>,
     app_handle: AppHandle,
-) -> anyhow::Result<CaptureHandle> {
-    start_capture_with_options(device_id, sender, input_level, app_handle, 1.0, true)
+    device_fault: Arc<AtomicBool>,
+) -> anyhow::Result<(CaptureHandle, Option<String>)> {
+    start_capture_with_options(device_id, sender, input_level, app_handle, 1.0, true, device_fault)
 }
 
 pub fn start_capture_with_options(
@@ -47,14 +48,20 @@ pub fn start_capture_with_options(
     app_handle: AppHandle,
     input_gain: f32,
     noise_suppression: bool,
-) -> anyhow::Result<CaptureHandle> {
-    let device = if let Some(ref id) = device_id {
-        devices::get_device_by_id(id)
-            .ok_or_else(|| anyhow::anyhow!("Device not found: {}", id))?
-    } else {
-        devices::get_default_device()
-            .ok_or_else(|| anyhow::anyhow!("No default input device found"))?
-    };
+    device_fault: Arc<AtomicBool>,
+) -> anyhow::Result<(CaptureHandle, Option<String>)> {
+    let (device, resolved_id, was_fallback) = devices::resolve_input_device(device_id.as_deref())
+        .ok_or_else(|| anyhow::anyhow!("No input device available"))?;
+
+    if was_fallback {
+        if let Some(ref wanted) = device_id {
+            log::warn!(
+                "Preferred microphone '{}' is unavailable; falling back to '{}'",
+                wanted,
+                resolved_id
+            );
+        }
+    }
 
     let config = device.default_input_config()?;
     let sample_rate = config.sample_rate().0;
@@ -73,18 +80,23 @@ pub fn start_capture_with_options(
     }
 
     log::info!(
-        "Starting capture: device={:?}, rate={}, channels={}",
-        device_id,
+        "Starting capture: device={}, rate={}, channels={}",
+        resolved_id,
         sample_rate,
         channels
     );
 
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_flag_clone = stop_flag.clone();
+    let poll_device_id = resolved_id.clone();
 
     let thread = std::thread::spawn(move || {
-        let err_fn = |err: cpal::StreamError| {
+        let device_fault_for_err = device_fault.clone();
+        let app_handle_for_err = app_handle.clone();
+        let err_fn = move |err: cpal::StreamError| {
             log::error!("Audio stream error: {}", err);
+            device_fault_for_err.store(true, Ordering::Relaxed);
+            let _ = app_handle_for_err.emit("audio-stream-error", err.to_string());
         };
 
         let sender_clone = sender.clone();
@@ -184,9 +196,21 @@ pub fn start_capture_with_options(
                     return;
                 }
 
-                // Keep the stream alive until stop flag is set
+                // Keep the stream alive until stop flag is set. Every ~1s, also
+                // confirm the device is still enumerable — cpal's error callback
+                // is not guaranteed to fire when a device is unplugged or its
+                // power/mute button is toggled off, so this poll is the backstop
+                // that lets the watchdog notice and auto-recover.
+                let mut ticks: u32 = 0;
                 while !stop_flag_clone.load(Ordering::Relaxed) {
                     std::thread::sleep(std::time::Duration::from_millis(50));
+                    ticks += 1;
+                    if ticks % 20 == 0 && !devices::device_exists(&poll_device_id) {
+                        log::warn!("Input device '{}' is no longer available", poll_device_id);
+                        device_fault.store(true, Ordering::Relaxed);
+                        let _ = app_handle.emit("audio-device-lost", poll_device_id.clone());
+                        break;
+                    }
                 }
 
                 drop(stream);
@@ -198,10 +222,13 @@ pub fn start_capture_with_options(
         }
     });
 
-    Ok(CaptureHandle {
-        stop_flag,
-        _stream_thread: Some(thread),
-    })
+    Ok((
+        CaptureHandle {
+            stop_flag,
+            _stream_thread: Some(thread),
+        },
+        Some(resolved_id),
+    ))
 }
 
 fn process_audio_data(

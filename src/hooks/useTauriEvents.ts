@@ -441,6 +441,36 @@ export function useTauriEvents(): void {
           toast(`Reconnecting to transcription service… (attempt ${event.payload})`, "info", 3000);
         });
 
+        // Microphone auto-recovery lifecycle (stream error / unplug / mute
+        // toggle detected by the Rust capture watchdog). Raw "audio-stream-error"
+        // and "audio-device-lost" events are intentionally not toasted here —
+        // they always precede an "audio-recovery-attempt" and toasting both
+        // would just double up the same notification.
+        const unlistenRecoveryAttempt = await listen("audio-recovery-attempt", () => {
+          toast("Microphone signal lost — reconnecting…", "info", 3000);
+        });
+
+        const unlistenRecoveryResult = await listen<{ ok: boolean; device?: string; error?: string }>(
+          "audio-recovery-result",
+          (event) => {
+            const { ok, device, error } = event.payload;
+            if (ok) {
+              toast(device ? `Microphone reconnected — using ${device}` : "Microphone reconnected", "success", 4000);
+              useAudioStore.getState().setActiveDeviceName(device ?? null);
+            } else {
+              toast(`Reconnect failed${error ? `: ${error}` : ""} — retrying…`, "error", 4000);
+            }
+          }
+        );
+
+        const unlistenRecoveryGiveup = await listen("audio-recovery-giveup", () => {
+          toast(
+            "Microphone unavailable — check the connection/power and press the mic button to retry.",
+            "error",
+            8000
+          );
+        });
+
         unlisten = () => {
           unlistenLevel();
           unlistenWaveform();
@@ -450,6 +480,9 @@ export function useTauriEvents(): void {
           unlistenUtteranceEnd();
           unlistenTranscriptionError();
           unlistenReconnecting();
+          unlistenRecoveryAttempt();
+          unlistenRecoveryResult();
+          unlistenRecoveryGiveup();
         };
       } catch {
         // Not running in Tauri.
