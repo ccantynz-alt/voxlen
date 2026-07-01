@@ -855,12 +855,12 @@ function HowItWorks() {
 
 function Comparison() {
   const competitors = [
-    { name: "Windows+H", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false },
-    { name: "Apple Dictation", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: true, extMic: false },
-    { name: "Grammarly", price: "$12/mo", realtime: false, neverInterrupts: false, grammar: true, anyApp: false, offline: false, extMic: false },
-    { name: "Dragon", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false },
-    { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false },
-    { name: "Voxlen", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, highlight: true },
+    { name: "Windows+H", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: false, extMic: false, android: false, legalMode: false },
+    { name: "Apple Dictation", price: "Free", realtime: false, neverInterrupts: false, grammar: false, anyApp: false, offline: true, extMic: false, android: false, legalMode: false },
+    { name: "Grammarly", price: "$12/mo", realtime: false, neverInterrupts: false, grammar: true, anyApp: false, offline: false, extMic: false, android: true, legalMode: false },
+    { name: "Dragon", price: "$700", realtime: true, neverInterrupts: false, grammar: false, anyApp: true, offline: true, extMic: false, android: false, legalMode: true },
+    { name: "Wispr Flow", price: "$12/mo", realtime: true, neverInterrupts: true, grammar: false, anyApp: true, offline: false, extMic: false, android: false, legalMode: false },
+    { name: "Voxlen", price: "$29/mo", realtime: true, neverInterrupts: true, grammar: true, anyApp: true, offline: true, extMic: true, android: "soon", legalMode: true, highlight: true },
   ];
 
   return (
@@ -1318,29 +1318,7 @@ const DOWNLOADS: Record<
   },
 };
 
-const GH_API_LATEST = "https://api.github.com/repos/ccantynz-alt/voxlen/releases/latest";
-const GH_RELEASES_PAGE = "https://github.com/ccantynz-alt/voxlen/releases/latest";
-
-type ReleaseAsset = {
-  name: string;
-  browser_download_url: string;
-  size: number;
-};
-
-function pickAssetFor(
-  platform: Exclude<Platform, "unknown">,
-  assets: ReleaseAsset[]
-): ReleaseAsset | null {
-  const patterns: Record<Exclude<Platform, "unknown">, RegExp> = {
-    "mac-arm": /aarch64.*\.dmg$/i,
-    "mac-intel": /(x86_64|x64).*\.dmg$/i,
-    windows: /\.(msi|setup\.exe)$/i,
-    linux: /\.AppImage$/i,
-  };
-  return assets.find((a) => patterns[platform].test(a.name)) ?? null;
-}
-
-function CTA() {
+function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
   const [platform, setPlatform] = useState<Platform>("unknown");
 
   const login = useGoogleSignIn(onSignIn);
