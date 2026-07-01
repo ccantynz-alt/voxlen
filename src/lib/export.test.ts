@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { exportTranscript } from "./export";
+import { exportTranscript, exportBillingCsv, exportAllBillingCsv } from "./export";
 import type { TranscriptionSegment } from "@/stores/dictation";
+import type { Client, MatterEntry } from "@/stores/clients";
 
 function seg(
   text: string,
@@ -85,5 +86,42 @@ describe("exportTranscript", () => {
     const parsed = JSON.parse(out.content);
     expect(parsed.segments[0].translatedText).toBe("bonjour");
     expect(parsed.segments[0].translatedToLanguage).toBe("fr");
+  });
+});
+
+const mockClient: Client = {
+  id: "c1", name: "Smith & Co", matterNumber: "M-001",
+  billableRate: 400, color: "#7345d1", archived: false, createdAt: 1700000000000,
+};
+
+const mockEntries: MatterEntry[] = [
+  { id: "e1", clientId: "c1", date: new Date("2026-05-01").getTime(), durationSeconds: 3600, wordCount: 800, billableAmount: 400, note: "Contract draft" },
+  { id: "e2", clientId: "c1", date: new Date("2026-05-10").getTime(), durationSeconds: 1800, wordCount: 400, billableAmount: 200 },
+];
+
+describe("exportBillingCsv", () => {
+  it("includes header row and one row per entry", () => {
+    const { content, filename } = exportBillingCsv(mockClient, mockEntries);
+    const rows = content.split("\r\n");
+    expect(rows[0]).toContain("Date");
+    expect(rows).toHaveLength(4); // header + 2 entries + TOTAL
+    expect(rows[3]).toContain("TOTAL");
+    expect(rows[3]).toContain("600.00");
+    expect(filename).toContain("smith");
+  });
+
+  it("wraps notes with commas in quotes", () => {
+    const e: MatterEntry = { id: "e3", clientId: "c1", date: Date.now(), durationSeconds: 600, wordCount: 100, billableAmount: 66.67, note: "Draft, review" };
+    const { content } = exportBillingCsv(mockClient, [e]);
+    expect(content).toContain('"Draft, review"');
+  });
+});
+
+describe("exportAllBillingCsv", () => {
+  it("includes client name and matter number columns", () => {
+    const { content } = exportAllBillingCsv([mockClient], mockEntries);
+    expect(content).toContain("Smith & Co");
+    expect(content).toContain("M-001");
+    expect(content).toContain("TOTAL");
   });
 });

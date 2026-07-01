@@ -1,5 +1,29 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+// Stub clause store so no Zustand/Tauri side-effects
+vi.mock("@/stores/clauses", () => {
+  const clauses = [
+    {
+      id: "indemnity-standard",
+      title: "Standard Indemnity",
+      category: "liability",
+      voiceTrigger: "insert indemnity clause",
+      text: "INDEMNITY_TEXT",
+      tags: [],
+    },
+  ];
+  return {
+    useClauseStore: {
+      getState: () => ({
+        clauses,
+        findByTrigger: (text: string) =>
+          clauses.find((c) => text.toLowerCase().includes(c.voiceTrigger.toLowerCase())),
+        markUsed: vi.fn(),
+      }),
+    },
+  };
+});
+
 // Zustand store imports side-effect; stub the dictation store so tests stay
 // pure and don't pull in Tauri/plugin-store code paths.
 vi.mock("@/stores/dictation", () => {
@@ -61,6 +85,29 @@ describe("processVoiceCommands", () => {
     expect(processVoiceCommands("scratch that").action).toBe("delete_last");
     expect(processVoiceCommands("stop dictation").action).toBe("stop");
   });
+
+  it("matches clear and clear all commands", () => {
+    expect(processVoiceCommands("clear").action).toBe("clear_session");
+    expect(processVoiceCommands("clear all").action).toBe("clear_session");
+    expect(processVoiceCommands("clear session").action).toBe("clear_session");
+  });
+
+  it("matches new paragraph command", () => {
+    const r = processVoiceCommands("new paragraph");
+    expect(r.matched).toBe(true);
+    expect(r.action).toBe("insert_paragraph");
+  });
+
+  it("matches stop listening and stop dictation", () => {
+    expect(processVoiceCommands("stop listening").action).toBe("stop");
+    expect(processVoiceCommands("stop dictation").action).toBe("stop");
+  });
+
+  it("matches clause insertion commands", () => {
+    const r = processVoiceCommands("insert indemnity clause");
+    expect(r.matched).toBe(true);
+    expect(r.action).toBe("insert_clause:insert indemnity clause");
+  });
 });
 
 describe("executeVoiceCommand", () => {
@@ -86,6 +133,33 @@ describe("executeVoiceCommand", () => {
   it("stop action sets idle status", () => {
     executeVoiceCommand("stop");
     expect(useDictationStore.getState().status).toBe("idle");
+  });
+
+  it("clear_session calls clearSession on the store", () => {
+    const clearSession = vi.fn();
+    vi.spyOn(useDictationStore, "getState").mockReturnValueOnce({
+      ...useDictationStore.getState(),
+      clearSession,
+    });
+    executeVoiceCommand("clear_session");
+    expect(clearSession).toHaveBeenCalled();
+  });
+
+  it("insert_clause action returns clause text", () => {
+    const result = executeVoiceCommand("insert_clause:insert indemnity clause");
+    expect(result).toContain("INDEMNITY_TEXT");
+  });
+
+  it("returns null for unknown action", () => {
+    expect(executeVoiceCommand("nonexistent_action")).toBe(null);
+  });
+
+  it("returns numbered list items for legal_item_1 through legal_item_5", () => {
+    expect(executeVoiceCommand("legal_item_1")).toBe("\n1. ");
+    expect(executeVoiceCommand("legal_item_2")).toBe("\n2. ");
+    expect(executeVoiceCommand("legal_item_3")).toBe("\n3. ");
+    expect(executeVoiceCommand("legal_item_4")).toBe("\n4. ");
+    expect(executeVoiceCommand("legal_item_5")).toBe("\n5. ");
   });
 });
 

@@ -46,9 +46,14 @@ function collapseDigitRuns(input: string): string {
   };
 
   for (const word of words) {
-    const key = word.replace(/[.,!?;:]+$/g, "").toLowerCase();
+    const trailing = word.match(/[.,!?;:]+$/)?.[0] ?? "";
+    const key = word.slice(0, word.length - trailing.length).toLowerCase();
     if (key && DIGIT_WORDS[key] !== undefined) {
-      run.push(word);
+      run.push(key);
+      if (trailing) {
+        flush();
+        if (out.length) out[out.length - 1] += trailing;
+      }
     } else {
       if (run.length) flush();
       out.push(word);
@@ -99,6 +104,134 @@ function formatSocial(input: string): string {
   return out;
 }
 
+const LATIN_PHRASES: Record<string, string> = {
+  "inter alia": "inter alia",
+  "res judicata": "res judicata",
+  "prima facie": "prima facie",
+  "mens rea": "mens rea",
+  "actus reus": "actus reus",
+  "bona fide": "bona fide",
+  "de facto": "de facto",
+  "de jure": "de jure",
+  "ex parte": "ex parte",
+  "habeas corpus": "habeas corpus",
+  "in camera": "in camera",
+  "in limine": "in limine",
+  "locus standi": "locus standi",
+  "non est factum": "non est factum",
+  "nunc pro tunc": "nunc pro tunc",
+  "obiter dicta": "obiter dicta",
+  "per curiam": "per curiam",
+  "pro bono": "pro bono",
+  "pro rata": "pro rata",
+  "quantum meruit": "quantum meruit",
+  "ratio decidendi": "ratio decidendi",
+  "res ipsa loquitur": "res ipsa loquitur",
+  "stare decisis": "stare decisis",
+  "ultra vires": "ultra vires",
+  "versus": "v.",
+  "and others": "et al.",
+  "and the following": "et seq.",
+  "that is": "i.e.",
+  "for example": "e.g.",
+
+  // Additional Latin maxims
+  "ab initio": "ab initio",
+  "ad hoc": "ad hoc",
+  "ad idem": "ad idem",
+  "audi alteram partem": "audi alteram partem",
+  "caveat emptor": "caveat emptor",
+  "contra proferentem": "contra proferentem",
+  "cum dividend": "cum dividend",
+  "ejusdem generis": "ejusdem generis",
+  "ex gratia": "ex gratia",
+  "ex turpi causa": "ex turpi causa",
+  "force majeure": "force majeure",
+  "ibid": "ibid.",
+  "id est": "i.e.",
+  "in personam": "in personam",
+  "in rem": "in rem",
+  "inter partes": "inter partes",
+  "ipso facto": "ipso facto",
+  "lex fori": "lex fori",
+  "lex loci": "lex loci",
+  "mutatis mutandis": "mutatis mutandis",
+  "nemo dat quod non habet": "nemo dat quod non habet",
+  "nemo judex in sua causa": "nemo judex in sua causa",
+  "novus actus interveniens": "novus actus interveniens",
+  "obiter": "obiter",
+  "pacta sunt servanda": "pacta sunt servanda",
+  "pari passu": "pari passu",
+  "per incuriam": "per incuriam",
+  "per se": "per se",
+  "post mortem": "post mortem",
+  "prima facie evidence": "prima facie evidence",
+  "rebus sic stantibus": "rebus sic stantibus",
+  "res gestae": "res gestae",
+  "res nullius": "res nullius",
+  "respondeat superior": "respondeat superior",
+  "sine die": "sine die",
+  "sine qua non": "sine qua non",
+  "sub judice": "sub judice",
+  "sui generis": "sui generis",
+  "uberrimae fidei": "uberrimae fidei",
+  "volenti non fit injuria": "volenti non fit injuria",
+
+  // Accounting terms
+  "ebitda": "EBITDA",
+  "ebit": "EBIT",
+  "gaap": "GAAP",
+  "ifrs": "IFRS",
+  "frs one oh two": "FRS 102",
+  "frs 102": "FRS 102",
+  "hmrc": "HMRC",
+  "paye": "PAYE",
+  "vat": "VAT",
+  "p and l": "P&L",
+  "profit and loss": "P&L",
+  "balance sheet": "balance sheet",
+  "net present value": "NPV",
+  "internal rate of return": "IRR",
+  "return on investment": "ROI",
+  "earnings per share": "EPS",
+  "price to earnings": "P/E",
+};
+
+function formatLegalPhrases(input: string): string {
+  let out = input;
+  // Protect known Latin and legal abbreviations from further transforms
+  for (const [spoken, written] of Object.entries(LATIN_PHRASES)) {
+    const escaped = spoken.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`\\b${escaped}\\b`, "gi");
+    out = out.replace(re, written);
+  }
+  return out;
+}
+
+const CURRENCY_SPOKEN: Record<string, string> = {
+  "pounds sterling": "GBP",
+  "australian dollars": "AUD",
+  "us dollars": "USD",
+  "euro": "EUR",
+  "euros": "EUR",
+  "new zealand dollars": "NZD",
+  "canadian dollars": "CAD",
+};
+// Keep reference to satisfy lint
+void CURRENCY_SPOKEN;
+
+function formatLegalCurrency(input: string): string {
+  let out = input;
+  // "fifty thousand pounds sterling" → "£50,000"
+  // Simple spoken amount patterns
+  const amountRe = /\b(\w[\w\s]*?)\s+(pounds sterling|australian dollars|us dollars|euros?|new zealand dollars|canadian dollars)\b/gi;
+  out = out.replace(amountRe, (_, amount, currency) => {
+    const symbol = ({ "pounds sterling": "£", "australian dollars": "A$", "us dollars": "$", "euro": "€", "euros": "€", "new zealand dollars": "NZ$", "canadian dollars": "C$" } as Record<string, string>)[currency.toLowerCase()] ?? currency;
+    return symbol + amount.trim();
+  });
+  return out;
+}
+
 /** Markdown-ish dictation commands. Triggered only at the start of a segment. */
 function formatMarkdown(input: string): string {
   const trimmed = input.trimStart();
@@ -144,6 +277,8 @@ export interface SmartFormatOptions {
   social?: boolean;
   markdown?: boolean;
   digitRuns?: boolean;
+  legalPhrases?: boolean; // opt-in — only when legal mode active
+  legalCurrency?: boolean;
 }
 
 const defaultOptions: Required<SmartFormatOptions> = {
@@ -152,6 +287,8 @@ const defaultOptions: Required<SmartFormatOptions> = {
   social: true,
   markdown: true,
   digitRuns: true,
+  legalPhrases: false,
+  legalCurrency: false,
 };
 
 export function applySmartFormat(
@@ -166,5 +303,7 @@ export function applySmartFormat(
   if (o.emails) out = formatEmails(out);
   if (o.urls) out = formatUrls(out);
   if (o.social) out = formatSocial(out);
+  if (o.legalPhrases) out = formatLegalPhrases(out);
+  if (o.legalCurrency) out = formatLegalCurrency(out);
   return out;
 }

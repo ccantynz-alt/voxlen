@@ -1,19 +1,22 @@
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
+// Supplemental Speech Recognition types not fully covered in all TS DOM lib versions.
 
 interface SpeechRecognitionAlternative {
   readonly transcript: string;
   readonly confidence: number;
 }
 
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  // Index signature omitted — already declared in lib.dom.d.ts for newer TS versions.
+  readonly 0: SpeechRecognitionAlternative;
+}
+
 interface SpeechRecognitionResultList {
   readonly length: number;
   item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
+  readonly 0: SpeechRecognitionResult;
 }
 
 interface SpeechRecognitionEvent extends Event {

@@ -32,18 +32,12 @@ pub fn run() {
                 log::warn!("Failed to load settings from disk: {}", e);
             }
 
-            // Initialize the audio engine. Take ownership of the receiver end
-            // of the capture channel before moving the engine into managed
-            // state so the STT processor can consume chunks.
-            let mut audio_engine = audio::AudioEngine::new(app_handle.clone());
-            let audio_receiver = audio_engine
-                .audio_receiver
-                .take()
-                .expect("AudioEngine should be constructed with a receiver");
-            let audio_status = audio_engine.status.clone();
+            // Initialize the audio engine.
+            let audio_engine = audio::AudioEngine::new(app_handle.clone());
             app.manage(audio::AudioState::new(audio_engine));
 
-            // Initialize the STT engine
+            // Initialize the STT engine and session state.
+            // The audio→STT pipeline is wired per-session in start_dictation.
             let stt_engine = stt::SttEngine::new(app_handle.clone());
             let stt_state = stt::SttState::new(stt_engine);
             let stt_engine_arc = stt_state.0.clone();
@@ -55,16 +49,6 @@ pub fn run() {
             // Push the just-loaded settings into the STT + grammar engines so
             // API keys flow all the way through before the user's first hotkey.
             commands::settings::apply_loaded_settings_to_engines(&app_handle);
-
-            // Spawn the long-running audio → STT processor. It reads chunks from
-            // the capture channel, does VAD, transcribes, and emits
-            // `transcription` events that `useTauriEvents` is already listening for.
-            let processor = stt::processor::AudioProcessor::new(
-                app_handle.clone(),
-                stt_engine_arc,
-                audio_status,
-            );
-            processor.start(audio_receiver);
 
             // Initialize the text injection engine
             let injector = text_injection::TextInjector::new();
@@ -185,6 +169,7 @@ pub fn run() {
             // Window commands
             commands::window::minimize_to_tray,
             commands::window::toggle_window,
+            commands::window::open_url,
             // Permission commands
             commands::permissions::check_permissions,
             commands::permissions::request_admin_permissions,

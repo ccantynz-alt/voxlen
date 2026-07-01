@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
+import { useFlywheelStore } from "@/stores/flywheel";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { toast } from "@/components/ui/Toast";
 
 /**
  * Registers all four configured global shortcuts with the Tauri
@@ -45,9 +48,18 @@ export function useGlobalShortcuts(enabled: boolean): void {
               (async () => {
                 try {
                   const { invoke } = await import("@tauri-apps/api/core");
-                  await invoke("start_dictation");
+                  try {
+                    await invoke("start_dictation");
+                  } catch (err) {
+                    // Real backend error — reset UI and show the user why it failed.
+                    useDictationStore.getState().setStatus("idle");
+                    toast(
+                      err instanceof Error ? err.message : String(err) || "Failed to start dictation",
+                      "error"
+                    );
+                  }
                 } catch {
-                  // Demo / non-Tauri.
+                  // Not in Tauri (import failed) — expected in browser/dev.
                 }
               })();
             } else {
@@ -57,7 +69,7 @@ export function useGlobalShortcuts(enabled: boolean): void {
                   const { invoke } = await import("@tauri-apps/api/core");
                   await invoke("stop_dictation");
                 } catch {
-                  // Demo / non-Tauri.
+                  // Non-Tauri / ignore.
                 }
               })();
             }
@@ -74,9 +86,17 @@ export function useGlobalShortcuts(enabled: boolean): void {
                 (async () => {
                   try {
                     const { invoke } = await import("@tauri-apps/api/core");
-                    await invoke("start_dictation");
+                    try {
+                      await invoke("start_dictation");
+                    } catch (err) {
+                      useDictationStore.getState().setStatus("idle");
+                      toast(
+                        err instanceof Error ? err.message : String(err) || "Failed to start dictation",
+                        "error"
+                      );
+                    }
                   } catch {
-                    // Demo / non-Tauri.
+                    // Not in Tauri.
                   }
                 })();
               }
@@ -88,7 +108,7 @@ export function useGlobalShortcuts(enabled: boolean): void {
                     const { invoke } = await import("@tauri-apps/api/core");
                     await invoke("stop_dictation");
                   } catch {
-                    // Demo / non-Tauri.
+                    // Non-Tauri / ignore.
                   }
                 })();
               }
@@ -122,8 +142,14 @@ export function useGlobalShortcuts(enabled: boolean): void {
           await register(shortcutCorrectGrammar, (event) => {
             if (event.state !== "Pressed") return;
             (async () => {
+              let invoke: typeof import("@tauri-apps/api/core").invoke;
               try {
-                const { invoke } = await import("@tauri-apps/api/core");
+                ({ invoke } = await import("@tauri-apps/api/core"));
+              } catch {
+                return; // Not in Tauri.
+              }
+
+              try {
                 const state = useDictationStore.getState();
                 // Prefer selected text from the frontend; otherwise use
                 // the last segment from the current session.
@@ -132,9 +158,27 @@ export function useGlobalShortcuts(enabled: boolean): void {
                 const textToCorrect = selection || lastSegment?.correctedText || lastSegment?.text || "";
                 if (!textToCorrect.trim()) return;
 
-                const result = await invoke<{ corrected: string }>(
+                const flyVocab = useFlywheelStore.getState().vocabulary
+                  .filter((v) => v.frequency >= 2)
+                  .map((v) => v.word);
+                const { activeClientId, clients } = useClientsStore.getState();
+                const activeClient = clients.find((c) => c.id === activeClientId);
+                const clientVocab = activeClient?.vocabulary ?? [];
+                const globalVocab = useSettingsStore.getState().customVocabulary;
+                const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocab, ...globalVocab]));
+                const matterContext = buildMatterContext(activeClient) || undefined;
+
+                const result = await invoke<{
+                  corrected: string;
+                  changes: Array<{ original: string; corrected: string; reason: string; category: string }>;
+                  score: number;
+                }>(
                   "correct_grammar",
-                  { text: textToCorrect }
+                  {
+                    text: textToCorrect,
+                    customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
+                    matterContext,
+                  }
                 );
 
                 if (lastSegment && !selection) {
@@ -144,6 +188,21 @@ export function useGlobalShortcuts(enabled: boolean): void {
                   });
                 }
 
+                // Feed corrections back into flywheel (same as auto-grammar path)
+                if (result.changes?.length) {
+                  const fw = useFlywheelStore.getState();
+                  for (const c of result.changes) {
+                    if (c.original && c.corrected && c.original !== c.corrected) {
+                      fw.recordCorrection(
+                        c.original,
+                        c.corrected,
+                        (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
+                      );
+                    }
+                  }
+                  fw.recordCorrectionFeedback(true);
+                }
+
                 // Inject corrected text into the focused app.
                 try {
                   await invoke("inject_text", { text: result.corrected });
@@ -151,8 +210,12 @@ export function useGlobalShortcuts(enabled: boolean): void {
                   // Fallback: clipboard.
                   await navigator.clipboard.writeText(result.corrected);
                 }
-              } catch {
-                // Non-Tauri / no backend — silently skip.
+              } catch (err) {
+                // Show the user why grammar correction failed (no key, API error, etc.)
+                toast(
+                  err instanceof Error ? err.message : String(err) || "Grammar correction failed",
+                  "error"
+                );
               }
             })();
           });

@@ -53,19 +53,39 @@ impl InjectorState {
 fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
     use std::process::Command;
 
-    // Use osascript for reliable text input on macOS
-    // This works with any focused application
-    let escaped = text.replace('\\', "\\\\").replace('"', "\\\"");
-    let script = format!(
-        r#"tell application "System Events" to keystroke "{}""#,
-        escaped
-    );
+    // AppleScript `keystroke` can't handle newlines inline — split on them
+    // and send Return keystrokes in between. Also escape backslash and quote.
+    let mut parts: Vec<&str> = text.split('\n').collect();
+    // Trim a trailing empty part so a trailing newline doesn't add an extra Return
+    if parts.last() == Some(&"") {
+        parts.pop();
+    }
 
-    Command::new("osascript")
-        .arg("-e")
-        .arg(&script)
-        .output()
-        .map_err(|e| anyhow::anyhow!("Failed to simulate keyboard: {}", e))?;
+    for (i, part) in parts.iter().enumerate() {
+        if i > 0 {
+            let ret_script = r#"tell application "System Events" to key code 36"#;
+            Command::new("osascript")
+                .arg("-e")
+                .arg(ret_script)
+                .output()
+                .map_err(|e| anyhow::anyhow!("Failed to simulate Return key: {}", e))?;
+        }
+
+        if part.is_empty() {
+            continue;
+        }
+
+        let escaped = part.replace('\\', "\\\\").replace('"', "\\\"");
+        let script = format!(
+            r#"tell application "System Events" to keystroke "{}""#,
+            escaped
+        );
+        Command::new("osascript")
+            .arg("-e")
+            .arg(&script)
+            .output()
+            .map_err(|e| anyhow::anyhow!("Failed to simulate keyboard: {}", e))?;
+    }
 
     Ok(())
 }

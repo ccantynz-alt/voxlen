@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getSecret, setSecret } from "@/lib/keyring";
+import { getSecret, setSecret, deleteSecret } from "@/lib/keyring";
 
 export interface AppSettings {
   // Audio
@@ -52,6 +52,13 @@ export interface AppSettings {
   // Privacy
   telemetryEnabled: boolean;
   saveTranscripts: boolean;
+  privilegedMode: boolean;
+  legalMode: boolean; // enables Latin phrase recognition + legal smart format
+  jurisdiction: "uk" | "us" | "australia" | "canada" | "nz" | "global";
+  billableRatePerHour: number;
+  voxlenApiKey: string;
+  voxlenContext: string; // VoxlenContext value
+  voxlenTenantId: string;
 
   // Legal
   legalAcceptedVersion: string | null;
@@ -59,7 +66,6 @@ export interface AppSettings {
 }
 
 interface SettingsState extends AppSettings {
-  isLoaded: boolean;
   activeTab: string;
   updateSetting: <K extends keyof AppSettings>(
     key: K,
@@ -75,7 +81,7 @@ const defaultSettings: AppSettings = {
   inputGain: 1.0,
   noiseSuppression: true,
 
-  sttEngine: "whisper_cloud",
+  sttEngine: "deepgram",
   sttApiKey: "",
   sttLanguage: "en",
   autoDetectLanguage: true,
@@ -112,6 +118,13 @@ const defaultSettings: AppSettings = {
 
   telemetryEnabled: false,
   saveTranscripts: true,
+  privilegedMode: false,
+  legalMode: false,
+  jurisdiction: "global",
+  billableRatePerHour: 0,
+  voxlenApiKey: "",
+  voxlenContext: "legal_general",
+  voxlenTenantId: "",
 
   legalAcceptedVersion: null,
   legalAcceptedAt: null,
@@ -156,6 +169,14 @@ function schedulePersist() {
       launchAtLogin: state.launchAtLogin,
       telemetryEnabled: state.telemetryEnabled,
       saveTranscripts: state.saveTranscripts,
+      privilegedMode: state.privilegedMode,
+      legalMode: state.legalMode,
+      jurisdiction: state.jurisdiction,
+      billableRatePerHour: state.billableRatePerHour,
+      voxlenContext: state.voxlenContext,
+      voxlenTenantId: state.voxlenTenantId,
+      legalAcceptedVersion: state.legalAcceptedVersion,
+      legalAcceptedAt: state.legalAcceptedAt,
     };
     try {
       const { load } = await import("@tauri-apps/plugin-store");
@@ -164,36 +185,79 @@ function schedulePersist() {
       await store.save();
     } catch {
       try {
-        localStorage.setItem("marcoreid_settings", JSON.stringify(toSave));
+        localStorage.setItem("voxlen_settings", JSON.stringify(toSave));
       } catch {
         // Ignore
       }
     }
 
-    // Persist API keys to OS keychain
-    if (state.sttApiKey) await setSecret("sttApiKey", state.sttApiKey);
-    if (state.grammarApiKey) await setSecret("grammarApiKey", state.grammarApiKey);
+    // Persist API keys to OS keychain (delete when cleared).
+    // If keychain_set throws inside the Tauri app (isTauri() is true), we
+    // surface the error so the user knows — silently losing a key causes
+    // confusing auth failures on next startup.
+    const keychainOps: Array<Promise<void>> = [];
+    if (state.sttApiKey) keychainOps.push(setSecret("sttApiKey", state.sttApiKey));
+    else keychainOps.push(deleteSecret("sttApiKey").catch(() => {}));
+    if (state.grammarApiKey) keychainOps.push(setSecret("grammarApiKey", state.grammarApiKey));
+    else keychainOps.push(deleteSecret("grammarApiKey").catch(() => {}));
+    if (state.voxlenApiKey) keychainOps.push(setSecret("voxlenApiKey", state.voxlenApiKey));
+    else keychainOps.push(deleteSecret("voxlenApiKey").catch(() => {}));
+    try {
+      await Promise.all(keychainOps);
+    } catch (err) {
+      console.error("Failed to save API key to OS keychain:", err);
+      // Import lazily to avoid a hard dependency in non-Tauri builds.
+      try {
+        const { toast } = await import("@/components/ui/Toast");
+        toast("Could not save API key to system keychain — please re-enter it after restart.", "error", 8000);
+      } catch {
+        // Toast not available (e.g. during tests).
+      }
+    }
+
+    // Push settings to the Rust engine layer so changes take effect immediately
+    // (without this, API key / grammar / STT changes only apply after restart).
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const { toBackendSettings } = await import("@/lib/settings");
+      await invoke("update_settings", { settings: toBackendSettings(state) });
+    } catch {
+      // Non-Tauri environment — skip.
+    }
   }, 500);
 }
 
 export async function hydrateSecrets(): Promise<void> {
-  const sttApiKey = await getSecret("sttApiKey");
-  const grammarApiKey = await getSecret("grammarApiKey");
+  const [sttApiKey, grammarApiKey, voxlenApiKey] = await Promise.all([
+    getSecret("sttApiKey"),
+    getSecret("grammarApiKey"),
+    getSecret("voxlenApiKey"),
+  ]);
   const updates: Partial<AppSettings> = {};
   if (sttApiKey) updates.sttApiKey = sttApiKey;
   if (grammarApiKey) updates.grammarApiKey = grammarApiKey;
+  if (voxlenApiKey) updates.voxlenApiKey = voxlenApiKey;
   if (Object.keys(updates).length > 0) {
-    useSettingsStore.setState(updates);
+    useSettingsStore.getState().updateSettings(updates);
   }
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   ...defaultSettings,
-  isLoaded: false,
-  activeTab: "general",
+  activeTab: "voxlen-api",
 
   updateSetting: (key, value) => {
     set({ [key]: value });
+    // API keys must reach the keychain immediately — the 500ms debounce
+    // would lose them if the user closes the app before the timer fires.
+    if (key === "sttApiKey" || key === "grammarApiKey" || key === "voxlenApiKey") {
+      const strValue = value as string;
+      if (strValue) {
+        setSecret(key, strValue).catch((e) => console.error("keychain write failed:", e));
+      } else {
+        deleteSecret(key).catch(() => {});
+      }
+    }
     schedulePersist();
   },
 

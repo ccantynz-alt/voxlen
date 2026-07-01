@@ -52,6 +52,25 @@ export interface BackendAppSettings {
   // Privacy
   telemetry_enabled: boolean;
   save_transcripts: boolean;
+
+  // Privileged / Legal
+  privileged_mode: boolean;
+  legal_mode: boolean;
+  jurisdiction: string;
+
+  // Translation
+  translation_enabled: boolean;
+  translation_target_language: string;
+
+  // Voxlen account
+  voxlen_api_key: string;
+  voxlen_tenant_id: string;
+  voxlen_context: string;
+
+  // Frontend-only fields round-tripped through Rust to prevent data loss on persist
+  billable_rate_per_hour: number;
+  legal_accepted_version: string | null;
+  legal_accepted_at: string | null;
 }
 
 /**
@@ -97,6 +116,21 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
 
     telemetry_enabled: s.telemetryEnabled,
     save_transcripts: s.saveTranscripts,
+
+    privileged_mode: s.privilegedMode,
+    legal_mode: s.legalMode,
+    jurisdiction: s.jurisdiction,
+
+    translation_enabled: s.translationEnabled,
+    translation_target_language: s.translationTargetLanguage,
+
+    voxlen_api_key: s.voxlenApiKey,
+    voxlen_tenant_id: s.voxlenTenantId,
+    voxlen_context: s.voxlenContext,
+
+    billable_rate_per_hour: s.billableRatePerHour,
+    legal_accepted_version: s.legalAcceptedVersion,
+    legal_accepted_at: s.legalAcceptedAt,
   };
 }
 
@@ -147,6 +181,21 @@ export function fromBackendSettings(
 
   if (s.telemetry_enabled !== undefined) out.telemetryEnabled = s.telemetry_enabled;
   if (s.save_transcripts !== undefined) out.saveTranscripts = s.save_transcripts;
+
+  if (s.privileged_mode !== undefined) out.privilegedMode = s.privileged_mode;
+  if (s.legal_mode !== undefined) out.legalMode = s.legal_mode;
+  if (s.jurisdiction !== undefined) out.jurisdiction = s.jurisdiction as AppSettings["jurisdiction"];
+
+  if (s.translation_enabled !== undefined) out.translationEnabled = s.translation_enabled;
+  if (s.translation_target_language !== undefined) out.translationTargetLanguage = s.translation_target_language;
+
+  if (s.voxlen_api_key !== undefined) out.voxlenApiKey = s.voxlen_api_key;
+  if (s.voxlen_tenant_id !== undefined) out.voxlenTenantId = s.voxlen_tenant_id;
+  if (s.voxlen_context !== undefined) out.voxlenContext = s.voxlen_context;
+
+  if (s.billable_rate_per_hour !== undefined) out.billableRatePerHour = s.billable_rate_per_hour;
+  if (s.legal_accepted_version !== undefined) out.legalAcceptedVersion = s.legal_accepted_version;
+  if (s.legal_accepted_at !== undefined) out.legalAcceptedAt = s.legal_accepted_at;
 
   return out;
 }

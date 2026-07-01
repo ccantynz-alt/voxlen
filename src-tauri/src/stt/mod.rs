@@ -46,21 +46,32 @@ pub struct SttConfig {
     /// prefix output with speaker labels like "[Speaker 1]: ...".
     #[serde(default)]
     pub speaker_diarization: bool,
+    /// When set, all STT calls are proxied through voxlen.ai/api
+    /// so the user does not need their own provider API keys.
+    #[serde(default)]
+    pub voxlen_api_key: Option<String>,
+    #[serde(default)]
+    pub voxlen_context: Option<String>,
+    #[serde(default)]
+    pub voxlen_tenant_id: Option<String>,
 }
 
 impl Default for SttConfig {
     fn default() -> Self {
         Self {
-            engine: SttEngineType::WhisperCloud,
+            engine: SttEngineType::DeepgramCloud,
             language: "en".to_string(),
             auto_detect_language: true,
             api_key: None,
-            model: "whisper-1".to_string(),
+            model: "nova-3".to_string(),
             punctuate: true,
             smart_format: true,
             profanity_filter: false,
             custom_vocabulary: Vec::new(),
             speaker_diarization: false,
+            voxlen_api_key: None,
+            voxlen_context: None,
+            voxlen_tenant_id: None,
         }
     }
 }
@@ -153,5 +164,24 @@ pub struct SttState(pub Arc<RwLock<SttEngine>>);
 impl SttState {
     pub fn new(engine: SttEngine) -> Self {
         Self(Arc::new(RwLock::new(engine)))
+    }
+}
+
+/// Holds the active real-time streaming session so it can be stopped on demand.
+pub struct SttSessionState(pub Arc<RwLock<Option<streaming::StreamingSession>>>);
+
+impl SttSessionState {
+    pub fn new() -> Self {
+        Self(Arc::new(RwLock::new(None)))
+    }
+
+    pub fn set(&self, session: streaming::StreamingSession) {
+        *self.0.write() = Some(session);
+    }
+
+    pub fn stop(&self) {
+        if let Some(session) = self.0.write().take() {
+            session.stop();
+        }
     }
 }

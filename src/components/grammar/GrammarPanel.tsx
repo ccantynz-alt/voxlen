@@ -6,12 +6,15 @@ import {
   Copy,
   Check,
   Sparkles,
+  SendHorizonal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { useSettingsStore } from "@/stores/settings";
+import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { useFlywheelStore } from "@/stores/flywheel";
 
 interface GrammarChange {
   original: string;
@@ -26,40 +29,67 @@ export function GrammarPanel() {
   const [changes, setChanges] = useState<GrammarChange[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [injected, setInjected] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const writingStyle = useSettingsStore((s) => s.writingStyle);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const activeClient = useClientsStore((s) => s.clients.find((c) => c.id === s.activeClientId));
 
   const handleCorrect = useCallback(async () => {
     if (!inputText.trim()) return;
 
     setIsProcessing(true);
+    setError(null);
     try {
       const { invoke } = await import("@tauri-apps/api/core");
+      const matterContext = buildMatterContext(activeClient) || undefined;
+      const flywheelVocab = useFlywheelStore.getState().vocabulary
+        .filter((v) => v.frequency >= 2)
+        .map((v) => v.word);
+      const clientVocab = activeClient?.vocabulary ?? [];
+      const globalVocabList = useSettingsStore.getState().customVocabulary;
+      const mergedVocab = Array.from(new Set([...flywheelVocab, ...clientVocab, ...globalVocabList]));
+      const customVocabulary = mergedVocab.length > 0 ? mergedVocab : undefined;
       const result = await invoke<{
         original: string;
         corrected: string;
         changes: GrammarChange[];
         score: number;
-      }>("correct_grammar", { text: inputText });
+      }>("correct_grammar", { text: inputText, customVocabulary, matterContext });
 
       setCorrectedText(result.corrected);
       setChanges(result.changes);
       setScore(result.score);
     } catch {
-      // Demo fallback
       setCorrectedText(inputText);
       setChanges([]);
       setScore(1.0);
+      setError("Grammar correction unavailable. Check your API key in Settings.");
     }
     setIsProcessing(false);
-  }, [inputText]);
+  }, [inputText, activeClient]);
 
   const handleCopy = async () => {
     const text = correctedText || inputText;
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleInject = async () => {
+    const text = correctedText || inputText;
+    if (!text.trim()) return;
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("inject_text", { text });
+      setInjected(true);
+      setTimeout(() => setInjected(false), 2000);
+    } catch {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const categoryColors: Record<string, string> = {
@@ -146,9 +176,24 @@ export function GrammarPanel() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={handleInject}
+              disabled={!correctedText}
+              className="h-7 px-2 text-[11px]"
+              title="Type into active app"
+            >
+              {injected ? (
+                <Check className="h-3 w-3 text-green-400" strokeWidth={2} />
+              ) : (
+                <SendHorizonal className="h-3 w-3" strokeWidth={1.75} />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleCopy}
               disabled={!correctedText}
               className="h-7 px-2 text-[11px]"
+              title="Copy to clipboard"
             >
               {copied ? (
                 <Check className="h-3 w-3 text-brass-500" strokeWidth={2} />
@@ -158,6 +203,11 @@ export function GrammarPanel() {
             </Button>
           </div>
           <div className="flex-1 p-5 overflow-y-auto">
+            {error && (
+              <div className="mb-3 px-3 py-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs">
+                {error}
+              </div>
+            )}
             {correctedText ? (
               <p className="text-[14px] text-surface-950 leading-relaxed whitespace-pre-wrap font-sans">
                 {correctedText}

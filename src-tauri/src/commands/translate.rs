@@ -3,6 +3,36 @@ use serde::{Deserialize, Serialize};
 use super::grammar::{GrammarProvider, get_grammar_config};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranslationConfig {
+    pub enabled: bool,
+    pub target_language: String,
+}
+
+impl Default for TranslationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            target_language: "en".to_string(),
+        }
+    }
+}
+
+static TRANSLATION_CONFIG: std::sync::OnceLock<parking_lot::RwLock<TranslationConfig>> =
+    std::sync::OnceLock::new();
+
+fn get_config_store() -> &'static parking_lot::RwLock<TranslationConfig> {
+    TRANSLATION_CONFIG.get_or_init(|| parking_lot::RwLock::new(TranslationConfig::default()))
+}
+
+pub fn set_translation_config_internal(config: TranslationConfig) {
+    *get_config_store().write() = config;
+}
+
+pub fn get_translation_config_internal() -> TranslationConfig {
+    get_config_store().read().clone()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranslationResult {
     pub original: String,
     pub translated: String,
@@ -19,7 +49,7 @@ pub async fn translate_text(
     text: String,
     target_language: String,
 ) -> Result<TranslationResult, String> {
-    if text.trim().is_empty() {
+    if text.trim().is_empty() || crate::commands::settings::get_privileged_mode() {
         return Ok(TranslationResult {
             original: text.clone(),
             translated: text,
@@ -29,10 +59,16 @@ pub async fn translate_text(
     }
 
     let config = get_grammar_config()?;
+
+    // Prefer Voxlen proxy (no user API key needed) over direct provider calls
+    if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        return translate_with_voxlen_proxy(&text, &target_language, voxlen_key).await;
+    }
+
     let api_key = config
         .api_key
         .clone()
-        .ok_or("No translation API key configured. Set the Grammar API key in Settings.")?;
+        .ok_or("No translation API key configured. Sign in to your Voxlen account in Settings, or add your Anthropic/OpenAI API key.")?;
 
     match config.provider {
         GrammarProvider::Claude => translate_with_claude(&text, &target_language, &api_key).await,
@@ -77,7 +113,9 @@ async fn translate_with_claude(
 {{"translated": "...", "detected_source": "ISO-639-1 code or null"}}
 
 Text:
-"{text}""#,
+<text>
+{text}
+</text>"#,
         target = target,
         text = text
     );
@@ -89,7 +127,7 @@ Text:
         .header("anthropic-version", "2023-06-01")
         .header("content-type", "application/json")
         .json(&serde_json::json!({
-            "model": "claude-haiku-4-5-20251001",
+            "model": "claude-haiku-4-5",
             "max_tokens": 2048,
             "messages": [{ "role": "user", "content": prompt }]
         }))
@@ -135,7 +173,10 @@ async fn translate_with_openai(
         r#"Translate this text into {target}. Preserve meaning, tone, and domain terminology. Respond ONLY with JSON:
 {{"translated": "text", "detected_source": "ISO-639-1 or null"}}
 
-Text: "{text}""#,
+Text:
+<text>
+{text}
+</text>"#,
         target = target,
         text = text
     );
@@ -180,5 +221,42 @@ Text: "{text}""#,
             .to_string(),
         target_language: target_code.to_string(),
         detected_source: parsed["detected_source"].as_str().map(|s| s.to_string()),
+    })
+}
+
+async fn translate_with_voxlen_proxy(
+    text: &str,
+    target_code: &str,
+    voxlen_key: &str,
+) -> Result<TranslationResult, String> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://voxlen.ai/api/translate")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .header("content-type", "application/json")
+        .json(&serde_json::json!({
+            "text": text,
+            "target_language": target_code,
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Voxlen translation request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Voxlen translation API returned {}: {}", status, body));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Voxlen translation response: {}", e))?;
+
+    Ok(TranslationResult {
+        original: text.to_string(),
+        translated: result["translated"].as_str().unwrap_or(text).to_string(),
+        target_language: target_code.to_string(),
+        detected_source: result["detected_source"].as_str().map(|s| s.to_string()),
     })
 }

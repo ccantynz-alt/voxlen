@@ -1,5 +1,77 @@
 use super::{SttConfig, TranscriptionResult, WordResult};
 
+/// Proxy STT through voxlen.ai/api — no provider key needed.
+async fn voxlen_proxy_transcribe(
+    wav_data: &[u8],
+    voxlen_key: &str,
+    config: &SttConfig,
+) -> anyhow::Result<TranscriptionResult> {
+    // The proxy expects a raw audio body with settings carried in headers
+    // (sending multipart here would forward form boundaries to Deepgram as
+    // if they were audio).
+    let client = reqwest::Client::new();
+    let mut req = client
+        .post("https://voxlen.ai/api/stt")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .header("Content-Type", "audio/wav")
+        .header("X-Language", config.language.clone())
+        .header("X-Auto-Detect", config.auto_detect_language.to_string())
+        .header("X-Context", config.voxlen_context.clone().unwrap_or_else(|| "general".to_string()))
+        .header("X-Smart-Format", config.smart_format.to_string())
+        .header("X-Punctuate", config.punctuate.to_string())
+        .header("X-Diarize", config.speaker_diarization.to_string());
+    if !config.custom_vocabulary.is_empty() {
+        // URL-encoded so header stays ASCII-safe; server splits on commas
+        let keyterms = config
+            .custom_vocabulary
+            .iter()
+            .map(|w| urlencoding(w))
+            .collect::<Vec<_>>()
+            .join(",");
+        req = req.header("X-Keyterms", keyterms);
+    }
+    if let Some(tid) = config.voxlen_tenant_id.as_deref().filter(|s| !s.is_empty()) {
+        req = req.header("X-Tenant-ID", tid);
+    }
+    let response = req.body(wav_data.to_vec()).send().await?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await?;
+        anyhow::bail!("Voxlen STT API error: {}", error_text);
+    }
+
+    let result: serde_json::Value = response.json().await?;
+    let text = result["text"].as_str().unwrap_or("").to_string();
+    let confidence = result["confidence"].as_f64().unwrap_or(0.95) as f32;
+    let language = result["language"].as_str().map(|s| s.to_string());
+
+    let words = result["words"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|w| super::WordResult {
+                    word: w["word"].as_str().unwrap_or("").to_string(),
+                    start_ms: (w["start"].as_f64().unwrap_or(0.0) * 1000.0) as u64,
+                    end_ms: (w["end"].as_f64().unwrap_or(0.0) * 1000.0) as u64,
+                    confidence: w["confidence"].as_f64().unwrap_or(0.95) as f32,
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(super::TranscriptionResult {
+        text,
+        is_final: true,
+        confidence,
+        language,
+        timestamp_ms: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64,
+        words,
+    })
+}
+
 /// Transcribe audio using OpenAI Whisper API
 pub async fn whisper_transcribe(
     wav_data: &[u8],
@@ -8,7 +80,8 @@ pub async fn whisper_transcribe(
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("OpenAI API key not configured"))?;
+        .filter(|k| !k.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("OpenAI API key not configured. Add an OpenAI key in Settings, or switch the STT engine to Deepgram / connect a Voxlen account."))?;
 
     let part = reqwest::multipart::Part::bytes(wav_data.to_vec())
         .file_name("audio.wav")
@@ -74,12 +147,32 @@ pub async fn deepgram_transcribe(
     wav_data: &[u8],
     config: &SttConfig,
 ) -> anyhow::Result<TranscriptionResult> {
+    let has_direct_key = config.api_key.as_ref().filter(|k| !k.is_empty()).is_some();
+
+    // Route through the Voxlen proxy when an account key is present (Voxlen
+    // first). On failure, fall back to the user's direct Deepgram key if set.
+    if let Some(voxlen_key) = config.voxlen_api_key.as_ref().filter(|k| !k.is_empty()) {
+        match voxlen_proxy_transcribe(wav_data, voxlen_key, config).await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                if has_direct_key {
+                    log::warn!(
+                        "Voxlen transcription proxy failed ({e}); falling back to direct Deepgram key"
+                    );
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+    }
+
     let api_key = config
         .api_key
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("Deepgram API key not configured"))?;
+        .filter(|k| !k.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("No transcription key configured. Open Settings → Account to connect a Voxlen account, or add your own Deepgram key."))?;
 
-    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-2");
+    let mut url = String::from("https://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true");
 
     if config.punctuate {
         url.push_str("&punctuate=true");
@@ -96,9 +189,9 @@ pub async fn deepgram_transcribe(
         url.push_str(&format!("&language={}", config.language));
     }
 
-    // Add custom vocabulary as keywords
+    // Nova-3 uses keyterm prompting; the old `keywords` param is ignored on nova-3
     for word in &config.custom_vocabulary {
-        url.push_str(&format!("&keywords={}", urlencoding(word)));
+        url.push_str(&format!("&keyterm={}", urlencoding(word)));
     }
 
     if config.speaker_diarization {
@@ -196,12 +289,15 @@ pub async fn deepgram_transcribe(
     })
 }
 
-fn urlencoding(s: &str) -> String {
-    s.chars()
-        .map(|c| match c {
-            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' | '~' => c.to_string(),
-            ' ' => "%20".to_string(),
-            _ => format!("%{:02X}", c as u32),
-        })
-        .collect()
+pub(crate) fn urlencoding(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() * 3);
+    for byte in s.as_bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(*byte as char)
+            }
+            _ => out.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+    out
 }

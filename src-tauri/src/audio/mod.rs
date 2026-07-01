@@ -4,7 +4,7 @@ pub mod devices;
 use std::sync::Arc;
 use parking_lot::RwLock;
 use tauri::AppHandle;
-use crossbeam_channel::{Sender, Receiver};
+use crossbeam_channel::Receiver;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AudioDevice {
@@ -37,8 +37,6 @@ pub struct AudioEngine {
     pub app_handle: AppHandle,
     pub selected_device: Arc<RwLock<Option<String>>>,
     pub status: Arc<RwLock<DictationStatus>>,
-    pub audio_sender: Option<Sender<AudioChunk>>,
-    pub audio_receiver: Option<Receiver<AudioChunk>>,
     pub input_level: Arc<RwLock<f32>>,
     pub input_gain: Arc<RwLock<f32>>,
     pub noise_suppression: Arc<RwLock<bool>>,
@@ -49,14 +47,10 @@ pub struct AudioEngine {
 
 impl AudioEngine {
     pub fn new(app_handle: AppHandle) -> Self {
-        let (sender, receiver) = crossbeam_channel::bounded(256);
-
         Self {
             app_handle,
             selected_device: Arc::new(RwLock::new(None)),
             status: Arc::new(RwLock::new(DictationStatus::Idle)),
-            audio_sender: Some(sender),
-            audio_receiver: Some(receiver),
             input_level: Arc::new(RwLock::new(0.0)),
             input_gain: Arc::new(RwLock::new(1.0)),
             noise_suppression: Arc::new(RwLock::new(true)),
@@ -95,8 +89,6 @@ impl AudioEngine {
 
     pub fn start_capture(&self) -> anyhow::Result<()> {
         let device_id = self.selected_device.read().clone();
-        let sender = self.audio_sender.clone()
-            .ok_or_else(|| anyhow::anyhow!("Audio sender not available"))?;
         let input_level = self.input_level.clone();
         let input_gain = self.input_gain.clone();
         let noise_suppression = self.noise_suppression.clone();
@@ -107,8 +99,8 @@ impl AudioEngine {
         *self.capture_handle.write() = Some(handle);
         *self.status.write() = DictationStatus::Listening;
 
-        log::info!("Audio capture started");
-        Ok(())
+        log::info!("Audio capture started (gain={}, noise_suppression={})", input_gain, noise_suppression);
+        Ok(receiver)
     }
 
     pub fn stop_capture(&self) -> anyhow::Result<()> {

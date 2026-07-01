@@ -5,6 +5,9 @@ import {
   History,
   ShieldCheck,
   Brain,
+  BookOpen,
+  BarChart3,
+  Briefcase,
 } from "lucide-react";
 import { APP_VERSION } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -28,6 +31,12 @@ const navItems = [
     description: "AI correction",
   },
   {
+    id: "clauses",
+    label: "Clauses",
+    icon: BookOpen,
+    description: "Clause library",
+  },
+  {
     id: "history",
     label: "History",
     icon: History,
@@ -38,6 +47,18 @@ const navItems = [
     label: "Flywheel",
     icon: Brain,
     description: "Local learning",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    description: "Usage stats",
+  },
+  {
+    id: "clients",
+    label: "Clients",
+    icon: Briefcase,
+    description: "Billable matters",
   },
 ];
 

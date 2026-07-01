@@ -81,13 +81,36 @@ fn format_device_name(name: &str) -> String {
         }
     }
 
-    // Truncate very long names
-    if cleaned.len() > 50 {
-        cleaned.truncate(47);
+    // Truncate very long names on a char boundary. String::truncate panics if
+    // the cut lands mid-UTF-8-codepoint, which crashes device enumeration for
+    // localized device names (accented / non-Latin characters).
+    if cleaned.chars().count() > 50 {
+        cleaned = cleaned.chars().take(47).collect::<String>();
         cleaned.push_str("...");
     }
 
     cleaned
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_device_name_truncates_unicode_without_panic() {
+        // Regression: String::truncate on a non-char-boundary used to panic and
+        // crash device enumeration for localized device names.
+        let name = "é".repeat(60); // 60 chars, 120 bytes, multi-byte
+        let out = format_device_name(&name);
+        assert!(out.ends_with("..."));
+        assert_eq!(out.chars().count(), 50); // 47 chars + "..."
+    }
+
+    #[test]
+    fn format_device_name_strips_prefix_and_keeps_short_names() {
+        assert_eq!(format_device_name("Microphone - Blue Yeti"), "Blue Yeti");
+        assert_eq!(format_device_name("  Built-in Mic  "), "Built-in Mic");
+    }
 }
 
 pub fn get_device_by_id(device_id: &str) -> Option<cpal::Device> {

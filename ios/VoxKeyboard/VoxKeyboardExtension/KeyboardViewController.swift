@@ -11,7 +11,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     private var partialLabel: UILabel!
     private var polishButton: UIButton!
     private var micButton: UIButton!
-    private let defaults = UserDefaults(suiteName: "group.com.marcoreid.voice")
+    private let defaults = UserDefaults(suiteName: "group.com.voxlen.app")
 
     // MARK: - State
 
@@ -90,7 +90,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
         grammarBar.addSubview(separator)
 
         grammarLabel = UILabel()
-        grammarLabel.text = "Marco Reid Voice"
+        grammarLabel.text = "Voxlen"
         grammarLabel.font = .systemFont(ofSize: 12, weight: .medium)
         grammarLabel.textColor = .secondaryLabel
         grammarLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -356,21 +356,54 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     }
 
     private func startDictation() {
+        guard !isListening else { return }
         let engine = defaults?.string(forKey: "sttEngine") ?? "deepgram"
         let deepgramKey = defaults?.string(forKey: "deepgramApiKey") ?? ""
+        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
 
         if engine == "deepgram" && !deepgramKey.isEmpty {
             startDeepgramDictation(apiKey: deepgramKey)
+        } else if !voxlenKey.isEmpty {
+            // Exchange Voxlen account key for a short-lived Deepgram temp key
+            grammarLabel.text = "Connecting…"
+            Task {
+                do {
+                    let tempKey = try await fetchVoxlenDeepgramToken(voxlenKey: voxlenKey)
+                    await MainActor.run { self.startDeepgramDictation(apiKey: tempKey) }
+                } catch {
+                    await MainActor.run {
+                        self.grammarLabel.text = "Token error — check Voxlen key"
+                        self.startAppleDictation()
+                    }
+                }
+            }
         } else {
             startAppleDictation()
         }
+    }
+
+    private func fetchVoxlenDeepgramToken(voxlenKey: String) async throws -> String {
+        var request = URLRequest(url: URL(string: "https://voxlen.ai/api/deepgram-token")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(voxlenKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [:])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw NSError(domain: "Voxlen", code: 401, userInfo: [NSLocalizedDescriptionKey: "Token exchange failed"])
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let key = json["key"] as? String else {
+            throw NSError(domain: "Voxlen", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid token response"])
+        }
+        return key
     }
 
     // MARK: - Deepgram WebSocket STT
 
     private func startDeepgramDictation(apiKey: String) {
         let lang = defaults?.string(forKey: "language") ?? "en"
-        let urlStr = "wss://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&smart_format=true&language=\(lang)&interim_results=true&endpointing=300&encoding=linear16&sample_rate=16000&channels=1"
+        let urlStr = "wss://api.deepgram.com/v1/listen?model=nova-3&mip_opt_out=true&punctuate=true&smart_format=true&language=\(lang)&interim_results=true&endpointing=200&no_delay=true&encoding=linear16&sample_rate=16000&channels=1"
 
         guard let url = URL(string: urlStr) else {
             grammarLabel.text = "Invalid Deepgram URL"
@@ -423,9 +456,10 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
             }
 
             guard status != .error, error == nil else { return }
+            guard let channelData = convertedBuffer.int16ChannelData?.first else { return }
 
             let audioData = Data(
-                bytes: convertedBuffer.int16ChannelData![0],
+                bytes: channelData,
                 count: Int(convertedBuffer.frameLength) * 2
             )
 
@@ -534,11 +568,11 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
                         self.textDocumentProxy.deleteBackward()
                     }
                     self.textDocumentProxy.insertText(corrected + " ")
-                    self.grammarLabel.text = "Marco Reid Voice"
+                    self.grammarLabel.text = "Voxlen"
                 }
             } catch {
                 await MainActor.run {
-                    self.grammarLabel.text = "Marco Reid Voice"
+                    self.grammarLabel.text = "Voxlen"
                 }
             }
         }
@@ -610,7 +644,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
             micButton.transform = .identity
             micButton.tintColor = brandColor
             micButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
-            grammarLabel.text = "Marco Reid Voice"
+            grammarLabel.text = "Voxlen"
         }
     }
 
@@ -653,7 +687,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
                     polishButton.isEnabled = true
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                        self?.grammarLabel.text = "Marco Reid Voice"
+                        self?.grammarLabel.text = "Voxlen"
                     }
                 }
             } catch {
@@ -677,19 +711,48 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     // MARK: - AI Grammar Correction
 
     private func correctGrammar(_ text: String) async throws -> String {
-        let provider = defaults?.string(forKey: "aiProvider") ?? "claude"
-        let apiKey = defaults?.string(forKey: "apiKey") ?? ""
+        let provider = defaults?.string(forKey: "grammarProvider") ?? "claude"
         let style = defaults?.string(forKey: "writingStyle") ?? "professional"
+
+        // Prefer Voxlen account key (proxied), fall back to direct BYOK key
+        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
+        if !voxlenKey.isEmpty {
+            return try await correctWithVoxlenProxy(text: text, voxlenKey: voxlenKey, style: style)
+        }
+
+        let apiKey = provider == "openai"
+            ? (defaults?.string(forKey: "openaiApiKey") ?? defaults?.string(forKey: "grammarApiKey") ?? "")
+            : (defaults?.string(forKey: "grammarApiKey") ?? "")
 
         guard !apiKey.isEmpty else {
             throw GrammarError.noApiKey
         }
 
-        if provider == "claude" {
-            return try await correctWithClaude(text: text, apiKey: apiKey, style: style)
-        } else {
+        if provider == "openai" {
             return try await correctWithOpenAI(text: text, apiKey: apiKey, style: style)
+        } else {
+            return try await correctWithClaude(text: text, apiKey: apiKey, style: style)
         }
+    }
+
+    private func correctWithVoxlenProxy(text: String, voxlenKey: String, style: String) async throws -> String {
+        let url = URL(string: "https://voxlen.ai/api/grammar")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(voxlenKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = ["text": text, "style": style, "preserve_tone": true]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw GrammarError.apiError
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return (json?["corrected"] as? String ?? text)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func correctWithClaude(text: String, apiKey: String, style: String) async throws -> String {
@@ -702,11 +765,14 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
 
         let prompt = """
         Fix grammar, spelling, and punctuation in this text. Make it \(style). \
-        Return ONLY the corrected text, nothing else: "\(text)"
+        Return ONLY the corrected text, nothing else.
+        <text>
+        \(text)
+        </text>
         """
 
         let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",
+            "model": "claude-sonnet-4-6",
             "max_tokens": 1024,
             "messages": [["role": "user", "content": prompt]]
         ]
@@ -737,7 +803,10 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
 
         let prompt = """
         Fix grammar, spelling, and punctuation. Make it \(style). \
-        Return ONLY the corrected text: "\(text)"
+        Return ONLY the corrected text.
+        <text>
+        \(text)
+        </text>
         """
 
         let body: [String: Any] = [

@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertTriangle, RefreshCw, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useFlywheelStore } from "@/stores/flywheel";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -29,6 +30,14 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     this.setState({ error, info });
     // eslint-disable-next-line no-console
     console.error("ErrorBoundary caught an error:", error, info);
+
+    // Log to flywheel for local analytics (fire-and-forget, never transmitted).
+    try {
+      const label = this.props.label ?? "unknown";
+      useFlywheelStore.getState().recordSession(0, 0, `error:${label}:${error.name}`);
+    } catch {
+      // Flywheel unavailable — silently ignore.
+    }
   }
 
   handleReload = (): void => {

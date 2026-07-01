@@ -7,6 +7,7 @@ import {
   Palette,
   Shield,
   Zap,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +20,7 @@ import { useAudioStore } from "@/stores/audio";
 import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
 
 const tabs = [
+  { id: "voxlen-api", label: "Account", icon: Globe },
   { id: "audio", label: "Audio", icon: Mic },
   { id: "stt", label: "Speech Engine", icon: Cpu },
   { id: "grammar", label: "Grammar AI", icon: SpellCheck },
@@ -28,93 +30,9 @@ const tabs = [
   { id: "privacy", label: "Privacy", icon: Shield },
 ];
 
-// Persist settings whenever they change
-function useSettingsPersistence() {
-  const settings = useSettingsStore();
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-
-    const saveSettings = async () => {
-      try {
-        const { load } = await import("@tauri-apps/plugin-store");
-        const store = await load("settings.json");
-        await store.set("settings", {
-          preferredDeviceId: settings.preferredDeviceId,
-          inputGain: settings.inputGain,
-          noiseSuppression: settings.noiseSuppression,
-          sttEngine: settings.sttEngine,
-          sttApiKey: settings.sttApiKey,
-          sttLanguage: settings.sttLanguage,
-          autoDetectLanguage: settings.autoDetectLanguage,
-          grammarEnabled: settings.grammarEnabled,
-          grammarApiKey: settings.grammarApiKey,
-          grammarProvider: settings.grammarProvider,
-          writingStyle: settings.writingStyle,
-          autoCorrect: settings.autoCorrect,
-          preserveTone: settings.preserveTone,
-          autoPunctuate: settings.autoPunctuate,
-          smartFormat: settings.smartFormat,
-          speakerDiarization: settings.speakerDiarization,
-          voiceCommandsEnabled: settings.voiceCommandsEnabled,
-          translationEnabled: settings.translationEnabled,
-          translationTargetLanguage: settings.translationTargetLanguage,
-          injectionMode: settings.injectionMode,
-          shortcutToggle: settings.shortcutToggle,
-          shortcutPushToTalk: settings.shortcutPushToTalk,
-          shortcutCancel: settings.shortcutCancel,
-          shortcutCorrectGrammar: settings.shortcutCorrectGrammar,
-          theme: settings.theme,
-          showWaveform: settings.showWaveform,
-          fontSize: settings.fontSize,
-          startMinimized: settings.startMinimized,
-          minimizeToTray: settings.minimizeToTray,
-          launchAtLogin: settings.launchAtLogin,
-          telemetryEnabled: settings.telemetryEnabled,
-          saveTranscripts: settings.saveTranscripts,
-        });
-        await store.save();
-      } catch {
-        try {
-          localStorage.setItem(
-            "marcoreid_settings",
-            JSON.stringify({
-              preferredDeviceId: settings.preferredDeviceId,
-              sttEngine: settings.sttEngine,
-              sttApiKey: settings.sttApiKey,
-              grammarApiKey: settings.grammarApiKey,
-              grammarProvider: settings.grammarProvider,
-              writingStyle: settings.writingStyle,
-              theme: settings.theme,
-              fontSize: settings.fontSize,
-              showWaveform: settings.showWaveform,
-              voiceCommandsEnabled: settings.voiceCommandsEnabled,
-              injectionMode: settings.injectionMode,
-              shortcutToggle: settings.shortcutToggle,
-              shortcutPushToTalk: settings.shortcutPushToTalk,
-              shortcutCorrectGrammar: settings.shortcutCorrectGrammar,
-            })
-          );
-        } catch {
-          // Storage unavailable
-        }
-      }
-    };
-
-    const timeout = setTimeout(saveSettings, 500);
-    return () => clearTimeout(timeout);
-  });
-}
-
-export function SettingsPanel() {
+export function SettingsPanel({ onReopenSetup }: { onReopenSetup?: () => void } = {}) {
   const settings = useSettingsStore();
   const setDevices = useAudioStore((s) => s.setDevices);
-
-  useSettingsPersistence();
 
   // Load audio devices
   useEffect(() => {
@@ -180,9 +98,11 @@ export function SettingsPanel() {
       case "appearance":
         return <AppearanceSettings />;
       case "advanced":
-        return <AdvancedSettings />;
+        return <AdvancedSettings onReopenSetup={onReopenSetup} />;
       case "privacy":
         return <PrivacySettings />;
+      case "voxlen-api":
+        return <VoxlenApiSettings />;
       default:
         return <AudioSettings />;
     }
@@ -437,7 +357,7 @@ function SttSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Speech-to-Text Engine"
-        description="Choose your transcription engine. Cloud engines offer better accuracy; local offers privacy."
+        description="Choose your transcription engine. Offline mode (Whisper Local) is coming soon."
       />
 
       <SettingRow>
@@ -454,13 +374,13 @@ function SttSettings() {
       </SettingRow>
 
       <SettingRow>
-        <Input
-          label="API Key"
-          type="password"
-          value={settings.sttApiKey}
-          onChange={(e) => settings.updateSetting("sttApiKey", e.target.value)}
-          placeholder="Enter your API key..."
-        />
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
+          {settings.voxlenApiKey ? (
+            <><span className="text-green-400">✓</span> Transcription powered by your Voxlen account — no provider API key needed.</>
+          ) : (
+            <><span className="text-surface-400">→</span> Sign in to your Voxlen account (Voxlen tab) to enable transcription.</>
+          )}
+        </div>
       </SettingRow>
 
       <SettingRow>
@@ -512,29 +432,6 @@ function SttSettings() {
           onChange={(v) => settings.updateSetting("speakerDiarization", v)}
         />
       </SettingRow>
-
-      <SettingRow>
-        <Switch
-          label="Real-Time Translation"
-          description="Translate transcribed text into the selected language using your grammar API key."
-          checked={settings.translationEnabled}
-          onChange={(v) => settings.updateSetting("translationEnabled", v)}
-        />
-      </SettingRow>
-
-      {settings.translationEnabled && (
-        <SettingRow>
-          <Select
-            label="Translate Into"
-            value={settings.translationTargetLanguage}
-            onChange={(v) => settings.updateSetting("translationTargetLanguage", v)}
-            options={SUPPORTED_LANGUAGES.map((l) => ({
-              value: l.code,
-              label: `${l.flag} ${l.name}`,
-            }))}
-          />
-        </SettingRow>
-      )}
 
       <SettingRow>
         <CustomVocabularyEditor />
@@ -664,19 +561,13 @@ function GrammarSettings() {
       </SettingRow>
 
       <SettingRow>
-        <Input
-          label="AI API Key"
-          type="password"
-          value={settings.grammarApiKey}
-          onChange={(e) =>
-            settings.updateSetting("grammarApiKey", e.target.value)
-          }
-          placeholder={
-            settings.grammarProvider === "claude"
-              ? "sk-ant-..."
-              : "sk-..."
-          }
-        />
+        <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
+          {settings.voxlenApiKey ? (
+            <><span className="text-green-400">✓</span> Grammar AI powered by your Voxlen account — no provider API key needed.</>
+          ) : (
+            <><span className="text-surface-400">→</span> Sign in to your Voxlen account (Voxlen tab) to enable grammar correction.</>
+          )}
+        </div>
       </SettingRow>
 
       <SettingRow>
@@ -716,6 +607,54 @@ function GrammarSettings() {
           onChange={(v) => settings.updateSetting("preserveTone", v)}
         />
       </SettingRow>
+
+      <div className="pt-2">
+        <SectionHeader
+          title="Real-Time Translation"
+          description="Translate your dictated text into another language. Translation runs after grammar correction, using your grammar AI provider and API key."
+        />
+      </div>
+
+      <SettingRow>
+        <Switch
+          label="Enable Translation"
+          description="Automatically translate transcribed text into the selected target language"
+          checked={settings.translationEnabled}
+          onChange={(v) => settings.updateSetting("translationEnabled", v)}
+        />
+      </SettingRow>
+
+      {settings.translationEnabled && (
+        <SettingRow>
+          <Select
+            label="Target Language"
+            value={settings.translationTargetLanguage}
+            onChange={(v) => settings.updateSetting("translationTargetLanguage", v)}
+            options={[
+              { value: "en", label: "🇬🇧 English" },
+              { value: "es", label: "🇪🇸 Spanish" },
+              { value: "fr", label: "🇫🇷 French" },
+              { value: "de", label: "🇩🇪 German" },
+              { value: "it", label: "🇮🇹 Italian" },
+              { value: "pt", label: "🇵🇹 Portuguese" },
+              { value: "nl", label: "🇳🇱 Dutch" },
+              { value: "pl", label: "🇵🇱 Polish" },
+              { value: "ru", label: "🇷🇺 Russian" },
+              { value: "ja", label: "🇯🇵 Japanese" },
+              { value: "ko", label: "🇰🇷 Korean" },
+              { value: "zh", label: "🇨🇳 Chinese" },
+              { value: "ar", label: "🇸🇦 Arabic" },
+              { value: "hi", label: "🇮🇳 Hindi" },
+              { value: "tr", label: "🇹🇷 Turkish" },
+              { value: "sv", label: "🇸🇪 Swedish" },
+              { value: "da", label: "🇩🇰 Danish" },
+              { value: "fi", label: "🇫🇮 Finnish" },
+              { value: "no", label: "🇳🇴 Norwegian" },
+              { value: "uk", label: "🇺🇦 Ukrainian" },
+            ]}
+          />
+        </SettingRow>
+      )}
     </div>
   );
 }
@@ -801,7 +740,7 @@ function AppearanceSettings() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <SectionHeader title="Appearance" description="Customize how Marco Reid Voice looks." />
+      <SectionHeader title="Appearance" description="Customize how Voxlen looks." />
 
       <SettingRow>
         <Select
@@ -842,7 +781,7 @@ function AppearanceSettings() {
   );
 }
 
-function AdvancedSettings() {
+function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
   const settings = useSettingsStore();
 
   return (
@@ -871,8 +810,8 @@ function AdvancedSettings() {
             },
             {
               value: "clipboard",
-              label: "Clipboard Paste",
-              description: "Copies to clipboard and pastes (faster)",
+              label: "Clipboard / Citrix Mode",
+              description: "Copies to clipboard then pastes — works in Citrix, VMware Horizon, and VDI sessions",
             },
             {
               value: "buffer",
@@ -922,7 +861,16 @@ function AdvancedSettings() {
         />
       </SettingRow>
 
-      <div className="pt-4">
+      <div className="pt-4 flex items-center gap-3 flex-wrap">
+        {onReopenSetup && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReopenSetup}
+          >
+            Re-run Setup Wizard
+          </Button>
+        )}
         <Button
           variant="danger"
           size="sm"
@@ -931,6 +879,313 @@ function AdvancedSettings() {
           Reset All Settings
         </Button>
       </div>
+    </div>
+  );
+}
+
+interface AccountInfo {
+  plan: string;
+  features: string[];
+  name: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+const FEATURE_LABELS: Record<string, string> = {
+  stt: "Dictation (STT)",
+  grammar: "AI Grammar Correction",
+  export: "All Export Formats",
+  clauses: "Clause Library",
+  billing: "Client Billing Tracking",
+};
+
+function UsageMeter({ apiKey }: { apiKey: string }) {
+  const [info, setInfo] = useState<AccountInfo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://voxlen.ai/api/me", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: unknown) => {
+        if (cancelled) return;
+        // Validate the payload shape before storing it — a freshly deployed or
+        // misconfigured API can return HTTP 200 with an unexpected body (error
+        // envelope, missing fields). Accessing info.plan/info.features blindly
+        // throws during render and crashes the app right after connecting a key.
+        if (!data || typeof data !== "object") return;
+        const d = data as Partial<AccountInfo>;
+        if (typeof d.plan !== "string") return;
+        setInfo({
+          plan: d.plan,
+          features: Array.isArray(d.features) ? d.features : [],
+          name: typeof d.name === "string" ? d.name : "",
+          email: typeof d.email === "string" ? d.email : "",
+          isAdmin: Boolean(d.isAdmin),
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [apiKey]);
+
+  if (!info) return null;
+
+  const PLAN_LABELS: Record<string, string> = {
+    free: "Free",
+    free_trial: "Free Trial",
+    pro: "Pro",
+    professional: "Professional",
+    admin: "Admin",
+  };
+  const planLabel = PLAN_LABELS[info.plan.toLowerCase()] ?? (info.plan.charAt(0).toUpperCase() + info.plan.slice(1));
+  const isFree = info.plan.toLowerCase() === "free";
+
+  return (
+    <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
+          Account
+        </span>
+        <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#7345d1]/15 text-[#7345d1] font-semibold">
+          {planLabel}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {info.features.map((f) => (
+          <div key={f} className="flex items-center gap-1.5 text-[11px] text-surface-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7345d1] shrink-0" />
+            {FEATURE_LABELS[f] ?? f}
+          </div>
+        ))}
+      </div>
+      {isFree && (
+        <a
+          href="https://voxlen.ai/#pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-[11px] font-semibold text-[#7345d1] hover:text-[#5c35b0] transition-colors pt-1"
+        >
+          Upgrade plan →
+        </a>
+      )}
+    </div>
+  );
+}
+
+function VoxlenApiSettings() {
+  const settings = useSettingsStore();
+  const [verifying, setVerifying] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [keyError, setKeyError] = useState("");
+  const isConnected = Boolean(settings.voxlenApiKey);
+
+  const openDashboard = async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("open_url", { url: "https://voxlen.ai/dashboard" });
+    } catch {
+      window.open("https://voxlen.ai/dashboard", "_blank");
+    }
+  };
+
+  const connect = async () => {
+    const key = keyInput.trim();
+    if (!key) return;
+    setVerifying(true);
+    setKeyError("");
+    try {
+      const res = await fetch("https://voxlen.ai/api/me", {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      if (res.ok) {
+        settings.updateSetting("voxlenApiKey", key);
+        setKeyInput("");
+      } else {
+        setKeyError("Token invalid or expired. Sign in again at voxlen.ai/dashboard.");
+      }
+    } catch {
+      // Network unreachable — accept the token so offline setup still works,
+      // but warn the user it could not be verified rather than silently
+      // treating an unchecked (possibly invalid) token as fully connected.
+      settings.updateSetting("voxlenApiKey", key);
+      setKeyInput("");
+      setKeyError("Saved, but couldn't verify the token (no connection). It will be checked when you go online.");
+    }
+    setVerifying(false);
+  };
+
+  const disconnect = () => {
+    settings.updateSetting("voxlenApiKey", "");
+  };
+
+  const CONTEXT_OPTIONS = [
+    { value: "", label: "None (general)", description: "No domain-specific formatting" },
+    { value: "legal_general", label: "Legal — General", description: "Legal writing defaults" },
+    { value: "legal_contract", label: "Legal — Contract", description: "Defined terms, clause numbering" },
+    { value: "legal_case_note", label: "Legal — Case Note", description: "Attendance note headings" },
+    { value: "legal_court_filing", label: "Legal — Court Filing", description: "Court names, v. formatting" },
+    { value: "legal_deposition", label: "Legal — Deposition", description: "Q/A speaker labels" },
+    { value: "legal_correspondence", label: "Legal — Correspondence", description: "Dear/Yours formatting" },
+    { value: "accounting_general", label: "Accounting — General", description: "Accounting defaults" },
+    { value: "accounting_tax", label: "Accounting — Tax", description: "GST/VAT/IRD references" },
+    { value: "accounting_audit", label: "Accounting — Audit", description: "Finding/Recommendation headings" },
+    { value: "accounting_memo", label: "Accounting — Memo", description: "MEMORANDUM formatting" },
+    { value: "accounting_correspondence", label: "Accounting — Correspondence", description: "Professional letter formatting" },
+    { value: "general", label: "General", description: "Generic formatting" },
+  ];
+
+  return (
+    <div className="space-y-5 max-w-lg">
+      {/* Connected state */}
+      {isConnected ? (
+        <>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                <span className="text-emerald-400 text-lg">✓</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-surface-900">Voxlen Account Connected</p>
+                <p className="text-[11px] text-surface-600">
+                  Transcription and grammar AI powered by Voxlen. No provider keys needed.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={disconnect}
+              className="text-[11px] text-surface-500 hover:text-red-400 transition-colors"
+            >
+              Disconnect account
+            </button>
+          </div>
+          <UsageMeter apiKey={settings.voxlenApiKey} />
+        </>
+      ) : (
+        /* Not connected */
+        <div className="rounded-xl border border-surface-300/60 bg-surface-50/40 p-5 space-y-4">
+          <div className="text-center pb-2">
+            <div className="flex items-baseline justify-center gap-0.5 mb-1">
+              <span className="font-display text-xl text-surface-900 tracking-tight-display">Vox</span>
+              <span className="font-display text-xl italic text-brass-500 tracking-tight-display">len</span>
+            </div>
+            <p className="text-[12px] text-surface-600 max-w-xs mx-auto">
+              Connect your Voxlen account and the app works immediately — no Deepgram or Anthropic keys required.
+            </p>
+          </div>
+
+          <button
+            onClick={openDashboard}
+            className="w-full flex items-center justify-center gap-2 bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
+          >
+            Sign in at voxlen.ai → copy your token
+          </button>
+
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-surface-300/50" />
+            <span className="text-[10px] text-surface-500 uppercase tracking-wider">paste token below</span>
+            <div className="flex-1 h-px bg-surface-300/50" />
+          </div>
+
+          <div className="space-y-2">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => { setKeyInput(e.target.value); setKeyError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && connect()}
+              placeholder="Paste token from voxlen.ai/dashboard"
+              className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-[#7345d1] shadow-inset-hairline"
+            />
+            {keyError && <p className="text-[11px] text-red-500">{keyError}</p>}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={connect}
+              disabled={!keyInput.trim() || verifying}
+              className="w-full"
+            >
+              {verifying ? "Connecting…" : "Connect"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isConnected && (
+        <>
+          <SectionHeader title="Dictation Settings" description="" />
+
+          <SettingRow>
+            <Select
+              label="Dictation Context"
+              value={settings.voxlenContext}
+              onChange={(v) => settings.updateSetting("voxlenContext", v)}
+              options={CONTEXT_OPTIONS}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Switch
+              label="Privileged Mode"
+              description="Block all cloud STT — local processing only. Coming soon: requires Whisper Local (offline mode) which is not yet available."
+              checked={false}
+              onChange={() => {}}
+              disabled
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Switch
+              label="Legal Mode"
+              description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
+              checked={settings.legalMode}
+              onChange={(v) => settings.updateSetting("legalMode", v)}
+            />
+          </SettingRow>
+
+          {settings.legalMode && (
+            <SettingRow>
+              <Select
+                label="Jurisdiction"
+                value={settings.jurisdiction}
+                onChange={(v) =>
+                  settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
+                }
+                options={[
+                  { value: "global", label: "Global", description: "International / neutral" },
+                  { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
+                  { value: "us", label: "United States", description: "Federal + state law" },
+                  { value: "australia", label: "Australia", description: "Commonwealth + state law" },
+                  { value: "nz", label: "New Zealand", description: "NZ common law" },
+                  { value: "canada", label: "Canada", description: "Federal + provincial law" },
+                ]}
+              />
+            </SettingRow>
+          )}
+
+          {settings.legalMode && (
+            <SettingRow>
+              <Slider
+                label="Default Billable Rate"
+                value={settings.billableRatePerHour}
+                onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
+                min={0}
+                max={2000}
+                step={25}
+                formatValue={(v) => `$${v}/hr`}
+              />
+            </SettingRow>
+          )}
+
+          <SettingRow>
+            <Input
+              label="Firm / Organisation ID (optional)"
+              value={settings.voxlenTenantId}
+              onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
+              placeholder="For team / SSO accounts"
+            />
+          </SettingRow>
+        </>
+      )}
     </div>
   );
 }
@@ -974,7 +1229,7 @@ function PrivacySettings() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Use Whisper Local for fully offline operation.
+            Offline mode (Whisper Local) coming soon — no audio will leave your device.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>

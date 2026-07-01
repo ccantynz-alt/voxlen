@@ -1,28 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { ShortcutsCheatsheet } from "@/components/layout/ShortcutsCheatsheet";
 import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
-import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
-import { AdminPanel } from "@/components/settings/AdminPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
-import { loadHistory } from "@/stores/history";
-import { usePersistedSettings, saveSettings } from "@/hooks/usePersistedSettings";
+import { useHistoryStore } from "@/stores/history";
+import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
-import { loadFlywheel } from "@/stores/flywheel";
 
-type View = "dictation" | "grammar" | "history" | "flywheel" | "settings" | "admin";
+type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
 export default function App() {
-  // Load saved settings from disk/localStorage on startup
-  usePersistedSettings();
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
@@ -74,12 +68,12 @@ export default function App() {
         }
       } catch {
         // Not in Tauri - check localStorage
-        const completed = localStorage.getItem("voxlen_onboarding_complete");
+        const completed = localStorage.getItem("marcoreid_onboarding_complete");
         setShowOnboarding(!completed);
 
         // Load saved settings from localStorage
         try {
-          const saved = localStorage.getItem("marcoreid_settings");
+          const saved = localStorage.getItem("voxlen_settings");
           if (saved) {
             useSettingsStore.getState().updateSettings(JSON.parse(saved));
           }
@@ -88,9 +82,18 @@ export default function App() {
         }
       }
 
+      // Hydrate settings from backend on boot.
+      try {
+        const backendSettings = await loadSettings();
+        if (backendSettings) {
+          updateSettingsStore(backendSettings);
+        }
+      } catch {
+        // Already handled inside loadSettings.
+      }
     }
     checkFirstLaunch();
-  }, []);
+  }, [updateSettingsStore]);
 
   // Persist settings on every change.
   useEffect(() => {
@@ -116,7 +119,7 @@ export default function App() {
 
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        saveSettings(appSettings);
+        persistSettings(appSettings);
       }, 300);
     });
 
@@ -128,7 +131,7 @@ export default function App() {
 
   // Load history on startup
   useEffect(() => {
-    loadHistory();
+    useHistoryStore.getState().loadFromStore();
   }, []);
 
   // Load audio devices on mount (when not in onboarding)
@@ -210,7 +213,7 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("voxlen_onboarding_complete", "true");
+      localStorage.setItem("marcoreid_onboarding_complete", "true");
     }
 
     // Save current settings through the persistence pipeline
@@ -225,7 +228,7 @@ export default function App() {
       ...appSettings
     } = state;
     void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
-    await saveSettings(appSettings);
+    await persistSettings(appSettings);
 
     setShowOnboarding(false);
   }, []);
@@ -250,22 +253,10 @@ export default function App() {
             <HistoryPanel />
           </ErrorBoundary>
         );
-      case "flywheel":
-        return (
-          <ErrorBoundary label="Flywheel">
-            <FlywheelPanel />
-          </ErrorBoundary>
-        );
       case "settings":
         return (
           <ErrorBoundary label="Settings">
             <SettingsPanel />
-          </ErrorBoundary>
-        );
-      case "admin":
-        return (
-          <ErrorBoundary label="Admin">
-            <AdminPanel />
           </ErrorBoundary>
         );
     }
@@ -282,11 +273,7 @@ export default function App() {
 
   // Show onboarding wizard for first-time users
   if (showOnboarding) {
-    return (
-      <ErrorBoundary>
-        <OnboardingWizard onComplete={handleOnboardingComplete} />
-      </ErrorBoundary>
-    );
+    return <OnboardingWizard onComplete={handleOnboardingComplete} />;
   }
 
   return (
@@ -299,7 +286,6 @@ export default function App() {
         />
         <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
       </div>
-      <ShortcutsCheatsheet />
     </div>
   );
 }

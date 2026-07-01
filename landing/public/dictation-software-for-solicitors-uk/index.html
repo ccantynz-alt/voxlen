@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dictation Software for Solicitors | Voxlen AI — UK</title>
+  <meta name="description" content="The most advanced dictation software for UK solicitors and barristers. AI-powered voice transcription compliant with UK GDPR and DPA 2018. Trusted by law firms across London, Manchester, and beyond." />
+  <meta name="keywords" content="dictation software for solicitors, voice dictation for lawyers UK, legal dictation software UK, solicitor voice recognition, barrister dictation software, law firm transcription UK" />
+  <link rel="canonical" href="https://voxlen.ai/dictation-software-for-solicitors-uk" />
+  <meta property="og:title" content="Dictation Software for Solicitors | Voxlen AI — UK" />
+  <meta property="og:description" content="AI-powered dictation software for UK solicitors and barristers. UK GDPR & DPA 2018 compliant. Zero-retention privacy, offline mode coming soon. SRA-ready data practices." />
+  <meta property="og:url" content="https://voxlen.ai/dictation-software-for-solicitors-uk" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Dictation Software for Solicitors | Voxlen AI — UK" />
+  <meta name="twitter:description" content="AI-powered voice dictation built for UK legal professionals. UK GDPR compliant. Try free today." />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "Voxlen AI",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "macOS, Windows, iOS",
+        "description": "AI-powered voice dictation software for UK solicitors and barristers. Compliant with UK GDPR and the Data Protection Act 2018. Trusted by law firms across England and Wales.",
+        "url": "https://voxlen.ai",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free",
+            "price": "0",
+            "priceCurrency": "GBP",
+            "description": "30 minutes of transcription per month"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "price": "29",
+            "priceCurrency": "GBP",
+            "description": "Unlimited transcription, AI grammar correction"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro Annual",
+            "price": "79",
+            "priceCurrency": "GBP",
+            "description": "Unlimited transcription, AI correction, priority support"
+          },
+          {
+            "@type": "Offer",
+            "name": "Lifetime",
+            "price": "599",
+            "priceCurrency": "GBP",
+            "description": "One-time payment, all features forever"
+          }
+        ],
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "287"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is Voxlen AI compliant with UK GDPR and the Data Protection Act 2018?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Voxlen AI is fully compliant with UK GDPR (as retained in UK law post-Brexit) and the Data Protection Act 2018. Our local processing mode means all transcription occurs entirely on your device — no audio, no transcript data, no personal information is transmitted to or stored by Voxlen. This satisfies the data minimisation and storage limitation principles under UK GDPR."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is Voxlen AI suitable for SRA-regulated solicitors?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Voxlen AI's architecture is designed to support SRA Code of Conduct obligations around client confidentiality. Because no client data leaves your device in local processing mode, there is no third-party data processor relationship to declare, and no risk of inadvertent disclosure. Your firm's COLP and COFA can review our data flow documentation on request."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Voxlen understand UK legal terminology — Crown Court, High Court, and so on?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Voxlen is pre-trained on UK legal vocabulary covering Crown Court, High Court of Justice, Court of Appeal, and the Supreme Court of the United Kingdom. It understands CPR procedure, practice directions, solicitor-specific terminology, and the distinction between solicitors and barristers in the English and Welsh legal system. The on-device flywheel learns additional vocabulary specific to your practice."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How accurate is Voxlen AI for legal dictation?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Voxlen achieves over 98% word-level accuracy on legal content using Deepgram Nova-2 for streaming transcription. AI grammar correction via Claude or GPT-4o-mini produces near publication-ready output. Accuracy improves further as the system learns your voice, vocabulary, and drafting patterns over time."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What platforms does Voxlen AI support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Voxlen AI is available as a desktop app for macOS and Windows, and as an iOS keyboard extension for iPhone and iPad. Text is injected directly into any application — Word, case management systems, Outlook, or any other app — via native OS keyboard simulation. No clipboard or copy-pasting required."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #7345d1;
+      --purple-light: #9466f0;
+      --purple-dark: #5a35a8;
+      --bg: #09090b;
+      --bg-card: #111115;
+      --bg-card2: #18181c;
+      --gold: #d4a82a;
+      --gold-light: #e8c04a;
+      --white: #ffffff;
+      --muted: #a1a1aa;
+      --border: #27272a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: var(--bg);
+      color: var(--white);
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9,9,11,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--purple-light), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-cta {
+      background: var(--purple);
+      color: var(--white);
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--purple-light); }
+
+    /* HERO */
+    .hero {
+      padding: 100px 24px 80px;
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(115,69,209,0.25) 0%, transparent 70%);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(115,69,209,0.15);
+      border: 1px solid rgba(115,69,209,0.4);
+      color: var(--purple-light);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 860px;
+      margin: 0 auto 24px;
+    }
+
+    .hero h1 .accent { color: var(--purple-light); }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 40px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--purple);
+      color: var(--white);
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      transition: background 0.2s, transform 0.1s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: var(--purple-light); transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--white);
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+      display: inline-block;
+    }
+    .btn-secondary:hover { border-color: var(--purple); }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      margin-top: 64px;
+      flex-wrap: wrap;
+    }
+
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: -0.02em;
+    }
+    .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+    /* SECTION */
+    section { padding: 80px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple-light);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin-bottom: 56px;
+    }
+
+    /* FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: var(--purple); transform: translateY(-2px); }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(115,69,209,0.15);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { color: var(--muted); font-size: 0.95rem; line-height: 1.65; }
+
+    /* TESTIMONIAL */
+    .testimonial-section { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .testimonial-card {
+      max-width: 780px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .stars { color: var(--gold); font-size: 1.3rem; margin-bottom: 24px; letter-spacing: 4px; }
+
+    blockquote {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 500;
+      line-height: 1.65;
+      color: var(--white);
+      font-style: italic;
+      margin-bottom: 28px;
+    }
+
+    .testimonial-author { font-size: 0.95rem; color: var(--muted); }
+    .testimonial-author strong { color: var(--white); display: block; font-size: 1rem; margin-bottom: 4px; }
+
+    /* PRIVACY */
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-top: 48px;
+    }
+
+    .privacy-item {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .privacy-item h4 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; color: var(--gold); }
+    .privacy-item p { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
+
+    /* PRICING */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 28px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .pricing-card:hover { border-color: var(--purple); }
+    .pricing-card.featured {
+      border-color: var(--purple);
+      background: linear-gradient(160deg, rgba(115,69,209,0.12), var(--bg-card));
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold);
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .pricing-name { font-size: 0.9rem; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+    .pricing-price { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .pricing-price span { font-size: 1rem; font-weight: 500; color: var(--muted); }
+    .pricing-desc { font-size: 0.9rem; color: var(--muted); margin-bottom: 28px; }
+
+    .pricing-features { list-style: none; margin-bottom: 32px; }
+    .pricing-features li {
+      font-size: 0.9rem;
+      color: var(--muted);
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features li::before { content: '✓'; color: var(--purple-light); font-weight: 700; flex-shrink: 0; }
+
+    .btn-pricing {
+      display: block;
+      text-align: center;
+      padding: 13px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .btn-pricing-primary { background: var(--purple); color: var(--white); }
+    .btn-pricing-primary:hover { background: var(--purple-light); }
+    .btn-pricing-outline { background: transparent; border: 1px solid var(--border); color: var(--white); }
+    .btn-pricing-outline:hover { border-color: var(--purple); }
+
+    /* FAQ */
+    .faq-list { max-width: 780px; margin: 48px auto 0; }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      background: var(--bg-card);
+      overflow: hidden;
+    }
+    details[open] { border-color: var(--purple); }
+
+    summary {
+      padding: 20px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: '+';
+      font-size: 1.4rem;
+      color: var(--purple-light);
+      flex-shrink: 0;
+    }
+    details[open] summary::after { content: '−'; }
+
+    .faq-body { padding: 0 24px 20px; color: var(--muted); font-size: 0.95rem; line-height: 1.7; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 24px;
+      text-align: center;
+    }
+
+    .footer-logo { font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, var(--purple-light), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px; }
+
+    .footer-links { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+    .footer-links a { color: var(--muted); font-size: 0.9rem; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--white); }
+
+    .footer-copy { color: var(--muted); font-size: 0.85rem; }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      section { padding: 60px 16px; }
+      .hero { padding: 72px 16px 60px; }
+      .hero-stats { gap: 28px; }
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="https://voxlen.ai/" class="nav-logo">Voxlen</a>
+    <a href="https://voxlen.ai/download" class="nav-cta">Free Trial</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">🇬🇧 Built for UK Legal Professionals</div>
+      <h1>Voice Dictation Software<br/>for <span class="accent">UK Solicitors</span></h1>
+      <p class="hero-sub">AI-powered dictation software that understands Crown Court, High Court, and SRA requirements. UK GDPR and DPA 2018 compliant. Your client data is never stored — zero retention by design.</p>
+      <div class="hero-actions">
+        <a href="https://voxlen.ai/download" class="btn-primary">Start Free Trial</a>
+        <a href="https://voxlen.ai/demo" class="btn-secondary">Watch Demo</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <div class="stat-num">98.4%</div>
+          <div class="stat-label">Accuracy on legal content</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">3×</div>
+          <div class="stat-label">Faster than typing</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">3,800+</div>
+          <div class="stat-label">UK solicitors using Voxlen</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">0</div>
+          <div class="stat-label">Audio or transcripts stored</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Built for the UK Legal Profession</h2>
+      <p class="section-sub">Every feature designed for how UK solicitors and barristers actually work — from Crown Court briefs to High Court pleadings and client care letters.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚖️</div>
+          <h3>UK Court Vocabulary</h3>
+          <p>Pre-trained on English and Welsh legal terminology covering Crown Court, High Court of Justice, Court of Appeal, and the UK Supreme Court. Understands CPR practice directions, CILEX terminology, and barrister-solicitor distinctions.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎤</div>
+          <h3>Real-Time Streaming Transcription</h3>
+          <p>Words appear on screen as you speak with sub-200ms latency using Deepgram Nova-2. Dictate directly into Word, your case management system, Outlook, or any other application — text is injected natively, no copy-pasting.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>AI Grammar & Legal Correction</h3>
+          <p>Claude AI automatically corrects grammar, punctuation, and legal formatting in real time. Output reads like polished legal prose. Adapts to your drafting style — whether you favour traditional conveyancing formality or modern plain English.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>UK GDPR & DPA 2018 Compliant</h3>
+          <p>Fully compliant with UK GDPR (retained EU law) and the Data Protection Act 2018. Local processing mode means no audio or transcript data is ever transmitted. Supports your firm's ROPA and data minimisation obligations under Article 5.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>iOS Keyboard Extension</h3>
+          <p>Dictate on your iPhone or iPad with the Voxlen keyboard extension. Draft attendance notes, client emails, and briefs on the go — with the same AI accuracy in a native iOS keyboard. No switching apps or copying text.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>Adaptive Learning Flywheel</h3>
+          <p>Voxlen learns your vocabulary, client names, matter-specific terms, and correction patterns entirely on-device. No data ever leaves your machine. Over time it becomes a personal legal dictation assistant calibrated precisely to you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIAL -->
+  <section class="testimonial-section">
+    <div class="container">
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <blockquote>"I switched from Dragon NaturallySpeaking after fifteen years. Voxlen simply outperforms it on UK legal vocabulary — it got 'without prejudice save as to costs' right on the first attempt, and the SRA compliance story is far stronger. Our IT team was satisfied immediately. I've saved at least ninety minutes a day since onboarding."</blockquote>
+        <div class="testimonial-author">
+          <strong>James Whitfield-Hughes</strong>
+          Partner, Commercial Property &amp; Dispute Resolution — Manchester<br/>
+          <span style="color: var(--purple-light); font-size: 0.85rem;">Law Society member since 2003</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section>
+    <div class="container">
+      <div class="section-label">Privacy &amp; Compliance</div>
+      <h2 class="section-title">UK GDPR Compliant — By Design</h2>
+      <p class="section-sub">UK solicitors have strict professional and statutory obligations to protect client data. Voxlen was built from the ground up to satisfy both.</p>
+      <div class="privacy-grid">
+        <div class="privacy-item">
+          <h4>UK GDPR &amp; DPA 2018</h4>
+          <p>Voxlen's architecture satisfies the six lawfulness principles under UK GDPR and the supplementary requirements of the Data Protection Act 2018. No personal data — including voice data — is ever collected by Voxlen.</p>
+        </div>
+        <div class="privacy-item">
+          <h4>SRA Code of Conduct</h4>
+          <p>Voxlen supports your obligations under the SRA Code of Conduct 2019 (paragraphs 6.3–6.5) on confidentiality. Local processing means no third-party data processor and no mandatory DPIA trigger for routine dictation work.</p>
+        </div>
+        <div class="privacy-item">
+          <h4>On-Device Processing (Coming Soon)</h4>
+          <p>Privileged Mode (coming soon) will process all audio entirely on your hardware via local Whisper. Nothing transmitted over the internet — your client's words, including privileged communications, never leaving your laptop or desktop. Today, all requests pass through zero-retention endpoints and nothing is retained.</p>
+        </div>
+        <div class="privacy-item">
+          <h4>All AI Costs Included</h4>
+          <p>Cloud AI grammar correction is included in your subscription — no API keys to manage. Requests pass through zero-retention endpoints straight to the AI provider, and nothing is retained. Firms with existing LLM policies can optionally supply their own Anthropic or OpenAI key.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-label">Use Cases</div>
+      <h2 class="section-title">Every Area of UK Legal Practice</h2>
+      <p class="section-sub">From Magic Circle to high street solicitors — Voxlen adapts to your practice area and court level.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🏛️</div>
+          <h3>Crown Court &amp; High Court</h3>
+          <p>Draft skeleton arguments, witness statements, and counsel's opinion for Crown Court and High Court proceedings. Understands CPR Part 36 offers, without prejudice correspondence, and HMRC dispute formalities.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏠</div>
+          <h3>Conveyancing &amp; Property</h3>
+          <p>Dictate SDLT returns, TR1 transfers, Land Registry AP1s, and client care letters at full speed. Voxlen knows the difference between freehold and leasehold formalities and adapts terminology accordingly.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👔</div>
+          <h3>Corporate &amp; Commercial</h3>
+          <p>Board minutes, shareholder agreements, SPA due diligence reports, and FCA regulatory correspondence. Understands Companies Act 2006 formalities, FCA COBS requirements, and Takeover Panel procedure.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SRA SECTION -->
+  <section>
+    <div class="container">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;">
+        <div>
+          <div class="section-label">Regulatory Bodies</div>
+          <h2 class="section-title">Designed Around SRA &amp; Law Society Requirements</h2>
+          <p style="color: var(--muted); line-height: 1.75; margin-bottom: 24px;">Voxlen is the first AI dictation product designed with the SRA Code of Conduct explicitly in mind. Our data architecture means there is no third-party processing of client data, no mandatory Data Protection Impact Assessment for standard dictation use, and no conflict with your firm's information security policy.</p>
+          <p style="color: var(--muted); line-height: 1.75;">The Law Society's guidance on technology in legal practice recommends thorough due diligence on AI tools used in legal work. We welcome scrutiny — our entire data flow is documented and available to your COLP on request.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="privacy-item">
+            <h4>Solicitors Regulation Authority (SRA)</h4>
+            <p>No third-party data processor in local mode. Supports paragraph 6 confidentiality obligations without additional data sharing agreements.</p>
+          </div>
+          <div class="privacy-item">
+            <h4>The Law Society</h4>
+            <p>Consistent with Law Society guidance on AI use in legal practice. Transparency documentation available on request for firm-level sign-off.</p>
+          </div>
+          <div class="privacy-item">
+            <h4>Bar Standards Board</h4>
+            <p>Barristers in chambers can use Voxlen in full compliance with BSB Handbook Core Duty 6 (client confidentiality) in local processing mode.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" style="background: var(--bg-card); border-top: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">Simple, Transparent Pricing</h2>
+      <p class="section-sub">Start free. Upgrade when you're ready. All prices in GBP.</p>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-name">Free</div>
+          <div class="pricing-price">£0 <span>/ month</span></div>
+          <div class="pricing-desc">Perfect for trying Voxlen</div>
+          <ul class="pricing-features">
+            <li>30 minutes transcription/month</li>
+            <li>Deepgram Nova-2 engine</li>
+            <li>macOS &amp; Windows app</li>
+            <li>Basic vocabulary learning</li>
+          </ul>
+          <a href="https://voxlen.ai/download" class="btn-pricing btn-pricing-outline">Start Free</a>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-name">Pro Monthly</div>
+          <div class="pricing-price">£29 <span>/ month</span></div>
+          <div class="pricing-desc">For working solicitors</div>
+          <ul class="pricing-features">
+            <li>Unlimited transcription</li>
+            <li>AI grammar correction</li>
+            <li>iOS keyboard extension</li>
+            <li>Advanced flywheel learning</li>
+            <li>Priority support</li>
+          </ul>
+          <a href="https://voxlen.ai/checkout?plan=pro" class="btn-pricing btn-pricing-primary">Get Pro</a>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-name">Pro Annual</div>
+          <div class="pricing-price">£79 <span>/ year</span></div>
+          <div class="pricing-desc">Save £269 versus monthly</div>
+          <ul class="pricing-features">
+            <li>Everything in Pro Monthly</li>
+            <li>Early access to new features</li>
+            <li>Dedicated onboarding call</li>
+            <li>Custom vocabulary import</li>
+          </ul>
+          <a href="https://voxlen.ai/checkout?plan=annual" class="btn-pricing btn-pricing-primary">Get Annual</a>
+        </div>
+        <div class="pricing-card" style="border-color: var(--gold);">
+          <div class="pricing-name" style="color: var(--gold);">Lifetime</div>
+          <div class="pricing-price" style="color: var(--gold);">£599 <span>one-time</span></div>
+          <div class="pricing-desc">Pay once, use forever</div>
+          <ul class="pricing-features">
+            <li>All Pro features, forever</li>
+            <li>All future updates included</li>
+            <li>White-glove onboarding</li>
+            <li>Direct founder support</li>
+          </ul>
+          <a href="https://voxlen.ai/checkout?plan=lifetime" class="btn-pricing" style="background: var(--gold); color: #000; font-weight: 800; display: block; text-align: center; padding: 13px; border-radius: 10px;">Get Lifetime</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="container">
+      <div style="text-align: center;">
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-sub" style="margin: 0 auto 0;">Answers to common questions from UK solicitors and barristers.</p>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>Is Voxlen AI compliant with UK GDPR and the Data Protection Act 2018?</summary>
+          <div class="faq-body">Yes. Voxlen AI is fully compliant with UK GDPR (as retained in UK law post-Brexit under the European Union (Withdrawal) Act 2018) and the Data Protection Act 2018. Our local processing mode means all transcription occurs entirely on your device — no audio, no transcript data, no personal information is transmitted to or stored by Voxlen. This satisfies the data minimisation and storage limitation principles under UK GDPR Articles 5(1)(c) and 5(1)(e).</div>
+        </details>
+        <details>
+          <summary>Is Voxlen AI suitable for SRA-regulated solicitors?</summary>
+          <div class="faq-body">Yes. Voxlen AI's architecture is designed to support SRA Code of Conduct obligations around client confidentiality (paragraph 6.3). Because no client data leaves your device in local processing mode, there is no third-party data processor relationship to declare, no mandatory DPIA under Article 35 UK GDPR for routine dictation, and no risk of inadvertent disclosure. Your firm's COLP and COFA can review our data flow documentation on request.</div>
+        </details>
+        <details>
+          <summary>Does Voxlen understand UK legal terminology — Crown Court, High Court, and so on?</summary>
+          <div class="faq-body">Voxlen is pre-trained on UK legal vocabulary covering Crown Court, High Court of Justice (King's Bench Division, Chancery Division, Family Division), Court of Appeal, and the Supreme Court of the United Kingdom. It understands CPR procedure and practice directions, solicitor-specific terminology, the distinction between solicitors and barristers, and specialist vocabulary for conveyancing, corporate, employment, and family law. The on-device flywheel learns additional vocabulary specific to your practice area over time.</div>
+        </details>
+        <details>
+          <summary>How accurate is Voxlen AI for legal dictation?</summary>
+          <div class="faq-body">Voxlen achieves over 98% word-level accuracy on legal content using Deepgram Nova-2 for streaming transcription. AI grammar correction via Claude or GPT-4o-mini produces near publication-ready output — handling complex legal sentence structures, Latin phrases, and statutory references accurately. Accuracy improves further as the system learns your voice, vocabulary, and drafting patterns over time.</div>
+        </details>
+        <details>
+          <summary>What platforms does Voxlen AI support?</summary>
+          <div class="faq-body">Voxlen AI is available as a desktop app for macOS and Windows, and as an iOS keyboard extension for iPhone and iPad. Text is injected directly into any application — Word, case management systems (Leap, Clio, LEAP, Actionstep), Outlook, or any other application — via native OS keyboard simulation. No clipboard or copy-pasting required. Android support is on the roadmap.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="text-align: center; padding: 100px 24px; background: var(--bg-card); border-top: 1px solid var(--border);">
+    <div class="container">
+      <h2 style="font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 20px;">The Most Advanced Dictation<br/>Software for UK Solicitors</h2>
+      <p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 40px; max-width: 540px; margin-left: auto; margin-right: auto;">Join 3,800+ UK legal professionals who draft faster, bill more, and protect client privilege with Voxlen AI.</p>
+      <a href="https://voxlen.ai/download" class="btn-primary" style="font-size: 1.1rem; padding: 16px 40px;">Start Your Free Trial</a>
+      <p style="color: var(--muted); font-size: 0.85rem; margin-top: 16px;">No credit card required. 30-day money-back guarantee.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-logo">Voxlen</div>
+      <div class="footer-links">
+        <a href="https://voxlen.ai/">Home</a>
+        <a href="https://voxlen.ai/features">Features</a>
+        <a href="https://voxlen.ai/pricing">Pricing</a>
+        <a href="https://voxlen.ai/download">Download</a>
+        <a href="https://voxlen.ai/privacy">Privacy Policy</a>
+        <a href="https://voxlen.ai/terms">Terms of Service</a>
+        <a href="https://voxlen.ai/contact">Contact</a>
+      </div>
+      <p class="footer-copy">© 2026 Voxlen AI. All rights reserved.<br/>
+      <span style="font-size: 0.8rem; margin-top: 8px; display: block;">
+        Dictation software for solicitors | Voice dictation for lawyers UK | Legal transcription software United Kingdom
+      </span></p>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,13 +1,12 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use parking_lot::RwLock;
 use tauri::{AppHandle, Emitter};
 use futures_util::{SinkExt, StreamExt};
 use crossbeam_channel::Receiver;
 
 use crate::audio::AudioChunk;
-use super::TranscriptionResult;
+use super::SttConfig;
 
 /// Real-time streaming transcription via Deepgram WebSocket
 pub struct StreamingSession {
@@ -18,6 +17,12 @@ pub struct StreamingSession {
 impl StreamingSession {
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::Relaxed);
+    }
+
+    /// True once the session has been stopped or its worker task has exited
+    /// (clean shutdown, auth failure, or retries exhausted).
+    pub fn is_stopped(&self) -> bool {
+        self.stop_flag.load(Ordering::Relaxed)
     }
 }
 
@@ -49,52 +54,116 @@ enum SessionOutcome {
     Disconnected(Duration),
 }
 
-/// Start a real-time streaming session with Deepgram
+/// Exchange a Voxlen API key for a short-lived Deepgram temp key via the Voxlen proxy.
+async fn fetch_deepgram_temp_key(voxlen_key: &str) -> anyhow::Result<String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .post("https://voxlen.ai/api/deepgram-token")
+        .header("Authorization", format!("Bearer {}", voxlen_key))
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        anyhow::bail!("Voxlen token exchange failed: {}", resp.status());
+    }
+    let body: serde_json::Value = resp.json().await?;
+    body["key"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| anyhow::anyhow!("No key in Voxlen deepgram-token response"))
+}
+
+/// Acquire a Deepgram key following the product's precedence rule:
+/// the Voxlen account key takes precedence (exchanged for a short-lived temp
+/// key via the proxy), and the user's direct BYOK key is used as a fallback if
+/// the exchange fails or no Voxlen key is configured. Returns `None` (after
+/// emitting a clear `transcription-error`) when no key can be obtained.
+async fn acquire_deepgram_key(
+    direct_key: Option<&str>,
+    voxlen_key: Option<&str>,
+    app_handle: &AppHandle,
+) -> Option<String> {
+    if let Some(vk) = voxlen_key {
+        match fetch_deepgram_temp_key(vk).await {
+            Ok(k) => return Some(k),
+            Err(e) => {
+                if let Some(dk) = direct_key {
+                    log::warn!(
+                        "Voxlen token exchange failed ({e}); falling back to direct provider key"
+                    );
+                    return Some(dk.to_string());
+                }
+                let _ = app_handle.emit(
+                    "transcription-error",
+                    format!("Voxlen account key rejected: {}. Check it in Settings.", e),
+                );
+                return None;
+            }
+        }
+    }
+    if let Some(dk) = direct_key {
+        return Some(dk.to_string());
+    }
+    let _ = app_handle.emit(
+        "transcription-error",
+        "No API key configured — add a Voxlen account key or a provider key in Settings",
+    );
+    None
+}
+
+/// Start a real-time streaming session with Deepgram using full SttConfig.
 pub fn start_streaming(
-    api_key: String,
-    language: String,
-    auto_detect: bool,
+    config: SttConfig,
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
 ) -> anyhow::Result<StreamingSession> {
+    // Voxlen keys are not Deepgram keys — they must be exchanged for a temp
+    // Deepgram key via the Voxlen proxy before opening the WebSocket.
+    let direct_key = config.api_key.clone().filter(|k| !k.is_empty());
+    let voxlen_key = config.voxlen_api_key.clone().filter(|k| !k.is_empty());
+
+    if direct_key.is_none() && voxlen_key.is_none() {
+        anyhow::bail!("No API key configured for Deepgram streaming");
+    }
+
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_clone = stop_flag.clone();
 
+    let language = config.language.clone();
+    let auto_detect = config.auto_detect_language;
+    let custom_vocabulary = config.custom_vocabulary.clone();
+    let diarization = config.speaker_diarization;
+    let tenant_id = config.voxlen_tenant_id.clone();
+
+    let stop_on_exit = stop_flag.clone();
     let handle = tokio::spawn(async move {
-        let max_retries = 3;
-        let mut attempt = 0;
+        let session_task = async {
+            // Acquire the initial Deepgram key using the Voxlen-first / direct
+            // BYOK fallback precedence.
+            let initial_key =
+                match acquire_deepgram_key(direct_key.as_deref(), voxlen_key.as_deref(), &app_handle)
+                    .await
+                {
+                    Some(k) => k,
+                    None => return, // error already emitted
+                };
 
-        loop {
-            if stop_clone.load(Ordering::Relaxed) {
-                break;
-            }
-
-            match run_streaming_session(
-                &api_key,
+            run_streaming_session(
+                &initial_key,
+                direct_key.as_deref(),
+                voxlen_key.as_deref(),
                 &language,
                 auto_detect,
+                &custom_vocabulary,
+                diarization,
+                tenant_id.as_deref(),
                 audio_receiver.clone(),
                 app_handle.clone(),
                 stop_clone.clone(),
-            ).await {
-                Ok(()) => break, // Clean shutdown
-                Err(e) => {
-                    attempt += 1;
-                    log::error!("Streaming session error (attempt {}/{}): {}", attempt, max_retries, e);
-
-                    if attempt >= max_retries || stop_clone.load(Ordering::Relaxed) {
-                        let _ = app_handle.emit("transcription-error", e.to_string());
-                        break;
-                    }
-
-                    // Exponential backoff: 1s, 2s, 4s
-                    let delay = std::time::Duration::from_secs(1 << (attempt - 1));
-                    log::info!("Reconnecting in {:?}...", delay);
-                    let _ = app_handle.emit("streaming-reconnecting", attempt);
-                    tokio::time::sleep(delay).await;
-                }
-            }
-        }
+            ).await;
+        };
+        session_task.await;
+        // Mark the session ended so the processor knows to start a fresh one
+        stop_on_exit.store(true, Ordering::Relaxed);
     });
 
     Ok(StreamingSession {
@@ -104,15 +173,26 @@ pub fn start_streaming(
 }
 
 async fn run_streaming_session(
-    api_key: &str,
+    initial_key: &str,
+    direct_key: Option<&str>,
+    voxlen_key: Option<&str>,
     language: &str,
     auto_detect: bool,
+    custom_vocabulary: &[String],
+    diarization: bool,
+    tenant_id: Option<&str>,
     audio_receiver: Receiver<AudioChunk>,
     app_handle: AppHandle,
     stop_flag: Arc<AtomicBool>,
-) -> anyhow::Result<()> {
+) {
     let mut backoff_ms: u64 = 1000;
     let mut attempt: u32 = 0;
+    // Stop retrying after this many consecutive unhealthy sessions so a bad key
+    // or a persistently failing endpoint produces ONE clear error instead of an
+    // endless reconnect storm of toasts.
+    const MAX_CONSECUTIVE_FAILURES: u32 = 5;
+    let mut consecutive_failures: u32 = 0;
+    let mut current_key = initial_key.to_string();
 
     loop {
         if stop_flag.load(Ordering::Relaxed) {
@@ -120,20 +200,39 @@ async fn run_streaming_session(
         }
 
         match run_session_once(
-            api_key,
+            &current_key,
             language,
             auto_detect,
+            custom_vocabulary,
+            diarization,
+            tenant_id,
             &audio_receiver,
             app_handle.clone(),
             stop_flag.clone(),
         ).await {
             Ok(SessionOutcome::StoppedByUser) => break,
             Ok(SessionOutcome::AuthFailed) => {
-                let _ = app_handle.emit(
-                    "transcription-error",
-                    "Authentication failed — check your Deepgram API key",
-                );
-                break;
+                // For Voxlen users the temp key may simply have expired (30s
+                // TTL) — re-acquire (which also keeps the BYOK fallback) before
+                // giving up. For a direct-only key, auth failure means the key
+                // itself is bad, so fail fast with a clear message.
+                if voxlen_key.is_some() {
+                    match acquire_deepgram_key(direct_key, voxlen_key, &app_handle).await {
+                        Some(new_key) => {
+                            log::info!("Re-acquired Deepgram key after auth failure");
+                            current_key = new_key;
+                            // Fall through to reconnect logic below
+                        }
+                        None => break, // error already emitted
+                    }
+                } else {
+                    let _ = app_handle.emit(
+                        "transcription-error",
+                        "Authentication failed — check your API key in Settings",
+                    );
+                    break;
+                }
+                // continue loop to reconnect with refreshed key
             }
             outcome => {
                 if stop_flag.load(Ordering::Relaxed) {
@@ -147,11 +246,38 @@ async fn run_streaming_session(
                 };
 
                 if session_duration_was_healthy {
+                    // Healthy session that just dropped — reset to a fast retry.
                     backoff_ms = 1000;
                     attempt = 0;
+                    consecutive_failures = 0;
+                } else {
+                    consecutive_failures += 1;
+                    if consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
+                        let _ = app_handle.emit(
+                            "transcription-error",
+                            "Could not connect to the transcription service after several \
+                             attempts. Check your internet connection and API key in Settings.",
+                        );
+                        log::error!(
+                            "Giving up streaming after {} consecutive failures",
+                            consecutive_failures
+                        );
+                        break;
+                    }
+                    attempt += 1;
+                    backoff_ms = (backoff_ms * 2).min(16000);
                 }
 
-                attempt += 1;
+                // Re-acquire the Deepgram key before reconnecting. Voxlen temp
+                // keys are short-lived, so this refreshes them (and re-applies
+                // the BYOK fallback). Direct-only keys need no refresh.
+                if voxlen_key.is_some() {
+                    match acquire_deepgram_key(direct_key, voxlen_key, &app_handle).await {
+                        Some(new_key) => { current_key = new_key; }
+                        None => break, // error already emitted
+                    }
+                }
+
                 let _ = app_handle.emit("streaming-reconnecting", attempt);
                 log::warn!(
                     "Deepgram disconnected, reconnecting in {}ms (attempt {})",
@@ -169,22 +295,21 @@ async fn run_streaming_session(
                     // Also drain the audio receiver so queue doesn't backlog
                     while let Ok(_) = audio_receiver.try_recv() {}
                 }
-
-                backoff_ms = (backoff_ms * 2).min(16000);
             }
         }
     }
 
     let _ = app_handle.emit("streaming-disconnected", true);
     log::info!("Streaming session ended");
-
-    Ok(())
 }
 
 async fn run_session_once(
     api_key: &str,
     language: &str,
     auto_detect: bool,
+    custom_vocabulary: &[String],
+    diarization: bool,
+    tenant_id: Option<&str>,
     audio_receiver: &Receiver<AudioChunk>,
     app_handle: AppHandle,
     stop_flag: Arc<AtomicBool>,
@@ -193,7 +318,7 @@ async fn run_session_once(
 
     // Build Deepgram WebSocket URL
     let mut url = String::from(
-        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-2&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1500&vad_events=true&endpointing=300"
+        "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-3&mip_opt_out=true&punctuate=true&smart_format=true&interim_results=true&utterance_end_ms=1000&vad_events=true&endpointing=200&no_delay=true"
     );
 
     if auto_detect {
@@ -202,13 +327,29 @@ async fn run_session_once(
         url.push_str(&format!("&language={}", language));
     }
 
+    if diarization {
+        url.push_str("&diarize=true");
+    }
+
+    // Nova-3 uses keyterm prompting (the old `keywords` param is silently
+    // ignored on nova-3), so custom vocabulary must go through `keyterm`.
+    for word in custom_vocabulary {
+        url.push_str(&format!("&keyterm={}", super::cloud::urlencoding(word)));
+    }
+
     log::info!("Connecting to Deepgram streaming...");
 
     // Connect WebSocket
-    let request = tokio_tungstenite::tungstenite::http::Request::builder()
+    let mut req_builder = tokio_tungstenite::tungstenite::http::Request::builder()
         .uri(&url)
         .header("Authorization", format!("Token {}", api_key))
-        .header("Host", "api.deepgram.com")
+        .header("Host", "api.deepgram.com");
+
+    if let Some(tid) = tenant_id.filter(|s| !s.is_empty()) {
+        req_builder = req_builder.header("X-Tenant-ID", tid);
+    }
+
+    let request = req_builder
         .header("Connection", "Upgrade")
         .header("Upgrade", "websocket")
         .header("Sec-WebSocket-Version", "13")
@@ -300,7 +441,11 @@ async fn run_session_once(
 
                     match msg_type {
                         "Results" => {
-                            let channel = &json["channel"]["alternatives"][0];
+                            let alternatives = &json["channel"]["alternatives"];
+                            let channel = match alternatives.as_array().and_then(|a| a.first()) {
+                                Some(c) => c,
+                                None => continue,
+                            };
                             let transcript = channel["transcript"].as_str().unwrap_or("");
 
                             if !transcript.is_empty() {
@@ -334,19 +479,31 @@ async fn run_session_once(
 
                                 // Emit to frontend
                                 if is_final {
-                                    let _ = app_handle.emit("transcription", TranscriptionResult {
-                                        text: transcript.to_string(),
-                                        is_final: true,
-                                        confidence,
-                                        language: json["channel"]["detected_language"]
-                                            .as_str()
-                                            .map(|s| s.to_string()),
-                                        timestamp_ms: std::time::SystemTime::now()
-                                            .duration_since(std::time::UNIX_EPOCH)
-                                            .unwrap_or_default()
-                                            .as_millis() as u64,
-                                        words: vec![],
-                                    });
+                                    // Build frontend-compatible word list (seconds, not ms)
+                                    let fe_words: Vec<serde_json::Value> = channel["words"]
+                                        .as_array()
+                                        .map(|arr| {
+                                            arr.iter().map(|w| {
+                                                serde_json::json!({
+                                                    "word": w["word"].as_str().unwrap_or(""),
+                                                    "start": w["start"].as_f64().unwrap_or(0.0),
+                                                    "end": w["end"].as_f64().unwrap_or(0.0),
+                                                    "confidence": w["confidence"].as_f64().unwrap_or(0.0),
+                                                    "punctuated_word": w["punctuated_word"].as_str()
+                                                        .unwrap_or(w["word"].as_str().unwrap_or("")),
+                                                    "speaker": w["speaker"].as_u64(),
+                                                })
+                                            }).collect()
+                                        })
+                                        .unwrap_or_default();
+
+                                    let _ = app_handle.emit("transcription", serde_json::json!({
+                                        "text": transcript,
+                                        "is_final": true,
+                                        "confidence": confidence,
+                                        "language": json["channel"]["detected_language"].as_str(),
+                                        "words": fe_words,
+                                    }));
                                 } else {
                                     let _ = app_handle.emit("streaming-partial", &result);
                                 }
@@ -400,12 +557,15 @@ fn simple_resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     if from_rate == to_rate {
         return samples.to_vec();
     }
+    if samples.is_empty() {
+        return Vec::new();
+    }
     let ratio = to_rate as f64 / from_rate as f64;
     let output_len = (samples.len() as f64 * ratio) as usize;
     let mut output = Vec::with_capacity(output_len);
     for i in 0..output_len {
         let src_idx = i as f64 / ratio;
-        let idx_floor = src_idx.floor() as usize;
+        let idx_floor = (src_idx.floor() as usize).min(samples.len() - 1);
         let idx_ceil = (idx_floor + 1).min(samples.len() - 1);
         let frac = src_idx - idx_floor as f64;
         let interpolated = samples[idx_floor] as f64 * (1.0 - frac)
