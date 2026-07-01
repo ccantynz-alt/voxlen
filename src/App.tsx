@@ -22,6 +22,8 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
   const hydrateSettingsStore = useSettingsStore((s) => s.hydrateSettings);
+  const theme = useSettingsStore((s) => s.theme);
+  const fontSize = useSettingsStore((s) => s.fontSize);
 
   // Apply theme class to document root
   useEffect(() => {
