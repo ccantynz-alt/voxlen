@@ -22,28 +22,88 @@ export function useGlobalShortcuts(enabled: boolean): void {
     let registered: string[] = [];
     let cancelled = false;
 
-    async function register() {
+    async function registerAll() {
+      let register: typeof import("@tauri-apps/plugin-global-shortcut").register;
+      let unregister: typeof import("@tauri-apps/plugin-global-shortcut").unregister;
       try {
-        const { register, unregister } = await import(
+        ({ register, unregister } = await import(
           "@tauri-apps/plugin-global-shortcut"
-        );
+        ));
+      } catch {
+        return; // Not running in Tauri — expected in browser/dev mode.
+      }
 
-        // Unregister anything we previously registered (best effort).
-        for (const s of registered) {
-          try {
-            await unregister(s);
-          } catch {
-            // Ignore; may not have been registered.
-          }
+      // Unregister anything we previously registered (best effort).
+      for (const s of registered) {
+        try {
+          await unregister(s);
+        } catch {
+          // Ignore; may not have been registered.
         }
-        registered = [];
+      }
+      registered = [];
 
-        // Toggle — on Pressed, flip listening/idle.
-        if (shortcutToggle) {
-          await register(shortcutToggle, (event) => {
-            if (event.state !== "Pressed") return;
-            const status = useDictationStore.getState().status;
-            if (status === "idle" || status === "paused") {
+      // Each shortcut is registered independently — one failing (e.g. taken
+      // by the OS or another app) must not silently prevent the others from
+      // registering, and the user needs to know it happened instead of the
+      // shortcut just quietly doing nothing when pressed.
+      async function registerOne(shortcut: string, handler: Parameters<typeof register>[1]) {
+        try {
+          await register(shortcut, handler);
+          registered.push(shortcut);
+        } catch (err) {
+          console.error(`Failed to register shortcut '${shortcut}':`, err);
+          toast(
+            `Couldn't register shortcut "${shortcut}" — it may already be in use by another app.`,
+            "error",
+            6000
+          );
+        }
+      }
+
+      // Toggle — on Pressed, flip listening/idle.
+      if (shortcutToggle) {
+        await registerOne(shortcutToggle, (event) => {
+          if (event.state !== "Pressed") return;
+          const status = useDictationStore.getState().status;
+          if (status === "idle" || status === "paused" || status === "error") {
+            useDictationStore.getState().setStatus("listening");
+            (async () => {
+              try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                try {
+                  await invoke("start_dictation");
+                } catch (err) {
+                  // Real backend error — reset UI and show the user why it failed.
+                  useDictationStore.getState().setStatus("idle");
+                  toast(
+                    err instanceof Error ? err.message : String(err) || "Failed to start dictation",
+                    "error"
+                  );
+                }
+              } catch {
+                // Not in Tauri (import failed) — expected in browser/dev.
+              }
+            })();
+          } else {
+            useDictationStore.getState().setStatus("idle");
+            (async () => {
+              try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                await invoke("stop_dictation");
+              } catch {
+                // Non-Tauri / ignore.
+              }
+            })();
+          }
+        });
+      }
+
+      // Push-to-talk — start on press, stop on release.
+      if (shortcutPushToTalk) {
+        await registerOne(shortcutPushToTalk, (event) => {
+          if (event.state === "Pressed") {
+            if (useDictationStore.getState().status !== "listening") {
               useDictationStore.getState().setStatus("listening");
               (async () => {
                 try {
@@ -51,7 +111,6 @@ export function useGlobalShortcuts(enabled: boolean): void {
                   try {
                     await invoke("start_dictation");
                   } catch (err) {
-                    // Real backend error — reset UI and show the user why it failed.
                     useDictationStore.getState().setStatus("idle");
                     toast(
                       err instanceof Error ? err.message : String(err) || "Failed to start dictation",
@@ -59,10 +118,12 @@ export function useGlobalShortcuts(enabled: boolean): void {
                     );
                   }
                 } catch {
-                  // Not in Tauri (import failed) — expected in browser/dev.
+                  // Not in Tauri.
                 }
               })();
-            } else {
+            }
+          } else if (event.state === "Released") {
+            if (useDictationStore.getState().status === "listening") {
               useDictationStore.getState().setStatus("idle");
               (async () => {
                 try {
@@ -73,163 +134,118 @@ export function useGlobalShortcuts(enabled: boolean): void {
                 }
               })();
             }
-          });
-          registered.push(shortcutToggle);
-        }
-
-        // Push-to-talk — start on press, stop on release.
-        if (shortcutPushToTalk) {
-          await register(shortcutPushToTalk, (event) => {
-            if (event.state === "Pressed") {
-              if (useDictationStore.getState().status !== "listening") {
-                useDictationStore.getState().setStatus("listening");
-                (async () => {
-                  try {
-                    const { invoke } = await import("@tauri-apps/api/core");
-                    try {
-                      await invoke("start_dictation");
-                    } catch (err) {
-                      useDictationStore.getState().setStatus("idle");
-                      toast(
-                        err instanceof Error ? err.message : String(err) || "Failed to start dictation",
-                        "error"
-                      );
-                    }
-                  } catch {
-                    // Not in Tauri.
-                  }
-                })();
-              }
-            } else if (event.state === "Released") {
-              if (useDictationStore.getState().status === "listening") {
-                useDictationStore.getState().setStatus("idle");
-                (async () => {
-                  try {
-                    const { invoke } = await import("@tauri-apps/api/core");
-                    await invoke("stop_dictation");
-                  } catch {
-                    // Non-Tauri / ignore.
-                  }
-                })();
-              }
-            }
-          });
-          registered.push(shortcutPushToTalk);
-        }
-
-        // Cancel — stop dictation + clear current in-progress transcript.
-        if (shortcutCancel) {
-          await register(shortcutCancel, (event) => {
-            if (event.state !== "Pressed") return;
-            const dictation = useDictationStore.getState();
-            dictation.setStatus("idle");
-            dictation.clearCurrentTranscript();
-            (async () => {
-              try {
-                const { invoke } = await import("@tauri-apps/api/core");
-                await invoke("stop_dictation");
-              } catch {
-                // Demo / non-Tauri.
-              }
-            })();
-          });
-          registered.push(shortcutCancel);
-        }
-
-        // Correct grammar — invoke `correct_grammar` on the last-dictated text
-        // and inject the corrected version.
-        if (shortcutCorrectGrammar) {
-          await register(shortcutCorrectGrammar, (event) => {
-            if (event.state !== "Pressed") return;
-            (async () => {
-              let invoke: typeof import("@tauri-apps/api/core").invoke;
-              try {
-                ({ invoke } = await import("@tauri-apps/api/core"));
-              } catch {
-                return; // Not in Tauri.
-              }
-
-              try {
-                const state = useDictationStore.getState();
-                // Prefer selected text from the frontend; otherwise use
-                // the last segment from the current session.
-                const selection = window.getSelection()?.toString() ?? "";
-                const lastSegment = state.segments[state.segments.length - 1];
-                const textToCorrect = selection || lastSegment?.correctedText || lastSegment?.text || "";
-                if (!textToCorrect.trim()) return;
-
-                const flyVocab = useFlywheelStore.getState().vocabulary
-                  .filter((v) => v.frequency >= 2)
-                  .map((v) => v.word);
-                const { activeClientId, clients } = useClientsStore.getState();
-                const activeClient = clients.find((c) => c.id === activeClientId);
-                const clientVocab = activeClient?.vocabulary ?? [];
-                const globalVocab = useSettingsStore.getState().customVocabulary;
-                const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocab, ...globalVocab]));
-                const matterContext = buildMatterContext(activeClient) || undefined;
-
-                const result = await invoke<{
-                  corrected: string;
-                  changes: Array<{ original: string; corrected: string; reason: string; category: string }>;
-                  score: number;
-                }>(
-                  "correct_grammar",
-                  {
-                    text: textToCorrect,
-                    customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
-                    matterContext,
-                  }
-                );
-
-                if (lastSegment && !selection) {
-                  useDictationStore.getState().updateSegment(lastSegment.id, {
-                    correctedText: result.corrected,
-                    grammarApplied: true,
-                  });
-                }
-
-                // Feed corrections back into flywheel (same as auto-grammar path)
-                if (result.changes?.length) {
-                  const fw = useFlywheelStore.getState();
-                  for (const c of result.changes) {
-                    if (c.original && c.corrected && c.original !== c.corrected) {
-                      fw.recordCorrection(
-                        c.original,
-                        c.corrected,
-                        (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
-                      );
-                    }
-                  }
-                  fw.recordCorrectionFeedback(true);
-                }
-
-                // Inject corrected text into the focused app.
-                try {
-                  await invoke("inject_text", { text: result.corrected });
-                } catch {
-                  // Fallback: clipboard.
-                  await navigator.clipboard.writeText(result.corrected);
-                }
-              } catch (err) {
-                // Show the user why grammar correction failed (no key, API error, etc.)
-                toast(
-                  err instanceof Error ? err.message : String(err) || "Grammar correction failed",
-                  "error"
-                );
-              }
-            })();
-          });
-          registered.push(shortcutCorrectGrammar);
-        }
-
-        // Session autosaving is handled by the status-subscription in
-        // useTauriEvents — no-op here.
-      } catch {
-        // Not running in Tauri.
+          }
+        });
       }
+
+      // Cancel — stop dictation + clear current in-progress transcript.
+      if (shortcutCancel) {
+        await registerOne(shortcutCancel, (event) => {
+          if (event.state !== "Pressed") return;
+          const dictation = useDictationStore.getState();
+          dictation.setStatus("idle");
+          dictation.clearCurrentTranscript();
+          (async () => {
+            try {
+              const { invoke } = await import("@tauri-apps/api/core");
+              await invoke("stop_dictation");
+            } catch {
+              // Demo / non-Tauri.
+            }
+          })();
+        });
+      }
+
+      // Correct grammar — invoke `correct_grammar` on the last-dictated text
+      // and inject the corrected version.
+      if (shortcutCorrectGrammar) {
+        await registerOne(shortcutCorrectGrammar, (event) => {
+          if (event.state !== "Pressed") return;
+          (async () => {
+            let invoke: typeof import("@tauri-apps/api/core").invoke;
+            try {
+              ({ invoke } = await import("@tauri-apps/api/core"));
+            } catch {
+              return; // Not in Tauri.
+            }
+
+            try {
+              const state = useDictationStore.getState();
+              // Prefer selected text from the frontend; otherwise use
+              // the last segment from the current session.
+              const selection = window.getSelection()?.toString() ?? "";
+              const lastSegment = state.segments[state.segments.length - 1];
+              const textToCorrect = selection || lastSegment?.correctedText || lastSegment?.text || "";
+              if (!textToCorrect.trim()) return;
+
+              const flyVocab = useFlywheelStore.getState().vocabulary
+                .filter((v) => v.frequency >= 2)
+                .map((v) => v.word);
+              const { activeClientId, clients } = useClientsStore.getState();
+              const activeClient = clients.find((c) => c.id === activeClientId);
+              const clientVocab = activeClient?.vocabulary ?? [];
+              const globalVocab = useSettingsStore.getState().customVocabulary;
+              const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocab, ...globalVocab]));
+              const matterContext = buildMatterContext(activeClient) || undefined;
+
+              const result = await invoke<{
+                corrected: string;
+                changes: Array<{ original: string; corrected: string; reason: string; category: string }>;
+                score: number;
+              }>(
+                "correct_grammar",
+                {
+                  text: textToCorrect,
+                  customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
+                  matterContext,
+                }
+              );
+
+              if (lastSegment && !selection) {
+                useDictationStore.getState().updateSegment(lastSegment.id, {
+                  correctedText: result.corrected,
+                  grammarApplied: true,
+                });
+              }
+
+              // Feed corrections back into flywheel (same as auto-grammar path)
+              if (result.changes?.length) {
+                const fw = useFlywheelStore.getState();
+                for (const c of result.changes) {
+                  if (c.original && c.corrected && c.original !== c.corrected) {
+                    fw.recordCorrection(
+                      c.original,
+                      c.corrected,
+                      (c.category as "grammar" | "spelling" | "punctuation" | "style") ?? "grammar"
+                    );
+                  }
+                }
+                fw.recordCorrectionFeedback(true);
+              }
+
+              // Inject corrected text into the focused app.
+              try {
+                await invoke("inject_text", { text: result.corrected });
+              } catch {
+                // Fallback: clipboard.
+                await navigator.clipboard.writeText(result.corrected);
+              }
+            } catch (err) {
+              // Show the user why grammar correction failed (no key, API error, etc.)
+              toast(
+                err instanceof Error ? err.message : String(err) || "Grammar correction failed",
+                "error"
+              );
+            }
+          })();
+        });
+      }
+
+      // Session autosaving is handled by the status-subscription in
+      // useTauriEvents — no-op here.
     }
 
-    register();
+    registerAll();
 
     return () => {
       cancelled = true;
