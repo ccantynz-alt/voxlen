@@ -20,7 +20,7 @@ export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
-  const updateSettingsStore = useSettingsStore((s) => s.updateSettings);
+  const hydrateSettingsStore = useSettingsStore((s) => s.hydrateSettings);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
   // Hook handles its own cleanup and is safe outside Tauri.
@@ -41,7 +41,7 @@ export default function App() {
         // Load saved settings
         const savedSettings = await store.get<Record<string, unknown>>("settings");
         if (savedSettings) {
-          useSettingsStore.getState().updateSettings(savedSettings);
+          useSettingsStore.getState().hydrateSettings(savedSettings);
         }
       } catch {
         // Not in Tauri - check localStorage
@@ -52,7 +52,7 @@ export default function App() {
         try {
           const saved = localStorage.getItem("voxlen_settings");
           if (saved) {
-            useSettingsStore.getState().updateSettings(JSON.parse(saved));
+            useSettingsStore.getState().hydrateSettings(JSON.parse(saved));
           }
         } catch {
           // ignore
@@ -63,14 +63,14 @@ export default function App() {
       try {
         const backendSettings = await loadSettings();
         if (backendSettings) {
-          updateSettingsStore(backendSettings);
+          hydrateSettingsStore(backendSettings);
         }
       } catch {
         // Already handled inside loadSettings.
       }
     }
     checkFirstLaunch();
-  }, [updateSettingsStore]);
+  }, [hydrateSettingsStore]);
 
   // Persist settings on every change.
   useEffect(() => {
@@ -83,11 +83,12 @@ export default function App() {
         activeTab: _activeTab,
         updateSetting: _us,
         updateSettings: _uss,
+        hydrateSettings: _hs,
         setActiveTab: _sat,
         resetToDefaults: _rtd,
         ...appSettings
       } = state;
-      void _activeTab; void _us; void _uss; void _sat; void _rtd;
+      void _activeTab; void _us; void _uss; void _hs; void _sat; void _rtd;
 
       const serialized = JSON.stringify(appSettings);
       if (serialized === lastSerialized) return;
@@ -204,11 +205,12 @@ export default function App() {
       activeTab: _activeTab,
       updateSetting: _us,
       updateSettings: _uss,
+      hydrateSettings: _hs,
       setActiveTab: _sat,
       resetToDefaults: _rtd,
       ...appSettings
     } = state;
-    void _activeTab; void _us; void _uss; void _sat; void _rtd;
+    void _activeTab; void _us; void _uss; void _hs; void _sat; void _rtd;
     await persistSettings(appSettings);
 
     setShowOnboarding(false);

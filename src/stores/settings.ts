@@ -72,6 +72,15 @@ interface SettingsState extends AppSettings {
     value: AppSettings[K]
   ) => void;
   updateSettings: (settings: Partial<AppSettings>) => void;
+  /** Load previously-saved settings into the store WITHOUT scheduling a
+   * persist cycle. Startup hydration must use this, not updateSettings —
+   * otherwise loading settings back in (e.g. from settings.json) races the
+   * still-in-flight keychain/backend hydration of API keys: schedulePersist
+   * reads whatever is in the store 500ms later and writes it back, so if the
+   * API key hasn't loaded into the store yet by then, its write-or-delete
+   * logic deletes the key from the OS keychain — the exact bug this was
+   * created to prevent (users having to re-enter their key every launch). */
+  hydrateSettings: (settings: Partial<AppSettings>) => void;
   setActiveTab: (tab: string) => void;
   resetToDefaults: () => void;
 }
@@ -238,7 +247,7 @@ export async function hydrateSecrets(): Promise<void> {
   if (grammarApiKey) updates.grammarApiKey = grammarApiKey;
   if (voxlenApiKey) updates.voxlenApiKey = voxlenApiKey;
   if (Object.keys(updates).length > 0) {
-    useSettingsStore.getState().updateSettings(updates);
+    useSettingsStore.getState().hydrateSettings(updates);
   }
 }
 
@@ -254,6 +263,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   updateSettings: (settings) => {
     set(settings);
     schedulePersist();
+  },
+
+  hydrateSettings: (settings) => {
+    set(settings);
   },
 
   setActiveTab: (tab) => set({ activeTab: tab }),
