@@ -1,59 +1,170 @@
-use tauri::{AppHandle, State};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+use tauri::{State, Emitter, Manager};
 use crate::audio::{AudioState, DictationStatus};
-use crate::stt::{SttEngineType, SttState};
-use crate::stt::streaming;
+use crate::stt::{SttState, SttEngineType, SttSessionState, streaming, processor};
 
-/// Holds the active streaming session so it can be stopped on demand.
-pub struct StreamingSessionState(pub parking_lot::Mutex<Option<streaming::StreamingSession>>);
+/// Guards against spawning more than one recovery watchdog at a time (e.g. if
+/// push-to-talk fires start_dictation twice in quick succession). The
+/// watchdog itself exits — and clears this — as soon as dictation is no
+/// longer in the Listening state.
+static WATCHDOG_ACTIVE: AtomicBool = AtomicBool::new(false);
 
-#[tauri::command]
-pub async fn start_dictation(
-    app: AppHandle,
-    audio_state: State<'_, AudioState>,
-    stt_state: State<'_, SttState>,
-    streaming_state: State<'_, StreamingSessionState>,
-) -> Result<(), String> {
-    // Start audio capture (chunks go to batch channel by default).
-    audio_state.0.read().start_capture().map_err(|e| e.to_string())?;
+const WATCHDOG_POLL: Duration = Duration::from_millis(500);
+const RECOVERY_SETTLE: Duration = Duration::from_millis(1500);
+const MAX_CONSECUTIVE_FAILURES: u32 = 5;
 
-    // For Deepgram, open a streaming channel and start the WebSocket session.
+fn start_dictation_internal(
+    audio_state: &State<'_, AudioState>,
+    stt_state: &State<'_, SttState>,
+    session_state: &State<'_, SttSessionState>,
+    app: &tauri::AppHandle,
+) -> Result<Option<String>, String> {
+    if crate::commands::settings::get_privileged_mode() {
+        let _ = app.emit("privileged-mode-active", true);
+    }
+
+    // Stop any existing STT session before starting a new one.
+    session_state.stop();
+
+    let s = crate::commands::settings::get_current_settings();
+    let input_gain = s.input_gain.max(0.1).min(4.0);
+    let noise_suppression = s.noise_suppression;
+
+    // Start audio capture; get back the receiver end of the fresh channel.
+    let receiver = audio_state.0.read()
+        .start_capture_with_options(input_gain, noise_suppression)
+        .map_err(|e| e.to_string())?;
+
+    let active_device = audio_state.0.read().get_active_device_name();
+
+    // Snapshot the STT config without holding the lock across the spawn.
     let config = stt_state.0.read().get_config();
-    if matches!(config.engine, SttEngineType::DeepgramCloud) {
-        if let Some(api_key) = config.api_key {
-            let receiver = audio_state.0.read().start_streaming_channel();
-            match streaming::start_streaming(
-                api_key,
-                config.language,
-                config.auto_detect_language,
-                receiver,
-                app,
-            ) {
-                Ok(session) => {
-                    *streaming_state.0.lock() = Some(session);
-                    log::info!("Deepgram streaming session started");
-                }
-                Err(e) => {
-                    // Streaming failed to initialize; fall back to batch silently.
-                    audio_state.0.read().stop_streaming_channel();
-                    log::warn!("Streaming init failed, falling back to batch: {}", e);
-                }
-            }
+    let status_arc = audio_state.0.read().status.clone();
+
+    match config.engine {
+        SttEngineType::DeepgramCloud => {
+            let session = streaming::start_streaming(config, receiver, app.clone())
+                .map_err(|e| e.to_string())?;
+            session_state.set(session);
+        }
+        SttEngineType::WhisperCloud | SttEngineType::WhisperLocal => {
+            let proc = processor::AudioProcessor::new(
+                app.clone(),
+                stt_state.0.clone(),
+                status_arc,
+            );
+            proc.start(receiver);
         }
     }
 
+    Ok(active_device)
+}
+
+#[tauri::command]
+pub fn start_dictation(
+    audio_state: State<'_, AudioState>,
+    stt_state: State<'_, SttState>,
+    session_state: State<'_, SttSessionState>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    start_dictation_internal(&audio_state, &stt_state, &session_state, &app)?;
+    spawn_capture_watchdog(app);
     Ok(())
+}
+
+/// Re-runs the same capture + STT wiring as `start_dictation`, but pulls
+/// state via the AppHandle instead of Tauri-injected `State<T>` — needed
+/// because the watchdog runs on a plain background thread, not inside a
+/// `#[tauri::command]`.
+fn restart_capture(app: &tauri::AppHandle) -> Result<Option<String>, String> {
+    let audio_state = app.try_state::<AudioState>().ok_or("Audio engine unavailable")?;
+    let stt_state = app.try_state::<SttState>().ok_or("STT engine unavailable")?;
+    let session_state = app.try_state::<SttSessionState>().ok_or("STT session unavailable")?;
+
+    // The old stream is already dead (that's why we're here) — stop it
+    // cleanly before starting a fresh one on the same or a fallback device.
+    let _ = audio_state.0.read().stop_capture();
+
+    start_dictation_internal(&audio_state, &stt_state, &session_state, app)
+}
+
+/// Watches for capture faults (stream errors, device unplugged/muted) while
+/// dictation is listening, and automatically restarts capture — reconnecting
+/// to the preferred device if it came back, or falling back to the best
+/// available one — instead of requiring the user to notice and manually
+/// restart dictation. Gives up after a handful of consecutive failures so a
+/// fundamentally broken device doesn't retry forever.
+fn spawn_capture_watchdog(app: tauri::AppHandle) {
+    if WATCHDOG_ACTIVE
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return; // Already watching this (or another) dictation session.
+    }
+
+    std::thread::spawn(move || {
+        let mut consecutive_failures: u32 = 0;
+
+        loop {
+            std::thread::sleep(WATCHDOG_POLL);
+
+            let Some(audio_state) = app.try_state::<AudioState>() else { break };
+            if audio_state.0.read().get_status() != DictationStatus::Listening {
+                break; // User stopped/paused dictation, or we gave up below.
+            }
+
+            if !audio_state.0.read().take_device_fault() {
+                consecutive_failures = 0;
+                continue;
+            }
+
+            let _ = app.emit("audio-recovery-attempt", ());
+            // Give a toggled mute button / USB re-enumeration a moment to settle
+            // before we try to reopen the stream.
+            std::thread::sleep(RECOVERY_SETTLE);
+
+            match restart_capture(&app) {
+                Ok(device) => {
+                    consecutive_failures = 0;
+                    let _ = app.emit(
+                        "audio-recovery-result",
+                        serde_json::json!({ "ok": true, "device": device }),
+                    );
+                }
+                Err(e) => {
+                    consecutive_failures += 1;
+                    log::error!("Microphone auto-recovery failed: {}", e);
+                    let _ = app.emit(
+                        "audio-recovery-result",
+                        serde_json::json!({ "ok": false, "error": e }),
+                    );
+                    if consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
+                        if let Some(audio_state) = app.try_state::<AudioState>() {
+                            audio_state.0.read().mark_error();
+                        }
+                        let _ = app.emit("audio-recovery-giveup", ());
+                        break;
+                    }
+                }
+            }
+        }
+
+        WATCHDOG_ACTIVE.store(false, Ordering::SeqCst);
+    });
 }
 
 #[tauri::command]
 pub fn stop_dictation(
     audio_state: State<'_, AudioState>,
-    streaming_state: State<'_, StreamingSessionState>,
+    session_state: State<'_, SttSessionState>,
 ) -> Result<(), String> {
-    if let Some(session) = streaming_state.0.lock().take() {
-        session.stop();
-    }
-    audio_state.0.read().stop_streaming_channel();
-    audio_state.0.read().stop_capture().map_err(|e| e.to_string())
+    // Send CloseStream to Deepgram (if streaming) before dropping the capture sender.
+    session_state.stop();
+
+    audio_state.0.read()
+        .stop_capture()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

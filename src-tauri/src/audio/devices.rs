@@ -133,3 +133,33 @@ pub fn get_default_device() -> Option<cpal::Device> {
     let host = cpal::default_host();
     host.default_input_device()
 }
+
+/// Returns whether a device with this id (name) is currently enumerable.
+/// Used by the capture watchdog to detect unplug / power-off without relying
+/// on cpal's stream-error callback, which some drivers never fire.
+pub fn device_exists(id: &str) -> bool {
+    get_device_by_id(id).is_some()
+}
+
+/// Best device to use when there is no preference, or the preferred device
+/// has gone away: external mics win over the OS default (`enumerate_devices`
+/// already sorts external-first), so a professional's USB mic is always
+/// preferred over a built-in laptop mic without the user having to say so.
+pub fn get_best_device_id() -> Option<String> {
+    enumerate_devices().into_iter().next().map(|d| d.id)
+}
+
+/// Resolve the device to actually capture from. Returns the device, its id,
+/// and whether this was a fallback away from the caller's preference (either
+/// because none was set, or because the preferred device is no longer
+/// connected — e.g. unplugged or its power/mute button was toggled off).
+pub fn resolve_input_device(preferred: Option<&str>) -> Option<(cpal::Device, String, bool)> {
+    if let Some(id) = preferred {
+        if let Some(device) = get_device_by_id(id) {
+            return Some((device, id.to_string(), false));
+        }
+    }
+    let best_id = get_best_device_id()?;
+    let device = get_device_by_id(&best_id)?;
+    Some((device, best_id, true))
+}

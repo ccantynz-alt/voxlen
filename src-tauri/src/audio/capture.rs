@@ -35,12 +35,10 @@ pub fn start_capture(
     device_id: Option<String>,
     sender: Sender<AudioChunk>,
     input_level: Arc<RwLock<f32>>,
-    input_gain: Arc<RwLock<f32>>,
-    noise_suppression: Arc<RwLock<bool>>,
-    streaming_sender: Arc<RwLock<Option<Sender<AudioChunk>>>>,
     app_handle: AppHandle,
-) -> anyhow::Result<CaptureHandle> {
-    start_capture_with_options(device_id, sender, input_level, app_handle, 1.0, true)
+    device_fault: Arc<AtomicBool>,
+) -> anyhow::Result<(CaptureHandle, Option<String>)> {
+    start_capture_with_options(device_id, sender, input_level, app_handle, 1.0, true, device_fault)
 }
 
 pub fn start_capture_with_options(
@@ -50,14 +48,20 @@ pub fn start_capture_with_options(
     app_handle: AppHandle,
     input_gain: f32,
     noise_suppression: bool,
-) -> anyhow::Result<CaptureHandle> {
-    let device = if let Some(ref id) = device_id {
-        devices::get_device_by_id(id)
-            .ok_or_else(|| anyhow::anyhow!("Device not found: {}", id))?
-    } else {
-        devices::get_default_device()
-            .ok_or_else(|| anyhow::anyhow!("No default input device found"))?
-    };
+    device_fault: Arc<AtomicBool>,
+) -> anyhow::Result<(CaptureHandle, Option<String>)> {
+    let (device, resolved_id, was_fallback) = devices::resolve_input_device(device_id.as_deref())
+        .ok_or_else(|| anyhow::anyhow!("No input device available"))?;
+
+    if was_fallback {
+        if let Some(ref wanted) = device_id {
+            log::warn!(
+                "Preferred microphone '{}' is unavailable; falling back to '{}'",
+                wanted,
+                resolved_id
+            );
+        }
+    }
 
     let config = device.default_input_config()?;
     let sample_rate = config.sample_rate().0;
@@ -76,25 +80,27 @@ pub fn start_capture_with_options(
     }
 
     log::info!(
-        "Starting capture: device={:?}, rate={}, channels={}",
-        device_id,
+        "Starting capture: device={}, rate={}, channels={}",
+        resolved_id,
         sample_rate,
         channels
     );
 
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_flag_clone = stop_flag.clone();
+    let poll_device_id = resolved_id.clone();
 
     let thread = std::thread::spawn(move || {
-        let err_fn = |err: cpal::StreamError| {
+        let device_fault_for_err = device_fault.clone();
+        let app_handle_for_err = app_handle.clone();
+        let err_fn = move |err: cpal::StreamError| {
             log::error!("Audio stream error: {}", err);
+            device_fault_for_err.store(true, Ordering::Relaxed);
+            let _ = app_handle_for_err.emit("audio-stream-error", err.to_string());
         };
 
         let sender_clone = sender.clone();
         let input_level_clone = input_level.clone();
-        let input_gain_clone = input_gain.clone();
-        let noise_suppression_clone = noise_suppression.clone();
-        let streaming_sender_clone = streaming_sender.clone();
         let app_handle_clone = app_handle.clone();
 
         // Buffer to accumulate samples before sending chunks
@@ -108,31 +114,23 @@ pub fn start_capture_with_options(
         let noise_state = Arc::new(Mutex::new(NoiseState::new(sample_rate)));
         let noise_state_clone = noise_state.clone();
 
-        // Clone Arcs once per format arm so each move closure gets its own copy.
-        let (s_f32, il_f32, ig_f32, ns_f32, ss_f32, ah_f32, buf_f32, wf_f32) = (
-            sender_clone.clone(), input_level_clone.clone(), input_gain_clone.clone(),
-            noise_suppression_clone.clone(), streaming_sender_clone.clone(),
-            app_handle_clone.clone(), buffer_clone.clone(), waveform_last_emit_clone.clone(),
-        );
-        let (s_i16, il_i16, ig_i16, ns_i16, ss_i16, ah_i16, buf_i16, wf_i16) = (
-            sender_clone.clone(), input_level_clone.clone(), input_gain_clone.clone(),
-            noise_suppression_clone.clone(), streaming_sender_clone.clone(),
-            app_handle_clone.clone(), buffer_clone.clone(), waveform_last_emit_clone.clone(),
-        );
-        let (s_u16, il_u16, ig_u16, ns_u16, ss_u16, ah_u16, buf_u16, wf_u16) = (
-            sender_clone, input_level_clone, input_gain_clone,
-            noise_suppression_clone, streaming_sender_clone,
-            app_handle_clone, buffer_clone, waveform_last_emit_clone,
-        );
-
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_input_stream(
                 &config.into(),
                 move |data: &[f32], _: &cpal::InputCallbackInfo| {
                     process_audio_data(
-                        data, sample_rate, channels,
-                        &s_f32, &il_f32, &ig_f32, &ns_f32, &ss_f32, &ah_f32,
-                        &buf_f32, samples_per_chunk, &wf_f32,
+                        data,
+                        sample_rate,
+                        channels,
+                        &sender_clone,
+                        &input_level_clone,
+                        &app_handle_clone,
+                        &buffer_clone,
+                        samples_per_chunk,
+                        &waveform_last_emit_clone,
+                        input_gain,
+                        noise_suppression,
+                        &noise_state_clone,
                     );
                 },
                 err_fn,
@@ -143,9 +141,18 @@ pub fn start_capture_with_options(
                 move |data: &[i16], _: &cpal::InputCallbackInfo| {
                     let float_data: Vec<f32> = data.iter().map(|&s| s as f32 / i16::MAX as f32).collect();
                     process_audio_data(
-                        &float_data, sample_rate, channels,
-                        &s_i16, &il_i16, &ig_i16, &ns_i16, &ss_i16, &ah_i16,
-                        &buf_i16, samples_per_chunk, &wf_i16,
+                        &float_data,
+                        sample_rate,
+                        channels,
+                        &sender_clone,
+                        &input_level_clone,
+                        &app_handle_clone,
+                        &buffer_clone,
+                        samples_per_chunk,
+                        &waveform_last_emit_clone,
+                        input_gain,
+                        noise_suppression,
+                        &noise_state_clone,
                     );
                 },
                 err_fn,
@@ -159,9 +166,18 @@ pub fn start_capture_with_options(
                         .map(|&s| (s as f32 / u16::MAX as f32) * 2.0 - 1.0)
                         .collect();
                     process_audio_data(
-                        &float_data, sample_rate, channels,
-                        &s_u16, &il_u16, &ig_u16, &ns_u16, &ss_u16, &ah_u16,
-                        &buf_u16, samples_per_chunk, &wf_u16,
+                        &float_data,
+                        sample_rate,
+                        channels,
+                        &sender_clone,
+                        &input_level_clone,
+                        &app_handle_clone,
+                        &buffer_clone,
+                        samples_per_chunk,
+                        &waveform_last_emit_clone,
+                        input_gain,
+                        noise_suppression,
+                        &noise_state_clone,
                     );
                 },
                 err_fn,
@@ -180,9 +196,21 @@ pub fn start_capture_with_options(
                     return;
                 }
 
-                // Keep the stream alive until stop flag is set
+                // Keep the stream alive until stop flag is set. Every ~1s, also
+                // confirm the device is still enumerable — cpal's error callback
+                // is not guaranteed to fire when a device is unplugged or its
+                // power/mute button is toggled off, so this poll is the backstop
+                // that lets the watchdog notice and auto-recover.
+                let mut ticks: u32 = 0;
                 while !stop_flag_clone.load(Ordering::Relaxed) {
                     std::thread::sleep(std::time::Duration::from_millis(50));
+                    ticks += 1;
+                    if ticks % 20 == 0 && !devices::device_exists(&poll_device_id) {
+                        log::warn!("Input device '{}' is no longer available", poll_device_id);
+                        device_fault.store(true, Ordering::Relaxed);
+                        let _ = app_handle.emit("audio-device-lost", poll_device_id.clone());
+                        break;
+                    }
                 }
 
                 drop(stream);
@@ -194,10 +222,13 @@ pub fn start_capture_with_options(
         }
     });
 
-    Ok(CaptureHandle {
-        stop_flag,
-        _stream_thread: Some(thread),
-    })
+    Ok((
+        CaptureHandle {
+            stop_flag,
+            _stream_thread: Some(thread),
+        },
+        Some(resolved_id),
+    ))
 }
 
 fn process_audio_data(
@@ -206,9 +237,6 @@ fn process_audio_data(
     channels: u16,
     sender: &Sender<AudioChunk>,
     input_level: &Arc<RwLock<f32>>,
-    input_gain: &Arc<RwLock<f32>>,
-    noise_suppression: &Arc<RwLock<bool>>,
-    streaming_sender: &Arc<RwLock<Option<Sender<AudioChunk>>>>,
     app_handle: &AppHandle,
     buffer: &Arc<RwLock<Vec<f32>>>,
     chunk_size: usize,
@@ -217,15 +245,11 @@ fn process_audio_data(
     noise_suppression: bool,
     noise_state: &Arc<Mutex<NoiseState>>,
 ) {
-    let gain = *input_gain.read();
-    let suppress = *noise_suppression.read();
-
-    // Apply gain and optional noise gate in one pass.
-    let processed: Vec<f32> = data.iter().map(|&s| {
-        let amplified = s * gain;
-        // Noise gate: suppress samples below a -40 dBFS threshold (~0.01 amplitude).
-        if suppress && amplified.abs() < 0.01 { 0.0 } else { amplified.clamp(-1.0, 1.0) }
-    }).collect();
+    // Apply input gain + noise processing
+    let processed: Vec<f32> = {
+        let mut state = noise_state.lock();
+        apply_audio_processing(data, input_gain, noise_suppression, &mut state)
+    };
     let data = processed.as_slice();
 
     // Calculate RMS level for visualization
@@ -265,12 +289,8 @@ fn process_audio_data(
                 .as_millis() as u64,
         };
 
-        // Route to streaming session when active; fall back to batch processor.
-        if let Some(ref tx) = *streaming_sender.read() {
-            let _ = tx.try_send(chunk);
-        } else {
-            let _ = sender.try_send(chunk);
-        }
+        // Non-blocking send - drop chunks if receiver is too slow
+        let _ = sender.try_send(chunk);
     }
 }
 

@@ -315,31 +315,12 @@ export function useTauriEvents(): void {
             });
             dictation.setCurrentTranscript("");
 
-            // Auto-correct: fire grammar correction immediately if enabled.
-            if (settings.autoCorrect && settings.grammarEnabled) {
-              (async () => {
-                try {
-                  const { invoke } = await import("@tauri-apps/api/core");
-                  const corrected = await invoke<{ corrected: string }>(
-                    "correct_grammar",
-                    { text: finalText }
-                  );
-                  if (corrected?.corrected) {
-                    useDictationStore.getState().updateSegment(segmentId, {
-                      correctedText: corrected.corrected,
-                      grammarApplied: true,
-                    });
-                  }
-                } catch {
-                  // Grammar not available or key not set — leave segment as-is.
-                }
-              })();
-            }
-
-            // Optional real-time translation. We drop this into `correctedText`
-            // so the original transcription is preserved and the UI can still
-            // show both if needed.
-            if (
+            // Post-processing pipeline (runs async so it doesn't block the UI):
+            // 1. Grammar correction (if enabled)
+            // 2. Translation (if enabled, runs on grammar-corrected text)
+            // 3. Auto-inject into the currently focused app (unless injectionMode is "buffer")
+            const grammarEnabled = settings.grammarEnabled;
+            const translationEnabled =
               settings.translationEnabled &&
               settings.translationTargetLanguage &&
               settings.translationTargetLanguage !== (result.language ?? "");
@@ -460,6 +441,36 @@ export function useTauriEvents(): void {
           toast(`Reconnecting to transcription service… (attempt ${event.payload})`, "info", 3000);
         });
 
+        // Microphone auto-recovery lifecycle (stream error / unplug / mute
+        // toggle detected by the Rust capture watchdog). Raw "audio-stream-error"
+        // and "audio-device-lost" events are intentionally not toasted here —
+        // they always precede an "audio-recovery-attempt" and toasting both
+        // would just double up the same notification.
+        const unlistenRecoveryAttempt = await listen("audio-recovery-attempt", () => {
+          toast("Microphone signal lost — reconnecting…", "info", 3000);
+        });
+
+        const unlistenRecoveryResult = await listen<{ ok: boolean; device?: string; error?: string }>(
+          "audio-recovery-result",
+          (event) => {
+            const { ok, device, error } = event.payload;
+            if (ok) {
+              toast(device ? `Microphone reconnected — using ${device}` : "Microphone reconnected", "success", 4000);
+              useAudioStore.getState().setActiveDeviceName(device ?? null);
+            } else {
+              toast(`Reconnect failed${error ? `: ${error}` : ""} — retrying…`, "error", 4000);
+            }
+          }
+        );
+
+        const unlistenRecoveryGiveup = await listen("audio-recovery-giveup", () => {
+          toast(
+            "Microphone unavailable — check the connection/power and press the mic button to retry.",
+            "error",
+            8000
+          );
+        });
+
         unlisten = () => {
           unlistenLevel();
           unlistenWaveform();
@@ -469,6 +480,9 @@ export function useTauriEvents(): void {
           unlistenUtteranceEnd();
           unlistenTranscriptionError();
           unlistenReconnecting();
+          unlistenRecoveryAttempt();
+          unlistenRecoveryResult();
+          unlistenRecoveryGiveup();
         };
       } catch {
         // Not running in Tauri.

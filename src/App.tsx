@@ -9,7 +9,8 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
-import { useHistoryStore } from "@/stores/history";
+import { loadHistory } from "@/stores/history";
+import { loadFlywheel } from "@/stores/flywheel";
 import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
@@ -22,6 +23,7 @@ export default function App() {
   const setDevices = useAudioStore((s) => s.setDevices);
   const theme = useSettingsStore((s) => s.theme);
   const fontSize = useSettingsStore((s) => s.fontSize);
+  const updateSettingsStore = useSettingsStore((s) => s.updateSettings);
 
   // Apply theme class to document root
   useEffect(() => {
@@ -103,7 +105,6 @@ export default function App() {
     const unsub = useSettingsStore.subscribe((state) => {
       // Strip transient UI-only fields.
       const {
-        isLoaded: _isLoaded,
         activeTab: _activeTab,
         updateSetting: _us,
         updateSettings: _uss,
@@ -111,7 +112,7 @@ export default function App() {
         resetToDefaults: _rtd,
         ...appSettings
       } = state;
-      void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+      void _activeTab; void _us; void _uss; void _sat; void _rtd;
 
       const serialized = JSON.stringify(appSettings);
       if (serialized === lastSerialized) return;
@@ -131,7 +132,7 @@ export default function App() {
 
   // Load history on startup
   useEffect(() => {
-    useHistoryStore.getState().loadFromStore();
+    loadHistory();
   }, []);
 
   // Load audio devices on mount (when not in onboarding)
@@ -163,7 +164,11 @@ export default function App() {
           }))
         );
 
-        // Auto-select external mic if available
+        // Auto-select external mic if available. Any pick made here (not just
+        // an explicit Settings change) is written through settings.updateSetting
+        // so it reaches the Rust audio engine via update_settings and survives
+        // restarts — otherwise the choice only ever lived in this UI store and
+        // capture kept silently falling back to the OS default input device.
         const preferred = useSettingsStore.getState().preferredDeviceId;
         if (preferred) {
           useAudioStore.getState().setSelectedDevice(preferred);
@@ -171,10 +176,12 @@ export default function App() {
           const externalMic = devices.find((d) => d.is_external);
           if (externalMic) {
             useAudioStore.getState().setSelectedDevice(externalMic.id);
+            useSettingsStore.getState().updateSetting("preferredDeviceId", externalMic.id);
           } else {
             const defaultMic = devices.find((d) => d.is_default);
             if (defaultMic) {
               useAudioStore.getState().setSelectedDevice(defaultMic.id);
+              useSettingsStore.getState().updateSetting("preferredDeviceId", defaultMic.id);
             }
           }
         }
@@ -219,7 +226,6 @@ export default function App() {
     // Save current settings through the persistence pipeline
     const state = useSettingsStore.getState();
     const {
-      isLoaded: _isLoaded,
       activeTab: _activeTab,
       updateSetting: _us,
       updateSettings: _uss,
@@ -227,7 +233,7 @@ export default function App() {
       resetToDefaults: _rtd,
       ...appSettings
     } = state;
-    void _isLoaded; void _activeTab; void _us; void _uss; void _sat; void _rtd;
+    void _activeTab; void _us; void _uss; void _sat; void _rtd;
     await persistSettings(appSettings);
 
     setShowOnboarding(false);

@@ -204,13 +204,9 @@ pub fn update_settings(
     // The frontend (schedulePersist) owns the Tauri store and writes it in camelCase.
     // Writing snake_case from here would overwrite that and break frontend reads on
     // the next startup. We only update the in-memory engine config.
-    apply_settings_to_engines(&stt_state.0, &settings);
-    // Propagate audio settings to the live capture pipeline.
-    {
-        let engine = audio_state.0.read();
-        *engine.input_gain.write() = settings.input_gain;
-        *engine.noise_suppression.write() = settings.noise_suppression;
-    }
+    apply_settings_to_engines(&stt_state.0, &audio_state, &settings);
+    apply_autostart(&app, settings.launch_at_login);
+    apply_injection_mode(&app, &settings.injection_mode);
     Ok(())
 }
 
@@ -218,38 +214,53 @@ pub fn update_settings(
 pub fn reset_settings(
     app: AppHandle,
     stt_state: State<'_, SttState>,
+    audio_state: State<'_, AudioState>,
 ) -> Result<AppSettings, String> {
     let defaults = AppSettings::default();
     *get_settings_store().write() = defaults.clone();
-    apply_settings_to_engines(&stt_state.0, &defaults);
+    apply_settings_to_engines(&stt_state.0, &audio_state, &defaults);
     apply_autostart(&app, defaults.launch_at_login);
     Ok(defaults)
 }
 
 /// Callable from `setup()` — looks up managed state and pushes the currently
-/// loaded settings into the STT + grammar engines. No-op if state is missing.
+/// loaded settings into the STT + grammar + audio engines. No-op if state is missing.
 pub fn apply_loaded_settings_to_engines(app: &AppHandle) {
     let settings = get_settings_store().read().clone();
-    if let Some(stt_state) = app.try_state::<SttState>() {
-        apply_settings_to_engines(&stt_state.0, &settings);
+    if let (Some(stt_state), Some(audio_state)) =
+        (app.try_state::<SttState>(), app.try_state::<AudioState>())
+    {
+        apply_settings_to_engines(&stt_state.0, &audio_state, &settings);
     }
     apply_injection_mode(app, &settings.injection_mode);
 }
 
-/// Map an `AppSettings` snapshot onto the in-process STT + grammar engine
-/// config stores. Without this, API keys stored by the frontend never reach
-/// the transcription / correction paths and every dictation fails with
-/// "API key not configured".
+/// Map an `AppSettings` snapshot onto the in-process STT + grammar + audio
+/// engine config stores. Without this, API keys stored by the frontend never
+/// reach the transcription / correction paths and every dictation fails with
+/// "API key not configured" — and without the audio device sync, the mic a
+/// user picks in Settings is silently ignored and capture always falls back
+/// to the OS default input device.
 fn apply_settings_to_engines(
     stt_engine_arc: &std::sync::Arc<parking_lot::RwLock<crate::stt::SttEngine>>,
+    audio_state: &AudioState,
     s: &AppSettings,
 ) {
-    // whisper_local is not yet implemented; fall back to whisper_cloud so
-    // users with an old persisted setting don't get a runtime error.
-    let stt_engine_type = match s.stt_engine.as_str() {
-        "deepgram" | "deepgram_cloud" => SttEngineType::DeepgramCloud,
-        "whisper_local" => SttEngineType::WhisperCloud,
-        _ => SttEngineType::WhisperCloud,
+    // Sticky preference: applied even if the device isn't connected right
+    // now (e.g. muted/unplugged at startup) so capture picks it up the
+    // moment it reappears, instead of silently staying on the OS default.
+    audio_state.0.read().set_preferred_device(s.preferred_device_id.clone());
+
+    // Privileged mode: block all cloud STT. Only local (offline) processing allowed.
+    // If WhisperLocal is not configured, dictation will fail with a clear error.
+    let stt_engine_type = if s.privileged_mode {
+        SttEngineType::WhisperLocal
+    } else {
+        match s.stt_engine.as_str() {
+            "deepgram" | "deepgram_cloud" => SttEngineType::DeepgramCloud,
+            "whisper_local" => SttEngineType::WhisperLocal,
+            _ => SttEngineType::WhisperCloud,
+        }
     };
 
     let model = match stt_engine_type {
