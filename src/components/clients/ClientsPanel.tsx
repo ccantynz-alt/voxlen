@@ -253,7 +253,7 @@ function ClientCard({ client }: { client: Client }) {
         <div className="p-3 text-center">
           <p className="text-[10px] text-surface-600 uppercase tracking-wide-caps mb-0.5">Billable</p>
           <p className="text-lg font-bold" style={{ color: client.color }}>
-            ${totalBillable.toFixed(0)}
+            ${totalBillable.toFixed(2)}
           </p>
         </div>
       </div>
@@ -355,7 +355,7 @@ export function ClientsPanel() {
         <div>
           <h2 className="text-sm font-semibold text-surface-950">Clients & Matters</h2>
           <p className="text-xs text-surface-600 mt-0.5">
-            {active.length} active · {totalHours.toFixed(1)} hrs · ${totalBillable.toFixed(0)} total
+            {active.length} active · {totalHours.toFixed(1)} hrs · ${totalBillable.toFixed(2)} total
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -173,6 +173,21 @@ fn get_settings_store() -> &'static parking_lot::RwLock<AppSettings> {
     SETTINGS.get_or_init(|| parking_lot::RwLock::new(AppSettings::default()))
 }
 
+fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
+    // Never write API keys to plaintext disk storage; they live in the OS keychain.
+    let mut disk_settings = settings.clone();
+    disk_settings.stt_api_key = None;
+    disk_settings.grammar_api_key = None;
+
+    let store = app
+        .store(SETTINGS_STORE_FILE)
+        .map_err(|e| e.to_string())?;
+    let value = serde_json::to_value(&disk_settings).map_err(|e| e.to_string())?;
+    store.set(SETTINGS_KEY, value);
+    store.save().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn get_settings() -> Result<AppSettings, String> {
     Ok(get_settings_store().read().clone())

@@ -24,6 +24,11 @@ const COMMAND_MAP: Record<string, (text: string) => string> = {
   insert_close_paren: () => ")",
   legal_new_section: () => "\n\n",
   legal_new_clause: () => "\n\n",
+  legal_item_1: () => "\n1. ",
+  legal_item_2: () => "\n2. ",
+  legal_item_3: () => "\n3. ",
+  legal_item_4: () => "\n4. ",
+  legal_item_5: () => "\n5. ",
   log_30_min: () => "__LOG_TIME_30__",
   log_45_min: () => "__LOG_TIME_45__",
   log_60_min: () => "__LOG_TIME_60__",
@@ -61,7 +66,11 @@ const EXTENDED_COMMANDS: Array<{
   { patterns: ["new clause", "next clause"], action: "legal_new_clause" },
   { patterns: ["open bracket", "open parenthesis"], action: "insert_open_paren" },
   { patterns: ["close bracket", "close parenthesis"], action: "insert_close_paren" },
-  { patterns: ["number one", "number two", "number three", "number four", "number five"], action: "legal_numbered_item" },
+  { patterns: ["number one"], action: "legal_item_1" },
+  { patterns: ["number two"], action: "legal_item_2" },
+  { patterns: ["number three"], action: "legal_item_3" },
+  { patterns: ["number four"], action: "legal_item_4" },
+  { patterns: ["number five"], action: "legal_item_5" },
   { patterns: ["sub clause one", "sub clause two", "sub clause three"], action: "legal_sub_clause" },
   // Billable time
   { patterns: ["log time", "add to timesheet", "record time"], action: "log_time" },
@@ -191,8 +200,6 @@ export function executeVoiceCommand(action: string): string | null {
       return "\t";
     case "insert_space":
       return " ";
-    case "legal_numbered_item":
-      return null; // Handled by caller context
     case "legal_sub_clause":
       return "\n    ";
     case "log_time": {

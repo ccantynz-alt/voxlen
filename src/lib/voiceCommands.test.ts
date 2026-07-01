@@ -153,6 +153,14 @@ describe("executeVoiceCommand", () => {
   it("returns null for unknown action", () => {
     expect(executeVoiceCommand("nonexistent_action")).toBe(null);
   });
+
+  it("returns numbered list items for legal_item_1 through legal_item_5", () => {
+    expect(executeVoiceCommand("legal_item_1")).toBe("\n1. ");
+    expect(executeVoiceCommand("legal_item_2")).toBe("\n2. ");
+    expect(executeVoiceCommand("legal_item_3")).toBe("\n3. ");
+    expect(executeVoiceCommand("legal_item_4")).toBe("\n4. ");
+    expect(executeVoiceCommand("legal_item_5")).toBe("\n5. ");
+  });
 });
 
 describe("applyTextCommand", () => {

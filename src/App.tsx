@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { loadHistory } from "@/stores/history";
+import { loadFlywheel } from "@/stores/flywheel";
 import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
@@ -21,6 +22,28 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
   const hydrateSettingsStore = useSettingsStore((s) => s.hydrateSettings);
+
+  // Apply theme class to document root
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("dark", "light", "system");
+    if (theme === "light") {
+      root.classList.add("light");
+    } else if (theme === "system") {
+      root.classList.add("system");
+    }
+    // dark is the default (no class needed, :root vars apply)
+  }, [theme]);
+
+  // Apply font size as a CSS variable so all rem-based text scales uniformly.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--app-font-size", `${fontSize}px`);
+  }, [fontSize]);
+
+  // Load flywheel data on startup
+  useEffect(() => {
+    loadFlywheel();
+  }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
   // Hook handles its own cleanup and is safe outside Tauri.
