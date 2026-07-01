@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { corsHeaders } from "./_auth";
+import { corsHeaders, applyHeaders } from "./_auth";
 
 /**
  * Waitlist capture. Tries, in order:
@@ -11,15 +11,15 @@ import { corsHeaders } from "./_auth";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
   if (req.method === "OPTIONS") {
-    return res.status(204).set(headers).end();
+    return applyHeaders(res, headers).status(204).end();
   }
   if (req.method !== "POST") {
-    return res.status(405).set(headers).json({ error: "Method not allowed" });
+    return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
   }
 
   const { email, platform } = (req.body ?? {}) as { email?: string; platform?: string };
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).set(headers).json({ error: "Valid email required" });
+    return applyHeaders(res, headers).status(400).json({ error: "Valid email required" });
   }
 
   const entry = {
@@ -68,5 +68,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  return res.status(200).set(headers).json({ ok: true });
+  return applyHeaders(res, headers).status(200).json({ ok: true });
 }

@@ -6,7 +6,11 @@ import type {
   VocabularyList,
 } from "./types";
 
-const DEFAULT_BASE = "https://voxlen.ai/api";
+// Must be the canonical (www) host: the apex domain 307-redirects here, and
+// browsers refuse to follow a redirect on a CORS preflight (OPTIONS) request —
+// since every SDK call is cross-origin by design (embedded on a third-party
+// site), hitting the apex meant every request silently failed as a network error.
+const DEFAULT_BASE = "https://www.voxlen.ai/api";
 
 /**
  * Low-level client for the Voxlen REST API (voxlen.ai/api/v1).

@@ -1,38 +1,38 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { corsHeaders, extractBearer, verifyAccessToken } from "./_auth";
+import { corsHeaders, extractBearer, verifyAccessToken, applyHeaders } from "./_auth";
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
   if (req.method === "OPTIONS") {
-    return res.status(204).set(headers).end();
+    return applyHeaders(res, headers).status(204).end();
   }
   if (req.method !== "GET") {
-    return res.status(405).set(headers).json({ error: "Method not allowed" });
+    return applyHeaders(res, headers).status(405).json({ error: "Method not allowed" });
   }
 
   const token = extractBearer(req.headers.authorization);
   if (!token) {
-    return res.status(401).set(headers).json({ error: "Unauthorized" });
+    return applyHeaders(res, headers).status(401).json({ error: "Unauthorized" });
   }
 
   let user;
   try {
     user = await verifyAccessToken(token);
   } catch {
-    return res.status(401).set(headers).json({ error: "Invalid token" });
+    return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
   }
 
   if (user.email !== ADMIN_EMAIL) {
-    return res.status(403).set(headers).json({ error: "Forbidden" });
+    return applyHeaders(res, headers).status(403).json({ error: "Forbidden" });
   }
 
   const kvUrl = process.env.KV_REST_API_URL;
   const kvToken = process.env.KV_REST_API_TOKEN;
 
   if (!kvUrl || !kvToken) {
-    return res.status(200).set(headers).json({ entries: [], total: 0, source: "kv_not_configured" });
+    return applyHeaders(res, headers).status(200).json({ entries: [], total: 0, source: "kv_not_configured" });
   }
 
   try {
@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     if (!r.ok) {
       const text = await r.text();
-      return res.status(502).set(headers).json({ error: "KV error", detail: text });
+      return applyHeaders(res, headers).status(502).json({ error: "KV error", detail: text });
     }
     const json = await r.json() as { result?: string[] };
     const raw: string[] = json.result ?? [];
@@ -60,8 +60,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    return res.status(200).set(headers).json({ entries, total: entries.length });
+    return applyHeaders(res, headers).status(200).json({ entries, total: entries.length });
   } catch (e) {
-    return res.status(500).set(headers).json({ error: "Internal error", detail: String(e) });
+    return applyHeaders(res, headers).status(500).json({ error: "Internal error", detail: String(e) });
   }
 }
