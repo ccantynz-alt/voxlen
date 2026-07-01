@@ -55,10 +55,9 @@ impl AudioProcessor {
                 match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
                     Ok(chunk) => {
                         if *status.read() == DictationStatus::Paused {
-                            // Tear down any streaming session while paused
-                            if let Some((_, session)) = streaming_relay.take() {
-                                session.stop();
-                            }
+                            // Drain accumulated buffer so resume starts fresh.
+                            accumulated_samples.clear();
+                            accumulated_duration_ms = 0;
                             continue;
                         }
 

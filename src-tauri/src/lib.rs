@@ -39,8 +39,12 @@ pub fn run() {
             // Initialize the STT engine and session state.
             // The audio→STT pipeline is wired per-session in start_dictation.
             let stt_engine = stt::SttEngine::new(app_handle.clone());
-            app.manage(stt::SttState::new(stt_engine));
-            app.manage(stt::SttSessionState::new());
+            let stt_state = stt::SttState::new(stt_engine);
+            let stt_engine_arc = stt_state.0.clone();
+            app.manage(stt_state);
+            app.manage(commands::dictation::StreamingSessionState(
+                parking_lot::Mutex::new(None),
+            ));
 
             // Push the just-loaded settings into the STT + grammar engines so
             // API keys flow all the way through before the user's first hotkey.

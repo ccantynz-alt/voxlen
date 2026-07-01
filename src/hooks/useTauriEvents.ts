@@ -315,12 +315,31 @@ export function useTauriEvents(): void {
             });
             dictation.setCurrentTranscript("");
 
-            // Post-processing pipeline (runs async so it doesn't block the UI):
-            // 1. Grammar correction (if enabled)
-            // 2. Translation (if enabled, runs on grammar-corrected text)
-            // 3. Auto-inject into the currently focused app (unless injectionMode is "buffer")
-            const grammarEnabled = settings.grammarEnabled;
-            const translationEnabled =
+            // Auto-correct: fire grammar correction immediately if enabled.
+            if (settings.autoCorrect && settings.grammarEnabled) {
+              (async () => {
+                try {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  const corrected = await invoke<{ corrected: string }>(
+                    "correct_grammar",
+                    { text: finalText }
+                  );
+                  if (corrected?.corrected) {
+                    useDictationStore.getState().updateSegment(segmentId, {
+                      correctedText: corrected.corrected,
+                      grammarApplied: true,
+                    });
+                  }
+                } catch {
+                  // Grammar not available or key not set — leave segment as-is.
+                }
+              })();
+            }
+
+            // Optional real-time translation. We drop this into `correctedText`
+            // so the original transcription is preserved and the UI can still
+            // show both if needed.
+            if (
               settings.translationEnabled &&
               settings.translationTargetLanguage &&
               settings.translationTargetLanguage !== (result.language ?? "");

@@ -38,6 +38,10 @@ pub struct AudioEngine {
     pub selected_device: Arc<RwLock<Option<String>>>,
     pub status: Arc<RwLock<DictationStatus>>,
     pub input_level: Arc<RwLock<f32>>,
+    pub input_gain: Arc<RwLock<f32>>,
+    pub noise_suppression: Arc<RwLock<bool>>,
+    /// When set, audio chunks are routed here (streaming) instead of the batch channel.
+    pub streaming_sender: Arc<RwLock<Option<Sender<AudioChunk>>>>,
     capture_handle: Arc<RwLock<Option<capture::CaptureHandle>>>,
 }
 
@@ -48,6 +52,9 @@ impl AudioEngine {
             selected_device: Arc::new(RwLock::new(None)),
             status: Arc::new(RwLock::new(DictationStatus::Idle)),
             input_level: Arc::new(RwLock::new(0.0)),
+            input_gain: Arc::new(RwLock::new(1.0)),
+            noise_suppression: Arc::new(RwLock::new(true)),
+            streaming_sender: Arc::new(RwLock::new(None)),
             capture_handle: Arc::new(RwLock::new(None)),
         }
     }
@@ -67,23 +74,28 @@ impl AudioEngine {
         }
     }
 
-    pub fn start_capture(&self) -> anyhow::Result<Receiver<AudioChunk>> {
-        self.start_capture_with_options(1.0, true)
+    /// Open a bounded channel for a streaming session and return the receiver.
+    /// Audio chunks will be routed here instead of the batch channel until
+    /// `stop_streaming_channel` is called.
+    pub fn start_streaming_channel(&self) -> Receiver<AudioChunk> {
+        let (tx, rx) = crossbeam_channel::bounded(256);
+        *self.streaming_sender.write() = Some(tx);
+        rx
     }
 
-    /// Start audio capture with explicit gain and noise suppression settings.
-    /// Returns the receiver end of the fresh audio channel, which must be
-    /// passed to the STT handler by the caller.
-    pub fn start_capture_with_options(&self, input_gain: f32, noise_suppression: bool) -> anyhow::Result<Receiver<AudioChunk>> {
-        let (sender, receiver) = crossbeam_channel::bounded(256);
+    pub fn stop_streaming_channel(&self) {
+        *self.streaming_sender.write() = None;
+    }
 
+    pub fn start_capture(&self) -> anyhow::Result<()> {
         let device_id = self.selected_device.read().clone();
         let input_level = self.input_level.clone();
+        let input_gain = self.input_gain.clone();
+        let noise_suppression = self.noise_suppression.clone();
+        let streaming_sender = self.streaming_sender.clone();
         let app_handle = self.app_handle.clone();
 
-        let handle = capture::start_capture_with_options(
-            device_id, sender, input_level, app_handle, input_gain, noise_suppression
-        )?;
+        let handle = capture::start_capture(device_id, sender, input_level, input_gain, noise_suppression, streaming_sender, app_handle)?;
         *self.capture_handle.write() = Some(handle);
         *self.status.write() = DictationStatus::Listening;
 

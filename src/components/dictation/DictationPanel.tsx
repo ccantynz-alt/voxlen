@@ -11,6 +11,7 @@ import {
   FileText,
   Zap,
   Keyboard,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -22,12 +23,7 @@ import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { useFlywheelStore } from "@/stores/flywheel";
-import { useClientsStore, buildMatterContext } from "@/stores/clients";
-import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
-import { SUPPORTED_LANGUAGES } from "@/lib/constants";
-import { toast } from "@/components/ui/Toast";
-import { downloadExport } from "@/lib/export";
-import type { ExportFormat } from "@/lib/export";
+import { exportTranscript } from "@/lib/export";
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -162,6 +158,28 @@ export function DictationPanel() {
     },
     [segments]
   );
+
+  const handleExport = useCallback(async () => {
+    if (!segments.length) return;
+    const { content, filename, mimeType } = exportTranscript(segments, "txt");
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const path = await save({ defaultPath: filename, filters: [{ name: "Text", extensions: ["txt"] }] });
+      if (path) {
+        await invoke("plugin:fs|write_text_file", { path, contents: content });
+      }
+    } catch {
+      // Browser fallback
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [segments]);
 
   const handleClearSession = useCallback(async () => {
     // Before clearing, persist the session (if any) so it lands in history.
@@ -320,6 +338,10 @@ export function DictationPanel() {
               <Button variant="ghost" size="sm" onClick={handleClearSession}>
                 <Trash2 className="h-3.5 w-3.5" />
                 Clear
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleExport}>
+                <Download className="h-3.5 w-3.5" />
+                Export
               </Button>
               <Button
                 variant="primary"

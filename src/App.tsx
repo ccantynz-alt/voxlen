@@ -20,7 +20,30 @@ export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
-  const updateSettingsStore = useSettingsStore((s) => s.updateSettings);
+  const theme = useSettingsStore((s) => s.theme);
+  const fontSize = useSettingsStore((s) => s.fontSize);
+
+  // Apply theme class to document root
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("dark", "light", "system");
+    if (theme === "light") {
+      root.classList.add("light");
+    } else if (theme === "system") {
+      root.classList.add("system");
+    }
+    // dark is the default (no class needed, :root vars apply)
+  }, [theme]);
+
+  // Apply font size as a CSS variable so all rem-based text scales uniformly.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--app-font-size", `${fontSize}px`);
+  }, [fontSize]);
+
+  // Load flywheel data on startup
+  useEffect(() => {
+    loadFlywheel();
+  }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
   // Hook handles its own cleanup and is safe outside Tauri.

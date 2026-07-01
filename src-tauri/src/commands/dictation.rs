@@ -1,47 +1,43 @@
-use tauri::{State, Emitter};
+use tauri::{AppHandle, State};
 use crate::audio::{AudioState, DictationStatus};
-use crate::stt::{SttState, SttEngineType, SttSessionState, streaming, processor};
+use crate::stt::{SttEngineType, SttState};
+use crate::stt::streaming;
+
+/// Holds the active streaming session so it can be stopped on demand.
+pub struct StreamingSessionState(pub parking_lot::Mutex<Option<streaming::StreamingSession>>);
 
 #[tauri::command]
-pub fn start_dictation(
+pub async fn start_dictation(
+    app: AppHandle,
     audio_state: State<'_, AudioState>,
     stt_state: State<'_, SttState>,
-    session_state: State<'_, SttSessionState>,
-    app: tauri::AppHandle,
+    streaming_state: State<'_, StreamingSessionState>,
 ) -> Result<(), String> {
-    if crate::commands::settings::get_privileged_mode() {
-        let _ = app.emit("privileged-mode-active", true);
-    }
+    // Start audio capture (chunks go to batch channel by default).
+    audio_state.0.read().start_capture().map_err(|e| e.to_string())?;
 
-    // Stop any existing STT session before starting a new one.
-    session_state.stop();
-
-    let s = crate::commands::settings::get_current_settings();
-    let input_gain = s.input_gain.max(0.1).min(4.0);
-    let noise_suppression = s.noise_suppression;
-
-    // Start audio capture; get back the receiver end of the fresh channel.
-    let receiver = audio_state.0.read()
-        .start_capture_with_options(input_gain, noise_suppression)
-        .map_err(|e| e.to_string())?;
-
-    // Snapshot the STT config without holding the lock across the spawn.
+    // For Deepgram, open a streaming channel and start the WebSocket session.
     let config = stt_state.0.read().get_config();
-    let status_arc = audio_state.0.read().status.clone();
-
-    match config.engine {
-        SttEngineType::DeepgramCloud => {
-            let session = streaming::start_streaming(config, receiver, app)
-                .map_err(|e| e.to_string())?;
-            session_state.set(session);
-        }
-        SttEngineType::WhisperCloud | SttEngineType::WhisperLocal => {
-            let proc = processor::AudioProcessor::new(
+    if matches!(config.engine, SttEngineType::DeepgramCloud) {
+        if let Some(api_key) = config.api_key {
+            let receiver = audio_state.0.read().start_streaming_channel();
+            match streaming::start_streaming(
+                api_key,
+                config.language,
+                config.auto_detect_language,
+                receiver,
                 app,
-                stt_state.0.clone(),
-                status_arc,
-            );
-            proc.start(receiver);
+            ) {
+                Ok(session) => {
+                    *streaming_state.0.lock() = Some(session);
+                    log::info!("Deepgram streaming session started");
+                }
+                Err(e) => {
+                    // Streaming failed to initialize; fall back to batch silently.
+                    audio_state.0.read().stop_streaming_channel();
+                    log::warn!("Streaming init failed, falling back to batch: {}", e);
+                }
+            }
         }
     }
 
@@ -51,14 +47,13 @@ pub fn start_dictation(
 #[tauri::command]
 pub fn stop_dictation(
     audio_state: State<'_, AudioState>,
-    session_state: State<'_, SttSessionState>,
+    streaming_state: State<'_, StreamingSessionState>,
 ) -> Result<(), String> {
-    // Send CloseStream to Deepgram (if streaming) before dropping the capture sender.
-    session_state.stop();
-
-    audio_state.0.read()
-        .stop_capture()
-        .map_err(|e| e.to_string())
+    if let Some(session) = streaming_state.0.lock().take() {
+        session.stop();
+    }
+    audio_state.0.read().stop_streaming_channel();
+    audio_state.0.read().stop_capture().map_err(|e| e.to_string())
 }
 
 #[tauri::command]

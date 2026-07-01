@@ -3,6 +3,7 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_store::StoreExt;
 
+use crate::audio::AudioState;
 use crate::stt::{SttConfig, SttEngineType, SttState};
 use crate::commands::grammar::{
     set_grammar_config_internal, GrammarConfig, GrammarProvider, WritingStyle,
@@ -172,6 +173,21 @@ fn get_settings_store() -> &'static parking_lot::RwLock<AppSettings> {
     SETTINGS.get_or_init(|| parking_lot::RwLock::new(AppSettings::default()))
 }
 
+fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
+    // Never write API keys to plaintext disk storage; they live in the OS keychain.
+    let mut disk_settings = settings.clone();
+    disk_settings.stt_api_key = None;
+    disk_settings.grammar_api_key = None;
+
+    let store = app
+        .store(SETTINGS_STORE_FILE)
+        .map_err(|e| e.to_string())?;
+    let value = serde_json::to_value(&disk_settings).map_err(|e| e.to_string())?;
+    store.set(SETTINGS_KEY, value);
+    store.save().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn get_settings() -> Result<AppSettings, String> {
     Ok(get_settings_store().read().clone())
@@ -181,6 +197,7 @@ pub fn get_settings() -> Result<AppSettings, String> {
 pub fn update_settings(
     app: AppHandle,
     stt_state: State<'_, SttState>,
+    audio_state: State<'_, AudioState>,
     settings: AppSettings,
 ) -> Result<(), String> {
     *get_settings_store().write() = settings.clone();
@@ -188,8 +205,12 @@ pub fn update_settings(
     // Writing snake_case from here would overwrite that and break frontend reads on
     // the next startup. We only update the in-memory engine config.
     apply_settings_to_engines(&stt_state.0, &settings);
-    apply_autostart(&app, settings.launch_at_login);
-    apply_injection_mode(&app, &settings.injection_mode);
+    // Propagate audio settings to the live capture pipeline.
+    {
+        let engine = audio_state.0.read();
+        *engine.input_gain.write() = settings.input_gain;
+        *engine.noise_suppression.write() = settings.noise_suppression;
+    }
     Ok(())
 }
 
@@ -223,16 +244,12 @@ fn apply_settings_to_engines(
     stt_engine_arc: &std::sync::Arc<parking_lot::RwLock<crate::stt::SttEngine>>,
     s: &AppSettings,
 ) {
-    // Privileged mode: block all cloud STT. Only local (offline) processing allowed.
-    // If WhisperLocal is not configured, dictation will fail with a clear error.
-    let stt_engine_type = if s.privileged_mode {
-        SttEngineType::WhisperLocal
-    } else {
-        match s.stt_engine.as_str() {
-            "deepgram" | "deepgram_cloud" => SttEngineType::DeepgramCloud,
-            "whisper_local" => SttEngineType::WhisperLocal,
-            _ => SttEngineType::WhisperCloud,
-        }
+    // whisper_local is not yet implemented; fall back to whisper_cloud so
+    // users with an old persisted setting don't get a runtime error.
+    let stt_engine_type = match s.stt_engine.as_str() {
+        "deepgram" | "deepgram_cloud" => SttEngineType::DeepgramCloud,
+        "whisper_local" => SttEngineType::WhisperCloud,
+        _ => SttEngineType::WhisperCloud,
     };
 
     let model = match stt_engine_type {
