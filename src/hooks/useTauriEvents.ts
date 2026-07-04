@@ -33,6 +33,11 @@ interface StreamingPartialEvent {
   confidence: number;
 }
 
+// Serial queue for post-processing — ensures utterances are injected in the
+// order they were spoken, even when grammar/translation calls take different
+// amounts of time.
+let _postQueue = Promise.resolve();
+
 /**
  * Subscribes to all backend event streams (audio level, waveform, transcription,
  * speech lifecycle) and routes them into the Zustand stores. Also handles
@@ -315,20 +320,24 @@ export function useTauriEvents(): void {
             });
             dictation.setCurrentTranscript("");
 
-            // Post-processing pipeline (runs async so it doesn't block the UI):
-            // 1. Grammar correction (if enabled)
-            // 2. Translation (if enabled, runs on grammar-corrected text)
-            // 3. Auto-inject into the currently focused app (unless injectionMode is "buffer")
+            // Post-processing pipeline — appended to a serial queue so multiple
+            // rapid utterances are always injected in the order they were spoken,
+            // even when grammar/translation calls take different amounts of time.
             const grammarEnabled = settings.grammarEnabled;
             const translationEnabled =
               settings.translationEnabled &&
               settings.translationTargetLanguage &&
               settings.translationTargetLanguage !== (result.language ?? "");
 
-            (async () => {
+            // Capture values used inside the async closure before any state changes.
+            const capturedFinalText = finalText;
+            const capturedSegmentId = segmentId;
+            const capturedAutoInject = autoInject;
+
+            _postQueue = _postQueue.then(async () => {
               try {
                 const { invoke } = await import("@tauri-apps/api/core");
-                let processedText = finalText;
+                let processedText = capturedFinalText;
 
                 // Step 1: grammar correction
                 if (grammarEnabled) {
@@ -344,18 +353,17 @@ export function useTauriEvents(): void {
                     const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
                       "correct_grammar",
                       {
-                        text: finalText,
+                        text: capturedFinalText,
                         customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
                         matterContext: matterContextAuto,
                       }
                     );
                     if (grammarResult?.corrected) {
                       processedText = grammarResult.corrected;
-                      useDictationStore.getState().updateSegment(segmentId, {
+                      useDictationStore.getState().updateSegment(capturedSegmentId, {
                         correctedText: grammarResult.corrected,
                         grammarApplied: true,
                       });
-                      // Feed corrections back into flywheel
                       if (grammarResult.changes?.length) {
                         const fw = useFlywheelStore.getState();
                         for (const c of grammarResult.changes) {
@@ -370,8 +378,15 @@ export function useTauriEvents(): void {
                         fw.recordCorrectionFeedback(true);
                       }
                     }
-                  } catch {
-                    // Grammar unavailable (no API key etc.) — continue with raw text.
+                  } catch (err) {
+                    // Surface actionable errors — rate limits and auth failures need user action.
+                    const msg = err instanceof Error ? err.message : String(err);
+                    if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) {
+                      toast("Grammar AI rate limited — transcript saved without corrections", "info", 4000);
+                    } else if (msg.includes("No grammar AI key") || msg.includes("401") || msg.includes("403")) {
+                      toast("Grammar AI not configured — add an API key in Settings › Account", "info", 5000);
+                    }
+                    // Other failures (network, timeout): silently continue with raw text.
                   }
                 }
 
@@ -387,7 +402,7 @@ export function useTauriEvents(): void {
                     );
                     if (translation?.translated) {
                       processedText = translation.translated;
-                      useDictationStore.getState().updateSegment(segmentId, {
+                      useDictationStore.getState().updateSegment(capturedSegmentId, {
                         translatedText: translation.translated,
                         translatedToLanguage: settings.translationTargetLanguage,
                       });
@@ -398,18 +413,17 @@ export function useTauriEvents(): void {
                 }
 
                 // Step 3: inject into the focused app
-                if (autoInject) {
+                if (capturedAutoInject) {
                   try {
                     await invoke("inject_text", { text: processedText });
                   } catch {
                     // Injection failure (e.g. Accessibility permissions not granted on macOS).
-                    // Text is still visible in the Voxlen panel for manual copy.
                   }
                 }
               } catch {
                 // Non-Tauri environment — skip.
               }
-            })();
+            });
           }
         );
 
@@ -477,7 +491,7 @@ export function useTauriEvents(): void {
         // showing "Listening." with no audio being transcribed.
         const unlistenDisconnected = await listen("streaming-disconnected", () => {
           const s = useDictationStore.getState().status;
-          if (s === "listening" || s === "processing") {
+          if (s === "listening" || s === "processing" || s === "paused") {
             useDictationStore.getState().setStatus("idle");
           }
         });

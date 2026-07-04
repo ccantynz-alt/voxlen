@@ -43,11 +43,10 @@ export function useGlobalShortcuts(enabled: boolean): void {
       }
       registered = [];
 
-      // Each shortcut is registered independently — one failing (e.g. taken
-      // by the OS or another app) must not silently prevent the others from
-      // registering, and the user needs to know it happened instead of the
-      // shortcut just quietly doing nothing when pressed.
+      // Each shortcut is registered independently — one failing must not prevent
+      // the others. cancelled guard here covers all registrations.
       async function registerOne(shortcut: string, handler: Parameters<typeof register>[1]) {
+        if (cancelled) return;
         try {
           await register(shortcut, handler);
           registered.push(shortcut);
@@ -74,7 +73,6 @@ export function useGlobalShortcuts(enabled: boolean): void {
                 try {
                   await invoke("start_dictation");
                 } catch (err) {
-                  // Real backend error — reset UI and show the user why it failed.
                   useDictationStore.getState().setStatus("idle");
                   toast(
                     err instanceof Error ? err.message : String(err) || "Failed to start dictation",

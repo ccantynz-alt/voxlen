@@ -59,6 +59,8 @@ export function DictationPanel() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
+  const isStartingRef = useRef(false);
+  const isStoppingRef = useRef(false);
 
   const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof loadDraftRecord>>(null);
 
@@ -97,23 +99,24 @@ export function DictationPanel() {
 
   const handleToggleDictation = useCallback(async () => {
     if (status === "idle" || status === "paused" || status === "error") {
+      if (isStartingRef.current) return; // prevent double-tap race
+      isStartingRef.current = true;
       sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
 
-        // Merge active client's matter vocabulary into STT config before starting
+        // Always push current client's vocabulary into STT config so a client
+        // switch mid-session doesn't leak the previous client's terms.
         const { activeClientId: cid, clients: cls } = useClientsStore.getState();
         const activeClientForSTT = cls.find((c) => c.id === cid);
         const matterVocab = activeClientForSTT?.vocabulary ?? [];
         const globalVocab = useSettingsStore.getState().customVocabulary;
         const mergedVocab = [...new Set([...globalVocab, ...matterVocab])];
-        if (mergedVocab.length !== globalVocab.length) {
-          try {
-            const currentCfg = await invoke<Record<string, unknown>>("get_stt_config");
-            await invoke("set_stt_config", { config: { ...currentCfg, custom_vocabulary: mergedVocab } });
-          } catch {
-            // Non-fatal — proceed without updating vocabulary
-          }
+        try {
+          const currentCfg = await invoke<Record<string, unknown>>("get_stt_config");
+          await invoke("set_stt_config", { config: { ...currentCfg, custom_vocabulary: mergedVocab } });
+        } catch {
+          // Non-fatal — proceed without updating vocabulary
         }
 
         await invoke("start_dictation");
@@ -125,15 +128,17 @@ export function DictationPanel() {
           // Non-fatal — device status line just won't show.
         }
       } catch (e) {
-        // Real failure in the desktop app (mic permission, device missing,
-        // no account) — never pretend we're listening.
         const msg = typeof e === "string" ? e : e instanceof Error ? e.message : "Could not start dictation";
         useDictationStore.getState().setError(msg);
         setStatus("error");
         setActiveDeviceName(null);
         toast(msg.length > 100 ? msg.slice(0, 100) + "…" : msg, "error", 6000);
+      } finally {
+        isStartingRef.current = false;
       }
     } else if (status === "listening") {
+      if (isStoppingRef.current) return;
+      isStoppingRef.current = true;
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("stop_dictation");
@@ -147,6 +152,7 @@ export function DictationPanel() {
       // updates correctedText between the two saves.
       setStatus("idle");
       setActiveDeviceName(null);
+      isStoppingRef.current = false;
     }
   }, [status, setStatus, setActiveDeviceName]);
 
@@ -163,10 +169,12 @@ export function DictationPanel() {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("start_dictation");
-      } catch {
-        // Demo mode
+        setStatus("listening");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Failed to resume";
+        useDictationStore.getState().setError(msg);
+        setStatus("error");
       }
-      setStatus("listening");
     }
   }, [status, setStatus]);
 
@@ -389,6 +397,8 @@ export function DictationPanel() {
             )}
             <button
               onClick={handleToggleDictation}
+              aria-label={isActive ? "Stop dictation" : "Start dictation"}
+              aria-pressed={isActive}
               className={cn(
                 "relative z-10 flex items-center justify-center w-[84px] h-[84px] rounded-full transition-all duration-300 shadow-inset-hairline",
                 isActive
