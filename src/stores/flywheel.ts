@@ -89,6 +89,10 @@ function schedulePersist() {
   persistTimer = setTimeout(() => persistFlywheel(), 1000);
 }
 
+// In-memory counter for auto-detected vocabulary candidates — not persisted,
+// so privileged terms that appear only once don't survive a restart.
+const _pendingAutoVocab: Record<string, number> = {};
+
 export const useFlywheelStore = create<FlywheelState>((set, get) => ({
   vocabulary: [],
   corrections: [],
@@ -99,18 +103,25 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
     set((state) => {
       const existing = state.vocabulary.find((v) => v.word.toLowerCase() === word.toLowerCase());
       if (existing) {
+        const updated = { ...existing, frequency: existing.frequency + 1 };
         return {
           vocabulary: state.vocabulary.map((v) =>
-            v.word.toLowerCase() === word.toLowerCase()
-              ? { ...v, frequency: v.frequency + 1 }
-              : v
+            v.word.toLowerCase() === word.toLowerCase() ? updated : v
           ),
         };
+      }
+      // Auto-detected words are only persisted once they've been seen 3 times
+      // to avoid capturing rare privileged terms on first occurrence.
+      if (source === "auto-detected") {
+        // Track pending counts outside the persisted store
+        const count = (_pendingAutoVocab[word.toLowerCase()] = (_pendingAutoVocab[word.toLowerCase()] || 0) + 1);
+        if (count < 3) return state;
+        delete _pendingAutoVocab[word.toLowerCase()];
       }
       return {
         vocabulary: [
           ...state.vocabulary,
-          { word, frequency: 1, addedAt: new Date().toISOString(), source },
+          { word, frequency: source === "auto-detected" ? 3 : 1, addedAt: new Date().toISOString(), source },
         ].slice(0, 1000),
       };
     });
@@ -125,8 +136,12 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
   },
 
   recordCorrection: (original, corrected, category) => {
+    // Truncate to 60 chars — correction patterns are word/phrase level, not sentences.
+    // This prevents privileged content from being stored when a full transcript is passed.
+    const safeOriginal = original.slice(0, 60);
+    const safeCorrected = corrected.slice(0, 60);
     set((state) => {
-      const key = `${original.toLowerCase()}→${corrected.toLowerCase()}`;
+      const key = `${safeOriginal.toLowerCase()}→${safeCorrected.toLowerCase()}`;
       const existing = state.corrections.find(
         (c) => `${c.original.toLowerCase()}→${c.corrected.toLowerCase()}` === key
       );
@@ -142,7 +157,7 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
       return {
         corrections: [
           ...state.corrections,
-          { original, corrected, category, occurrences: 1, lastSeen: new Date().toISOString() },
+          { original: safeOriginal, corrected: safeCorrected, category, occurrences: 1, lastSeen: new Date().toISOString() },
         ].slice(0, 500),
       };
     });
@@ -210,8 +225,10 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
         matter,
         minutes,
         ratePerHour,
-        amount: (minutes / 60) * ratePerHour,
-        notes,
+        amount: Math.round((minutes / 60) * ratePerHour * 100) / 100,
+        // Truncate notes to 80 chars — time entries must not store full transcripts
+        // (privileged client content). Users can add a manual note if needed.
+        notes: notes.slice(0, 80),
         createdAt: new Date().toISOString(),
       };
       schedulePersist();
@@ -257,7 +274,7 @@ export async function loadFlywheel(): Promise<void> {
     });
   } catch {
     try {
-      const saved = localStorage.getItem("voxlen_flywheel") ?? localStorage.getItem("marcoreid_flywheel");
+      const saved = localStorage.getItem("voxlen_flywheel");
       if (saved) {
         const parsed = JSON.parse(saved);
         useFlywheelStore.setState({

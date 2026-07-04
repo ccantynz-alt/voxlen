@@ -53,39 +53,30 @@ impl InjectorState {
 fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
     use std::process::Command;
 
-    // AppleScript `keystroke` can't handle newlines inline — split on them
-    // and send Return keystrokes in between. Also escape backslash and quote.
-    let mut parts: Vec<&str> = text.split('\n').collect();
-    // Trim a trailing empty part so a trailing newline doesn't add an extra Return
-    if parts.last() == Some(&"") {
-        parts.pop();
+    // Security: strip newlines entirely. In AppleScript, `key code 36` (Return)
+    // acts as Enter in every app including terminals, so dictated newlines could
+    // execute buffered commands. Replace them with a space so the text still
+    // flows; users who need explicit line breaks can use the voice command.
+    let safe_text = text.replace('\n', " ").replace('\r', "").replace('\0', "");
+
+    // AppleScript `keystroke` silently drops non-ASCII chars. When the text
+    // contains any, fall back to the clipboard path which handles Unicode.
+    if safe_text.chars().any(|c| !c.is_ascii()) {
+        return clipboard_paste(&safe_text);
     }
 
-    for (i, part) in parts.iter().enumerate() {
-        if i > 0 {
-            let ret_script = r#"tell application "System Events" to key code 36"#;
-            Command::new("osascript")
-                .arg("-e")
-                .arg(ret_script)
-                .output()
-                .map_err(|e| anyhow::anyhow!("Failed to simulate Return key: {}", e))?;
-        }
-
-        if part.is_empty() {
-            continue;
-        }
-
-        let escaped = part.replace('\\', "\\\\").replace('"', "\\\"");
-        let script = format!(
-            r#"tell application "System Events" to keystroke "{}""#,
-            escaped
-        );
-        Command::new("osascript")
-            .arg("-e")
-            .arg(&script)
-            .output()
-            .map_err(|e| anyhow::anyhow!("Failed to simulate keyboard: {}", e))?;
-    }
+    // Escape backslash, double-quote, CR, and null so the AppleScript
+    // string literal is not corrupted.
+    let escaped = safe_text.replace('\\', "\\\\").replace('"', "\\\"");
+    let script = format!(
+        r#"tell application "System Events" to keystroke "{}""#,
+        escaped
+    );
+    Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .output()
+        .map_err(|e| anyhow::anyhow!("Failed to simulate keyboard: {}", e))?;
 
     Ok(())
 }
@@ -95,7 +86,11 @@ fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
 fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
     use windows::Win32::UI::Input::KeyboardAndMouse::*;
 
-    let wide: Vec<u16> = text.encode_utf16().collect();
+    // Security: strip newlines so dictated text cannot execute commands in
+    // terminals. U+000A sent via KEYEVENTF_UNICODE acts as Enter in cmd/PS/bash.
+    let safe_text = text.replace('\n', " ").replace('\r', "").replace('\0', "");
+
+    let wide: Vec<u16> = safe_text.encode_utf16().collect();
     let mut inputs = Vec::new();
 
     for ch in wide {
@@ -114,8 +109,13 @@ fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
         inputs.push(input_up);
     }
 
-    unsafe {
-        SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
+    let sent = unsafe {
+        SendInput(&inputs, std::mem::size_of::<INPUT>() as i32)
+    };
+    if sent == 0 && !inputs.is_empty() {
+        return Err(anyhow::anyhow!(
+            "SendInput failed (UIPI block or system error) — text not injected"
+        ));
     }
 
     Ok(())
@@ -155,6 +155,13 @@ fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
 fn clipboard_paste(text: &str) -> anyhow::Result<()> {
     set_clipboard(text)?;
     trigger_paste()?;
+    // Clear clipboard after paste — lawyers/accountants must not have privileged
+    // content sitting in the clipboard where other apps can read it.
+    // 600ms gives the OS time to process the Ctrl+V before we wipe.
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_millis(600));
+        let _ = clear_clipboard();
+    });
     Ok(())
 }
 
@@ -178,16 +185,30 @@ fn set_clipboard(text: &str) -> anyhow::Result<()> {
 fn set_clipboard(text: &str) -> anyhow::Result<()> {
     use std::process::Command;
 
-    let mut child = Command::new("cmd")
-        .args(["/C", "clip"])
-        .stdin(std::process::Stdio::piped())
-        .spawn()?;
+    // `cmd /C clip` reads stdin with the OEM code page (CP437/CP1252), corrupting
+    // non-ASCII characters. Use PowerShell's .NET clipboard API which handles UTF-16
+    // correctly on all Windows locales.
+    let escaped = text.replace('\'', "''"); // escape single quotes for PS here-string
+    let ps_script = format!(
+        "[System.Windows.Forms.Clipboard]::SetText(@'\n{}\n'@)",
+        escaped
+    );
+    let output = Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            &format!("Add-Type -AssemblyName System.Windows.Forms; {}", ps_script),
+        ])
+        .output()
+        .map_err(|e| anyhow::anyhow!("Failed to set clipboard via PowerShell: {}", e))?;
 
-    if let Some(stdin) = child.stdin.as_mut() {
-        use std::io::Write;
-        stdin.write_all(text.as_bytes())?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "PowerShell clipboard set failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
-    child.wait()?;
     Ok(())
 }
 
@@ -293,5 +314,42 @@ fn trigger_paste() -> anyhow::Result<()> {
     let _ = Command::new("xdotool")
         .args(["key", "ctrl+v"])
         .output();
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn clear_clipboard() -> anyhow::Result<()> {
+    use std::process::Command;
+    // Pipe empty stdin into pbcopy to overwrite clipboard with empty string
+    let mut child = Command::new("pbcopy")
+        .stdin(std::process::Stdio::piped())
+        .spawn()?;
+    child.wait()?;
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn clear_clipboard() -> anyhow::Result<()> {
+    use std::process::Command;
+    Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::Clear()",
+        ])
+        .output()?;
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn clear_clipboard() -> anyhow::Result<()> {
+    use std::process::Command;
+    // Try xclip, then xsel
+    let _ = Command::new("xclip")
+        .args(["-selection", "clipboard"])
+        .stdin(std::process::Stdio::piped())
+        .spawn();
+    let _ = Command::new("xsel").args(["--clipboard", "--delete"]).output();
     Ok(())
 }

@@ -29,6 +29,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { useNavigationStore } from "@/stores/navigation";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
@@ -274,7 +275,7 @@ export function DictationPanel() {
   const sttApiKey = useSettingsStore((s) => s.sttApiKey);
   const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
   const sttEngine = useSettingsStore((s) => s.sttEngine);
-  const hasApiKey = !!(sttApiKey || voxlenApiKey) || sttEngine === "whisper_local";
+  const hasApiKey = !!(sttApiKey || voxlenApiKey);
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
   const privilegedMode = useSettingsStore((s) => s.privilegedMode);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
@@ -343,9 +344,15 @@ export function DictationPanel() {
       {!hasApiKey && status !== "error" && (
         <div className="flex items-center gap-2.5 px-5 py-2.5 bg-red-950/50 border-b border-red-500/20">
           <Zap className="h-3.5 w-3.5 text-red-400 shrink-0" strokeWidth={1.75} />
-          <p className="text-[11px] text-red-300 font-medium">
-            No API key configured — add a Voxlen account key or Deepgram key in Settings &rsaquo; Voxlen API to start dictating.
+          <p className="text-[11px] text-red-300 font-medium flex-1">
+            No API key — add a Deepgram key or Voxlen account to start dictating.
           </p>
+          <button
+            onClick={() => useNavigationStore.getState().requestView("settings")}
+            className="text-[11px] font-semibold text-red-300 hover:text-red-100 underline shrink-0 transition-colors"
+          >
+            Open Settings
+          </button>
         </div>
       )}
       {/* Draft recovery banner */}

@@ -205,7 +205,10 @@ Text to correct:
         text = text
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
     let response = client
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", api_key)
@@ -213,7 +216,7 @@ Text to correct:
         .header("content-type", "application/json")
         .json(&serde_json::json!({
             "model": "claude-sonnet-4-6",
-            "max_tokens": 2048,
+            "max_tokens": 8192,
             "messages": [{
                 "role": "user",
                 "content": prompt
@@ -223,9 +226,13 @@ Text to correct:
         .await
         .map_err(|e| format!("API request failed: {}", e))?;
 
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err("Grammar AI rate limit reached — try again in a moment (HTTP 429)".to_string());
+    }
     if !response.status().is_success() {
+        let status = response.status();
         let error = response.text().await.unwrap_or_default();
-        return Err(format!("Claude API error: {}", error));
+        return Err(format!("Claude API error {status}: {error}"));
     }
 
     let result: serde_json::Value = response
@@ -310,7 +317,10 @@ Text:
         text = text
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
     let response = client
         .post("https://api.openai.com/v1/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
@@ -325,9 +335,13 @@ Text:
         .await
         .map_err(|e| format!("API request failed: {}", e))?;
 
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err("Grammar AI rate limit reached — try again in a moment (HTTP 429)".to_string());
+    }
     if !response.status().is_success() {
+        let status = response.status();
         let error = response.text().await.unwrap_or_default();
-        return Err(format!("OpenAI API error: {}", error));
+        return Err(format!("OpenAI API error {status}: {error}"));
     }
 
     let result: serde_json::Value = response
@@ -373,7 +387,17 @@ async fn correct_with_voxlen_proxy(
     config: &GrammarConfig,
     custom_vocabulary: &[String],
 ) -> Result<GrammarResult, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let style_str = match config.style {
+        WritingStyle::Professional => "professional",
+        WritingStyle::Casual => "casual",
+        WritingStyle::Academic => "academic",
+        WritingStyle::Creative => "creative",
+        WritingStyle::Technical => "technical",
+    };
     let mut req = client
         .post("https://voxlen.ai/api/grammar")
         .header("Authorization", format!("Bearer {}", voxlen_key))
@@ -384,7 +408,7 @@ async fn correct_with_voxlen_proxy(
     let response = req
         .json(&serde_json::json!({
             "text": text,
-            "style": format!("{:?}", config.style).to_lowercase(),
+            "style": style_str,
             "context": context.unwrap_or("general"),
             "custom_vocabulary": custom_vocabulary,
             "preserve_tone": config.preserve_tone,
@@ -393,6 +417,9 @@ async fn correct_with_voxlen_proxy(
         .await
         .map_err(|e| format!("Voxlen API error: {}", e))?;
 
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err("Grammar AI rate limit reached — try again in a moment (HTTP 429)".to_string());
+    }
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();

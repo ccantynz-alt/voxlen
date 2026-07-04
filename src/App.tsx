@@ -14,6 +14,9 @@ import { loadFlywheel } from "@/stores/flywheel";
 import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { loadCustomClauses } from "@/stores/clauses";
+import { useNavigationStore } from "@/stores/navigation";
+import { ToastContainer } from "@/components/ui/Toast";
 
 type View = "dictation" | "grammar" | "history" | "settings" | "admin";
 
@@ -24,6 +27,14 @@ export default function App() {
   const hydrateSettingsStore = useSettingsStore((s) => s.hydrateSettings);
   const theme = useSettingsStore((s) => s.theme);
   const fontSize = useSettingsStore((s) => s.fontSize);
+  const { pendingView, clearPendingView } = useNavigationStore();
+
+  useEffect(() => {
+    if (pendingView) {
+      setActiveView(pendingView as View);
+      clearPendingView();
+    }
+  }, [pendingView, clearPendingView]);
 
   // Apply theme class to document root
   useEffect(() => {
@@ -42,9 +53,10 @@ export default function App() {
     document.documentElement.style.setProperty("--app-font-size", `${fontSize}px`);
   }, [fontSize]);
 
-  // Load flywheel data on startup
+  // Load flywheel and clause data on startup
   useEffect(() => {
     loadFlywheel();
+    loadCustomClauses();
   }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).

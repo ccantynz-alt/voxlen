@@ -978,7 +978,24 @@ function VoxlenApiSettings() {
   const [verifying, setVerifying] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [keyError, setKeyError] = useState("");
+  const [dgKeyInput, setDgKeyInput] = useState("");
+  const [dgKeyError, setDgKeyError] = useState("");
   const isConnected = Boolean(settings.voxlenApiKey);
+  const hasDgKey = Boolean(settings.sttApiKey);
+
+  const saveDgKey = async () => {
+    const key = dgKeyInput.trim();
+    if (!key) return;
+    setDgKeyError("");
+    // Deepgram keys start with "Token " or are raw keys starting with digits
+    settings.updateSetting("sttApiKey", key);
+    settings.updateSetting("sttEngine", "deepgram");
+    setDgKeyInput("");
+  };
+
+  const removeDgKey = () => {
+    settings.updateSetting("sttApiKey", "");
+  };
 
   const openDashboard = async () => {
     try {
@@ -1107,6 +1124,63 @@ function VoxlenApiSettings() {
               {verifying ? "Connecting…" : "Connect"}
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Deepgram BYOK — always visible, independent of Voxlen account */}
+      {!isConnected && (
+        <div className="space-y-3">
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-surface-300/50" />
+            <span className="text-[10px] text-surface-500 uppercase tracking-wider">
+              or bring your own Deepgram key
+            </span>
+            <div className="flex-1 h-px bg-surface-300/50" />
+          </div>
+
+          {hasDgKey ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-surface-900">Deepgram Key Active</p>
+                <p className="text-[11px] text-surface-600 mt-0.5">
+                  Nova-3 streaming — real-time transcription ready.
+                </p>
+              </div>
+              <button
+                onClick={removeDgKey}
+                className="text-[11px] text-surface-500 hover:text-red-400 transition-colors ml-4 shrink-0"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[11px] text-surface-600">
+                Get a free API key at{" "}
+                <span className="font-mono text-surface-700">console.deepgram.com</span>.
+                Your key is stored securely in the OS keychain.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={dgKeyInput}
+                  onChange={(e) => { setDgKeyInput(e.target.value); setDgKeyError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && saveDgKey()}
+                  placeholder="Paste Deepgram API key…"
+                  className="flex-1 bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-[#7345d1] shadow-inset-hairline"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={saveDgKey}
+                  disabled={!dgKeyInput.trim()}
+                >
+                  Save
+                </Button>
+              </div>
+              {dgKeyError && <p className="text-[11px] text-red-500">{dgKeyError}</p>}
+            </div>
+          )}
         </div>
       )}
 
