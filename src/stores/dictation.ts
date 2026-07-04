@@ -145,12 +145,14 @@ export const useDictationStore = create<DictationState>((set, get) => ({
 
   setStatus: (status) =>
     set((state) => {
-      // When transitioning from idle -> listening, stamp the session start.
+      // Stamp session start on idle→listening and also error→listening (retry).
       const sessionStartedAtMs =
-        status === "listening" && state.status === "idle"
+        status === "listening" && (state.status === "idle" || state.status === "error")
           ? Date.now()
           : state.sessionStartedAtMs;
-      return { status, sessionStartedAtMs };
+      // Clear stale error when leaving error state.
+      const error = state.status === "error" && status !== "error" ? null : state.error;
+      return { status, sessionStartedAtMs, error };
     }),
 
   addSegment: (segment) =>

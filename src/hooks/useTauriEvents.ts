@@ -471,6 +471,17 @@ export function useTauriEvents(): void {
           );
         });
 
+        // When the backend streaming session gives up (retries exhausted or user
+        // stopped dictation and the WebSocket finally closed), reset UI to idle so
+        // the microphone button is re-enabled. Without this the UI can get stuck
+        // showing "Listening." with no audio being transcribed.
+        const unlistenDisconnected = await listen("streaming-disconnected", () => {
+          const s = useDictationStore.getState().status;
+          if (s === "listening" || s === "processing") {
+            useDictationStore.getState().setStatus("idle");
+          }
+        });
+
         unlisten = () => {
           unlistenLevel();
           unlistenWaveform();
@@ -483,6 +494,7 @@ export function useTauriEvents(): void {
           unlistenRecoveryAttempt();
           unlistenRecoveryResult();
           unlistenRecoveryGiveup();
+          unlistenDisconnected();
         };
       } catch {
         // Not running in Tauri.

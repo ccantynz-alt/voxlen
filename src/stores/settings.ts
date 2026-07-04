@@ -113,10 +113,10 @@ const defaultSettings: AppSettings = {
 
   injectionMode: "keyboard",
 
-  shortcutToggle: "CommandOrControl+Shift+D",
-  shortcutPushToTalk: "CommandOrControl+Shift+Space",
+  shortcutToggle: "Alt+D",
+  shortcutPushToTalk: "Alt+Space",
   shortcutCancel: "Escape",
-  shortcutCorrectGrammar: "CommandOrControl+Shift+G",
+  shortcutCorrectGrammar: "Alt+G",
 
   theme: "dark",
   showWaveform: true,

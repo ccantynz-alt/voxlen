@@ -271,6 +271,10 @@ export function DictationPanel() {
     clearSession();
   }, [clearSession]);
 
+  const sttApiKey = useSettingsStore((s) => s.sttApiKey);
+  const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
+  const sttEngine = useSettingsStore((s) => s.sttEngine);
+  const hasApiKey = !!(sttApiKey || voxlenApiKey) || sttEngine === "whisper_local";
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
   const privilegedMode = useSettingsStore((s) => s.privilegedMode);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
@@ -333,6 +337,15 @@ export function DictationPanel() {
           >
             Disable
           </button>
+        </div>
+      )}
+      {/* No API key banner */}
+      {!hasApiKey && status !== "error" && (
+        <div className="flex items-center gap-2.5 px-5 py-2.5 bg-red-950/50 border-b border-red-500/20">
+          <Zap className="h-3.5 w-3.5 text-red-400 shrink-0" strokeWidth={1.75} />
+          <p className="text-[11px] text-red-300 font-medium">
+            No API key configured — add a Voxlen account key or Deepgram key in Settings &rsaquo; Voxlen API to start dictating.
+          </p>
         </div>
       )}
       {/* Draft recovery banner */}
