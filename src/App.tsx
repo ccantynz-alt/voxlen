@@ -297,15 +297,18 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-surface-0 rounded-xl overflow-hidden border border-surface-300/30">
-      <TitleBar />
-      <div className="flex flex-1 min-h-0">
-        <Sidebar
-          activeView={activeView}
-          onViewChange={(v) => setActiveView(v as View)}
-        />
-        <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
+    <>
+      <div className="flex flex-col h-screen bg-surface-0 rounded-xl overflow-hidden border border-surface-300/30">
+        <TitleBar />
+        <div className="flex flex-1 min-h-0">
+          <Sidebar
+            activeView={activeView}
+            onViewChange={(v) => setActiveView(v as View)}
+          />
+          <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
+        </div>
       </div>
-    </div>
+      <ToastContainer />
+    </>
   );
 }

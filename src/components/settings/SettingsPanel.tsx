@@ -1128,8 +1128,7 @@ function VoxlenApiSettings() {
       )}
 
       {/* Deepgram BYOK — always visible, independent of Voxlen account */}
-      {!isConnected && (
-        <div className="space-y-3">
+      <div className="space-y-3">
           <div className="relative flex items-center gap-3">
             <div className="flex-1 h-px bg-surface-300/50" />
             <span className="text-[10px] text-surface-500 uppercase tracking-wider">
@@ -1181,8 +1180,7 @@ function VoxlenApiSettings() {
               {dgKeyError && <p className="text-[11px] text-red-500">{dgKeyError}</p>}
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {isConnected && (
         <>
