@@ -183,23 +183,26 @@ fn set_clipboard(text: &str) -> anyhow::Result<()> {
 
 #[cfg(target_os = "windows")]
 fn set_clipboard(text: &str) -> anyhow::Result<()> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
     use std::process::Command;
 
-    // `cmd /C clip` reads stdin with the OEM code page (CP437/CP1252), corrupting
-    // non-ASCII characters. Use PowerShell's .NET clipboard API which handles UTF-16
-    // correctly on all Windows locales.
-    let escaped = text.replace('\'', "''"); // escape single quotes for PS here-string
-    let ps_script = format!(
-        "[System.Windows.Forms.Clipboard]::SetText(@'\n{}\n'@)",
-        escaped
+    // Base64-encode the text so no user content appears in the PowerShell script.
+    // Base64 output is [A-Za-z0-9+/=] — no PowerShell metacharacters, cannot
+    // break out of a single-quoted string literal, cannot inject commands.
+    let b64 = STANDARD.encode(text.as_bytes());
+
+    // The script is a fixed template; b64 is a safe literal embedded in '...'
+    // (PS single-quoted string — no interpolation, no special characters).
+    let script = format!(
+        "Add-Type -AssemblyName System.Windows.Forms; \
+         [System.Windows.Forms.Clipboard]::SetText(\
+             [System.Text.Encoding]::UTF8.GetString(\
+                 [System.Convert]::FromBase64String('{}')))",
+        b64
     );
+
     let output = Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            &format!("Add-Type -AssemblyName System.Windows.Forms; {}", ps_script),
-        ])
+        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
         .output()
         .map_err(|e| anyhow::anyhow!("Failed to set clipboard via PowerShell: {}", e))?;
 
