@@ -36,6 +36,84 @@ import { toast } from "@/components/ui/Toast";
 import { downloadExport } from "@/lib/export";
 import type { ExportFormat } from "@/lib/export";
 
+function DevicePicker({
+  activeDeviceName,
+  selectedDevice,
+}: {
+  activeDeviceName: string | null;
+  selectedDevice: { id: string; name: string; isExternal: boolean } | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const devices = useAudioStore((s) => s.devices);
+  const setSelectedDevice = useAudioStore((s) => s.setSelectedDevice);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const displayName = activeDeviceName || selectedDevice?.name;
+
+  if (!displayName && devices.length === 0) {
+    return (
+      <p className="text-[11px] text-brass-500 mt-2 tracking-tight">
+        No microphone selected — configure in Settings
+      </p>
+    );
+  }
+
+  return (
+    <div className="relative mt-2" ref={ref}>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 text-[11px] text-surface-600 hover:text-surface-800 transition-colors group"
+      >
+        <Mic className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
+        <span className="font-medium text-surface-700">{displayName ?? "Select mic"}</span>
+        {selectedDevice?.isExternal && (
+          <Badge variant="info" className="ml-1 text-[9px] py-0">External</Badge>
+        )}
+        {activeDeviceName && activeDeviceName !== selectedDevice?.name && (
+          <Badge variant="warning" className="ml-1 text-[9px] py-0">Fallback</Badge>
+        )}
+        <ChevronDown className="h-2.5 w-2.5 text-surface-500 group-hover:text-surface-700 transition-colors" strokeWidth={2} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 w-56 rounded-lg border border-surface-300/60 bg-surface-0 shadow-elevation-lg py-1 animate-fade-in">
+          {devices.length === 0 && (
+            <p className="px-3 py-2 text-[11px] text-surface-500">No devices found</p>
+          )}
+          {devices.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => {
+                setSelectedDevice(d.id);
+                updateSetting("preferredDeviceId", d.id);
+                setOpen(false);
+              }}
+              className={cn(
+                "w-full text-left px-3 py-2 text-[12px] flex items-center gap-2 hover:bg-surface-100 transition-colors",
+                d.id === selectedDevice?.id ? "text-surface-900 font-medium" : "text-surface-700"
+              )}
+            >
+              <span className="flex-1 truncate">{d.name}</span>
+              {d.isExternal && <Badge variant="info" className="text-[9px] py-0 shrink-0">External</Badge>}
+              {d.id === selectedDevice?.id && <span className="text-brass-500 text-[10px] shrink-0">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
   const errorMessage = useDictationStore((s) => s.error);
@@ -348,8 +426,8 @@ export function DictationPanel() {
           </button>
         </div>
       )}
-      {/* No API key banner */}
-      {!hasApiKey && status !== "error" && (
+      {/* No API key banner — stays visible even in error state */}
+      {!hasApiKey && (
         <div className="flex items-center gap-2.5 px-5 py-2.5 bg-red-950/50 border-b border-red-500/20">
           <Zap className="h-3.5 w-3.5 text-red-400 shrink-0" strokeWidth={1.75} />
           <p className="text-[11px] text-red-300 font-medium flex-1">
@@ -399,9 +477,12 @@ export function DictationPanel() {
               onClick={handleToggleDictation}
               aria-label={isActive ? "Stop dictation" : "Start dictation"}
               aria-pressed={isActive}
+              disabled={!hasApiKey && !isActive}
               className={cn(
                 "relative z-10 flex items-center justify-center w-[84px] h-[84px] rounded-full transition-all duration-300 shadow-inset-hairline",
-                isActive
+                !hasApiKey && !isActive
+                  ? "opacity-40 cursor-not-allowed bg-gradient-to-br from-surface-100 to-surface-200 text-surface-500"
+                  : isActive
                   ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation-lg scale-105"
                   : "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-700 hover:from-surface-200 hover:to-surface-300 hover:text-surface-900 shadow-elevation"
               )}
@@ -432,27 +513,10 @@ export function DictationPanel() {
                 {errorMessage} — press the microphone to retry.
               </p>
             )}
-            {(activeDeviceName || selectedDevice) && (
-              <div className="text-[11px] text-surface-600 mt-2 flex items-center justify-center gap-1.5 tracking-tight">
-                <Mic className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
-                <span className="font-medium text-surface-700">{activeDeviceName || selectedDevice!.name}</span>
-                {selectedDevice?.isExternal && (
-                  <Badge variant="info" className="ml-1 text-[9px] py-0">
-                    External
-                  </Badge>
-                )}
-                {activeDeviceName && activeDeviceName !== selectedDevice?.name && (
-                  <Badge variant="warning" className="ml-1 text-[9px] py-0">
-                    Fallback
-                  </Badge>
-                )}
-              </div>
-            )}
-            {!activeDeviceName && !selectedDevice && (
-              <p className="text-[11px] text-brass-500 mt-2 tracking-tight">
-                No microphone selected — configure in Settings
-              </p>
-            )}
+            <DevicePicker
+              activeDeviceName={activeDeviceName}
+              selectedDevice={selectedDevice}
+            />
             {capsLock && (
               <Badge variant="warning" className="mt-2 text-[9px]">
                 CAPS ON

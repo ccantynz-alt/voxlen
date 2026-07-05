@@ -980,6 +980,7 @@ function VoxlenApiSettings() {
   const [keyError, setKeyError] = useState("");
   const [dgKeyInput, setDgKeyInput] = useState("");
   const [dgKeyError, setDgKeyError] = useState("");
+  const [dgKeyVerifying, setDgKeyVerifying] = useState(false);
   const isConnected = Boolean(settings.voxlenApiKey);
   const hasDgKey = Boolean(settings.sttApiKey);
 
@@ -987,7 +988,21 @@ function VoxlenApiSettings() {
     const key = dgKeyInput.trim();
     if (!key) return;
     setDgKeyError("");
-    // Deepgram keys start with "Token " or are raw keys starting with digits
+    setDgKeyVerifying(true);
+    try {
+      const res = await fetch("https://api.deepgram.com/v1/projects", {
+        headers: { Authorization: `Token ${key}` },
+      });
+      if (!res.ok) {
+        setDgKeyError("Key rejected by Deepgram — check it at console.deepgram.com.");
+        return;
+      }
+    } catch {
+      // Network error — save anyway so offline users aren't blocked, but warn.
+      setDgKeyError("Could not verify key (no connection) — saved anyway.");
+    } finally {
+      setDgKeyVerifying(false);
+    }
     settings.updateSetting("sttApiKey", key);
     settings.updateSetting("sttEngine", "deepgram");
     setDgKeyInput("");
@@ -1172,12 +1187,16 @@ function VoxlenApiSettings() {
                   variant="secondary"
                   size="sm"
                   onClick={saveDgKey}
-                  disabled={!dgKeyInput.trim()}
+                  disabled={!dgKeyInput.trim() || dgKeyVerifying}
                 >
-                  Save
+                  {dgKeyVerifying ? "Verifying…" : "Save"}
                 </Button>
               </div>
-              {dgKeyError && <p className="text-[11px] text-red-500">{dgKeyError}</p>}
+              {dgKeyError && (
+                <p className={`text-[11px] ${dgKeyError.startsWith("Could not verify") ? "text-amber-500" : "text-red-500"}`}>
+                  {dgKeyError}
+                </p>
+              )}
             </div>
           )}
       </div>

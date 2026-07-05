@@ -56,7 +56,9 @@ enum SessionOutcome {
 
 /// Exchange a Voxlen API key for a short-lived Deepgram temp key via the Voxlen proxy.
 async fn fetch_deepgram_temp_key(voxlen_key: &str) -> anyhow::Result<String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(8))
+        .build()?;
     let resp = client
         .post("https://voxlen.ai/api/deepgram-token")
         .header("Authorization", format!("Bearer {}", voxlen_key))
@@ -144,7 +146,12 @@ pub fn start_streaming(
                     .await
                 {
                     Some(k) => k,
-                    None => return, // error already emitted
+                    None => {
+                        // error already emitted by acquire_deepgram_key;
+                        // emit disconnect so the UI exits "listening" state.
+                        let _ = app_handle.emit("streaming-disconnected", true);
+                        return;
+                    }
                 };
 
             run_streaming_session(

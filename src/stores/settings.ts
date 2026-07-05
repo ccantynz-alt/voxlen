@@ -237,18 +237,45 @@ function schedulePersist() {
 }
 
 export async function hydrateSecrets(): Promise<void> {
-  const [sttApiKey, grammarApiKey, voxlenApiKey] = await Promise.all([
+  // Cancel any in-flight persist timer so it can't fire with empty keys
+  // before we finish reading from the keychain.
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+
+  const results = await Promise.allSettled([
     getSecret("sttApiKey"),
     getSecret("grammarApiKey"),
     getSecret("voxlenApiKey"),
   ]);
+
+  const [sttResult, grammarResult, voxlenResult] = results;
   const updates: Partial<AppSettings> = {};
-  if (sttApiKey) updates.sttApiKey = sttApiKey;
-  if (grammarApiKey) updates.grammarApiKey = grammarApiKey;
-  if (voxlenApiKey) updates.voxlenApiKey = voxlenApiKey;
+  if (sttResult.status === "fulfilled" && sttResult.value) updates.sttApiKey = sttResult.value;
+  if (grammarResult.status === "fulfilled" && grammarResult.value) updates.grammarApiKey = grammarResult.value;
+  if (voxlenResult.status === "fulfilled" && voxlenResult.value) updates.voxlenApiKey = voxlenResult.value;
+
   if (Object.keys(updates).length > 0) {
     useSettingsStore.getState().hydrateSettings(updates);
   }
+
+  const anyFailed = results.some((r) => r.status === "rejected");
+  if (anyFailed) {
+    try {
+      const { toast } = await import("@/components/ui/Toast");
+      toast(
+        "Could not read saved API keys from system keychain — please re-enter them in Settings.",
+        "error",
+        8000
+      );
+    } catch {
+      // Toast not available (tests / non-Tauri).
+    }
+  }
+
+  // Now safe to resume persisting — keys are loaded.
+  schedulePersist();
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
