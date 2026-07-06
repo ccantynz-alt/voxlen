@@ -86,8 +86,8 @@ pub struct AppSettings {
     pub voxlen_context: Option<String>,
 
     // Frontend-only fields that Rust round-trips but does not act on.
-    // Keeping them here prevents persist_settings() from silently dropping
-    // them whenever update_settings is invoked from the frontend.
+    // Keeping them here prevents update_settings from silently dropping
+    // them when the frontend round-trips the settings object.
     #[serde(default)]
     pub billable_rate_per_hour: f64,
     #[serde(default)]
@@ -164,28 +164,12 @@ fn default_translation_language() -> String {
 }
 
 const SETTINGS_STORE_FILE: &str = "settings.json";
-const SETTINGS_KEY: &str = "settings";
 
 static SETTINGS: std::sync::OnceLock<parking_lot::RwLock<AppSettings>> =
     std::sync::OnceLock::new();
 
 fn get_settings_store() -> &'static parking_lot::RwLock<AppSettings> {
     SETTINGS.get_or_init(|| parking_lot::RwLock::new(AppSettings::default()))
-}
-
-fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
-    // Never write API keys to plaintext disk storage; they live in the OS keychain.
-    let mut disk_settings = settings.clone();
-    disk_settings.stt_api_key = None;
-    disk_settings.grammar_api_key = None;
-
-    let store = app
-        .store(SETTINGS_STORE_FILE)
-        .map_err(|e| e.to_string())?;
-    let value = serde_json::to_value(&disk_settings).map_err(|e| e.to_string())?;
-    store.set(SETTINGS_KEY, value);
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
 }
 
 #[tauri::command]
@@ -220,6 +204,7 @@ pub fn reset_settings(
     *get_settings_store().write() = defaults.clone();
     apply_settings_to_engines(&stt_state.0, &audio_state, &defaults);
     apply_autostart(&app, defaults.launch_at_login);
+    apply_injection_mode(&app, &defaults.injection_mode);
     Ok(defaults)
 }
 

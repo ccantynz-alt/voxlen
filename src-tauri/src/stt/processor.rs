@@ -157,7 +157,9 @@ impl AudioProcessor {
                             match super::transcribe_audio(&resampled, 16000, config).await {
                                 Ok(result) => {
                                     if !result.text.trim().is_empty() {
-                                        log::info!("Transcription: {}", result.text);
+                                        // Content-free log: transcripts must never
+                                        // hit logs (legal/accounting market).
+                                        log::info!("Transcription received ({} chars)", result.text.chars().count());
                                         let _ = app_handle.emit("transcription", &result);
                                     }
                                 }

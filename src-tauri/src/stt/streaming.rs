@@ -11,7 +11,7 @@ use super::SttConfig;
 /// Real-time streaming transcription via Deepgram WebSocket
 pub struct StreamingSession {
     stop_flag: Arc<AtomicBool>,
-    _handle: Option<tokio::task::JoinHandle<()>>,
+    _handle: Option<tauri::async_runtime::JoinHandle<()>>,
 }
 
 impl StreamingSession {
@@ -137,7 +137,11 @@ pub fn start_streaming(
     let tenant_id = config.voxlen_tenant_id.clone();
 
     let stop_on_exit = stop_flag.clone();
-    let handle = tokio::spawn(async move {
+    // Must be async_runtime::spawn, NOT tokio::spawn: this function is also
+    // reached from plain OS threads (capture watchdog → restart_capture →
+    // start_dictation_internal), where tokio::spawn would panic off-runtime —
+    // and the release profile aborts on panic.
+    let handle = tauri::async_runtime::spawn(async move {
         let session_task = async {
             // Acquire the initial Deepgram key using the Voxlen-first / direct
             // BYOK fallback precedence.
@@ -329,9 +333,11 @@ async fn run_session_once(
     );
 
     if auto_detect {
-        url.push_str("&detect_language=true");
+        // `detect_language` is batch-only and rejected by the streaming
+        // endpoint; nova-3 streaming supports multilingual via `language=multi`.
+        url.push_str("&language=multi");
     } else {
-        url.push_str(&format!("&language={}", language));
+        url.push_str(&format!("&language={}", super::cloud::urlencoding(language)));
     }
 
     if diarization {
@@ -384,7 +390,7 @@ async fn run_session_once(
     // Spawn audio sender task
     let stop_sender = stop_flag.clone();
     let audio_receiver_clone = audio_receiver.clone();
-    let sender_handle = tokio::spawn(async move {
+    let sender_handle = tauri::async_runtime::spawn(async move {
         loop {
             if stop_sender.load(Ordering::Relaxed) {
                 // Send close frame
@@ -523,8 +529,9 @@ async fn run_session_once(
                             let _ = app_handle.emit("speech-started", true);
                         }
                         "Error" | "Metadata" => {
-                            // Log but don't fail
-                            log::debug!("Deepgram message: {}", text);
+                            // Log but don't fail. Content-free: raw Deepgram JSON
+                            // can contain transcript text, which must never hit logs.
+                            log::debug!("Deepgram {} message ({} bytes)", msg_type, text.len());
                         }
                         _ => {}
                     }

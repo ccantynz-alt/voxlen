@@ -1,6 +1,14 @@
 use std::sync::Arc;
 use parking_lot::RwLock;
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+/// Prevents a console window from flashing (and stealing focus) every time we
+/// shell out to powershell.exe from a GUI app.
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum InjectionMode {
     /// Simulate keyboard input - types text character by character into the focused app
@@ -72,11 +80,19 @@ fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
         r#"tell application "System Events" to keystroke "{}""#,
         escaped
     );
-    Command::new("osascript")
+    let output = Command::new("osascript")
         .arg("-e")
         .arg(&script)
         .output()
         .map_err(|e| anyhow::anyhow!("Failed to simulate keyboard: {}", e))?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "Keyboard simulation failed: {}. Enable Accessibility for Voxlen in \
+             System Settings > Privacy & Security > Accessibility.",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
 
     Ok(())
 }
@@ -112,9 +128,12 @@ fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
     let sent = unsafe {
         SendInput(&inputs, std::mem::size_of::<INPUT>() as i32)
     };
-    if sent == 0 && !inputs.is_empty() {
+    if (sent as usize) != inputs.len() {
         return Err(anyhow::anyhow!(
-            "SendInput failed (UIPI block or system error) — text not injected"
+            "SendInput injected only {} of {} key events (UIPI block or system error) — \
+             text may be missing or truncated",
+            sent,
+            inputs.len()
         ));
     }
 
@@ -139,13 +158,20 @@ fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
         Ok(output) if output.status.success() => Ok(()),
         _ => {
             // Fall back to ydotool for Wayland
-            Command::new("ydotool")
+            let output = Command::new("ydotool")
                 .arg("type")
                 .arg("--key-delay")
                 .arg("12")
                 .arg(text)
                 .output()
                 .map_err(|e| anyhow::anyhow!("Failed to simulate keyboard: {}", e))?;
+            if !output.status.success() {
+                return Err(anyhow::anyhow!(
+                    "Keyboard simulation failed (xdotool and ydotool both failed): {}. \
+                     Install xdotool (X11) or ydotool (Wayland).",
+                    String::from_utf8_lossy(&output.stderr).trim()
+                ));
+            }
             Ok(())
         }
     }
@@ -153,16 +179,97 @@ fn simulate_keyboard(text: &str) -> anyhow::Result<()> {
 
 /// Copy text to clipboard and paste
 fn clipboard_paste(text: &str) -> anyhow::Result<()> {
+    // Save whatever text the user already had on the clipboard so we can put
+    // it back after pasting, instead of destroying it.
+    let saved = get_clipboard_text().unwrap_or(None);
+
     set_clipboard(text)?;
     trigger_paste()?;
-    // Clear clipboard after paste — lawyers/accountants must not have privileged
-    // content sitting in the clipboard where other apps can read it.
-    // 600ms gives the OS time to process the Ctrl+V before we wipe.
-    std::thread::spawn(|| {
+    // After the paste lands, restore the user's prior clipboard — or clear it
+    // if there was nothing to restore. Either way the dictated text does not
+    // stay on the clipboard: lawyers/accountants must not have privileged
+    // content sitting where other apps can read it.
+    // 600ms gives the OS time to process the Ctrl+V before we touch it again.
+    std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(600));
-        let _ = clear_clipboard();
+        match saved {
+            Some(prev) if !prev.is_empty() => {
+                if set_clipboard(&prev).is_err() {
+                    let _ = clear_clipboard();
+                }
+            }
+            _ => {
+                let _ = clear_clipboard();
+            }
+        }
     });
     Ok(())
+}
+
+/// Read the current clipboard text, if any. Returns Ok(None) when the
+/// clipboard is empty or holds non-text content.
+#[cfg(target_os = "macos")]
+fn get_clipboard_text() -> anyhow::Result<Option<String>> {
+    use std::process::Command;
+
+    let output = Command::new("pbpaste").output()?;
+    if !output.status.success() {
+        return Ok(None);
+    }
+    let text = String::from_utf8_lossy(&output.stdout).to_string();
+    Ok(if text.is_empty() { None } else { Some(text) })
+}
+
+#[cfg(target_os = "windows")]
+fn get_clipboard_text() -> anyhow::Result<Option<String>> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    use std::process::Command;
+
+    // Fixed script, no user data embedded. The clipboard content is *output*
+    // (base64 over stdout), never interpolated into the script, so it cannot
+    // inject commands. Base64 keeps arbitrary Unicode intact across the
+    // console's codepage.
+    let script = "Add-Type -AssemblyName System.Windows.Forms; \
+                  if ([System.Windows.Forms.Clipboard]::ContainsText()) { \
+                      [Console]::Out.Write([System.Convert]::ToBase64String(\
+                          [System.Text.Encoding]::UTF8.GetBytes(\
+                              [System.Windows.Forms.Clipboard]::GetText()))) }";
+
+    let output = Command::new("powershell.exe")
+        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()?;
+
+    if !output.status.success() {
+        return Ok(None);
+    }
+    let b64 = String::from_utf8_lossy(&output.stdout);
+    let b64 = b64.trim();
+    if b64.is_empty() {
+        return Ok(None);
+    }
+    let bytes = STANDARD.decode(b64)?;
+    let text = String::from_utf8_lossy(&bytes).to_string();
+    Ok(if text.is_empty() { None } else { Some(text) })
+}
+
+#[cfg(target_os = "linux")]
+fn get_clipboard_text() -> anyhow::Result<Option<String>> {
+    use std::process::Command;
+
+    let output = Command::new("xclip")
+        .args(["-selection", "clipboard", "-o"])
+        .output()
+        .or_else(|_| {
+            Command::new("xsel")
+                .args(["--clipboard", "--output"])
+                .output()
+        })?;
+    if !output.status.success() {
+        return Ok(None);
+    }
+    let text = String::from_utf8_lossy(&output.stdout).to_string();
+    Ok(if text.is_empty() { None } else { Some(text) })
 }
 
 #[cfg(target_os = "macos")]
@@ -203,6 +310,7 @@ fn set_clipboard(text: &str) -> anyhow::Result<()> {
 
     let output = Command::new("powershell.exe")
         .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| anyhow::anyhow!("Failed to set clipboard via PowerShell: {}", e))?;
 
@@ -252,10 +360,17 @@ fn set_clipboard(text: &str) -> anyhow::Result<()> {
 fn trigger_paste() -> anyhow::Result<()> {
     use std::process::Command;
 
-    Command::new("osascript")
+    let output = Command::new("osascript")
         .arg("-e")
         .arg(r#"tell application "System Events" to keystroke "v" using command down"#)
         .output()?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "Paste keystroke failed: {}. Enable Accessibility for Voxlen in \
+             System Settings > Privacy & Security > Accessibility.",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
     Ok(())
 }
 
@@ -341,6 +456,7 @@ fn clear_clipboard() -> anyhow::Result<()> {
             "-Command",
             "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::Clear()",
         ])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()?;
     Ok(())
 }

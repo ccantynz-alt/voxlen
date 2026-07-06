@@ -3,7 +3,20 @@ use tauri::{AppHandle, Manager};
 #[tauri::command]
 pub fn open_url(app: AppHandle, url: String) -> Result<(), String> {
     use tauri_plugin_shell::ShellExt;
-    app.shell().open(&url, None).map_err(|e| e.to_string())
+    // Only allow web links and mail links. Passing arbitrary strings to the
+    // system opener can launch local files/executables or custom URI handlers.
+    let trimmed = url.trim();
+    let lower = trimmed.to_ascii_lowercase();
+    let allowed = lower.starts_with("http://")
+        || lower.starts_with("https://")
+        || lower.starts_with("mailto:");
+    if !allowed {
+        return Err(format!(
+            "Refusing to open URL with disallowed scheme: {}",
+            trimmed.chars().take(64).collect::<String>()
+        ));
+    }
+    app.shell().open(trimmed, None).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -6,8 +6,8 @@ use crate::stt::{SttState, SttEngineType, SttSessionState, streaming, processor}
 
 /// Guards against spawning more than one recovery watchdog at a time (e.g. if
 /// push-to-talk fires start_dictation twice in quick succession). The
-/// watchdog itself exits — and clears this — as soon as dictation is no
-/// longer in the Listening state.
+/// watchdog itself exits — and clears this — as soon as dictation reaches a
+/// terminal state (Idle or Error).
 static WATCHDOG_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 const WATCHDOG_POLL: Duration = Duration::from_millis(500);
@@ -110,8 +110,16 @@ fn spawn_capture_watchdog(app: tauri::AppHandle) {
             std::thread::sleep(WATCHDOG_POLL);
 
             let Some(audio_state) = app.try_state::<AudioState>() else { break };
-            if audio_state.0.read().get_status() != DictationStatus::Listening {
-                break; // User stopped/paused dictation, or we gave up below.
+            match audio_state.0.read().get_status() {
+                // Terminal states: user stopped dictation, or we gave up below.
+                DictationStatus::Idle | DictationStatus::Error => break,
+                // Paused: keep the watchdog alive but don't restart capture —
+                // recovering here would silently resume a session the user
+                // deliberately paused.
+                DictationStatus::Paused => continue,
+                // Listening, or Processing (batch mode sets Processing during
+                // HTTP transcription): keep watching for device faults.
+                DictationStatus::Listening | DictationStatus::Processing => {}
             }
 
             if !audio_state.0.read().take_device_fault() {

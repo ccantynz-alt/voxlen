@@ -9,7 +9,9 @@ async fn voxlen_proxy_transcribe(
     // The proxy expects a raw audio body with settings carried in headers
     // (sending multipart here would forward form boundaries to Deepgram as
     // if they were audio).
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()?;
     let mut req = client
         .post("https://voxlen.ai/api/stt")
         .header("Authorization", format!("Bearer {}", voxlen_key))
@@ -97,7 +99,9 @@ pub async fn whisper_transcribe(
         form = form.text("language", config.language.clone());
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()?;
     let response = client
         .post("https://api.openai.com/v1/audio/transcriptions")
         .header("Authorization", format!("Bearer {}", api_key))
@@ -186,7 +190,7 @@ pub async fn deepgram_transcribe(
     if config.auto_detect_language {
         url.push_str("&detect_language=true");
     } else {
-        url.push_str(&format!("&language={}", config.language));
+        url.push_str(&format!("&language={}", urlencoding(&config.language)));
     }
 
     // Nova-3 uses keyterm prompting; the old `keywords` param is ignored on nova-3
@@ -198,7 +202,9 @@ pub async fn deepgram_transcribe(
         url.push_str("&diarize=true");
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()?;
     let response = client
         .post(&url)
         .header("Authorization", format!("Token {}", api_key))

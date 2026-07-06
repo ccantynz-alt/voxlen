@@ -33,7 +33,7 @@
       "tooltip": "Voxlen"
     },
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.deepgram.com https://api.openai.com https://api.anthropic.com wss://api.deepgram.com; font-src 'self' data:"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src 'self' https://api.deepgram.com https://api.openai.com https://api.anthropic.com wss://api.deepgram.com https://voxlen.ai; font-src 'self' data: https://fonts.gstatic.com"
     }
   },
   "bundle": {
