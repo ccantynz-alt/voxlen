@@ -2,6 +2,7 @@ pub mod cloud;
 pub mod gate;
 pub mod processor;
 pub mod streaming;
+pub mod whisper_local;
 
 use std::sync::Arc;
 use parking_lot::RwLock;
@@ -100,23 +101,7 @@ impl SttEngine {
 
     pub async fn transcribe(&self, audio_data: &[f32], sample_rate: u32) -> anyhow::Result<TranscriptionResult> {
         let config = self.config.read().clone();
-
-        match config.engine {
-            SttEngineType::DeepgramCloud => {
-                let wav_data = encode_wav(audio_data, sample_rate)?;
-                cloud::deepgram_transcribe(&wav_data, &config).await
-            }
-            SttEngineType::WhisperCloud => {
-                let wav_data = encode_wav(audio_data, sample_rate)?;
-                cloud::whisper_transcribe(&wav_data, &config).await
-            }
-            SttEngineType::WhisperLocal => {
-                anyhow::bail!(
-                    "Whisper Local is not yet available. Please select Deepgram or Whisper Cloud in Settings > Speech Engine. \
-                     Local on-device inference (whisper.cpp) is coming in a future update."
-                )
-            }
-        }
+        transcribe_audio(&self.app_handle, audio_data, sample_rate, config).await
     }
 }
 
@@ -143,19 +128,30 @@ fn encode_wav(samples: &[f32], sample_rate: u32) -> anyhow::Result<Vec<u8>> {
 /// Standalone transcription function that takes owned config, avoiding holding
 /// a lock guard across an await point.
 pub(crate) async fn transcribe_audio(
+    app_handle: &AppHandle,
     audio_data: &[f32],
     sample_rate: u32,
     config: SttConfig,
 ) -> anyhow::Result<TranscriptionResult> {
-    let wav_data = encode_wav(audio_data, sample_rate)?;
     match config.engine {
-        SttEngineType::DeepgramCloud => cloud::deepgram_transcribe(&wav_data, &config).await,
-        SttEngineType::WhisperCloud => cloud::whisper_transcribe(&wav_data, &config).await,
+        SttEngineType::DeepgramCloud => {
+            let wav_data = encode_wav(audio_data, sample_rate)?;
+            cloud::deepgram_transcribe(&wav_data, &config).await
+        }
+        SttEngineType::WhisperCloud => {
+            let wav_data = encode_wav(audio_data, sample_rate)?;
+            cloud::whisper_transcribe(&wav_data, &config).await
+        }
         SttEngineType::WhisperLocal => {
-            anyhow::bail!(
-                "Whisper Local is not yet available. Please select Deepgram or Whisper Cloud in Settings > Speech Engine. \
-                 Local on-device inference (whisper.cpp) is coming in a future update."
-            )
+            // Fully on-device: audio never leaves the machine.
+            let samples_16k;
+            let samples: &[f32] = if sample_rate == 16_000 {
+                audio_data
+            } else {
+                samples_16k = processor::resample(audio_data, sample_rate, 16_000);
+                &samples_16k
+            };
+            whisper_local::transcribe(app_handle, samples, &config).await
         }
     }
 }

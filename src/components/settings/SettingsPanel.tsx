@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/Input";
 import { useSettingsStore } from "@/stores/settings";
 import { useAudioStore } from "@/stores/audio";
 import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
+import { toast } from "@/components/ui/Toast";
 
 const tabs = [
   { id: "voxlen-api", label: "Account", icon: Globe },
@@ -350,6 +351,172 @@ function AudioSettings() {
   );
 }
 
+interface WhisperModel {
+  id: string;
+  label: string;
+  description: string;
+  size_mb: number;
+  multilingual: boolean;
+  downloaded: boolean;
+}
+
+function WhisperModelManager() {
+  const whisperLocalModel = useSettingsStore((s) => s.whisperLocalModel);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const [models, setModels] = useState<WhisperModel[]>([]);
+  const [progress, setProgress] = useState<Record<string, { received: number; total: number }>>({});
+  const [downloading, setDownloading] = useState<Record<string, boolean>>({});
+
+  const refresh = useCallback(async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      setModels(await invoke<WhisperModel[]>("list_whisper_models"));
+    } catch {
+      // Non-Tauri (browser dev) — leave the list empty.
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        const un = await listen<{
+          id: string;
+          received: number;
+          total: number;
+          done: boolean;
+          error: string | null;
+        }>("whisper-model-progress", (e) => {
+          const p = e.payload;
+          if (p.done || p.error) {
+            setProgress((prev) => {
+              const next = { ...prev };
+              delete next[p.id];
+              return next;
+            });
+            setDownloading((prev) => ({ ...prev, [p.id]: false }));
+            if (p.error) {
+              toast(`Model download failed: ${p.error}`, "error", 6000);
+            }
+            refresh();
+          } else {
+            setProgress((prev) => ({ ...prev, [p.id]: { received: p.received, total: p.total } }));
+          }
+        });
+        if (cancelled) un();
+        else unlisten = un;
+      } catch {
+        // Non-Tauri.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [refresh]);
+
+  const handleDownload = async (id: string) => {
+    setDownloading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("download_whisper_model", { id });
+    } catch (e) {
+      toast(typeof e === "string" ? e : "Download failed — check your connection.", "error", 6000);
+      setDownloading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("delete_whisper_model", { id });
+      await refresh();
+    } catch {
+      // Ignore.
+    }
+  };
+
+  if (models.length === 0) return null;
+
+  return (
+    <SettingRow>
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-medium text-surface-900">Offline Models (Whisper Local)</p>
+          <p className="text-xs text-surface-600 mt-0.5">
+            Downloaded models run fully on-device — this powers Privileged mode. Larger models are
+            more accurate but slower.
+          </p>
+        </div>
+        <div className="rounded-lg border border-surface-300/50 divide-y divide-surface-300/40">
+          {models.map((m) => {
+            const p = progress[m.id];
+            const pct = p && p.total > 0 ? Math.min(100, Math.round((p.received / p.total) * 100)) : 0;
+            const isActive = m.downloaded && whisperLocalModel === m.id;
+            return (
+              <div key={m.id} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-surface-900">{m.label}</span>
+                    <span className="text-[11px] text-surface-500 font-mono">
+                      {m.size_mb >= 1000 ? `${(m.size_mb / 1000).toFixed(1)} GB` : `${m.size_mb} MB`}
+                    </span>
+                    {isActive && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-surface-600 truncate">{m.description}</p>
+                  {p && (
+                    <div className="mt-1.5 h-1 rounded-full bg-surface-200 overflow-hidden">
+                      <div
+                        className="h-full bg-brass-400 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+                {m.downloaded ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!isActive && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateSetting("whisperLocalModel", m.id)}
+                      >
+                        Use
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!!downloading[m.id]}
+                    onClick={() => handleDownload(m.id)}
+                  >
+                    {downloading[m.id] ? (p ? `${pct}%` : "Starting…") : "Download"}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SettingRow>
+  );
+}
+
 function SttSettings() {
   const settings = useSettingsStore();
 
@@ -357,7 +524,7 @@ function SttSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Speech-to-Text Engine"
-        description="Choose your transcription engine. Offline mode (Whisper Local) is coming soon."
+        description="Choose your transcription engine — including fully offline on-device dictation."
       />
 
       <SettingRow>
@@ -372,6 +539,8 @@ function SttSettings() {
           }))}
         />
       </SettingRow>
+
+      <WhisperModelManager />
 
       <SettingRow>
         <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
@@ -1238,10 +1407,27 @@ function VoxlenApiSettings() {
           <SettingRow>
             <Switch
               label="Privileged Mode"
-              description="Block all cloud STT — local processing only. Coming soon: requires Whisper Local (offline mode) which is not yet available."
-              checked={false}
-              onChange={() => {}}
-              disabled
+              description="Block all cloud processing — dictation runs fully on-device via Whisper Local. Requires a downloaded local model (Speech Engine tab)."
+              checked={settings.privilegedMode}
+              onChange={async (v) => {
+                if (v) {
+                  try {
+                    const { invoke } = await import("@tauri-apps/api/core");
+                    const has = await invoke<boolean>("has_whisper_model");
+                    if (!has) {
+                      toast(
+                        "Download a local Whisper model first — Settings › Speech Engine › Offline Models.",
+                        "error",
+                        6000
+                      );
+                      return;
+                    }
+                  } catch {
+                    // Non-Tauri dev — allow the toggle.
+                  }
+                }
+                settings.updateSetting("privilegedMode", v);
+              }}
             />
           </SettingRow>
 
@@ -1341,7 +1527,7 @@ function PrivacySettings() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Offline mode (Whisper Local) coming soon — no audio will leave your device.
+            Offline mode (Whisper Local) — with a downloaded model, no audio ever leaves your device.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>

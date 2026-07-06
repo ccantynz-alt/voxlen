@@ -54,7 +54,7 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 
 ## Known Remaining Gaps (Fix These When You Can)
 
-- [ ] Whisper Local offline mode (integrate whisper-rs)
+- [x] Whisper Local offline mode (whisper-rs + on-demand model manager) ✓ — build needs LLVM 18 + CMake (LIBCLANG_PATH/CMAKE user env vars are set on this machine)
 - [ ] API key secure storage (use OS keychain via tauri-plugin-keyring)
 - [ ] Android keyboard extension
 - [ ] Stripe payment links (replace REPLACE_* placeholders in landing/src/lib/stripe.ts with real Stripe dashboard URLs)

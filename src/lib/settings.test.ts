@@ -8,6 +8,7 @@ const DEFAULTS: AppSettings = {
   noiseSuppression: true,
   sttEngine: "deepgram",
   sttApiKey: "",
+  whisperLocalModel: "base.en",
   sttLanguage: "en-US",
   autoDetectLanguage: false,
   customVocabulary: [],

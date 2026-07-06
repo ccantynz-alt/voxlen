@@ -20,6 +20,9 @@ pub struct AppSettings {
     // STT
     pub stt_engine: String,
     pub stt_api_key: Option<String>,
+    /// Local Whisper model id (e.g. "base.en") used by the offline engine.
+    #[serde(default = "default_whisper_model")]
+    pub whisper_local_model: String,
     pub stt_language: String,
     pub auto_detect_language: bool,
     pub custom_vocabulary: Vec<String>,
@@ -109,6 +112,7 @@ impl Default for AppSettings {
 
             stt_engine: "deepgram".to_string(),
             stt_api_key: None,
+            whisper_local_model: "base.en".to_string(),
             stt_language: "en".to_string(),
             auto_detect_language: true,
             custom_vocabulary: Vec::new(),
@@ -162,6 +166,7 @@ impl Default for AppSettings {
 }
 
 fn default_true() -> bool { true }
+fn default_whisper_model() -> String { "base.en".to_string() }
 fn default_shortcut_correct_grammar() -> String { "CommandOrControl+Shift+G".to_string() }
 
 fn default_translation_language() -> String {
@@ -274,7 +279,7 @@ fn apply_settings_to_engines(
     let model = match stt_engine_type {
         SttEngineType::DeepgramCloud => "nova-3".to_string(),
         SttEngineType::WhisperCloud => "whisper-1".to_string(),
-        SttEngineType::WhisperLocal => "base".to_string(),
+        SttEngineType::WhisperLocal => s.whisper_local_model.clone(),
     };
 
     let voxlen_key = s.voxlen_api_key.clone().filter(|k| !k.is_empty());

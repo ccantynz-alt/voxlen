@@ -10,6 +10,8 @@ export interface AppSettings {
   // STT
   sttEngine: string;
   sttApiKey: string;
+  /** Local Whisper model id (e.g. "base.en") used by the offline engine. */
+  whisperLocalModel: string;
   sttLanguage: string;
   autoDetectLanguage: boolean;
   customVocabulary: string[];
@@ -96,6 +98,7 @@ const defaultSettings: AppSettings = {
 
   sttEngine: "deepgram",
   sttApiKey: "",
+  whisperLocalModel: "base.en",
   sttLanguage: "en",
   autoDetectLanguage: true,
   customVocabulary: [],
@@ -156,6 +159,7 @@ function schedulePersist() {
       inputGain: state.inputGain,
       noiseSuppression: state.noiseSuppression,
       sttEngine: state.sttEngine,
+      whisperLocalModel: state.whisperLocalModel,
       sttLanguage: state.sttLanguage,
       autoDetectLanguage: state.autoDetectLanguage,
       customVocabulary: state.customVocabulary,

@@ -803,22 +803,33 @@ export function DictationPanel() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!privilegedMode) {
-                // Privileged mode forces the local Whisper engine, which is
-                // not implemented yet — enabling it fails closed and every
-                // dictation start errors. Block with an explanation instead
-                // of silently bricking the core feature.
-                toast(
-                  "Privileged (offline) mode requires the local Whisper engine, which is coming soon. Until then, dictation uses your configured cloud engine.",
-                  "info",
-                  6000
-                );
+                // Privileged mode forces the local Whisper engine — only
+                // allow it when a model is actually downloaded, otherwise
+                // every dictation start would fail.
+                try {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  const has = await invoke<boolean>("has_whisper_model");
+                  if (!has) {
+                    toast(
+                      "Privileged mode needs a local Whisper model — download one in Settings › Speech Engine › Offline Models.",
+                      "info",
+                      6000
+                    );
+                    return;
+                  }
+                } catch {
+                  toast("Privileged mode requires the desktop app.", "info", 4000);
+                  return;
+                }
+                updateSetting("privilegedMode", true);
+                toast("Privileged mode on — dictation now runs fully on-device.", "success", 4000);
                 return;
               }
               updateSetting("privilegedMode", false);
             }}
-            title={privilegedMode ? "Privileged mode ON — click to disable" : "Privileged offline mode (coming soon — requires local Whisper)"}
+            title={privilegedMode ? "Privileged mode ON — click to disable" : "Privileged offline mode (on-device Whisper, ABA 1.6 safe)"}
             className={cn(
               "flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
               privilegedMode

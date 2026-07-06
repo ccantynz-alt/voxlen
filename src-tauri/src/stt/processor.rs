@@ -154,7 +154,7 @@ impl AudioProcessor {
                                 samples
                             };
 
-                            match super::transcribe_audio(&resampled, 16000, config).await {
+                            match super::transcribe_audio(&app_handle, &resampled, 16000, config).await {
                                 Ok(result) => {
                                     if !result.text.trim().is_empty() {
                                         // Content-free log: transcripts must never
@@ -204,7 +204,7 @@ impl AudioProcessor {
                                 };
 
                                 let config = stt_engine.read().get_config();
-                                match super::transcribe_audio(&resampled, 16000, config).await {
+                                match super::transcribe_audio(&app_handle, &resampled, 16000, config).await {
                                     Ok(result) => {
                                         if !result.text.trim().is_empty() {
                                             let _ = app_handle.emit("transcription", &result);
@@ -254,7 +254,7 @@ fn to_mono(samples: &[f32], channels: u16) -> Vec<f32> {
 }
 
 /// Simple linear resampling (for production, use rubato crate)
-fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
+pub(crate) fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     if from_rate == to_rate {
         return samples.to_vec();
     }

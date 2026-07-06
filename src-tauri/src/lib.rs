@@ -194,6 +194,11 @@ pub fn run() {
             commands::dictation::resume_dictation,
             commands::dictation::get_dictation_status,
             commands::dictation::get_always_ready_state,
+            // Whisper Local model manager
+            commands::whisper::list_whisper_models,
+            commands::whisper::download_whisper_model,
+            commands::whisper::delete_whisper_model,
+            commands::whisper::has_whisper_model,
             // STT commands
             commands::stt::get_stt_engines,
             commands::stt::set_stt_engine,

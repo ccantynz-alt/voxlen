@@ -14,6 +14,7 @@ export interface BackendAppSettings {
   // STT
   stt_engine: string;
   stt_api_key: string;
+  whisper_local_model: string;
   stt_language: string;
   auto_detect_language: boolean;
   custom_vocabulary: string[];
@@ -85,6 +86,7 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
 
     stt_engine: s.sttEngine,
     stt_api_key: s.sttApiKey,
+    whisper_local_model: s.whisperLocalModel,
     stt_language: s.sttLanguage,
     auto_detect_language: s.autoDetectLanguage,
     custom_vocabulary: s.customVocabulary,
@@ -151,6 +153,7 @@ export function fromBackendSettings(
 
   if (s.stt_engine !== undefined) out.sttEngine = s.stt_engine;
   if (s.stt_api_key !== undefined) out.sttApiKey = s.stt_api_key;
+  if (s.whisper_local_model !== undefined) out.whisperLocalModel = s.whisper_local_model;
   if (s.stt_language !== undefined) out.sttLanguage = s.stt_language;
   if (s.auto_detect_language !== undefined) out.autoDetectLanguage = s.auto_detect_language;
   if (s.custom_vocabulary !== undefined) out.customVocabulary = s.custom_vocabulary;
