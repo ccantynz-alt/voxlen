@@ -125,19 +125,32 @@ describe("recordCorrectionFeedback", () => {
 });
 
 describe("addVocabulary", () => {
-  it("adds a new word to vocabulary", () => {
-    useFlywheelStore.getState().addVocabulary("indemnification");
+  it("adds a manual word immediately", () => {
+    useFlywheelStore.getState().addVocabulary("indemnification", "manual");
     const { vocabulary } = useFlywheelStore.getState();
     expect(vocabulary).toHaveLength(1);
     expect(vocabulary[0].word).toBe("indemnification");
     expect(vocabulary[0].frequency).toBe(1);
+    expect(vocabulary[0].source).toBe("manual");
+  });
+
+  it("withholds auto-detected words until seen 3 times (privacy threshold)", () => {
+    const store = useFlywheelStore.getState();
+    store.addVocabulary("estoppel");
+    store.addVocabulary("estoppel");
+    expect(useFlywheelStore.getState().vocabulary).toHaveLength(0);
+    store.addVocabulary("estoppel");
+    const { vocabulary } = useFlywheelStore.getState();
+    expect(vocabulary).toHaveLength(1);
+    expect(vocabulary[0].word).toBe("estoppel");
+    expect(vocabulary[0].frequency).toBe(3);
     expect(vocabulary[0].source).toBe("auto-detected");
   });
 
   it("increments frequency for existing word", () => {
     const store = useFlywheelStore.getState();
-    store.addVocabulary("indemnification");
-    store.addVocabulary("indemnification");
+    store.addVocabulary("indemnification", "manual");
+    store.addVocabulary("indemnification", "manual");
     const { vocabulary } = useFlywheelStore.getState();
     expect(vocabulary).toHaveLength(1);
     expect(vocabulary[0].frequency).toBe(2);

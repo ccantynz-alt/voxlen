@@ -360,7 +360,6 @@ export function DictationPanel() {
 
   const sttApiKey = useSettingsStore((s) => s.sttApiKey);
   const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
-  const sttEngine = useSettingsStore((s) => s.sttEngine);
   const hasApiKey = !!(sttApiKey || voxlenApiKey);
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
   const privilegedMode = useSettingsStore((s) => s.privilegedMode);

@@ -10,7 +10,6 @@ import {
   Zap,
   Volume2,
   AlertCircle,
-  ExternalLink,
 } from "lucide-react";
 
 function ShortcutTest({ shortcut, onTested }: { shortcut: string; onTested: () => void }) {

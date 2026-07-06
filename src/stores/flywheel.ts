@@ -253,6 +253,7 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
   },
 
   clearAll: () => {
+    for (const key of Object.keys(_pendingAutoVocab)) delete _pendingAutoVocab[key];
     set({ vocabulary: [], corrections: [], metrics: { ...defaultMetrics }, timeEntries: [] });
     schedulePersist();
   },
