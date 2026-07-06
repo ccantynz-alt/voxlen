@@ -13,9 +13,13 @@ export type VoxlenContext =
   | "general";
 
 export interface VoxlenConfig {
-  /** Voxlen platform API key — routes through voxlen.ai/api (preferred) */
+  /**
+   * Voxlen platform API key — routes through the Voxlen API (preferred; keeps
+   * provider keys server-side). Requires the api.voxlen.com backend, which is
+   * currently in development.
+   */
   voxlenApiKey?: string;
-  /** Voxlen API base URL override (default: https://voxlen.ai/api) */
+  /** Voxlen API base URL override (default: https://www.voxlen.ai/api) */
   voxlenApiBase?: string;
   /** Tenant ID for usage reporting (e.g. your firm or organisation ID) */
   tenantId?: string;
@@ -24,13 +28,24 @@ export interface VoxlenConfig {
   /** Vocabulary hints: case names, client names, unusual terms */
   vocabularyHints?: string[];
 
-  /** Anthropic API key for direct grammar correction (Claude Sonnet) */
+  /**
+   * Anthropic API key for direct grammar correction (Claude Sonnet).
+   * TRUSTED ENVIRONMENTS ONLY: in a browser this key is readable by every
+   * visitor. Prefer voxlenApiKey for public sites.
+   */
   grammarApiKey?: string;
-  /** OpenAI API key — used if grammarProvider is 'openai' */
+  /**
+   * OpenAI API key — used if grammarProvider is 'openai'.
+   * TRUSTED ENVIRONMENTS ONLY: exposed to every visitor when used in a browser.
+   */
   openaiApiKey?: string;
   /** Which AI provider to use for grammar: 'claude' (default) or 'openai' */
   grammarProvider?: "claude" | "openai";
-  /** Deepgram API key — direct streaming fallback when no voxlenApiKey */
+  /**
+   * Deepgram API key — direct streaming fallback when no voxlenApiKey.
+   * TRUSTED ENVIRONMENTS ONLY: sent as a WebSocket subprotocol from the
+   * browser, so it is visible to anyone inspecting the page.
+   */
   deepgramApiKey?: string;
   /** BCP-47 language code (default: 'en-US') */
   language?: string;

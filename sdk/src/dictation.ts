@@ -1,4 +1,5 @@
 import type { DictationEvent, VoxlenConfig } from "./types";
+import { warnBrowserKeyUse } from "./browser-key-warning";
 
 /**
  * Voice dictation engine.
@@ -96,6 +97,9 @@ export class VoxlenDictation {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
+      // We never actually started listening — reset state before surfacing the
+      // error, otherwise `listening` stays true and stop()/start() misbehave.
+      this.isListening = false;
       this.config.onError?.(new Error("Web Speech API not supported in this browser"));
       return;
     }
@@ -123,9 +127,19 @@ export class VoxlenDictation {
     };
 
     rec.onerror = (event: SpeechRecognitionErrorEvent) => {
-      if (event.error !== "no-speech") {
-        this.config.onError?.(new Error(`Speech recognition error: ${event.error}`));
+      if (event.error === "no-speech") return; // transient — onend will restart
+
+      // Fatal errors mean recognition cannot continue; clear listening state so
+      // onend doesn't restart in a permission-denied loop.
+      const fatal =
+        event.error === "not-allowed" ||
+        event.error === "service-not-allowed" ||
+        event.error === "audio-capture";
+      if (fatal) {
+        this.isListening = false;
+        this.recognition = null;
       }
+      this.config.onError?.(new Error(`Speech recognition error: ${event.error}`));
     };
 
     rec.onend = () => {
@@ -142,6 +156,10 @@ export class VoxlenDictation {
   private async startDeepgram(): Promise<void> {
     const apiKey = this.config.deepgramApiKey!;
     const lang = this.config.language || "en-US";
+
+    // The key is sent as a WebSocket subprotocol — visible to anyone inspecting
+    // the page. Trusted environments only; warn once so integrators know.
+    warnBrowserKeyUse("deepgram");
 
     // Get microphone stream
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -206,8 +224,9 @@ export class VoxlenDictation {
     };
 
     this.deepgramWs.onerror = () => {
-      // Clean up media stream if WS fails before stop() is called
-      this.mediaStream?.getTracks().forEach((t) => t.stop());
+      // Connection failed — tear everything down (media stream, audio context,
+      // processor) and clear isListening so SDK state matches reality.
+      this.stop();
       this.config.onError?.(new Error("Deepgram WebSocket connection failed"));
     };
   }
@@ -226,34 +245,62 @@ export class VoxlenDictation {
       audio: { echoCancellation: true, noiseSuppression: true },
     });
 
-    // Buffer audio chunks and stream to Voxlen API
+    // INTERIM DESIGN — replace when the Voxlen WebSocket streaming endpoint ships.
+    // The current REST /transcribe/stream endpoint only accepts a complete blob,
+    // so "streaming" here means periodically re-uploading the full accumulated
+    // audio (O(n^2) total bytes). To bound the damage until a true WS stream
+    // exists we (a) upload every 3s instead of 500ms and (b) cap the session at
+    // MAX_INTERIM_UPLOADS re-uploads (~60s of audio, matching the sync
+    // transcription limit). Longer recordings should use transcribeFile() /
+    // transcribeAsync() instead.
+    const INTERIM_UPLOAD_MS = 3000;
+    const MAX_INTERIM_UPLOADS = 20; // 20 * 3s = ~60s session cap
+
     const audioChunks: Blob[] = [];
+    let uploadCount = 0;
     const recorder = new MediaRecorder(this.mediaStream, { mimeType: "audio/webm" });
 
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        audioChunks.push(e.data);
-        // Stream accumulated audio
-        const blob = new Blob(audioChunks, { type: "audio/webm" });
-        this.stopVoxlenStream?.();
-        this.stopVoxlenStream = client.streamTranscribe(
-          blob,
-          (chunk) => {
-            if (chunk.text) {
-              this.config.onTranscript?.({
-                text: chunk.text,
-                isFinal: chunk.is_final,
-                confidence: 0.95,
-                segmentIndex: chunk.segment_index,
-              });
-            }
-          },
-          (err) => this.config.onError?.(err)
+      // Ignore the final flush after stop() — nothing should be uploaded then.
+      if (!this.isListening || e.data.size === 0) return;
+
+      audioChunks.push(e.data);
+      uploadCount++;
+
+      if (uploadCount > MAX_INTERIM_UPLOADS) {
+        // Session cap reached: stop capture instead of re-uploading unbounded
+        // audio quadratically. stop() sets isListening=false, so the recorder's
+        // final dataavailable event is ignored above.
+        this.stop();
+        this.config.onError?.(
+          new Error(
+            `Voxlen live-streaming session limit reached (~${(MAX_INTERIM_UPLOADS * INTERIM_UPLOAD_MS) / 1000}s). ` +
+              "Restart dictation, or use transcribeFile()/transcribeAsync() for longer recordings."
+          )
         );
+        return;
       }
+
+      // Re-upload the full accumulated audio (see INTERIM DESIGN note above).
+      const blob = new Blob(audioChunks, { type: "audio/webm" });
+      this.stopVoxlenStream?.();
+      this.stopVoxlenStream = client.streamTranscribe(
+        blob,
+        (chunk) => {
+          if (chunk.text) {
+            this.config.onTranscript?.({
+              text: chunk.text,
+              isFinal: chunk.is_final,
+              confidence: 0.95,
+              segmentIndex: chunk.segment_index,
+            });
+          }
+        },
+        (err) => this.config.onError?.(err)
+      );
     };
 
-    recorder.start(500); // 500ms chunks
+    recorder.start(INTERIM_UPLOAD_MS);
     (this as any)._recorder = recorder;
   }
 }

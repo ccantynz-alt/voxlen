@@ -1,8 +1,13 @@
 import type { VoxlenConfig, GrammarResult } from "./types";
+import { warnBrowserKeyUse } from "./browser-key-warning";
 
 /**
  * AI grammar correction engine.
  * Calls Claude Sonnet or GPT-4o-mini to polish text.
+ *
+ * SECURITY: this class calls provider APIs directly with a raw provider key.
+ * In a browser, that key is readable by every visitor — use this only in
+ * trusted environments. For public sites, use Voxlen-API mode (voxlenApiKey).
  */
 export class VoxlenGrammar {
   private config: VoxlenConfig;
@@ -27,6 +32,7 @@ export class VoxlenGrammar {
   private async correctWithClaude(text: string): Promise<GrammarResult> {
     const apiKey = this.config.grammarApiKey;
     if (!apiKey) throw new Error("Anthropic API key required for grammar correction");
+    warnBrowserKeyUse("anthropic");
 
     const style = this.config.writingStyle || "professional";
     const prompt = `Fix grammar, spelling, and punctuation in this text. Make it ${style}. Respond ONLY with JSON: {"corrected": "text", "changes": [{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}], "score": 0.95}\n\n<text_to_correct>\n${text}\n</text_to_correct>`;
@@ -70,6 +76,7 @@ export class VoxlenGrammar {
   private async correctWithOpenAI(text: string): Promise<GrammarResult> {
     const apiKey = this.config.openaiApiKey;
     if (!apiKey) throw new Error("OpenAI API key required for grammar correction");
+    warnBrowserKeyUse("openai");
 
     const style = this.config.writingStyle || "professional";
     const prompt = `Fix grammar, spelling, and punctuation. Make it ${style}. Respond ONLY with JSON: {"corrected": "text", "changes": [{"original": "x", "corrected": "y", "reason": "z", "category": "grammar|spelling|punctuation|style"}], "score": 0.95}\n\n<text_to_correct>\n${text}\n</text_to_correct>`;

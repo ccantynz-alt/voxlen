@@ -29,9 +29,16 @@ export class VoxlenApiClient {
     this.tenantId = config.tenantId;
   }
 
+  // The backend (landing/api/_auth.ts) authenticates via `Authorization: Bearer <key>`
+  // and its CORS policy only allows the Authorization + Content-Type headers, so a
+  // custom header like X-Voxlen-Key would fail every cross-origin preflight.
+  private authHeader(): Record<string, string> {
+    return { Authorization: `Bearer ${this.apiKey}` };
+  }
+
   private headers(): HeadersInit {
     return {
-      "X-Voxlen-Key": this.apiKey,
+      ...this.authHeader(),
       "Content-Type": "application/json",
     };
   }
@@ -59,7 +66,7 @@ export class VoxlenApiClient {
 
     const res = await fetch(`${this.base}/transcribe`, {
       method: "POST",
-      headers: { "X-Voxlen-Key": this.apiKey },
+      headers: this.authHeader(),
       body: form,
     });
 
@@ -93,7 +100,7 @@ export class VoxlenApiClient {
 
     const res = await fetch(`${this.base}/transcribe/async`, {
       method: "POST",
-      headers: { "X-Voxlen-Key": this.apiKey },
+      headers: this.authHeader(),
       body: form,
     });
     if (!res.ok) throw new Error(`Async transcription failed: ${res.status}`);
@@ -138,7 +145,7 @@ export class VoxlenApiClient {
       try {
         const res = await fetch(`${this.base}/transcribe/stream`, {
           method: "POST",
-          headers: { "X-Voxlen-Key": this.apiKey, "Content-Type": "application/octet-stream" },
+          headers: { ...this.authHeader(), "Content-Type": "application/octet-stream" },
           body: audioBlob,
           signal: abort.signal,
         });

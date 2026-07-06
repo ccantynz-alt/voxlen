@@ -10,8 +10,10 @@ import type { VoxlenConfig, DictationEvent } from "./types";
  *
  * @example
  * ```ts
+ * // Recommended: Voxlen platform key — provider keys stay on the server.
+ * // (Requires the api.voxlen.com backend, currently in development.)
  * const voxlen = new VoxlenSDK({
- *   grammarApiKey: 'sk-ant-...',
+ *   voxlenApiKey: 'vx_...',
  *   writingStyle: 'professional',
  * });
  *
@@ -21,7 +23,14 @@ import type { VoxlenConfig, DictationEvent } from "./types";
  * // Or use programmatically
  * voxlen.startDictation();
  * voxlen.on('transcript', (e) => console.log(e.text));
+ *
+ * // Low-level API access (async — the client module is loaded on demand)
+ * const api = await voxlen.getApi();
  * ```
+ *
+ * Trusted-environment only: direct provider keys (grammarApiKey, openaiApiKey,
+ * deepgramApiKey) are supported for internal tools/prototypes, but any key
+ * shipped to a browser is readable by every visitor. See README, Security.
  */
 export class VoxlenSDK {
   private config: VoxlenConfig;
@@ -30,7 +39,8 @@ export class VoxlenSDK {
   private targetElement: HTMLElement | null = null;
   private micButton: HTMLButtonElement | null = null;
   private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
-  private _apiClient: any = null;
+  private _apiClient: import("./api-client").VoxlenApiClient | null = null;
+  private _apiClientPromise: Promise<import("./api-client").VoxlenApiClient> | null = null;
 
   constructor(config: VoxlenConfig = {}) {
     this.config = {
@@ -115,33 +125,45 @@ export class VoxlenSDK {
     this.listeners.set(event, list.filter((cb) => cb !== callback));
   }
 
-  /** Access the Voxlen API client directly (requires voxlenApiKey) */
-  get api(): import("./api-client").VoxlenApiClient | null {
+  /**
+   * Get the low-level Voxlen API client (requires voxlenApiKey).
+   * The client module is dynamically imported on first call and cached.
+   * Resolves to null when no voxlenApiKey is configured.
+   */
+  async getApi(): Promise<import("./api-client").VoxlenApiClient | null> {
     if (!this.config.voxlenApiKey) return null;
-    if (!this._apiClient) {
-      import("./api-client").then(({ VoxlenApiClient }) => {
+    if (this._apiClient) return this._apiClient;
+    if (!this._apiClientPromise) {
+      this._apiClientPromise = import("./api-client").then(({ VoxlenApiClient }) => {
         this._apiClient = new VoxlenApiClient({
           voxlenApiKey: this.config.voxlenApiKey!,
           voxlenApiBase: this.config.voxlenApiBase,
           tenantId: this.config.tenantId,
         });
+        return this._apiClient;
       });
     }
-    return this._apiClient ?? null;
+    return this._apiClientPromise;
+  }
+
+  /**
+   * @deprecated Use `await sdk.getApi()` instead. The client module is loaded
+   * asynchronously, so this getter returns null until that import resolves —
+   * the first access always misses. Kept for back-compat only.
+   */
+  get api(): import("./api-client").VoxlenApiClient | null {
+    if (!this.config.voxlenApiKey) return null;
+    if (!this._apiClient) void this.getApi(); // kick off loading for later accesses
+    return this._apiClient;
   }
 
   /** Transcribe a recorded audio file via Voxlen API */
   async transcribeFile(audio: Blob): Promise<import("./types").TranscribeResponse | null> {
-    if (!this.config.voxlenApiKey) {
+    const client = await this.getApi();
+    if (!client) {
       this.config.onError?.(new Error("voxlenApiKey required for file transcription"));
       return null;
     }
-    const { VoxlenApiClient } = await import("./api-client");
-    const client = new VoxlenApiClient({
-      voxlenApiKey: this.config.voxlenApiKey,
-      voxlenApiBase: this.config.voxlenApiBase,
-      tenantId: this.config.tenantId,
-    });
     return client.transcribe(audio, {
       context: this.config.context,
       language: this.config.language?.split("-")[0],
