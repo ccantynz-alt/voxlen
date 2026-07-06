@@ -391,6 +391,12 @@ async fn run_session_once(
     let stop_sender = stop_flag.clone();
     let audio_receiver_clone = audio_receiver.clone();
     let sender_handle = tauri::async_runtime::spawn(async move {
+        // Deepgram closes the socket after ~10s without audio (NET-0001).
+        // While paused (or during long silences with the mic gated) no chunks
+        // arrive, so send a KeepAlive text frame if nothing has been sent for
+        // a while to hold the session open.
+        const KEEPALIVE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(7);
+        let mut last_sent = std::time::Instant::now();
         loop {
             if stop_sender.load(Ordering::Relaxed) {
                 // Send close frame
@@ -434,8 +440,22 @@ async fn run_session_once(
                         log::error!("Failed to send audio: {}", e);
                         break;
                     }
+                    last_sent = std::time::Instant::now();
                 }
-                Err(crossbeam_channel::RecvTimeoutError::Timeout) => continue,
+                Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
+                    if last_sent.elapsed() >= KEEPALIVE_INTERVAL {
+                        if let Err(e) = ws_sender.send(
+                            tokio_tungstenite::tungstenite::Message::Text(
+                                serde_json::json!({"type": "KeepAlive"}).to_string().into()
+                            )
+                        ).await {
+                            log::error!("Failed to send KeepAlive: {}", e);
+                            break;
+                        }
+                        last_sent = std::time::Instant::now();
+                    }
+                    continue;
+                }
                 Err(crossbeam_channel::RecvTimeoutError::Disconnected) => break,
             }
         }

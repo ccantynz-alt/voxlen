@@ -182,6 +182,12 @@ pub fn pause_dictation(state: State<'_, AudioState>) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn resume_dictation(state: State<'_, AudioState>) -> Result<(), String> {
+    let engine = state.0.read();
+    engine.resume_capture().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn get_dictation_status(state: State<'_, AudioState>) -> Result<DictationStatus, String> {
     let engine = state.0.read();
     Ok(engine.get_status())

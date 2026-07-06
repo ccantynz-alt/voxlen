@@ -135,6 +135,7 @@ pub fn run() {
             commands::dictation::start_dictation,
             commands::dictation::stop_dictation,
             commands::dictation::pause_dictation,
+            commands::dictation::resume_dictation,
             commands::dictation::get_dictation_status,
             // STT commands
             commands::stt::get_stt_engines,

@@ -246,7 +246,13 @@ export function DictationPanel() {
     } else if (status === "paused") {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
-        await invoke("start_dictation");
+        try {
+          // Capture is still running while paused — just lift the gate.
+          await invoke("resume_dictation");
+        } catch {
+          // Backend wasn't actually paused (e.g. capture died) — full restart.
+          await invoke("start_dictation");
+        }
         setStatus("listening");
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Failed to resume";

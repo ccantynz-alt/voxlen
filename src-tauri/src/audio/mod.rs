@@ -50,6 +50,10 @@ pub struct AudioEngine {
     /// device disappears mid-capture. The dictation watchdog polls and
     /// clears this to trigger automatic recovery.
     pub device_fault: Arc<AtomicBool>,
+    /// While true the capture callback discards all audio — nothing is
+    /// buffered or forwarded to STT. Shared with the capture thread so
+    /// pause takes effect immediately without tearing the stream down.
+    paused: Arc<AtomicBool>,
     capture_handle: Arc<RwLock<Option<capture::CaptureHandle>>>,
 }
 
@@ -62,6 +66,7 @@ impl AudioEngine {
             status: Arc::new(RwLock::new(DictationStatus::Idle)),
             input_level: Arc::new(RwLock::new(0.0)),
             device_fault: Arc::new(AtomicBool::new(false)),
+            paused: Arc::new(AtomicBool::new(false)),
             capture_handle: Arc::new(RwLock::new(None)),
         }
     }
@@ -128,9 +133,10 @@ impl AudioEngine {
         let input_level = self.input_level.clone();
         let app_handle = self.app_handle.clone();
         self.device_fault.store(false, Ordering::Relaxed);
+        self.paused.store(false, Ordering::Relaxed);
 
         let (handle, resolved_id) = capture::start_capture_with_options(
-            device_id, sender, input_level, app_handle, input_gain, noise_suppression, self.device_fault.clone()
+            device_id, sender, input_level, app_handle, input_gain, noise_suppression, self.device_fault.clone(), self.paused.clone()
         )?;
         *self.active_device_id.write() = resolved_id;
         *self.capture_handle.write() = Some(handle);
@@ -148,14 +154,30 @@ impl AudioEngine {
         *self.input_level.write() = 0.0;
         *self.active_device_id.write() = None;
         self.device_fault.store(false, Ordering::Relaxed);
+        self.paused.store(false, Ordering::Relaxed);
 
         log::info!("Audio capture stopped");
         Ok(())
     }
 
     pub fn pause_capture(&self) -> anyhow::Result<()> {
+        // The paused flag gates the capture callback itself, so no audio is
+        // buffered or forwarded (to Deepgram or anywhere else) while paused —
+        // not just a UI status.
+        self.paused.store(true, Ordering::Relaxed);
         *self.status.write() = DictationStatus::Paused;
         log::info!("Audio capture paused");
+        Ok(())
+    }
+
+    pub fn resume_capture(&self) -> anyhow::Result<()> {
+        let mut status = self.status.write();
+        if *status != DictationStatus::Paused {
+            anyhow::bail!("Cannot resume: dictation is not paused");
+        }
+        self.paused.store(false, Ordering::Relaxed);
+        *status = DictationStatus::Listening;
+        log::info!("Audio capture resumed");
         Ok(())
     }
 
