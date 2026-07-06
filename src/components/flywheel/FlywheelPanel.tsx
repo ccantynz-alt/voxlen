@@ -56,34 +56,10 @@ export function FlywheelPanel() {
       : sorted;
   }, [corrections, query]);
 
-  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "ok" | "error">("idle");
-  const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
-  const voxlenApiBase = "https://voxlen.ai/api";
-  const voxlenTenantId = useSettingsStore((s) => s.voxlenTenantId);
-
-  const handleSyncVocabulary = async () => {
-    if (!voxlenApiKey || vocabulary.length === 0) return;
-    setSyncStatus("syncing");
-    try {
-      const res = await fetch(`${voxlenApiBase}/vocabulary`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${voxlenApiKey}`,
-          "Content-Type": "application/json",
-          ...(voxlenTenantId ? { "X-Tenant-ID": voxlenTenantId } : {}),
-        },
-        body: JSON.stringify({
-          name: `Flywheel — ${new Date().toLocaleDateString()}`,
-          terms: vocabulary.map((v) => v.word),
-          context: "general",
-        }),
-      });
-      setSyncStatus(res.ok ? "ok" : "error");
-    } catch {
-      setSyncStatus("error");
-    }
-    setTimeout(() => setSyncStatus("idle"), 3000);
-  };
+  // NOTE: there is deliberately no "sync vocabulary to Voxlen" feature here.
+  // The flywheel's promise is that ALL learned data stays on-device — learned
+  // vocabulary can contain client names, party names, and other privileged
+  // terms, and must never be uploaded to Voxlen-operated servers.
 
   const handleAdd = () => {
     const word = newWord.trim();
@@ -218,22 +194,6 @@ export function FlywheelPanel() {
               >
                 <Plus className="h-3.5 w-3.5" /> Add
               </Button>
-              {voxlenApiKey && vocabulary.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="md"
-                  onClick={handleSyncVocabulary}
-                  disabled={syncStatus === "syncing"}
-                  title="Push vocabulary to Voxlen API"
-                >
-                  {syncStatus === "ok" ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-500" />
-                  ) : (
-                    <Upload className="h-3.5 w-3.5" />
-                  )}
-                  {syncStatus === "syncing" ? "Syncing…" : syncStatus === "ok" ? "Synced" : syncStatus === "error" ? "Failed" : "Sync"}
-                </Button>
-              )}
             </div>
           )}
         </div>

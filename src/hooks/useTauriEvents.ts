@@ -79,6 +79,10 @@ export function useTauriEvents(): void {
           (event) => {
             const result = event.payload;
             if (!result.is_final) return;
+            // While paused, drop incoming transcripts entirely — the backend
+            // streaming path doesn't gate on pause yet, and appending/injecting
+            // text while the UI says "Paused" is a privacy failure.
+            if (useDictationStore.getState().status === "paused") return;
             const text = result.text.trim();
             if (!text) return;
 
@@ -247,10 +251,12 @@ export function useTauriEvents(): void {
               : shaped;
             const finalText = capsLock ? withContext.toUpperCase() : withContext;
 
-            // Clause library voice triggers
+            // Clause library voice triggers — gated on the voice-commands
+            // setting: with it off, a sentence merely containing a trigger
+            // phrase must not be swallowed and replaced by a clause.
             const { findByTrigger, findTemplateByTrigger, markUsed } = useClauseStore.getState();
-            const matchedClause = findByTrigger(finalText);
-            const matchedTemplate = findTemplateByTrigger(finalText);
+            const matchedClause = settings.voiceCommandsEnabled ? findByTrigger(finalText) : undefined;
+            const matchedTemplate = settings.voiceCommandsEnabled ? findTemplateByTrigger(finalText) : undefined;
             if (matchedClause) {
               markUsed(matchedClause.id);
               dictation.addSegment({
@@ -412,10 +418,12 @@ export function useTauriEvents(): void {
                   }
                 }
 
-                // Step 3: inject into the focused app
+                // Step 3: inject into the focused app. A trailing space keeps
+                // consecutive utterances from running together ("…meeting.Then")
+                // — matching the voice-command and manual-insert paths.
                 if (capturedAutoInject) {
                   try {
-                    await invoke("inject_text", { text: processedText });
+                    await invoke("inject_text", { text: processedText + " " });
                   } catch {
                     // Injection failure (e.g. Accessibility permissions not granted on macOS).
                   }
@@ -437,7 +445,11 @@ export function useTauriEvents(): void {
         );
 
         const unlistenSpeechStarted = await listen("speech-started", () => {
-          useDictationStore.getState().setStatus("listening");
+          // Deepgram VAD fires on any speech — it must not silently un-pause.
+          const status = useDictationStore.getState().status;
+          if (status !== "paused" && status !== "idle") {
+            useDictationStore.getState().setStatus("listening");
+          }
         });
 
         const unlistenUtteranceEnd = await listen("utterance-end", () => {

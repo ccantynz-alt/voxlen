@@ -163,20 +163,14 @@ export function executeVoiceCommand(action: string): string | null {
   }
 
   switch (action) {
-    case "delete_last": {
-      const segments = useDictationStore.getState().segments;
-      if (segments.length > 0) {
-        useDictationStore.setState({ segments: segments.slice(0, -1) });
-      }
-      return null;
-    }
+    case "delete_last":
     case "undo": {
+      // Route through removeSegment so wordCount is recomputed and the draft
+      // is re-persisted — raw setState left a stale count and let draft
+      // recovery resurrect the deleted text.
       const store = useDictationStore.getState();
-      const segments = store.segments;
-      if (segments.length > 0) {
-        const remaining = segments.slice(0, -1);
-        useDictationStore.setState({ segments: remaining });
-      }
+      const last = store.segments[store.segments.length - 1];
+      if (last) store.removeSegment(last.id);
       return null;
     }
     case "select_all":
@@ -191,6 +185,16 @@ export function executeVoiceCommand(action: string): string | null {
     }
     case "stop":
       useDictationStore.getState().setStatus("idle");
+      // The UI status alone doesn't stop the backend — without this the mic
+      // stays hot and speech keeps being transcribed and injected.
+      void (async () => {
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("stop_dictation");
+        } catch {
+          // Non-Tauri / already stopped.
+        }
+      })();
       return null;
     case "caps_on":
       return null; // Toggle state
@@ -213,9 +217,25 @@ export function executeVoiceCommand(action: string): string | null {
       return null;
     case "pause":
       useDictationStore.getState().setStatus("paused");
+      void (async () => {
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("pause_dictation");
+        } catch {
+          // Non-Tauri.
+        }
+      })();
       return null;
     case "resume":
       useDictationStore.getState().setStatus("listening");
+      void (async () => {
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("resume_dictation");
+        } catch {
+          // Non-Tauri or command not yet available.
+        }
+      })();
       return null;
     case "billing_start":
     case "billing_stop":

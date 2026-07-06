@@ -308,10 +308,25 @@ export function DictationPanel() {
           }>;
         }>("correct_grammar", { text, customVocabulary, matterContext });
 
-        // Update the last segment with corrected text
-        if (segments.length > 0) {
-          const lastSegment = segments[segments.length - 1];
-          useDictationStore.getState().updateSegment(lastSegment.id, {
+        // Apply the corrected text. The polish button passes the FULL
+        // transcript — writing that into only the last segment would leave
+        // segments 1..n-1 in place and duplicate the whole transcript, so
+        // for multi-segment sessions collapse to a single corrected segment.
+        let targetSegmentId: string | null = null;
+        if (segments.length > 1) {
+          targetSegmentId = crypto.randomUUID();
+          useDictationStore.getState().replaceAllSegments({
+            id: targetSegmentId,
+            text,
+            correctedText: result.corrected,
+            timestamp: new Date(),
+            confidence: 1,
+            isFinal: true,
+            grammarApplied: true,
+          });
+        } else if (segments.length === 1) {
+          targetSegmentId = segments[0].id;
+          useDictationStore.getState().updateSegment(targetSegmentId, {
             correctedText: result.corrected,
             grammarApplied: true,
           });
@@ -326,9 +341,8 @@ export function DictationPanel() {
               "translate_text",
               { text: result.corrected, targetLanguage: translationTargetLanguage }
             );
-            if (translation?.translated && segments.length > 0) {
-              const lastSegment = segments[segments.length - 1];
-              useDictationStore.getState().updateSegment(lastSegment.id, {
+            if (translation?.translated && targetSegmentId) {
+              useDictationStore.getState().updateSegment(targetSegmentId, {
                 translatedText: translation.translated,
                 translatedToLanguage: translationTargetLanguage,
               });
@@ -750,8 +764,22 @@ export function DictationPanel() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => updateSetting("privilegedMode", !privilegedMode)}
-            title={privilegedMode ? "Privileged mode ON — click to disable" : "Enable privileged mode (ABA 1.6 safe)"}
+            onClick={() => {
+              if (!privilegedMode) {
+                // Privileged mode forces the local Whisper engine, which is
+                // not implemented yet — enabling it fails closed and every
+                // dictation start errors. Block with an explanation instead
+                // of silently bricking the core feature.
+                toast(
+                  "Privileged (offline) mode requires the local Whisper engine, which is coming soon. Until then, dictation uses your configured cloud engine.",
+                  "info",
+                  6000
+                );
+                return;
+              }
+              updateSetting("privilegedMode", false);
+            }}
+            title={privilegedMode ? "Privileged mode ON — click to disable" : "Privileged offline mode (coming soon — requires local Whisper)"}
             className={cn(
               "flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
               privilegedMode

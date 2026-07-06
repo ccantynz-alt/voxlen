@@ -5,6 +5,11 @@ import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
+import { AdminPanel } from "@/components/settings/AdminPanel";
+import { ClauseLibrary } from "@/components/clauses/ClauseLibrary";
+import { ClientsPanel } from "@/components/clients/ClientsPanel";
+import { AnalyticsPanel } from "@/components/analytics/AnalyticsPanel";
+import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
@@ -18,7 +23,16 @@ import { loadCustomClauses } from "@/stores/clauses";
 import { useNavigationStore } from "@/stores/navigation";
 import { ToastContainer } from "@/components/ui/Toast";
 
-type View = "dictation" | "grammar" | "history" | "settings" | "admin";
+type View =
+  | "dictation"
+  | "grammar"
+  | "history"
+  | "clauses"
+  | "clients"
+  | "analytics"
+  | "flywheel"
+  | "admin"
+  | "settings";
 
 export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
@@ -96,11 +110,23 @@ export default function App() {
         }
       }
 
-      // Hydrate settings from backend on boot.
+      // Hydrate ONLY the API keys from the backend on boot. The backend's
+      // get_settings returns Rust defaults for everything except the keys it
+      // hydrates from the OS keychain — merging the full object would wipe
+      // the user's saved settings back to defaults on every launch (which it
+      // did, for months). The frontend settings.json is the source of truth
+      // for everything else; the persist subscriber below pushes the merged
+      // result back to the Rust engine.
       try {
         const backendSettings = await loadSettings();
         if (backendSettings) {
-          hydrateSettingsStore(backendSettings);
+          const keysOnly: Record<string, unknown> = {};
+          if (backendSettings.sttApiKey) keysOnly.sttApiKey = backendSettings.sttApiKey;
+          if (backendSettings.grammarApiKey) keysOnly.grammarApiKey = backendSettings.grammarApiKey;
+          if (backendSettings.voxlenApiKey) keysOnly.voxlenApiKey = backendSettings.voxlenApiKey;
+          if (Object.keys(keysOnly).length > 0) {
+            hydrateSettingsStore(keysOnly);
+          }
         }
       } catch {
         // Already handled inside loadSettings.
@@ -271,6 +297,36 @@ export default function App() {
         return (
           <ErrorBoundary label="History">
             <HistoryPanel />
+          </ErrorBoundary>
+        );
+      case "clauses":
+        return (
+          <ErrorBoundary label="Clauses">
+            <ClauseLibrary />
+          </ErrorBoundary>
+        );
+      case "clients":
+        return (
+          <ErrorBoundary label="Clients">
+            <ClientsPanel />
+          </ErrorBoundary>
+        );
+      case "analytics":
+        return (
+          <ErrorBoundary label="Analytics">
+            <AnalyticsPanel />
+          </ErrorBoundary>
+        );
+      case "flywheel":
+        return (
+          <ErrorBoundary label="Flywheel">
+            <FlywheelPanel />
+          </ErrorBoundary>
+        );
+      case "admin":
+        return (
+          <ErrorBoundary label="Admin">
+            <AdminPanel />
           </ErrorBoundary>
         );
       case "settings":

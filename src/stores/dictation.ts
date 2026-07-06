@@ -116,6 +116,10 @@ interface DictationState {
   updateSegment: (id: string, updates: Partial<TranscriptionSegment>) => void;
   popLastSegment: () => void;
   removeSegment: (id: string) => void;
+  /** Replace the whole session with a single segment — used when a grammar
+   *  polish is applied to the full transcript, so the corrected text doesn't
+   *  get appended after the segments it already contains. */
+  replaceAllSegments: (segment: TranscriptionSegment) => void;
   appendToLastSegment: (text: string) => void;
   setCurrentTranscript: (text: string) => void;
   setCorrectedTranscript: (text: string) => void;
@@ -207,6 +211,16 @@ export const useDictationStore = create<DictationState>((set, get) => ({
       return { segments, wordCount };
     }),
 
+  replaceAllSegments: (segment) =>
+    set((state) => {
+      const segments = [segment];
+      const wordCount = (segment.correctedText || segment.text)
+        .split(/\s+/)
+        .filter(Boolean).length;
+      persistDraft({ segments, sessionStartedAtMs: state.sessionStartedAtMs });
+      return { segments, wordCount };
+    }),
+
   appendToLastSegment: (text) =>
     set((state) => {
       if (state.segments.length === 0) return {};
@@ -234,6 +248,19 @@ export const useDictationStore = create<DictationState>((set, get) => ({
 
   clearSession: () => {
     clearDraftRecord();
+    // If the backend is still capturing, stop it — otherwise the UI shows
+    // "idle" while the mic keeps streaming and new transcripts keep injecting.
+    const active = get().status === "listening" || get().status === "processing" || get().status === "paused";
+    if (active) {
+      void (async () => {
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("stop_dictation");
+        } catch {
+          // Non-Tauri / already stopped.
+        }
+      })();
+    }
     set({
       segments: [],
       currentTranscript: "",

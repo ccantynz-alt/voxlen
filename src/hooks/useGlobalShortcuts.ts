@@ -15,6 +15,12 @@ export function useGlobalShortcuts(enabled: boolean): void {
   const shortcutPushToTalk = useSettingsStore((s) => s.shortcutPushToTalk);
   const shortcutCancel = useSettingsStore((s) => s.shortcutCancel);
   const shortcutCorrectGrammar = useSettingsStore((s) => s.shortcutCorrectGrammar);
+  // Cancel defaults to bare "Escape". Registering that permanently would
+  // consume Esc system-wide (dialogs, games, IDEs) for as long as Voxlen
+  // runs — so it is only registered while a dictation is in progress.
+  const dictationActive = useDictationStore(
+    (s) => s.status === "listening" || s.status === "processing" || s.status === "paused"
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -136,23 +142,8 @@ export function useGlobalShortcuts(enabled: boolean): void {
         });
       }
 
-      // Cancel — stop dictation + clear current in-progress transcript.
-      if (shortcutCancel) {
-        await registerOne(shortcutCancel, (event) => {
-          if (event.state !== "Pressed") return;
-          const dictation = useDictationStore.getState();
-          dictation.setStatus("idle");
-          dictation.clearCurrentTranscript();
-          (async () => {
-            try {
-              const { invoke } = await import("@tauri-apps/api/core");
-              await invoke("stop_dictation");
-            } catch {
-              // Demo / non-Tauri.
-            }
-          })();
-        });
-      }
+      // Cancel is registered in its own effect below — only while dictation
+      // is active — so a bare "Escape" binding doesn't hijack Esc globally.
 
       // Correct grammar — invoke `correct_grammar` on the last-dictated text
       // and inject the corrected version.
@@ -265,5 +256,61 @@ export function useGlobalShortcuts(enabled: boolean): void {
         if (cancelled) registered = [];
       })();
     };
-  }, [enabled, shortcutToggle, shortcutPushToTalk, shortcutCancel, shortcutCorrectGrammar]);
+  }, [enabled, shortcutToggle, shortcutPushToTalk, shortcutCorrectGrammar]);
+
+  // Cancel — registered only while dictation is active (see note above).
+  useEffect(() => {
+    if (!enabled || !shortcutCancel || !dictationActive) return;
+
+    let registered = false;
+    let cancelled = false;
+
+    (async () => {
+      let register: typeof import("@tauri-apps/plugin-global-shortcut").register;
+      try {
+        ({ register } = await import("@tauri-apps/plugin-global-shortcut"));
+      } catch {
+        return; // Not running in Tauri.
+      }
+      if (cancelled) return;
+      try {
+        await register(shortcutCancel, (event) => {
+          if (event.state !== "Pressed") return;
+          const dictation = useDictationStore.getState();
+          dictation.setStatus("idle");
+          dictation.clearCurrentTranscript();
+          (async () => {
+            try {
+              const { invoke } = await import("@tauri-apps/api/core");
+              await invoke("stop_dictation");
+            } catch {
+              // Demo / non-Tauri.
+            }
+          })();
+        });
+        registered = true;
+        if (cancelled) {
+          // Effect cleanup ran while we were awaiting — undo immediately.
+          const { unregister } = await import("@tauri-apps/plugin-global-shortcut");
+          await unregister(shortcutCancel).catch(() => {});
+          registered = false;
+        }
+      } catch (err) {
+        console.error(`Failed to register cancel shortcut '${shortcutCancel}':`, err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (!registered) return;
+      (async () => {
+        try {
+          const { unregister } = await import("@tauri-apps/plugin-global-shortcut");
+          await unregister(shortcutCancel);
+        } catch {
+          // Not in Tauri / already unregistered.
+        }
+      })();
+    };
+  }, [enabled, shortcutCancel, dictationActive]);
 }
