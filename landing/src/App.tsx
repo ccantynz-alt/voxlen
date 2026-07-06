@@ -135,7 +135,7 @@ export default function App() {
       <Features />
       <Platforms />
       <HowItWorks />
-      <Testimonials />
+      <DesignedFor />
       <ROICalculator />
       <Comparison />
       <Pricing user={user} onSignIn={handleSignIn} />
@@ -247,27 +247,6 @@ function Navbar({
   );
 }
 
-function WordCountTicker() {
-  const BASE = 127482019;
-  const [count, setCount] = useState(BASE);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setCount((c) => c + Math.floor(Math.random() * 12 + 3));
-    }, 2800);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <div className="inline-flex items-center gap-2 text-sm text-zinc-400">
-      <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
-      </span>
-      <span className="font-mono font-semibold text-white">{count.toLocaleString()}</span>
-      <span>words dictated and counting</span>
-    </div>
-  );
-}
-
 function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
   const login = useGoogleSignIn(onSignIn);
 
@@ -312,14 +291,9 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
             Real-time transcription, Claude AI grammar correction, and zero-retention privacy.
             Works in every app on Mac, Windows, and iPhone.{" "}
             <span className="text-white font-medium">
-              Bring your own API keys — your data never touches our servers.
+              AI costs included with your subscription — and your data never touches our servers.
             </span>
           </motion.p>
-
-          {/* Live word count ticker */}
-          <motion.div variants={fadeUp} className="flex justify-center pt-1">
-            <WordCountTicker />
-          </motion.div>
 
           {/* CTA buttons */}
           <motion.div
@@ -461,19 +435,15 @@ function TrustBar() {
     { value: "99.2%", label: "Accuracy" },
     { value: "47ms", label: "Latency" },
     { value: "Zero", label: "Retention" },
-    { value: "200+", label: "Law Firms" },
+    { value: "20+", label: "Languages" },
   ];
   return (
     <section className="border-y border-white/5 bg-[#0c0c0f] py-10">
       <div className="max-w-5xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex items-center gap-3">
-            <div className="flex gap-0.5">
-              {[1,2,3,4,5].map((i) => (
-                <Star key={i} className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-              ))}
-            </div>
-            <p className="text-sm text-zinc-300 font-medium">Trusted by legal professionals at <span className="text-white font-bold">200+ law firms</span></p>
+            <Shield className="h-4 w-4 text-brand-400 shrink-0" />
+            <p className="text-sm text-zinc-300 font-medium">Built for <span className="text-white font-bold">legal &amp; accounting professionals</span> — privacy-first by design</p>
           </div>
           <div className="flex items-center gap-10">
             {stats.map((s) => (
@@ -585,42 +555,27 @@ function Platforms() {
   );
 }
 
-function Testimonials() {
-  const testimonials = [
+function DesignedFor() {
+  const useCases = [
     {
-      quote: "I dictate roughly 80 pages of legal documentation a week — briefs, correspondence, deposition summaries. Voxlen cut my drafting time in half. The Latin phrase recognition alone is worth the subscription price.",
-      name: "Katherine Ashworth",
-      title: "Senior Partner, Commercial Litigation",
-      firm: "Ashworth & Reid LLP, London",
-      stars: 5,
+      title: "Commercial litigation",
+      description: "Briefs, correspondence, and deposition summaries — with Latin phrase recognition and citation formatting built in.",
     },
     {
-      quote: "We migrated our entire 12-person firm off Dragon last year. Voxlen is more accurate on Australian legal terminology, works on Mac and Windows, and costs a fraction of what Dragon was charging us. The transition was seamless.",
-      name: "James Thornton",
-      title: "Managing Partner",
-      firm: "Thornton Legal, Sydney",
-      stars: 5,
+      title: "Firms switching from Dragon",
+      description: "No voice training, works on Mac, Windows, and Linux, and costs a fraction of a Dragon Legal licence.",
     },
     {
-      quote: "I handle sensitive criminal defense matters. The zero-retention architecture was the deciding factor — audio never leaves the device path to Deepgram, nothing is stored on Voxlen's servers. That's non-negotiable for my practice.",
-      name: "David Kimani",
-      title: "Criminal Defense Attorney",
-      firm: "Kimani Law Group, New York",
-      stars: 5,
+      title: "Sensitive & privileged matters",
+      description: "Zero-retention architecture — audio streams directly to the STT provider and nothing is stored on Voxlen servers.",
     },
     {
-      quote: "Tax season used to mean brutal 14-hour days of typing. Now I dictate client advisory letters, audit notes, and board reports in real-time. The accounting terminology is handled perfectly — EBITDA, amortisation schedules, all of it.",
-      name: "Rachel Weston",
-      title: "Tax Director & CPA",
-      firm: "Deloitte Private (Toronto)",
-      stars: 5,
+      title: "Tax & advisory work",
+      description: "Dictate client advisory letters, audit notes, and board reports. Custom vocabulary handles EBITDA, amortisation schedules, and entity names.",
     },
     {
-      quote: "The per-matter billing clock is genuinely clever. I say 'log this to Client X' and every second of dictation is tracked automatically. The six-minute billing unit has never been easier to capture.",
-      name: "Marcus Liu",
-      title: "Partner, Corporate M&A",
-      firm: "Liu & Partners, Hong Kong",
-      stars: 5,
+      title: "Billable time capture",
+      description: "Per-matter tracking logs every dictation session automatically — duration, word count, and billable amount at your rate.",
     },
   ];
 
@@ -635,12 +590,12 @@ function Testimonials() {
           className="text-center mb-16"
         >
           <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            Trusted by legal & accounting professionals
+            Designed for legal & accounting professionals
           </motion.p>
           <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
             Lawyers. Accountants.
             <br />
-            <span className="text-zinc-500">All speaking faster.</span>
+            <span className="text-zinc-500">Built for how you work.</span>
           </motion.h2>
         </motion.div>
 
@@ -651,28 +606,14 @@ function Testimonials() {
           variants={stagger}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
         >
-          {testimonials.map((t) => (
+          {useCases.map((u) => (
             <motion.div
-              key={t.name}
+              key={u.title}
               variants={fadeUp}
               className="p-6 rounded-2xl bg-[#111114] border border-white/5"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex gap-0.5">
-                  {Array.from({ length: t.stars }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-                  ))}
-                </div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-0.5 rounded-full">
-                  <Check className="h-2.5 w-2.5" /> Verified user
-                </span>
-              </div>
-              <p className="text-sm text-zinc-300 leading-relaxed mb-4">"{t.quote}"</p>
-              <div>
-                <div className="text-sm font-semibold text-white">{t.name}</div>
-                <div className="text-xs text-zinc-500">{t.title}</div>
-                <div className="text-xs text-brand-400 mt-0.5">{t.firm}</div>
-              </div>
+              <div className="text-sm font-semibold text-white mb-2">{u.title}</div>
+              <p className="text-sm text-zinc-400 leading-relaxed">{u.description}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -934,29 +875,17 @@ function Comparison() {
   );
 }
 
-function LifetimeSpotsCounter() {
-  const [spots] = useState(47);
-  return (
-    <div className="mt-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
-      <div className="text-xs text-orange-400 font-semibold">
-        <span className="text-orange-300 font-black text-base">{spots}</span> of 100 early-bird spots remaining
-      </div>
-      <div className="w-full mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
-        <div className="h-full rounded-full bg-orange-500" style={{ width: `${(spots / 100) * 100}%` }} />
-      </div>
-    </div>
-  );
-}
-
 function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: GoogleUser) => void }) {
   const login = useGoogleSignIn(onSignIn);
+  const [checkoutNotice, setCheckoutNotice] = useState(false);
 
-  const handleCta = (priceId: string) => {
+  const handleCta = async (priceId: string) => {
     if (!user) {
       login();
       return;
     }
-    redirectToCheckout(priceId, user.email);
+    const redirected = await redirectToCheckout(priceId, user.email);
+    if (!redirected) setCheckoutNotice(true);
   };
   const tiers = [
     {
@@ -982,7 +911,8 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
       features: [
         "Unlimited dictation",
         "AI grammar (Claude / GPT-4o)",
-        "Bring your own API keys",
+        "All AI costs included — no API keys needed",
+        "Optional BYOK (use your own API keys)",
         "Text injection (any app)",
         "Voice commands",
         "20+ languages",
@@ -1054,9 +984,17 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
           </motion.h2>
           <motion.p variants={fadeUp} className="text-zinc-400 mt-3 max-w-xl mx-auto">
             Every plan includes the full AI stack — speech, grammar, text injection.
-            Bring your own API keys from Deepgram, OpenAI, or Anthropic. Your audio goes directly from your device to the AI — never through our servers.
+            AI usage costs are included in your subscription. Prefer your own API keys from Deepgram, OpenAI, or Anthropic? Bring-your-own-keys is fully supported. Either way, your audio goes directly from your device to the AI — never through our servers.
           </motion.p>
         </motion.div>
+
+        {checkoutNotice && (
+          <div className="mb-10 max-w-xl mx-auto p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-center">
+            <p className="text-sm text-yellow-300 font-medium">
+              Payments are launching soon — join the waitlist below and we'll email you the moment checkout opens.
+            </p>
+          </div>
+        )}
 
         <motion.div
           initial="hidden"
@@ -1112,8 +1050,7 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
                   </li>
                 ))}
               </ul>
-              {t.name === "Lifetime" && <LifetimeSpotsCounter />}
-              <div className={t.name === "Lifetime" ? "mt-4" : ""}>
+              <div>
                 {t.priceId ? (
                   <button
                     type="button"
@@ -1156,9 +1093,9 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
 
         <p className="text-center text-xs text-zinc-600 mt-4 max-w-2xl mx-auto leading-relaxed">
           Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
-          Voxlen is BYOK (bring your own API keys). Your audio streams directly from your device
-          to the AI providers — Deepgram, OpenAI, or Anthropic — and is never routed through or
-          stored by Voxlen.
+          All AI costs are included in your subscription — or bring your own API keys if you prefer.
+          Your audio streams directly from your device to the AI providers — Deepgram, OpenAI, or
+          Anthropic — and is never routed through or stored by Voxlen.
         </p>
       </div>
     </section>
@@ -1177,7 +1114,7 @@ function FAQ() {
     },
     {
       q: "Do I need to set up API keys or separate accounts?",
-      a: "Yes — you bring your own API keys from Deepgram (speech-to-text) and Anthropic or OpenAI (grammar correction). This is a deliberate privacy choice: your audio and text go directly from your device to the AI provider, never touching our servers. Getting keys takes about 2 minutes and each provider offers a free tier.",
+      a: "No. Paid subscriptions include all AI costs — speech-to-text and grammar correction — so there are no API keys to manage. If you prefer to use your own keys from Deepgram, Anthropic, or OpenAI, that's fully supported as an optional alternative in Settings. Either way, your audio and text go directly from your device to the AI provider, never touching our servers.",
     },
     {
       q: "What platforms does it run on?",
@@ -1254,7 +1191,7 @@ function FAQ() {
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
 const GH_RELEASES_PAGE = "https://github.com/ccantynz-alt/voxlen/releases/latest";
 const GH_API_LATEST = "https://api.github.com/repos/ccantynz-alt/voxlen/releases/latest";
-const APP_VERSION = "1.0.9";
+const APP_VERSION = "1.1.0";
 
 interface ReleaseAsset {
   name: string;
@@ -1571,26 +1508,33 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
 
 function WaitlistForm({ platform }: { platform: string }) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitted" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "invalid" | "submitting" | "submitted" | "failed">("idle");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setStatus("error"); return; }
-    // Send to the backend; keep a localStorage copy as an offline fallback
-    fetch("/api/waitlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), platform }),
-    }).catch(() => { /* recorded locally below regardless */ });
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { setStatus("invalid"); return; }
+    setStatus("submitting");
+    // Keep a localStorage copy as a backup regardless of network outcome
     try {
       type WaitlistEntry = { email: string; platform: string };
       const unified = JSON.parse(localStorage.getItem("voxlen_waitlist") || "[]") as WaitlistEntry[];
-      if (!unified.some((e) => e.email === email && e.platform === platform)) {
-        unified.push({ email, platform });
+      if (!unified.some((e) => e.email === trimmed && e.platform === platform)) {
+        unified.push({ email: trimmed, platform });
         localStorage.setItem("voxlen_waitlist", JSON.stringify(unified));
       }
     } catch { /* ignore */ }
-    setStatus("submitted");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, platform }),
+      });
+      if (!res.ok) throw new Error(`Waitlist API ${res.status}`);
+      setStatus("submitted");
+    } catch {
+      setStatus("failed");
+    }
   };
 
   if (status === "submitted") {
@@ -1609,17 +1553,22 @@ function WaitlistForm({ platform }: { platform: string }) {
           value={email}
           onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
           placeholder="your@email.com"
-          className={`flex-1 h-9 px-3 rounded-lg bg-black/40 border text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors ${status === "error" ? "border-red-500 focus:border-red-400" : "border-white/10 focus:border-brand-500"}`}
+          disabled={status === "submitting"}
+          className={`flex-1 h-9 px-3 rounded-lg bg-black/40 border text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors disabled:opacity-60 ${status === "invalid" || status === "failed" ? "border-red-500 focus:border-red-400" : "border-white/10 focus:border-brand-500"}`}
         />
         <button
           type="submit"
-          className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shrink-0"
+          disabled={status === "submitting"}
+          className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shrink-0 disabled:opacity-60 disabled:cursor-wait"
         >
-          Notify me
+          {status === "submitting" ? "Adding…" : status === "failed" ? "Retry" : "Notify me"}
         </button>
       </form>
-      {status === "error" && (
+      {status === "invalid" && (
         <p className="text-xs text-red-400">Please enter a valid email address.</p>
+      )}
+      {status === "failed" && (
+        <p className="text-xs text-red-400">Couldn't reach the waitlist server — please try again. Your email is saved locally in the meantime.</p>
       )}
     </div>
   );
@@ -1685,7 +1634,7 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
               <Shield className="h-3.5 w-3.5 text-green-400" />
-              <span className="text-xs font-semibold text-zinc-300">SOC 2 Type II</span>
+              <span className="text-xs font-semibold text-zinc-300">Local-First Storage</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
               <Lock className="h-3.5 w-3.5 text-blue-400" />
@@ -1695,8 +1644,6 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
               <Shield className="h-3.5 w-3.5 text-purple-400" />
               <span className="text-xs font-semibold text-zinc-300">Zero Retention</span>
             </div>
-            <span className="text-sm font-bold">Voxlen</span>
-            <span className="text-xs text-zinc-600">v{APP_VERSION}</span>
           </div>
         </div>
 

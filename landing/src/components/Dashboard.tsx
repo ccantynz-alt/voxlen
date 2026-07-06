@@ -357,7 +357,7 @@ function OverviewTab({ accessToken }: { accessToken: string }) {
   }, []);
 
   useEffect(() => {
-    fetch(`${VOXLEN_BASE}/api/admin/waitlist`, {
+    fetch(`${VOXLEN_BASE}/api/admin-waitlist`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -538,7 +538,7 @@ function WaitlistTab({ accessToken }: { accessToken: string }) {
     setLoading(true);
     setError("");
     try {
-      const r = await fetch(`${VOXLEN_BASE}/api/admin/waitlist`, {
+      const r = await fetch(`${VOXLEN_BASE}/api/admin-waitlist`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const json = (await r.json()) as { entries?: WaitlistEntry[]; error?: string };
@@ -784,8 +784,8 @@ function DiagnosticsTab({ accessToken }: { accessToken: string }) {
     { url: `${VOXLEN_BASE}/api/me`, label: "/api/me", status: "loading", responseMs: null, code: null },
     { url: `${VOXLEN_BASE}/api/grammar`, label: "/api/grammar", status: "loading", responseMs: null, code: null },
     { url: `${VOXLEN_BASE}/api/generate-key`, label: "/api/generate-key", status: "loading", responseMs: null, code: null },
-    { url: `${VOXLEN_BASE}/api/admin/waitlist`, label: "/api/admin/waitlist", status: "loading", responseMs: null, code: null },
-    { url: `${VOXLEN_BASE}/api/admin/health`, label: "/api/admin/health", status: "loading", responseMs: null, code: null },
+    { url: `${VOXLEN_BASE}/api/admin-waitlist`, label: "/api/admin-waitlist", status: "loading", responseMs: null, code: null },
+    { url: `${VOXLEN_BASE}/api/admin-health`, label: "/api/admin-health", status: "loading", responseMs: null, code: null },
   ]);
 
   const runPings = useCallback(async () => {
@@ -793,8 +793,8 @@ function DiagnosticsTab({ accessToken }: { accessToken: string }) {
       { url: `${VOXLEN_BASE}/api/me`, label: "/api/me", method: "GET" },
       { url: `${VOXLEN_BASE}/api/grammar`, label: "/api/grammar", method: "POST" },
       { url: `${VOXLEN_BASE}/api/generate-key`, label: "/api/generate-key", method: "POST" },
-      { url: `${VOXLEN_BASE}/api/admin/waitlist`, label: "/api/admin/waitlist", method: "GET" },
-      { url: `${VOXLEN_BASE}/api/admin/health`, label: "/api/admin/health", method: "GET" },
+      { url: `${VOXLEN_BASE}/api/admin-waitlist`, label: "/api/admin-waitlist", method: "GET" },
+      { url: `${VOXLEN_BASE}/api/admin-health`, label: "/api/admin-health", method: "GET" },
     ];
 
     // reset all to loading
@@ -832,7 +832,7 @@ function DiagnosticsTab({ accessToken }: { accessToken: string }) {
     setHealthLoading(true);
     setHealthError("");
     try {
-      const r = await fetch(`${VOXLEN_BASE}/api/admin/health`, {
+      const r = await fetch(`${VOXLEN_BASE}/api/admin-health`, {
         headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(6000),
       });

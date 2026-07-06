@@ -84,6 +84,7 @@ export default function LiveDemo() {
   const [demoIndex, setDemoIndex] = useState(0);
   const [useRealSTT, setUseRealSTT] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const finalTranscriptRef = useRef("");
   const hasSTT = typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const correctedDisplayed = useTypewriter(corrected, 14, state === "done");
@@ -128,50 +129,39 @@ export default function LiveDemo() {
     setState("listening");
     setTranscript("");
     setCorrected("");
+    finalTranscriptRef.current = "";
 
     rec.onresult = (e) => {
       let interim = "";
-      let final = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) final += t;
+        if (e.results[i].isFinal) finalTranscriptRef.current += t;
         else interim += t;
       }
-      setTranscript((prev) => prev + (final || interim));
+      setTranscript(finalTranscriptRef.current + interim);
     };
 
+    // Mic mode is honest: we show only your real transcript. The AI grammar
+    // correction runs in the full app — we never fake a correction of real speech.
     rec.onend = () => {
-      if (state === "listening") {
-        setState("processing");
-        setTimeout(() => {
-          // Use the demo correction since we have no auth token here
-          const phrase = DEMO_PHRASES[demoIndex % DEMO_PHRASES.length];
-          setCorrected(phrase.corrected);
-          setState("done");
-        }, 800);
-      }
+      setState((s) => (s === "listening" ? "done" : s));
     };
 
     rec.onerror = () => { setState("idle"); };
     rec.start();
-  }, [hasSTT, useRealSTT, runSimulatedDemo, state, demoIndex]);
+  }, [hasSTT, useRealSTT, runSimulatedDemo]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();
     recognitionRef.current = null;
-    if (state === "listening") {
-      setState("processing");
-      setTimeout(() => {
-        const phrase = DEMO_PHRASES[demoIndex % DEMO_PHRASES.length];
-        setCorrected(phrase.corrected);
-        setState("done");
-      }, 800);
-    }
-  }, [state, demoIndex]);
+    setState((s) => (s === "listening" ? "done" : s));
+  }, []);
 
   const reset = useCallback(() => {
     recognitionRef.current?.stop();
     recognitionRef.current = null;
+    finalTranscriptRef.current = "";
+    setUseRealSTT(false);
     setState("idle");
     setTranscript("");
     setCorrected("");
@@ -308,6 +298,8 @@ export default function LiveDemo() {
                     <span className="text-zinc-600 italic">
                       {state === "processing" ? (
                         <span className="text-brand-400">Applying grammar correction…</span>
+                      ) : state === "done" && useRealSTT ? (
+                        "AI grammar correction runs in the full app — this browser demo shows only your raw transcript. Download Voxlen to see Claude polish your real dictation."
                       ) : (
                         "Polished output will appear here…"
                       )}
@@ -322,7 +314,7 @@ export default function LiveDemo() {
 
             {/* What got fixed */}
             <AnimatePresence>
-              {state === "done" && (
+              {state === "done" && corrected && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -407,8 +399,8 @@ export default function LiveDemo() {
 
         {/* Fine print */}
         <p className="text-center text-xs text-zinc-600 mt-4">
-          Demo uses simulated AI correction. The real app applies Claude AI grammar correction instantly to every sentence.
-          {hasSTT && " Microphone mode uses your browser's built-in speech recognition."}
+          "Watch demo" plays example phrases with a simulated correction. The real app applies Claude AI grammar correction instantly to every sentence.
+          {hasSTT && " Microphone mode uses your browser's built-in speech recognition and shows your raw transcript only — no simulated correction."}
         </p>
       </div>
     </section>

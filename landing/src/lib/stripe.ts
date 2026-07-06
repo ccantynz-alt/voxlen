@@ -6,7 +6,13 @@ export const PRICE_PRO_MONTHLY = "price_pro_monthly_REPLACE_ME";
 export const PRICE_PROFESSIONAL_MONTHLY = "price_professional_monthly_REPLACE_ME";
 export const PRICE_LIFETIME = "price_lifetime_REPLACE_ME";
 
-export async function redirectToCheckout(priceId: string, email?: string): Promise<void> {
+/**
+ * Redirects to Stripe Checkout when configured.
+ * @returns true if a redirect was started; false if Stripe is not yet
+ *          configured (placeholder links) — in that case the page is
+ *          scrolled to the waitlist and the caller should show a notice.
+ */
+export async function redirectToCheckout(priceId: string, email?: string): Promise<boolean> {
   // Build a Stripe Checkout URL via the Voxlen API, then redirect.
   // This avoids needing stripe-js for URL construction while keeping the
   // integration ready to swap in a real session endpoint.
@@ -33,13 +39,15 @@ export async function redirectToCheckout(priceId: string, email?: string): Promi
   const url = paymentLinks[priceId];
   if (url && !url.includes("REPLACE")) {
     window.location.href = email ? `${url}?prefilled_email=${encodeURIComponent(email)}` : url;
-  } else {
-    // Stripe not yet configured — scroll to waitlist
-    const el = document.getElementById("download") ?? document.getElementById("pricing");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    } else {
-      window.location.hash = "#download";
-    }
+    return true;
   }
+
+  // Stripe not yet configured — scroll to waitlist; caller shows a visible notice
+  const el = document.getElementById("download") ?? document.getElementById("pricing");
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth" });
+  } else {
+    window.location.hash = "#download";
+  }
+  return false;
 }

@@ -32,6 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Always log — Vercel function logs are the storage of last resort
   console.log("WAITLIST_SIGNUP", JSON.stringify(entry));
 
+  // Tracks whether the entry reached durable storage (KV) or a notification
+  // (Resend). When false, the console.log above is the only record — the
+  // endpoint still returns 200 because the log is recoverable from Vercel.
+  let stored = false;
+
   const kvUrl = process.env.KV_REST_API_URL;
   const kvToken = process.env.KV_REST_API_TOKEN;
   if (kvUrl && kvToken) {
@@ -40,7 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         method: "POST",
         headers: { Authorization: `Bearer ${kvToken}` },
       });
-      if (!r.ok) console.error("WAITLIST_KV_ERROR", r.status, await r.text());
+      if (r.ok) stored = true;
+      else console.error("WAITLIST_KV_ERROR", r.status, await r.text());
     } catch (e) {
       console.error("WAITLIST_KV_ERROR", e);
     }
@@ -50,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const notifyEmail = process.env.WAITLIST_NOTIFY_EMAIL;
   if (resendKey && notifyEmail) {
     try {
-      await fetch("https://api.resend.com/emails", {
+      const r = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${resendKey}`,
@@ -63,10 +69,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           text: `New waitlist signup\n\nEmail: ${entry.email}\nPlatform: ${entry.platform}\nDate: ${entry.date}`,
         }),
       });
+      if (r.ok) stored = true;
     } catch (e) {
       console.error("WAITLIST_RESEND_ERROR", e);
     }
   }
 
-  return applyHeaders(res, headers).status(200).json({ ok: true });
+  return applyHeaders(res, headers).status(200).json({ ok: true, stored });
 }
