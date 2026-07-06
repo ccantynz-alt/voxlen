@@ -874,7 +874,14 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
         <Button
           variant="danger"
           size="sm"
-          onClick={() => settings.resetToDefaults()}
+          onClick={() => {
+            // Resetting blanks the stored API keys, which deletes them from
+            // the OS keychain — that must never happen silently.
+            const ok = window.confirm(
+              "Reset all settings to defaults?\n\nThis also removes your saved API keys from the system keychain — you will need to re-enter them."
+            );
+            if (ok) settings.resetToDefaults();
+          }}
         >
           Reset All Settings
         </Button>

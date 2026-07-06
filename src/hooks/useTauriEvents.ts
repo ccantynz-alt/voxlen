@@ -538,6 +538,10 @@ export function useTauriEvents(): void {
   // (and there are segments), persist a SessionRecord to the backend.
   useEffect(() => {
     let lastStatus = useDictationStore.getState().status;
+    // Dedupe by session identity, not by transcript text — text-equality
+    // dedupe silently dropped the history entry, flywheel session, AND the
+    // client billable entry whenever a later session dictated identical text.
+    let lastSavedSessionKey: string | null = null;
     const unsub = useDictationStore.subscribe((state) => {
       const current = state.status;
       const wasActive = lastStatus === "listening" || lastStatus === "processing";
@@ -552,10 +556,12 @@ export function useTauriEvents(): void {
           const fullText = segments.map((s) => s.correctedText || s.text).join(" ");
           const wc = fullText.split(/\s+/).filter(Boolean).length;
           const hasGrammar = segments.some((s) => s.grammarApplied);
-          const alreadyInHistory = useHistoryStore.getState().entries.some(
-            (e) => e.text === fullText
-          );
-          if (!alreadyInHistory) {
+          const sessionKey = dictState.sessionStartedAtMs !== null
+            ? String(dictState.sessionStartedAtMs)
+            : `text:${fullText}`;
+          const alreadySaved = sessionKey === lastSavedSessionKey;
+          if (!alreadySaved) {
+            lastSavedSessionKey = sessionKey;
             useHistoryStore.getState().addEntry({
               id: crypto.randomUUID(),
               text: fullText,
