@@ -415,7 +415,7 @@ fn apply_audio_processing(
     out
 }
 
-fn calculate_rms(samples: &[f32]) -> f32 {
+pub(crate) fn calculate_rms(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
     }

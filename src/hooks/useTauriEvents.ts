@@ -501,11 +501,38 @@ export function useTauriEvents(): void {
         // stopped dictation and the WebSocket finally closed), reset UI to idle so
         // the microphone button is re-enabled. Without this the UI can get stuck
         // showing "Listening." with no audio being transcribed.
+        // EXCEPTION: in Always-Ready mode the gate closes a session after
+        // every silence hangover — that disconnect is routine, not terminal.
         const unlistenDisconnected = await listen("streaming-disconnected", () => {
+          if (useDictationStore.getState().alwaysReadyPhase !== "off") return;
           const s = useDictationStore.getState().status;
           if (s === "listening" || s === "processing" || s === "paused") {
             useDictationStore.getState().setStatus("idle");
           }
+        });
+
+        // Always-Ready gate lifecycle. While armed/streaming the mic is
+        // conceptually hot, so keep status out of "idle" (which would
+        // re-enable the start button and fight the supervisor).
+        const unlistenAlwaysReadyState = await listen<string>("always-ready-state", (event) => {
+          const phase = event.payload as "off" | "armed" | "streaming" | "error";
+          const dictation = useDictationStore.getState();
+          dictation.setAlwaysReadyPhase(phase);
+          if (phase === "armed" || phase === "streaming") {
+            if (dictation.status === "idle" || dictation.status === "error") {
+              dictation.setStatus("listening");
+            }
+          } else if (phase === "off") {
+            if (dictation.status === "listening" || dictation.status === "processing") {
+              dictation.setStatus("idle");
+            }
+          }
+        });
+
+        // Tray checkbox toggled — route through the normal setting update so
+        // persistence and backend arming happen via the single path.
+        const unlistenAlwaysReadyToggle = await listen<boolean>("always-ready-toggle", (event) => {
+          useSettingsStore.getState().updateSetting("alwaysReadyMode", !!event.payload);
         });
 
         unlisten = () => {
@@ -521,7 +548,23 @@ export function useTauriEvents(): void {
           unlistenRecoveryResult();
           unlistenRecoveryGiveup();
           unlistenDisconnected();
+          unlistenAlwaysReadyState();
+          unlistenAlwaysReadyToggle();
         };
+
+        // Hydrate the gate phase — the backend may have armed Always-Ready
+        // from the persisted setting before this webview finished loading.
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          const armed = await invoke<boolean>("get_always_ready_state");
+          if (armed) {
+            const dictation = useDictationStore.getState();
+            dictation.setAlwaysReadyPhase("armed");
+            if (dictation.status === "idle") dictation.setStatus("listening");
+          }
+        } catch {
+          // Command unavailable (tests / old backend).
+        }
       } catch {
         // Not running in Tauri.
       }

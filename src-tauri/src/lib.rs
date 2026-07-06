@@ -6,10 +6,20 @@ mod text_injection;
 use tauri::{
     Emitter,
     Manager,
-    menu::{Menu, MenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem},
     tray::TrayIconBuilder,
 };
 use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_store::StoreExt;
+
+/// Id of the main tray icon so backend code (gate, arm/disarm) can update
+/// its tooltip via `app.tray_by_id(TRAY_ID)`.
+pub const TRAY_ID: &str = "main-tray";
+
+/// Handles to tray menu items that backend code needs to keep in sync.
+pub struct TrayState {
+    pub always_ready_item: CheckMenuItem<tauri::Wry>,
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -50,9 +60,32 @@ pub fn run() {
             let injector = text_injection::TextInjector::new();
             app.manage(text_injection::InjectorState::new(injector));
 
+            // Read the frontend-owned settings store READ-ONLY (camelCase keys)
+            // for the two boot-time flags Rust must act on before the frontend
+            // pushes settings. Fail-visible: any error behaves as defaults.
+            let (start_minimized, always_ready_enabled) = app
+                .store("settings.json")
+                .ok()
+                .and_then(|store| store.get("settings"))
+                .map(|v| {
+                    (
+                        v.get("startMinimized").and_then(|b| b.as_bool()).unwrap_or(false),
+                        v.get("alwaysReadyMode").and_then(|b| b.as_bool()).unwrap_or(false),
+                    )
+                })
+                .unwrap_or((false, false));
+
             // Build system tray menu
             let show_item = MenuItem::with_id(app, "show", "Show Voxlen", true, None::<&str>)?;
             let dictate_item = MenuItem::with_id(app, "dictate", "Start Dictation", true, None::<&str>)?;
+            let always_ready_item = CheckMenuItem::with_id(
+                app,
+                "always_ready",
+                "Always-Ready Dictation",
+                true,
+                always_ready_enabled,
+                None::<&str>,
+            )?;
             let grammar_item = MenuItem::with_id(app, "grammar", "Grammar Panel", true, None::<&str>)?;
             let separator = MenuItem::with_id(app, "sep", "────────────", false, None::<&str>)?;
             let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
@@ -64,6 +97,7 @@ pub fn run() {
                     &show_item,
                     &separator,
                     &dictate_item,
+                    &always_ready_item,
                     &grammar_item,
                     &settings_item,
                     &MenuItem::with_id(app, "sep2", "────────────", false, None::<&str>)?,
@@ -71,7 +105,12 @@ pub fn run() {
                 ],
             )?;
 
-            let _tray = TrayIconBuilder::new()
+            app.manage(TrayState {
+                always_ready_item: always_ready_item.clone(),
+            });
+
+            let always_ready_for_menu = always_ready_item.clone();
+            let _tray = TrayIconBuilder::with_id(TRAY_ID)
                 .tooltip("Voxlen — AI voice dictation for legal and accounting professionals")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
@@ -89,6 +128,14 @@ pub fn run() {
                                 let _ = window.set_focus();
                                 let _ = window.emit("navigate", "dictation");
                             }
+                        }
+                        "always_ready" => {
+                            // CheckMenuItem toggles itself; forward the new
+                            // state to the frontend, which flips the setting —
+                            // persistence + engine arming all flow through the
+                            // single update_settings path.
+                            let checked = always_ready_for_menu.is_checked().unwrap_or(false);
+                            let _ = app.emit("always-ready-toggle", checked);
                         }
                         "grammar" => {
                             if let Some(window) = app.get_webview_window("main") {
@@ -121,6 +168,15 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Honor start_minimized: hide the main window after everything is
+            // wired. The webview still loads (it drives settings push and the
+            // Always-Ready arming), the window just isn't shown.
+            if start_minimized {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
+
             log::info!("Voxlen initialized successfully");
             Ok(())
         })
@@ -137,6 +193,7 @@ pub fn run() {
             commands::dictation::pause_dictation,
             commands::dictation::resume_dictation,
             commands::dictation::get_dictation_status,
+            commands::dictation::get_always_ready_state,
             // STT commands
             commands::stt::get_stt_engines,
             commands::stt::set_stt_engine,

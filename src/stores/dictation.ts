@@ -109,9 +109,14 @@ interface DictationState {
   error: string | null;
   sessionStartedAtMs: number | null;
   capsLock: boolean;
+  /** Always-Ready gate phase (backend-driven). "off" when the mode is
+   *  disabled; "armed" = watching for speech locally, nothing streaming;
+   *  "streaming" = cloud session open. */
+  alwaysReadyPhase: "off" | "armed" | "streaming" | "error";
 
   // Actions
   setStatus: (status: DictationStatus) => void;
+  setAlwaysReadyPhase: (phase: "off" | "armed" | "streaming" | "error") => void;
   addSegment: (segment: TranscriptionSegment) => void;
   updateSegment: (id: string, updates: Partial<TranscriptionSegment>) => void;
   popLastSegment: () => void;
@@ -146,6 +151,9 @@ export const useDictationStore = create<DictationState>((set, get) => ({
   error: null,
   sessionStartedAtMs: null,
   capsLock: false,
+  alwaysReadyPhase: "off",
+
+  setAlwaysReadyPhase: (phase) => set({ alwaysReadyPhase: phase }),
 
   setStatus: (status) =>
     set((state) => {

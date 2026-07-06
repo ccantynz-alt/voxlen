@@ -27,6 +27,10 @@ export interface AppSettings {
   autoPunctuate: boolean;
   smartFormat: boolean;
   voiceCommandsEnabled: boolean;
+  /** Tray-resident hands-free mode: capture stays alive permanently and a
+   *  local voice-activity gate opens the cloud session only while speech is
+   *  present. The mic's hardware mute button becomes the only control. */
+  alwaysReadyMode: boolean;
 
   // Translation
   translationEnabled: boolean;
@@ -107,6 +111,7 @@ const defaultSettings: AppSettings = {
   autoPunctuate: true,
   smartFormat: true,
   voiceCommandsEnabled: true,
+  alwaysReadyMode: false,
 
   translationEnabled: false,
   translationTargetLanguage: "en",
@@ -163,6 +168,7 @@ function schedulePersist() {
       autoPunctuate: state.autoPunctuate,
       smartFormat: state.smartFormat,
       voiceCommandsEnabled: state.voiceCommandsEnabled,
+      alwaysReadyMode: state.alwaysReadyMode,
       translationEnabled: state.translationEnabled,
       translationTargetLanguage: state.translationTargetLanguage,
       injectionMode: state.injectionMode,

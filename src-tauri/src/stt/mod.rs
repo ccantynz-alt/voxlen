@@ -1,4 +1,5 @@
 pub mod cloud;
+pub mod gate;
 pub mod processor;
 pub mod streaming;
 
@@ -167,8 +168,15 @@ impl SttState {
     }
 }
 
-/// Holds the active real-time streaming session so it can be stopped on demand.
-pub struct SttSessionState(pub Arc<RwLock<Option<streaming::StreamingSession>>>);
+/// The active STT session — either a direct streaming session (classic
+/// dictation) or the Always-Ready speech gate that manages sessions itself.
+pub enum ActiveSession {
+    Direct(streaming::StreamingSession),
+    Gated(gate::GateHandle),
+}
+
+/// Holds the active real-time session so it can be stopped on demand.
+pub struct SttSessionState(pub Arc<RwLock<Option<ActiveSession>>>);
 
 impl SttSessionState {
     pub fn new() -> Self {
@@ -176,12 +184,19 @@ impl SttSessionState {
     }
 
     pub fn set(&self, session: streaming::StreamingSession) {
-        *self.0.write() = Some(session);
+        *self.0.write() = Some(ActiveSession::Direct(session));
+    }
+
+    pub fn set_gated(&self, gate: gate::GateHandle) {
+        *self.0.write() = Some(ActiveSession::Gated(gate));
     }
 
     pub fn stop(&self) {
         if let Some(session) = self.0.write().take() {
-            session.stop();
+            match session {
+                ActiveSession::Direct(s) => s.stop(),
+                ActiveSession::Gated(g) => g.stop(),
+            }
         }
     }
 }

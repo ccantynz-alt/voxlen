@@ -66,11 +66,26 @@ export function useGlobalShortcuts(enabled: boolean): void {
         }
       }
 
-      // Toggle — on Pressed, flip listening/idle.
+      // Toggle — on Pressed, flip listening/idle. In Always-Ready mode the
+      // supervisor owns start/stop, so the hotkey pauses/resumes instead.
       if (shortcutToggle) {
         await registerOne(shortcutToggle, (event) => {
           if (event.state !== "Pressed") return;
-          const status = useDictationStore.getState().status;
+          const dictation = useDictationStore.getState();
+          if (dictation.alwaysReadyPhase !== "off") {
+            const resuming = dictation.status === "paused";
+            dictation.setStatus(resuming ? "listening" : "paused");
+            (async () => {
+              try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                await invoke(resuming ? "resume_dictation" : "pause_dictation");
+              } catch {
+                // Non-Tauri / supervisor recovering.
+              }
+            })();
+            return;
+          }
+          const status = dictation.status;
           if (status === "idle" || status === "paused" || status === "error") {
             useDictationStore.getState().setStatus("listening");
             (async () => {

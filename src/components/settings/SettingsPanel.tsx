@@ -824,6 +824,20 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
 
       <SettingRow>
         <Switch
+          label="Always-Ready Dictation"
+          description={
+            settings.privilegedMode
+              ? "Unavailable while Privileged mode is on — Always-Ready streams to the cloud during speech"
+              : "Mic stays armed in the tray; your mute button is the only control. Audio is sent to the cloud only while you're actually speaking"
+          }
+          checked={settings.alwaysReadyMode && !settings.privilegedMode}
+          disabled={settings.privilegedMode}
+          onChange={(v) => settings.updateSetting("alwaysReadyMode", v)}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Switch
           label="Start Minimized"
           description="Launch Voxlen minimized to the system tray"
           checked={settings.startMinimized}

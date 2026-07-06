@@ -21,6 +21,7 @@ const DEFAULTS: AppSettings = {
   autoPunctuate: true,
   smartFormat: true,
   voiceCommandsEnabled: true,
+  alwaysReadyMode: false,
   translationEnabled: false,
   translationTargetLanguage: "en",
   injectionMode: "keyboard",
@@ -63,6 +64,7 @@ describe("toBackendSettings", () => {
     expect(backend.legal_mode).toBe(false);
     expect(backend.jurisdiction).toBe("global");
     expect(backend.voxlen_context).toBe("general");
+    expect(backend.always_ready_mode).toBe(false);
   });
 
   it("passes customVocabulary array through unchanged", () => {

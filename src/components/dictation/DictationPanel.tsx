@@ -134,6 +134,7 @@ export function DictationPanel() {
 
   const restoreDraft = useDictationStore((s) => s.restoreDraft);
   const discardDraft = useDictationStore((s) => s.discardDraft);
+  const alwaysReadyPhase = useDictationStore((s) => s.alwaysReadyPhase);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
@@ -176,6 +177,28 @@ export function DictationPanel() {
   }, [status, incrementDuration]);
 
   const handleToggleDictation = useCallback(async () => {
+    // In Always-Ready mode the supervisor owns start/stop (the watchdog
+    // would immediately re-arm a stop). The button pauses/resumes instead —
+    // pause hard-gates audio at the capture callback.
+    if (alwaysReadyPhase !== "off") {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        if (status === "paused") {
+          try {
+            await invoke("resume_dictation");
+          } catch {
+            // Backend wasn't paused (e.g. recovering) — supervisor handles it.
+          }
+          setStatus("listening");
+        } else {
+          await invoke("pause_dictation");
+          setStatus("paused");
+        }
+      } catch {
+        // Non-Tauri.
+      }
+      return;
+    }
     if (status === "idle" || status === "paused" || status === "error") {
       if (isStartingRef.current) return; // prevent double-tap race
       isStartingRef.current = true;
@@ -232,7 +255,7 @@ export function DictationPanel() {
       setActiveDeviceName(null);
       isStoppingRef.current = false;
     }
-  }, [status, setStatus, setActiveDeviceName]);
+  }, [status, alwaysReadyPhase, setStatus, setActiveDeviceName]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
@@ -518,7 +541,17 @@ export function DictationPanel() {
           <div className="text-center">
             <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
               {status === "idle" && "Press to begin dictation"}
-              {status === "listening" && (
+              {status === "listening" && alwaysReadyPhase === "armed" && (
+                <>
+                  Ready — speak anytime<span className="text-brass-400">.</span>
+                </>
+              )}
+              {status === "listening" && alwaysReadyPhase === "streaming" && (
+                <>
+                  Transcribing<span className="text-brass-400">.</span>
+                </>
+              )}
+              {status === "listening" && (alwaysReadyPhase === "off" || alwaysReadyPhase === "error") && (
                 <>
                   Listening<span className="text-brass-400">.</span>
                 </>

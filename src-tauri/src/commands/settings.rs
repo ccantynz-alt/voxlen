@@ -39,6 +39,10 @@ pub struct AppSettings {
     pub auto_punctuate: bool,
     pub smart_format: bool,
     pub voice_commands_enabled: bool,
+    /// Tray-resident hands-free mode: capture stays alive and a local
+    /// voice-activity gate opens the cloud session only during speech.
+    #[serde(default)]
+    pub always_ready_mode: bool,
 
     // Text injection
     pub injection_mode: String,
@@ -120,6 +124,7 @@ impl Default for AppSettings {
             auto_punctuate: true,
             smart_format: true,
             voice_commands_enabled: true,
+            always_ready_mode: false,
 
             injection_mode: "keyboard".to_string(),
 
@@ -184,6 +189,12 @@ pub fn update_settings(
     audio_state: State<'_, AudioState>,
     settings: AppSettings,
 ) -> Result<(), String> {
+    // Edge-detect the effective Always-Ready state (privileged mode forces
+    // it off — the gate must never open a cloud session for privileged work).
+    let was_armed = {
+        let prev = get_settings_store().read();
+        prev.always_ready_mode && !prev.privileged_mode
+    };
     *get_settings_store().write() = settings.clone();
     // The frontend (schedulePersist) owns the Tauri store and writes it in camelCase.
     // Writing snake_case from here would overwrite that and break frontend reads on
@@ -191,6 +202,16 @@ pub fn update_settings(
     apply_settings_to_engines(&stt_state.0, &audio_state, &settings);
     apply_autostart(&app, settings.launch_at_login);
     apply_injection_mode(&app, &settings.injection_mode);
+
+    // update_settings fires on every persist debounce, so arming must be
+    // strictly edge-triggered and idempotent. This also covers app boot:
+    // the frontend always pushes settings shortly after the webview loads.
+    let want_armed = settings.always_ready_mode && !settings.privileged_mode;
+    if want_armed && !was_armed {
+        crate::commands::dictation::arm_always_ready(&app);
+    } else if !want_armed && was_armed {
+        crate::commands::dictation::disarm_always_ready(&app);
+    }
     Ok(())
 }
 
@@ -205,6 +226,8 @@ pub fn reset_settings(
     apply_settings_to_engines(&stt_state.0, &audio_state, &defaults);
     apply_autostart(&app, defaults.launch_at_login);
     apply_injection_mode(&app, &defaults.injection_mode);
+    // Defaults have Always-Ready off — tear it down if it was armed.
+    crate::commands::dictation::disarm_always_ready(&app);
     Ok(defaults)
 }
 
