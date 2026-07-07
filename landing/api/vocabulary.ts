@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth.js";
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY!;
 
@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!dgRes.ok) {
       return applyHeaders(res, headers).status(200).json({ ok: true, stored: "local" });
     }
-    // Deepgram's keyword API is per-request, not persistent — just acknowledge
+    // Deepgram's keyword API is per-request, not persistent â€” just acknowledge
     return applyHeaders(res, headers).status(200).json({ ok: true, name, count: terms.length });
   } catch {
     return applyHeaders(res, headers).status(200).json({ ok: true, stored: "local" });

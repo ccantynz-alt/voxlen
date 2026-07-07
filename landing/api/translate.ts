@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth.js";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -39,14 +39,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const target = target_language ?? "en";
   const targetName = LANGUAGE_NAMES[target] ?? target;
 
-  const prompt = `Translate the following text into ${targetName}. Preserve meaning, tone, and any professional/legal terminology. Do NOT add commentary — respond ONLY with JSON in this format:
+  const prompt = `Translate the following text into ${targetName}. Preserve meaning, tone, and any professional/legal terminology. Do NOT add commentary â€” respond ONLY with JSON in this format:
 {"translated": "...", "detected_source": "ISO-639-1 code or null"}
 
 <text_to_translate>
 ${text}
 </text_to_translate>`;
 
-  const systemInstruction = "You are a professional translation assistant. Translate text accurately, preserving meaning, tone, and professional/legal terminology. Respond ONLY with the requested JSON — no markdown, no commentary.";
+  const systemInstruction = "You are a professional translation assistant. Translate text accurately, preserving meaning, tone, and professional/legal terminology. Respond ONLY with the requested JSON â€” no markdown, no commentary.";
 
   try {
     const r = await fetch(ANTHROPIC_URL, {
@@ -76,7 +76,7 @@ ${text}
     try {
       parsed = JSON.parse(content);
     } catch {
-      // Model didn't return JSON — return raw content as translated
+      // Model didn't return JSON â€” return raw content as translated
       parsed = { translated: content };
     }
 

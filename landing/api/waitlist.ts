@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { corsHeaders, applyHeaders } from "./_auth";
+import { corsHeaders, applyHeaders } from "./_auth.js";
 
 /**
  * Waitlist capture. Tries, in order:
  *  1. Vercel KV / Upstash (KV_REST_API_URL + KV_REST_API_TOKEN)
  *  2. Resend email notification to WAITLIST_NOTIFY_EMAIL (RESEND_API_KEY)
- *  3. Structured console log (always) — recoverable from Vercel logs
+ *  3. Structured console log (always) â€” recoverable from Vercel logs
  * Returns 200 as long as the entry was recorded by at least the log.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -29,11 +29,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ip: (req.headers["x-forwarded-for"] as string)?.split(",")[0] ?? null,
   };
 
-  // Always log — Vercel function logs are the storage of last resort
+  // Always log â€” Vercel function logs are the storage of last resort
   console.log("WAITLIST_SIGNUP", JSON.stringify(entry));
 
   // Tracks whether the entry reached durable storage (KV) or a notification
-  // (Resend). When false, the console.log above is the only record — the
+  // (Resend). When false, the console.log above is the only record â€” the
   // endpoint still returns 200 because the log is recoverable from Vercel.
   let stored = false;
 

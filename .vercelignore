@@ -1,0 +1,7 @@
+# Vercel builds only the landing site (project rootDirectory = "landing").
+# CLI deploys run from the repo root, so exclude everything else — the
+# desktop app, iOS keyboard, and SDK source must never be uploaded.
+/*
+!/landing
+landing/node_modules
+landing/dist

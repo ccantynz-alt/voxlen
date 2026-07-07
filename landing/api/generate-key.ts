@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, mintDesktopToken, corsHeaders, applyHeaders } from "./_auth";
-import type { VoxlenPlan } from "./_auth";
+import { verifyAccessToken, extractBearer, mintDesktopToken, corsHeaders, applyHeaders } from "./_auth.js";
+import type { VoxlenPlan } from "./_auth.js";
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
 
@@ -20,13 +20,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const body = req.body as {
-    // Self-service: no body needed — generates a key for the caller.
+    // Self-service: no body needed â€” generates a key for the caller.
     // Admin-only: can issue keys for other users.
     targetEmail?: string;
     targetName?: string;
     plan?: VoxlenPlan;
     ttlDays?: number;
-    expiresAt?: number; // Unix timestamp — overrides ttlDays
+    expiresAt?: number; // Unix timestamp â€” overrides ttlDays
   };
 
   // Admin can issue keys for anyone. Regular users can only issue for themselves.

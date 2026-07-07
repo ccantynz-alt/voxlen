@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, mintDesktopToken, applyHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, mintDesktopToken, applyHeaders } from "./_auth.js";
 
 /**
  * Exchange a (short-lived) Google access token for a long-lived Voxlen
@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { token, expiresAt } = mintDesktopToken(user);
     return applyHeaders(res, headers).status(200).json({ token, expires_at: expiresAt });
   } catch {
-    // VOXLEN_TOKEN_SECRET not configured — caller should fall back to the session token
+    // VOXLEN_TOKEN_SECRET not configured â€” caller should fall back to the session token
     return applyHeaders(res, headers).status(503).json({ error: "Desktop tokens not configured" });
   }
 }

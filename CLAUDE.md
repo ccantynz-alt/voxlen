@@ -55,7 +55,7 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 ## Known Remaining Gaps (Fix These When You Can)
 
 - [x] Whisper Local offline mode (whisper-rs + on-demand model manager) ✓ — build needs LLVM 18 + CMake (LIBCLANG_PATH/CMAKE user env vars are set on this machine)
-- [ ] API key secure storage (use OS keychain via tauri-plugin-keyring)
+- [x] API key secure storage — keyring crate with windows-native/apple-native backends (Credential Manager / macOS Keychain) ✓
 - [ ] Android keyboard extension
 - [ ] Stripe payment links (replace REPLACE_* placeholders in landing/src/lib/stripe.ts with real Stripe dashboard URLs)
 - [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
