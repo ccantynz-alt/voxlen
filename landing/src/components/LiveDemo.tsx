@@ -169,7 +169,7 @@ export default function LiveDemo() {
   }, []);
 
   return (
-    <section id="live-demo" className="py-24 px-6">
+    <section id="live-demo" className="py-24 px-6 bg-paper">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <motion.div
@@ -178,41 +178,34 @@ export default function LiveDemo() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-600/10 border border-brand-600/20 text-brand-400 text-xs font-medium mb-4">
-            <Play className="h-3 w-3" />
-            Live Demo — No account needed
+          <div className="inline-flex items-center gap-2 uppercase tracking-[0.18em] text-[11px] font-sans font-semibold text-brass mb-4">
+            <Play className="h-3 w-3" aria-hidden="true" />
+            Live Demonstration — No Account Needed
           </div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+          <h2 className="font-display text-4xl md:text-5xl tracking-tight text-ink mb-4">
             Try it right now
           </h2>
-          <p className="text-zinc-400 text-lg max-w-xl mx-auto">
+          <p className="font-sans text-ink-soft text-lg max-w-xl mx-auto">
             Watch AI grammar correction transform raw dictation into polished legal prose in real-time.
           </p>
         </motion.div>
 
-        {/* Demo card */}
+        {/* Demo card — a sheet of paper */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="rounded-2xl bg-[#111114] border border-white/10 overflow-hidden shadow-2xl"
+          className="rounded-md bg-white border border-rule overflow-hidden shadow-[0_1px_3px_rgba(29,26,21,0.06)]"
         >
-          {/* Title bar */}
-          <div className="flex items-center justify-between px-5 py-3 bg-[#0c0c0f] border-b border-white/5">
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-                <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-                <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+          {/* Letterhead bar */}
+          <div className="flex items-center justify-between px-5 py-3 bg-paper-deep border-b border-rule">
+            <div className="flex items-center gap-2 text-xs text-ink-soft">
+              <div className="w-4 h-4 rounded-sm bg-brass flex items-center justify-center">
+                <Mic className="h-2.5 w-2.5 text-paper" aria-hidden="true" />
               </div>
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <div className="w-4 h-4 rounded bg-brand-600 flex items-center justify-center">
-                  <Mic className="h-2.5 w-2.5 text-white" />
-                </div>
-                <span className="font-medium text-zinc-300">Voxlen</span>
-                <span className="text-zinc-600">— Dictation</span>
-              </div>
+              <span className="font-sans font-semibold text-ink">Voxlen</span>
+              <span className="font-mono text-ink-soft">— Dictation</span>
             </div>
             <AnimatePresence>
               {state === "listening" && (
@@ -220,10 +213,10 @@ export default function LiveDemo() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20"
+                  className="flex items-center gap-2 px-2.5 py-1 rounded-sm border border-rule bg-white"
                 >
-                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                  <span className="text-red-400 text-xs font-medium">Listening</span>
+                  <div className="w-2 h-2 rounded-full bg-brass animate-pulse motion-reduce:animate-none" />
+                  <span className="font-mono text-ink text-xs">Listening</span>
                 </motion.div>
               )}
               {state === "processing" && (
@@ -231,10 +224,10 @@ export default function LiveDemo() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-600/10 border border-brand-600/20"
+                  className="flex items-center gap-2 px-2.5 py-1 rounded-sm border border-rule bg-white"
                 >
-                  <Sparkles className="h-3 w-3 text-brand-400 animate-pulse" />
-                  <span className="text-brand-400 text-xs font-medium">AI correcting…</span>
+                  <Sparkles className="h-3 w-3 text-brass animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+                  <span className="font-mono text-brass text-xs">AI correcting…</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -243,11 +236,11 @@ export default function LiveDemo() {
           {/* Content */}
           <div className="p-6 md:p-8 space-y-6 min-h-[280px]">
             {/* Waveform */}
-            <div className="flex items-center justify-center gap-[3px] h-10">
+            <div className="flex items-center justify-center gap-[3px] h-10" aria-hidden="true">
               {Array.from({ length: 40 }).map((_, i) => (
                 <motion.div
                   key={i}
-                  className={`w-1 rounded-full ${state === "listening" ? "bg-brand-500" : "bg-white/10"}`}
+                  className={`w-1 rounded-full ${state === "listening" ? "bg-brass" : "bg-rule"}`}
                   animate={
                     state === "listening"
                       ? {
@@ -271,33 +264,33 @@ export default function LiveDemo() {
             {/* Transcript panels */}
             <div className="grid md:grid-cols-2 gap-4">
               {/* Raw transcript */}
-              <div className="rounded-xl bg-white/[0.03] border border-white/5 p-4 min-h-[100px]">
-                <div className="text-[10px] font-mono text-zinc-600 mb-2 uppercase tracking-wider">Raw dictation</div>
-                <p className="text-sm text-zinc-400 leading-relaxed">
+              <div className="rounded-md bg-paper border border-rule p-4 min-h-[100px]">
+                <div className="text-[10px] font-mono text-ink-soft mb-2 uppercase tracking-wider">Raw dictation</div>
+                <p className="font-mono text-sm text-ink-soft leading-relaxed">
                   {transcript || (
-                    <span className="text-zinc-600 italic">
+                    <span className="italic text-ink-soft/60">
                       {state === "idle"
                         ? "Your words will appear here…"
                         : "Listening for speech…"}
                     </span>
                   )}
                   {state === "listening" && transcript && (
-                    <span className="inline-block w-0.5 h-3.5 bg-brand-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-0.5 h-3.5 bg-brass ml-0.5 animate-pulse motion-reduce:animate-none align-text-bottom" />
                   )}
                 </p>
               </div>
 
               {/* Corrected */}
-              <div className="rounded-xl bg-brand-600/5 border border-brand-600/15 p-4 min-h-[100px]">
+              <div className="rounded-md bg-white border border-brass/40 p-4 min-h-[100px]">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Sparkles className="h-3 w-3 text-brand-400" />
-                  <span className="text-[10px] font-mono text-brand-500 uppercase tracking-wider">AI-corrected</span>
+                  <Sparkles className="h-3 w-3 text-brass" aria-hidden="true" />
+                  <span className="text-[10px] font-mono text-brass uppercase tracking-wider">AI-corrected</span>
                 </div>
-                <p className="text-sm text-zinc-200 leading-relaxed">
+                <p className="font-mono text-sm text-ink leading-relaxed">
                   {correctedDisplayed || (
-                    <span className="text-zinc-600 italic">
+                    <span className="italic text-ink-soft/60">
                       {state === "processing" ? (
-                        <span className="text-brand-400">Applying grammar correction…</span>
+                        <span className="text-brass">Applying grammar correction…</span>
                       ) : state === "done" && useRealSTT ? (
                         "AI grammar correction runs in the full app — this browser demo shows only your raw transcript. Download Voxlen to see Claude polish your real dictation."
                       ) : (
@@ -306,7 +299,7 @@ export default function LiveDemo() {
                     </span>
                   )}
                   {state === "done" && correctedDisplayed.length < corrected.length && (
-                    <span className="inline-block w-0.5 h-3.5 bg-brand-400 ml-0.5 animate-pulse align-text-bottom" />
+                    <span className="inline-block w-0.5 h-3.5 bg-brass ml-0.5 animate-pulse motion-reduce:animate-none align-text-bottom" />
                   )}
                 </p>
               </div>
@@ -330,9 +323,9 @@ export default function LiveDemo() {
                   ].map((tag) => (
                     <span
                       key={tag}
-                      className="px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium"
+                      className="px-2.5 py-1 rounded-sm bg-paper-deep border border-rule text-ink-soft text-xs font-sans font-medium"
                     >
-                      ✓ {tag}
+                      <span className="text-brass">✓</span> {tag}
                     </span>
                   ))}
                 </motion.div>
@@ -346,17 +339,17 @@ export default function LiveDemo() {
                   <>
                     <button
                       onClick={runSimulatedDemo}
-                      className="h-11 px-6 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:scale-[1.02]"
+                      className="h-11 px-6 rounded-md bg-brass text-paper font-sans font-semibold flex items-center gap-2 hover:bg-brass-deep transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                     >
-                      <Play className="h-4 w-4" />
+                      <Play className="h-4 w-4" aria-hidden="true" />
                       Watch demo
                     </button>
                     {hasSTT && (
                       <button
                         onClick={() => { setUseRealSTT(true); startListening(); }}
-                        className="h-11 px-6 rounded-xl bg-white/5 border border-white/10 text-white font-medium flex items-center gap-2 hover:bg-white/10 transition-all"
+                        className="h-11 px-6 rounded-md border border-rule text-ink font-sans font-medium flex items-center gap-2 hover:border-brass transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                       >
-                        <Mic className="h-4 w-4" />
+                        <Mic className="h-4 w-4" aria-hidden="true" />
                         Use my microphone
                       </button>
                     )}
@@ -365,18 +358,18 @@ export default function LiveDemo() {
                 {state === "listening" && useRealSTT && (
                   <button
                     onClick={stopListening}
-                    className="h-11 px-6 rounded-xl bg-red-600/90 text-white font-semibold flex items-center gap-2 hover:bg-red-600 transition-all animate-pulse"
+                    className="h-11 px-6 rounded-md bg-brass text-paper font-sans font-semibold flex items-center gap-2 hover:bg-brass-deep transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                   >
-                    <MicOff className="h-4 w-4" />
+                    <MicOff className="h-4 w-4" aria-hidden="true" />
                     Stop recording
                   </button>
                 )}
                 {(state === "done" || state === "processing") && (
                   <button
                     onClick={reset}
-                    className="h-11 px-6 rounded-xl bg-white/5 border border-white/10 text-white font-medium flex items-center gap-2 hover:bg-white/10 transition-all"
+                    className="h-11 px-6 rounded-md border border-rule text-ink font-sans font-medium flex items-center gap-2 hover:border-brass transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
                     Try another
                   </button>
                 )}
@@ -387,10 +380,10 @@ export default function LiveDemo() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   href="#download"
-                  className="h-11 px-6 rounded-xl bg-brand-600 text-white font-semibold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25"
+                  className="h-11 px-6 rounded-md bg-brass text-paper font-sans font-semibold flex items-center gap-2 hover:bg-brass-deep transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   Get the app
-                  <span className="text-brand-300 text-sm">→</span>
+                  <span className="text-sm" aria-hidden="true">→</span>
                 </motion.a>
               )}
             </div>
@@ -398,7 +391,7 @@ export default function LiveDemo() {
         </motion.div>
 
         {/* Fine print */}
-        <p className="text-center text-xs text-zinc-600 mt-4">
+        <p className="text-center text-xs font-sans text-ink-soft mt-4">
           "Watch demo" plays example phrases with a simulated correction. The real app applies Claude AI grammar correction instantly to every sentence.
           {hasSTT && " Microphone mode uses your browser's built-in speech recognition and shows your raw transcript only — no simulated correction."}
         </p>

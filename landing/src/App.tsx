@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
 import CookieBanner from "./components/CookieBanner";
@@ -31,9 +31,9 @@ import {
 } from "lucide-react";
 import {
   redirectToCheckout,
-  PRICE_PRO_MONTHLY,
   PRICE_PROFESSIONAL_MONTHLY,
-  PRICE_LIFETIME,
+  PRICE_PRIVILEGED_MONTHLY,
+  PRICE_FIRM_SEAT_MONTHLY,
 } from "./lib/stripe";
 
 /** Shared hook — wraps useGoogleLogin with userinfo fetch so every component uses the same flow. */
@@ -126,7 +126,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b]">
+    <div className="min-h-screen bg-paper text-ink font-sans">
       <Navbar user={user} onSignIn={handleSignIn} onSignOut={handleSignOut} onDashboard={goToDashboard} />
       <Hero user={user} onSignIn={handleSignIn} />
       <TrustBar />
@@ -167,59 +167,61 @@ function Navbar({
   const login = useGoogleSignIn(onSignIn);
 
   return (
-    <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#09090b]/80 backdrop-blur-xl">
+    <nav className="fixed top-0 w-full z-50 bg-paper/90 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-            <Mic className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">Voxlen</span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 text-sm text-zinc-400">
-          <a href="#features" className="hover:text-white transition-colors">Features</a>
-          <a href="#platforms" className="hover:text-white transition-colors">Platforms</a>
-          <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-          <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+        <a href="/" className="flex items-baseline gap-2" aria-label="Voxlen home">
+          <span className="font-display text-[22px] leading-none text-ink tracking-tight">
+            Vox<span className="italic text-brass">len</span>
+          </span>
+          <span className="hidden sm:inline font-mono text-[10px] text-ink-faint tracking-caps uppercase">
+            Dictation for the professions
+          </span>
+        </a>
+        <div className="hidden md:flex items-center gap-7 text-[13px] text-ink-soft">
+          <a href="#features" className="hover:text-ink transition-colors">Capabilities</a>
+          <a href="#platforms" className="hover:text-ink transition-colors">Platforms</a>
+          <a href="#pricing" className="hover:text-ink transition-colors">Fees</a>
+          <a href="#faq" className="hover:text-ink transition-colors">Questions</a>
         </div>
         <div className="flex items-center gap-2">
           {user ? (
             <div className="relative">
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 h-9 px-3 rounded-lg hover:bg-white/5 transition-colors"
+                className="flex items-center gap-2 h-9 px-2.5 rounded-md hover:bg-paper-deep transition-colors"
               >
                 <img
                   src={user.picture}
                   alt={user.name}
-                  className="w-7 h-7 rounded-full"
+                  className="w-7 h-7 rounded-full border border-rule"
                   referrerPolicy="no-referrer"
                 />
-                <span className="text-sm text-white hidden sm:block">{user.name.split(" ")[0]}</span>
+                <span className="text-sm text-ink hidden sm:block">{user.name.split(" ")[0]}</span>
               </button>
               {menuOpen && (
                 <div
-                  className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl py-1 z-50"
+                  className="absolute right-0 top-full mt-1 w-52 rounded-md border border-rule bg-white shadow-sheet py-1 z-50"
                   onMouseLeave={() => setMenuOpen(false)}
                 >
-                  <div className="px-3 py-2 border-b border-white/10">
-                    <p className="text-xs font-medium text-white truncate">{user.name}</p>
-                    <p className="text-[11px] text-zinc-400 truncate">{user.email}</p>
+                  <div className="px-3 py-2 border-b border-rule">
+                    <p className="text-xs font-medium text-ink truncate">{user.name}</p>
+                    <p className="text-[11px] text-ink-soft truncate">{user.email}</p>
                   </div>
                   <button
                     onClick={() => { setMenuOpen(false); onDashboard(); }}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-ink-soft hover:text-ink hover:bg-paper transition-colors"
                   >
                     Dashboard
                   </button>
                   <a
                     href="/#download"
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-ink-soft hover:text-ink hover:bg-paper transition-colors"
                   >
                     Open App
                   </a>
                   <button
                     onClick={() => { setMenuOpen(false); onSignOut(); }}
-                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-ink-soft hover:text-ink hover:bg-paper transition-colors"
                   >
                     Sign out
                   </button>
@@ -229,21 +231,117 @@ function Navbar({
           ) : (
             <button
               onClick={() => login()}
-              className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors hidden sm:flex items-center gap-1.5"
+              className="h-9 px-3 rounded-md text-[13px] text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors hidden sm:flex items-center gap-1.5"
             >
-              Sign in with Google
+              Sign in
             </button>
           )}
           <a
             href="#download"
-            className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium flex items-center gap-2 hover:bg-brand-700 transition-colors"
+            className="h-9 px-4 rounded-md bg-brass text-paper text-[13px] font-semibold flex items-center gap-2 hover:bg-brass-deep transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
-            Free Trial
+            Download
           </a>
         </div>
       </div>
+      {/* Letterhead double rule under the masthead */}
+      <div className="rule-double h-[5px]" />
     </nav>
+  );
+}
+
+/** Shared section heading — clause-numbered like the documents this
+ *  audience reads all day. */
+function SectionHead({
+  clause,
+  eyebrow,
+  title,
+  sub,
+}: {
+  clause: string;
+  eyebrow: string;
+  title: ReactNode;
+  sub?: ReactNode;
+}) {
+  return (
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true }}
+      variants={stagger}
+      className="text-center mb-14"
+    >
+      <motion.p variants={fadeUp} className="font-mono text-brass text-sm mb-2">
+        {clause}
+      </motion.p>
+      <motion.p variants={fadeUp} className="text-[11px] font-semibold tracking-caps uppercase text-ink-faint mb-4">
+        {eyebrow}
+      </motion.p>
+      <motion.h2 variants={fadeUp} className="font-display text-4xl md:text-5xl text-ink leading-[1.1]">
+        {title}
+      </motion.h2>
+      {sub && (
+        <motion.p variants={fadeUp} className="mt-4 text-ink-soft max-w-xl mx-auto leading-relaxed">
+          {sub}
+        </motion.p>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * The signature: a dictation record, typed in Courier like a court
+ * transcript, with the AI's corrections applied as a legal redline —
+ * struck in proofreader's red, inserted in brass. The product's promise,
+ * rendered in the audience's own vernacular.
+ */
+function DictationRecord() {
+  return (
+    <div className="relative bg-white border border-rule rounded-md shadow-sheet p-6 sm:p-8 text-left" aria-hidden="true">
+      <div className="flex items-baseline justify-between border-b border-rule pb-3 mb-5">
+        <span className="text-[10px] font-semibold tracking-caps uppercase text-ink-faint">
+          Dictation record
+        </span>
+        <span className="font-mono text-[11px] text-ink-faint">Matter 2026-041 · Advice</span>
+      </div>
+
+      <div className="space-y-4 font-mono text-[13px] leading-relaxed text-ink">
+        <p className="record-line" style={{ animationDelay: "0.3s" }}>
+          <span className="text-ink-faint text-[11px] mr-3">10:32:04</span>
+          Further to our conference of yesterday&rsquo;s date, we advise as follows.
+        </p>
+        <p className="record-line" style={{ animationDelay: "0.9s" }}>
+          <span className="text-ink-faint text-[11px] mr-3">10:32:11</span>
+          We recommend the client{" "}
+          <span className="correction" style={{ animationDelay: "2.2s" }}>
+            <span className="redline-strike">except</span>{" "}
+            <span className="redline-insert">accept</span>
+          </span>{" "}
+          the settlement offer
+        </p>
+        <p className="record-line" style={{ animationDelay: "1.5s" }}>
+          <span className="text-ink-faint text-[11px] mr-3">10:32:19</span>
+          in the amount of{" "}
+          <span className="correction" style={{ animationDelay: "2.7s" }}>
+            <span className="redline-strike">forty two thousand dollars</span>{" "}
+            <span className="redline-insert">$42,000</span>
+          </span>
+          , payable within 14 days.
+        </p>
+        <p className="record-line text-ink-soft" style={{ animationDelay: "3.2s" }}>
+          <span className="text-ink-faint text-[11px] mr-3">10:32:26</span>
+          This advice is privileged and
+          <span className="inline-block w-[7px] h-[15px] bg-brass ml-1 align-text-bottom animate-pulse" />
+        </p>
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <span className="stamp stamp-animate" style={{ animationDelay: "3.8s" }}>
+          Processed on device
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -251,179 +349,70 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
   const login = useGoogleSignIn(onSignIn);
 
   return (
-    <section className="relative pt-32 pb-20 overflow-hidden glow-hero">
-      {/* Background orbs */}
-
-      <div className="max-w-6xl mx-auto px-6 text-center relative z-10">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-          className="space-y-6"
-        >
-          {/* Badge */}
-          <motion.div variants={fadeUp} className="flex justify-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-600/10 border border-brand-600/20 text-brand-400 text-xs font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-400" />
-              </span>
-              Now in early access
-            </div>
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            variants={fadeUp}
-            className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]"
-          >
-            Dictate anything.
-            <br />
-            <span className="gradient-text animate-shimmer bg-[length:200%_100%]">Perfectly.</span>
-          </motion.h1>
-
-          {/* Subheadline */}
+    <section className="relative pt-36 pb-20">
+      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center">
+        <motion.div initial="hidden" animate="visible" variants={stagger} className="text-left">
           <motion.p
             variants={fadeUp}
-            className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed"
+            className="text-[11px] font-semibold tracking-caps uppercase text-brass mb-6"
           >
-            The AI voice dictation tool built for professionals who can't afford mistakes.
-            Real-time transcription, Claude AI grammar correction, and zero-retention privacy.
-            Works in every app on Mac, Windows, and iPhone.{" "}
-            <span className="text-white font-medium">
-              AI costs included with your subscription — and your data never touches our servers.
-            </span>
+            For lawyers &amp; accountants
           </motion.p>
 
-          {/* CTA buttons */}
-          <motion.div
+          <motion.h1
             variants={fadeUp}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4"
+            className="font-display text-5xl md:text-[64px] text-ink leading-[1.05] tracking-tight"
           >
+            Every word,
+            <br />
+            on the record.
+          </motion.h1>
+
+          <motion.p variants={fadeUp} className="mt-6 text-lg text-ink-soft max-w-md leading-relaxed">
+            Speak; Voxlen writes. Real-time dictation with AI grammar, typed
+            straight into Word, Outlook, or any application — with on-device
+            privacy for privileged work and billable time captured as you
+            speak.
+          </motion.p>
+
+          <motion.div variants={fadeUp} className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {user ? (
               <a
                 href="#download"
-                className="relative h-14 px-10 rounded-xl bg-brand-600 text-white font-bold text-base flex items-center gap-2.5 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.03] overflow-hidden group"
+                className="h-12 px-7 rounded-md bg-brass text-paper font-semibold text-[15px] flex items-center gap-2.5 hover:bg-brass-deep transition-colors"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <Download className="h-5 w-5" />
+                <Download className="h-4 w-4" />
                 Download Voxlen
               </a>
             ) : (
               <button
                 onClick={() => login()}
-                className="relative h-14 px-10 rounded-xl bg-brand-600 text-white font-bold text-base flex items-center gap-2.5 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.03] overflow-hidden group"
+                className="h-12 px-7 rounded-md bg-brass text-paper font-semibold text-[15px] flex items-center gap-2.5 hover:bg-brass-deep transition-colors"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <Download className="h-5 w-5" />
-                Start Free Trial
+                <Download className="h-4 w-4" />
+                Start free trial
               </button>
             )}
             <a
-              href="#features"
-              className="h-14 px-10 rounded-xl bg-white/5 border border-white/10 text-white font-medium flex items-center gap-2 hover:bg-white/10 transition-all"
+              href="#pricing"
+              className="h-12 px-6 rounded-md border border-rule text-ink font-medium text-[15px] flex items-center gap-2 hover:border-brass transition-colors"
             >
-              See Features
-              <ArrowRight className="h-4 w-4" />
+              Schedule of fees
+              <ArrowRight className="h-4 w-4 text-brass" />
             </a>
           </motion.div>
 
-          {/* Platform badges */}
-          <motion.div
-            variants={fadeUp}
-            className="flex items-center justify-center gap-4 pt-2 text-xs text-zinc-500"
-          >
-            <span className="flex items-center gap-1.5">
-              <Apple className="h-3.5 w-3.5" /> macOS
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Monitor className="h-3.5 w-3.5" /> Windows
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Monitor className="h-3.5 w-3.5" /> Linux
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5" /> iOS (coming soon)
-            </span>
-          </motion.div>
+          <motion.p variants={fadeUp} className="mt-7 font-mono text-[12px] text-ink-faint">
+            macOS &nbsp;·&nbsp; Windows &nbsp;·&nbsp; Linux &nbsp;·&nbsp; iPhone coming soon
+          </motion.p>
         </motion.div>
 
-        {/* App screenshot mockup */}
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="mt-16 relative"
+          transition={{ delay: 0.15, duration: 0.6 }}
         >
-          <div className="max-w-4xl mx-auto rounded-2xl bg-[#111114] border border-white/10 shadow-2xl shadow-black/50 overflow-hidden">
-            {/* Mock title bar */}
-            <div className="flex items-center gap-2 px-4 py-3 bg-[#0c0c0f] border-b border-white/5">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                <div className="w-3 h-3 rounded-full bg-green-500/80" />
-              </div>
-              <div className="flex items-center gap-2 ml-4">
-                <div className="w-5 h-5 rounded bg-brand-600 flex items-center justify-center">
-                  <Mic className="h-3 w-3 text-white" />
-                </div>
-                <span className="text-xs font-semibold text-zinc-300">Voxlen</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-medium">
-                  Listening
-                </span>
-              </div>
-            </div>
-
-            {/* Mock app content */}
-            <div className="flex">
-              {/* Sidebar */}
-              <div className="w-48 border-r border-white/5 p-3 space-y-1">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-600/10 text-brand-400 text-xs font-medium">
-                  <Mic className="h-3.5 w-3.5" /> Dictation
-                </div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-500 text-xs">
-                  <Sparkles className="h-3.5 w-3.5" /> Grammar
-                </div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-zinc-500 text-xs">
-                  <Globe className="h-3.5 w-3.5" /> History
-                </div>
-              </div>
-
-              {/* Main content */}
-              <div className="flex-1 p-8 text-center">
-                {/* Waveform visualization */}
-                <div className="flex items-center justify-center gap-[3px] h-16 mb-6">
-                  {Array.from({ length: 48 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 rounded-full bg-brand-500"
-                      style={{
-                        height: `${8 + Math.sin(i * 0.4) * 20 + Math.random() * 16}px`,
-                        opacity: 0.3 + Math.sin(i * 0.3) * 0.4 + 0.3,
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <div className="space-y-3 text-left max-w-md mx-auto">
-                  <p className="text-sm text-zinc-300 leading-relaxed">
-                    <span className="text-[10px] text-zinc-600 font-mono mr-2">10:32:15</span>
-                    The quarterly results exceeded all expectations, with revenue growing
-                    forty-two percent year over year.
-                    <Sparkles className="h-3 w-3 text-brand-400 inline ml-1" />
-                  </p>
-                  <p className="text-sm text-zinc-500 italic leading-relaxed">
-                    <span className="text-[10px] text-zinc-600 font-mono mr-2">10:32:28</span>
-                    We should schedule a follow up meeting to discuss the...
-                    <span className="inline-block w-0.5 h-3.5 bg-brand-400 ml-0.5 animate-pulse align-text-bottom" />
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Gradient overlay at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#09090b] to-transparent pointer-events-none" />
+          <DictationRecord />
         </motion.div>
       </div>
     </section>
@@ -433,23 +422,19 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
 function TrustBar() {
   const stats = [
     { value: "99.2%", label: "Accuracy" },
-    { value: "47ms", label: "Latency" },
-    { value: "Zero", label: "Retention" },
+    { value: "<300ms", label: "Latency" },
+    { value: "0 bytes", label: "Retained by Voxlen" },
     { value: "20+", label: "Languages" },
   ];
   return (
-    <section className="border-y border-white/5 bg-[#0c0c0f] py-10">
+    <section className="py-6">
       <div className="max-w-5xl mx-auto px-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-3">
-            <Shield className="h-4 w-4 text-brand-400 shrink-0" />
-            <p className="text-sm text-zinc-300 font-medium">Built for <span className="text-white font-bold">legal &amp; accounting professionals</span> — privacy-first by design</p>
-          </div>
-          <div className="flex items-center gap-10">
+        <div className="rule-double pt-7 pb-2">
+          <div className="flex flex-wrap items-baseline justify-center gap-x-12 gap-y-4">
             {stats.map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="text-2xl font-black text-white leading-none">{s.value}</div>
-                <div className="text-xs text-zinc-500 mt-1">{s.label}</div>
+              <div key={s.label} className="flex items-baseline gap-2.5">
+                <span className="font-mono text-xl text-ink">{s.value}</span>
+                <span className="text-[10px] tracking-caps uppercase text-ink-faint">{s.label}</span>
               </div>
             ))}
           </div>
@@ -466,8 +451,8 @@ function Platforms() {
       sub: "Apple Silicon & Intel",
       icon: "🍎",
       description: "Native Tauri app. Works with all your Mac apps — Mail, Word, Pages, Slack, any browser. Apple Silicon optimised for battery efficiency.",
-      badge: "Download available",
-      badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
+      badge: "Available now",
+      available: true,
       href: "#download",
     },
     {
@@ -475,8 +460,8 @@ function Platforms() {
       sub: "Windows 10 / 11",
       icon: "🪟",
       description: "SendInput API for seamless text injection into every Windows app. Works with Microsoft 365, Outlook, Teams, and the full Windows ecosystem.",
-      badge: "Download available",
-      badgeColor: "bg-green-500/10 text-green-400 border-green-500/20",
+      badge: "Available now",
+      available: true,
       href: "#download",
     },
     {
@@ -485,7 +470,7 @@ function Platforms() {
       icon: "📱",
       description: "Custom keyboard extension — dictate in any app including iMessage, WhatsApp, Mail, and legal practice apps. Nova-3 streaming. AI grammar in every field.",
       badge: "App Store — coming soon",
-      badgeColor: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+      available: false,
       href: "#download",
     },
     {
@@ -494,33 +479,26 @@ function Platforms() {
       icon: "🤖",
       description: "Custom keyboard for all Android devices including Samsung Galaxy. Voice dictation in every app. Same Nova-3 accuracy as desktop. Galaxy S / Z Fold optimised.",
       badge: "Coming soon — join waitlist",
-      badgeColor: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+      available: false,
       href: "#android-waitlist",
     },
   ];
 
   return (
-    <section id="platforms" className="py-24 bg-[#0c0c0f]">
+    <section id="platforms" className="py-24 bg-paper-deep/60">
       <div className="max-w-6xl mx-auto px-6">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="text-center mb-16"
-        >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            Every Platform
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            One subscription.
-            <br />
-            <span className="text-zinc-500">Every device you own.</span>
-          </motion.h2>
-          <motion.p variants={fadeUp} className="mt-4 text-zinc-400 max-w-xl mx-auto">
-            Unlike Dragon (Windows-only) or Wispr Flow (Mac/iOS-only), Voxlen works everywhere. Mac, Windows, and iPhone — same account, same vocabulary, same AI.
-          </motion.p>
-        </motion.div>
+        <SectionHead
+          clause="§ 2"
+          eyebrow="Every platform"
+          title={
+            <>
+              One subscription.
+              <br />
+              <span className="italic text-ink-soft">Every device you own.</span>
+            </>
+          }
+          sub="Unlike Dragon (Windows-only) or Wispr Flow (Mac/iOS-only), Voxlen works everywhere. Mac, Windows, and iPhone — same account, same vocabulary, same AI."
+        />
 
         <motion.div
           initial="hidden"
@@ -533,19 +511,25 @@ function Platforms() {
             <motion.div
               key={p.name}
               variants={fadeUp}
-              className="p-6 rounded-2xl bg-[#111114] border border-white/5 hover:border-white/10 transition-colors"
+              className="p-6 rounded-md bg-white border border-rule shadow-card"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="text-4xl">{p.icon}</div>
-                <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${p.badgeColor}`}>
+                <div className="text-3xl" aria-hidden="true">{p.icon}</div>
+                <span
+                  className={`text-[10px] font-semibold tracking-caps uppercase px-2 py-1 rounded-sm border ${
+                    p.available
+                      ? "border-brass/40 text-brass bg-brass-wash/60"
+                      : "border-rule text-ink-faint"
+                  }`}
+                >
                   {p.badge}
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-white mb-0.5">{p.name}</h3>
-              <p className="text-xs text-zinc-500 mb-3">{p.sub}</p>
-              <p className="text-sm text-zinc-400 leading-relaxed">{p.description}</p>
-              <a href={p.href} className="mt-4 inline-flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition-colors font-medium">
-                {p.badge.includes("coming") ? "Join waitlist" : "Download"} <ArrowRight className="h-3 w-3" />
+              <h3 className="font-serif text-lg text-ink mb-0.5">{p.name}</h3>
+              <p className="font-mono text-[11px] text-ink-faint mb-3">{p.sub}</p>
+              <p className="text-sm text-ink-soft leading-relaxed">{p.description}</p>
+              <a href={p.href} className="mt-4 inline-flex items-center gap-1.5 text-xs text-brass hover:text-brass-deep transition-colors font-semibold">
+                {p.available ? "Download" : "Join waitlist"} <ArrowRight className="h-3 w-3" />
               </a>
             </motion.div>
           ))}
@@ -582,22 +566,17 @@ function DesignedFor() {
   return (
     <section className="py-24">
       <div className="max-w-6xl mx-auto px-6">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="text-center mb-16"
-        >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            Designed for legal & accounting professionals
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            Lawyers. Accountants.
-            <br />
-            <span className="text-zinc-500">Built for how you work.</span>
-          </motion.h2>
-        </motion.div>
+        <SectionHead
+          clause="§ 4"
+          eyebrow="Areas of practice"
+          title={
+            <>
+              Lawyers. Accountants.
+              <br />
+              <span className="italic text-ink-soft">Built for how you work.</span>
+            </>
+          }
+        />
 
         <motion.div
           initial="hidden"
@@ -610,10 +589,10 @@ function DesignedFor() {
             <motion.div
               key={u.title}
               variants={fadeUp}
-              className="p-6 rounded-2xl bg-[#111114] border border-white/5"
+              className="p-6 rounded-md bg-white border border-rule shadow-card"
             >
-              <div className="text-sm font-semibold text-white mb-2">{u.title}</div>
-              <p className="text-sm text-zinc-400 leading-relaxed">{u.description}</p>
+              <div className="font-serif text-[15px] text-ink mb-2">{u.title}</div>
+              <p className="text-sm text-ink-soft leading-relaxed">{u.description}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -626,88 +605,65 @@ function Features() {
   const features = [
     {
       icon: Zap,
-      title: "Real-Time Streaming",
+      title: "Real-time streaming",
       description: "Words appear on screen as you speak. Sub-300ms latency powered by Deepgram Nova-3. No more waiting for batch processing.",
-      color: "text-yellow-400",
-      bg: "bg-yellow-400/10",
     },
     {
       icon: Sparkles,
-      title: "AI Grammar Engine",
-      description: "Every sentence gets polished by Claude — the most advanced AI. Grammar, punctuation, and style corrected instantly. More accurate than Grammarly, more capable than Dragon.",
-      color: "text-purple-400",
-      bg: "bg-purple-400/10",
+      title: "AI grammar engine",
+      description: "Every sentence is polished by Claude — grammar, punctuation, and style corrected instantly, in your chosen writing voice.",
     },
     {
       icon: Keyboard,
-      title: "Universal Text Injection",
-      description: "Dictated text types directly into ANY application. Email, Slack, Word, your IDE - wherever your cursor is. No copy-paste needed.",
-      color: "text-blue-400",
-      bg: "bg-blue-400/10",
+      title: "Types into any application",
+      description: "Dictated text goes directly to your cursor — Word, Outlook, your practice system, any browser. No copy-paste.",
     },
     {
       icon: Shield,
-      title: "Never Interrupted",
-      description: "Unlike Windows+H or Apple Dictation, Voxlen NEVER stops when you switch apps. Runs as a background service with its own audio pipeline.",
-      color: "text-green-400",
-      bg: "bg-green-400/10",
-    },
-    {
-      icon: Mic,
-      title: "Smart Mic Management",
-      description: "Auto-detects external USB mics and selects the best one. Warns you if you're using your crappy laptop mic. Live audio level testing.",
-      color: "text-red-400",
-      bg: "bg-red-400/10",
-    },
-    {
-      icon: Globe,
-      title: "20+ Languages",
-      description: "Auto-detects what language you're speaking. Switch between languages mid-sentence. Full support for accents and dialects.",
-      color: "text-cyan-400",
-      bg: "bg-cyan-400/10",
-    },
-    {
-      icon: Volume2,
-      title: "Voice Commands",
-      description: "Say 'new line', 'period', 'delete that', 'stop listening'. Natural voice commands that work exactly like you'd expect.",
-      color: "text-orange-400",
-      bg: "bg-orange-400/10",
+      title: "Never interrupted",
+      description: "Unlike Windows+H or Apple Dictation, Voxlen never stops when you switch apps. It runs as a background service with its own audio pipeline.",
     },
     {
       icon: Cpu,
-      title: "Offline Mode (Coming Soon)",
-      description: "Local Whisper inference is in development — your audio will never leave your device. Ideal for flights or maximally sensitive documents.",
-      color: "text-emerald-400",
-      bg: "bg-emerald-400/10",
+      title: "Offline mode — on-device Whisper",
+      description: "Download a local model and audio never leaves your machine. Built for privileged and maximally sensitive work; works on a flight.",
     },
     {
-      icon: Smartphone,
-      title: "iOS Keyboard (Coming Soon)",
-      description: "Deepgram Nova-2 powered voice dictation with AI grammar correction directly in your iOS keyboard. Works in every app — iMessage, WhatsApp, Mail, Notes, everywhere.",
-      color: "text-pink-400",
-      bg: "bg-pink-400/10",
+      icon: DollarSign,
+      title: "Billable time, captured",
+      description: "Every dictation session is logged per client and matter — duration, word count, and amount at your rate. Nothing slips.",
+    },
+    {
+      icon: Mic,
+      title: "Smart microphone handling",
+      description: "Auto-detects external USB mics and prefers them over the laptop mic. Survives mute buttons, unplugs, and sleep without dropping a session.",
+    },
+    {
+      icon: Globe,
+      title: "20+ languages",
+      description: "Auto-detects the language you're speaking, with full support for accents and dialects. Real-time translation included.",
+    },
+    {
+      icon: Volume2,
+      title: "Voice commands",
+      description: "Say ‘new line’, ‘period’, ‘delete that’, ‘stop listening’ — plus clause-library triggers that insert standard text on command.",
     },
   ];
 
   return (
     <section id="features" className="py-24 relative">
       <div className="max-w-6xl mx-auto px-6">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={stagger}
-          className="text-center mb-16"
-        >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            Features
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            Everything you need.
-            <br />
-            <span className="text-zinc-500">Nothing you don't.</span>
-          </motion.h2>
-        </motion.div>
+        <SectionHead
+          clause="§ 1"
+          eyebrow="Capabilities"
+          title={
+            <>
+              Everything you need.
+              <br />
+              <span className="italic text-ink-soft">Nothing you don&rsquo;t.</span>
+            </>
+          }
+        />
 
         <motion.div
           initial="hidden"
@@ -722,13 +678,13 @@ function Features() {
               <motion.div
                 key={feature.title}
                 variants={fadeUp}
-                className="group p-6 rounded-2xl bg-[#111114] border border-white/5 hover:border-white/15 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/40 transition-all duration-300"
+                className="p-6 rounded-md bg-white border border-rule shadow-card hover:border-brass/50 transition-colors"
               >
-                <div className={`w-10 h-10 rounded-xl ${feature.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className={`h-5 w-5 ${feature.color}`} />
+                <div className="w-9 h-9 rounded-sm bg-brass-wash border border-rule flex items-center justify-center mb-4">
+                  <Icon className="h-4 w-4 text-brass" aria-hidden="true" />
                 </div>
-                <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">
+                <h3 className="font-serif text-[17px] text-ink mb-2">{feature.title}</h3>
+                <p className="text-sm text-ink-soft leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>
@@ -749,42 +705,31 @@ function HowItWorks() {
   ];
 
   return (
-    <section className="py-24 bg-[#0c0c0f]">
+    <section className="py-24 bg-paper-deep/60">
       <div className="max-w-4xl mx-auto px-6">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="text-center mb-16"
-        >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            How it works
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            Four steps. Zero friction.
-          </motion.h2>
-        </motion.div>
+        <SectionHead
+          clause="§ 3"
+          eyebrow="Procedure"
+          title="Four steps. Zero friction."
+        />
 
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
-          className="space-y-8"
+          className="bg-white border border-rule rounded-md shadow-card divide-y divide-rule"
         >
-          {steps.map((step) => (
+          {steps.map((step, i) => (
             <motion.div
               key={step.num}
               variants={fadeUp}
-              className="flex items-start gap-6 p-6 rounded-2xl bg-[#111114] border border-white/5"
+              className="flex items-start gap-6 p-6"
             >
-              <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-600/10 border border-brand-600/20 flex items-center justify-center">
-                <span className="text-brand-400 font-bold text-sm">{step.num}</span>
-              </div>
+              <span className="shrink-0 font-mono text-sm text-brass pt-0.5 w-8">{`${i + 1}.`}</span>
               <div>
-                <h3 className="text-lg font-bold mb-1">{step.title}</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">{step.desc}</p>
+                <h3 className="font-serif text-[17px] text-ink mb-1">{step.title}</h3>
+                <p className="text-sm text-ink-soft leading-relaxed">{step.desc}</p>
               </div>
             </motion.div>
           ))}
@@ -807,61 +752,51 @@ function Comparison() {
   return (
     <section className="py-24">
       <div className="max-w-6xl mx-auto px-6">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="text-center mb-16"
-        >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            Comparison
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            See why we win.
-          </motion.h2>
-        </motion.div>
+        <SectionHead
+          clause="§ 5"
+          eyebrow="The alternatives, considered"
+          title="A fair comparison."
+        />
 
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="overflow-x-auto"
+          className="overflow-x-auto bg-white border border-rule rounded-md shadow-card"
         >
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left py-4 px-4 font-medium text-zinc-400">Product</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Price</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Real-time</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Never Interrupts</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">AI Grammar</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Any App</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Offline</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Smart Mic</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Android</th>
-                <th className="text-center py-4 px-3 font-medium text-zinc-400">Legal Mode</th>
+              <tr className="border-b border-rule bg-paper-deep/50">
+                <th className="text-left py-4 px-4 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Product</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Price</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Real-time</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Never interrupts</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">AI grammar</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Any app</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Offline</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Smart mic</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Android</th>
+                <th className="text-center py-4 px-3 text-[11px] tracking-caps uppercase font-semibold text-ink-faint">Legal mode</th>
               </tr>
             </thead>
             <tbody>
               {competitors.map((c) => (
                 <tr
                   key={c.name}
-                  className={`border-b border-white/5 ${c.highlight ? "bg-brand-600/5" : ""}`}
+                  className={`border-b border-rule last:border-b-0 ${c.highlight ? "bg-brass-wash/40" : ""}`}
                 >
-                  <td className={`py-4 px-4 font-semibold ${c.highlight ? "text-brand-400" : ""}`}>
+                  <td className={`py-4 px-4 ${c.highlight ? "font-serif text-brass-deep" : "font-medium text-ink"}`}>
                     {c.name}
-                    {c.highlight && <Star className="h-3 w-3 text-brand-400 inline ml-1" />}
                   </td>
-                  <td className="text-center py-4 px-3 text-zinc-400">{c.price}</td>
+                  <td className="text-center py-4 px-3 font-mono text-[13px] text-ink-soft">{c.price}</td>
                   {[c.realtime, c.neverInterrupts, c.grammar, c.anyApp, c.offline, c.extMic, c.android, c.legalMode].map((val: boolean | string, i) => (
                     <td key={i} className="text-center py-4 px-3">
                       {val === "soon" ? (
-                        <span className="text-xs text-zinc-400 whitespace-nowrap">🔜 Soon</span>
+                        <span className="text-[11px] text-ink-faint whitespace-nowrap">soon</span>
                       ) : val ? (
-                        <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-brand-400" : "text-green-400"}`} />
+                        <Check className={`h-4 w-4 mx-auto ${c.highlight ? "text-brass" : "text-ink-soft"}`} aria-label="yes" />
                       ) : (
-                        <span className="text-zinc-600">-</span>
+                        <span className="text-rule" aria-label="no">—</span>
                       )}
                     </td>
                   ))}
@@ -889,109 +824,80 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
   };
   const tiers = [
     {
-      name: "Free",
-      tagline: "Try it out",
-      price: "$0",
-      period: "/forever",
-      features: [
-        "500 words/week",
-        "Basic dictation",
-        "Community support",
-      ],
-      cta: "Download Free",
-      ctaStyle: "secondary",
-      highlight: false,
-      priceId: null as string | null,
-    },
-    {
-      name: "Pro",
+      name: "Professional",
       tagline: "For daily dictation",
       price: "$29",
       period: "/month",
       features: [
-        "Unlimited dictation",
-        "AI grammar (Claude / GPT-4o)",
-        "All AI costs included — no API keys needed",
-        "Optional BYOK (use your own API keys)",
-        "Text injection (any app)",
-        "Voice commands",
-        "20+ languages",
-        "iOS keyboard (coming soon)",
+        "Unlimited real-time dictation",
+        "AI grammar (Claude / GPT-4o) — all AI costs included",
+        "Types into any application",
+        "Voice commands & smart formatting",
+        "20+ languages, live translation",
         "macOS, Windows, Linux",
+        "Optional BYOK (your own API keys)",
         "Priority email support",
       ],
-      cta: "Start 14-Day Free Trial",
-      ctaStyle: "primary",
-      highlight: true,
-      badge: "Most Popular",
-      priceId: PRICE_PRO_MONTHLY,
+      cta: "Start 14-day trial",
+      highlight: false,
+      badge: null as string | null,
+      priceId: PRICE_PROFESSIONAL_MONTHLY as string | null,
+      contact: false,
     },
     {
-      name: "Professional",
-      tagline: "For lawyers, accountants & firms",
-      price: "$79",
+      name: "Privileged",
+      tagline: "For privileged & confidential work",
+      price: "$59",
       period: "/month",
       features: [
-        "Everything in Pro",
-        "Confidential mode (zero-retention)",
-        "Per-matter / per-client vocabulary",
+        "Everything in Professional",
+        "Offline mode — on-device Whisper, audio never leaves your machine",
+        "Client & matter billing with billable-time capture",
+        "Clause library & voice-triggered templates",
+        "Per-client vocabulary isolation",
         "Legal & accounting terminology packs",
-        "Local audit logs",
-        "SSO & team management",
-        "SLA & dedicated support",
+        "Local-only learning (nothing synced)",
       ],
-      cta: "Start Free Trial",
-      ctaStyle: "secondary",
-      highlight: false,
-      badge: "Recommended for Pros",
-      priceId: PRICE_PROFESSIONAL_MONTHLY,
+      cta: "Start 14-day trial",
+      highlight: true,
+      badge: "For the professions",
+      priceId: PRICE_PRIVILEGED_MONTHLY as string | null,
+      contact: false,
     },
     {
-      name: "Lifetime",
-      tagline: "Early bird offer — limited time",
-      price: "$599",
-      period: "/one-time",
+      name: "Firm",
+      tagline: "Five seats or more",
+      price: "$49",
+      period: "/seat/month",
       features: [
-        "Everything in Professional",
-        "Lifetime updates — pay once, own forever",
-        "Early access to new features",
-        "Custom vocabulary",
-        "Direct founder support",
-        "Price increases after launch",
+        "Everything in Privileged, per seat",
+        "Central billing & seat management",
+        "Shared clause libraries across the firm",
+        "Deployment & onboarding assistance",
+        "Dedicated support",
       ],
-      cta: "Get Lifetime Access",
-      ctaStyle: "secondary",
+      cta: "Enquire",
       highlight: false,
-      priceId: PRICE_LIFETIME,
+      badge: null as string | null,
+      priceId: PRICE_FIRM_SEAT_MONTHLY as string | null,
+      contact: true,
     },
   ];
 
   return (
-    <section id="pricing" className="py-24 bg-[#0c0c0f]">
+    <section id="pricing" className="py-24 bg-paper-deep/60">
       <div className="max-w-6xl mx-auto px-6">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="text-center mb-16"
-        >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            Pricing
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight">
-            Professional-grade. Priced like one.
-          </motion.h2>
-          <motion.p variants={fadeUp} className="text-zinc-400 mt-3 max-w-xl mx-auto">
-            Every plan includes the full AI stack — speech, grammar, text injection.
-            AI usage costs are included in your subscription. Prefer your own API keys from Deepgram, OpenAI, or Anthropic? Bring-your-own-keys is fully supported. Either way, your audio goes directly from your device to the AI — never through our servers.
-          </motion.p>
-        </motion.div>
+        <SectionHead
+          clause="§ 6"
+          eyebrow="Schedule of fees"
+          title="Priced against billable time."
+          sub="A lawyer billing $400 an hour who saves twenty minutes a day recovers the annual fee in the first week. Every plan includes all AI costs — no API keys to manage."
+        />
 
         {checkoutNotice && (
-          <div className="mb-10 max-w-xl mx-auto p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-center">
-            <p className="text-sm text-yellow-300 font-medium">
-              Payments are launching soon — join the waitlist below and we'll email you the moment checkout opens.
+          <div className="mb-10 max-w-xl mx-auto p-4 rounded-md bg-brass-wash border border-brass/30 text-center">
+            <p className="text-sm text-brass-deep font-medium">
+              Payments are launching soon — join the waitlist below and we&rsquo;ll email you the moment checkout opens.
             </p>
           </div>
         )}
@@ -1001,101 +907,78 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
           whileInView="visible"
           viewport={{ once: true }}
           variants={stagger}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start"
         >
           {tiers.map((t) => (
             <motion.div
               key={t.name}
               variants={fadeUp}
-              className={`p-7 rounded-2xl bg-[#111114] relative ${
+              className={`p-7 rounded-md bg-white relative ${
                 t.highlight
-                  ? "border-2 border-brand-600/60 shadow-2xl shadow-brand-600/10"
-                  : "border border-white/5"
+                  ? "border-2 border-brass shadow-sheet"
+                  : "border border-rule shadow-card"
               }`}
             >
               {t.badge && (
-                <div
-                  className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                    t.highlight
-                      ? "bg-brand-600 text-white shadow-lg shadow-brand-600/40"
-                      : "bg-white/10 text-zinc-300 border border-white/10"
-                  }`}
-                >
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-sm bg-brass text-paper text-[10px] font-semibold tracking-caps uppercase whitespace-nowrap">
                   {t.badge}
                 </div>
               )}
-              <h3 className={`text-lg font-bold mb-1 ${t.highlight ? "text-white" : ""}`}>{t.name}</h3>
-              <p className="text-xs text-zinc-500 mb-5">{t.tagline}</p>
-              <div className="mb-5">
-                <span className={`text-4xl font-black ${t.highlight ? "text-white" : ""}`}>{t.price}</span>
-                <span className="text-zinc-500 text-sm">{t.period}</span>
-                {t.highlight && (
-                  <div className="mt-1 text-xs text-green-400 font-medium">Save $58/yr with annual — coming soon</div>
-                )}
+              <h3 className="font-serif text-xl text-ink mb-1">{t.name}</h3>
+              <p className="text-xs text-ink-faint mb-6">{t.tagline}</p>
+              <div className="mb-6 flex items-baseline gap-1.5">
+                <span className="font-mono text-[40px] leading-none text-ink">{t.price}</span>
+                <span className="font-mono text-sm text-ink-faint">{t.period}</span>
               </div>
-              <ul className="space-y-2.5 mb-7">
+              <ul className="space-y-2.5 mb-7 border-t border-rule pt-5">
                 {t.features.map((f) => (
-                  <li
-                    key={f}
-                    className={`flex items-start gap-2 text-sm ${
-                      t.highlight ? "text-zinc-300" : "text-zinc-400"
-                    }`}
-                  >
-                    <Check
-                      className={`h-4 w-4 shrink-0 mt-0.5 ${
-                        t.highlight ? "text-brand-400" : "text-zinc-600"
-                      }`}
-                    />
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-ink-soft">
+                    <Check className="h-4 w-4 shrink-0 mt-0.5 text-brass" aria-hidden="true" />
                     {f}
                   </li>
                 ))}
               </ul>
               <div>
-                {t.priceId ? (
-                  <button
-                    type="button"
-                    onClick={() => handleCta(t.priceId!)}
-                    className={`w-full h-11 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                      t.ctaStyle === "primary"
-                        ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40 hover:scale-[1.02]"
-                        : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {!user ? "Sign in to Get Started" : t.cta}
-                  </button>
-                ) : (
+                {t.contact ? (
                   <a
-                    href="#download"
-                    className={`block text-center h-11 leading-[44px] rounded-xl text-sm font-semibold transition-colors ${
-                      t.ctaStyle === "primary"
-                        ? "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25"
-                        : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                    }`}
+                    href="mailto:hello@voxlen.ai?subject=Firm%20plan%20enquiry"
+                    className="block text-center h-11 leading-[42px] rounded-md text-sm font-semibold border border-rule text-ink hover:border-brass transition-colors"
                   >
                     {t.cta}
                   </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleCta(t.priceId!)}
+                    className={`w-full h-11 rounded-md text-sm font-semibold transition-colors cursor-pointer ${
+                      t.highlight
+                        ? "bg-brass text-paper hover:bg-brass-deep"
+                        : "border border-rule text-ink hover:border-brass"
+                    }`}
+                  >
+                    {!user ? "Sign in to begin" : t.cta}
+                  </button>
                 )}
               </div>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* Stripe trust badge */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="flex items-center justify-center gap-2 mt-8 text-xs text-zinc-500"
+          className="flex items-center justify-center gap-2 mt-8 text-xs text-ink-faint"
         >
-          <Lock className="h-3.5 w-3.5 text-zinc-600" />
-          <span>Secure payment by <span className="text-zinc-400 font-medium">Stripe</span> — your card details never touch our servers</span>
+          <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Secure payment by <span className="text-ink-soft font-medium">Stripe</span> — your card details never touch our servers</span>
         </motion.div>
 
-        <p className="text-center text-xs text-zinc-600 mt-4 max-w-2xl mx-auto leading-relaxed">
-          Pro and Professional include a 14-day free trial. No credit card required. Cancel anytime.
-          All AI costs are included in your subscription — or bring your own API keys if you prefer.
-          Your audio streams directly from your device to the AI providers — Deepgram, OpenAI, or
-          Anthropic — and is never routed through or stored by Voxlen.
+        <p className="text-center text-xs text-ink-faint mt-4 max-w-2xl mx-auto leading-relaxed">
+          Professional and Privileged include a 14-day free trial. No credit card required; cancel
+          anytime. Prefer your own API keys from Deepgram, OpenAI, or Anthropic? Bring-your-own-keys
+          is fully supported. Your audio streams from your device to the AI providers — or, in
+          offline mode, never leaves it at all.
         </p>
       </div>
     </section>
@@ -1122,7 +1005,7 @@ function FAQ() {
     },
     {
       q: "Do I need an internet connection?",
-      a: "For now, yes — Deepgram and the grammar AI require a connection. A fully offline mode using local Whisper inference is in active development and will be available in a future update.",
+      a: "Not necessarily. Cloud dictation (Deepgram + grammar AI) requires a connection, but the Privileged plan includes a fully offline mode: download a local Whisper model inside the app and transcription runs entirely on your device — on a flight, in a secure facility, anywhere.",
     },
     {
       q: "Does it work with my external USB microphone?",
@@ -1130,11 +1013,11 @@ function FAQ() {
     },
     {
       q: "Is my audio private? I handle privileged information.",
-      a: "Yes. Even though we provide the AI infrastructure as part of your subscription, your audio and transcripts are NEVER routed through or stored on Voxlen-operated servers. Audio streams directly from your device to the AI provider using zero-retention endpoints and is discarded immediately after transcription. On the Professional plan, we enable the strictest zero-retention guarantees from every AI provider. Offline mode means nothing leaves your device at all. This is a hard architectural rule we will never compromise.",
+      a: "Yes. Your audio and transcripts are never stored on Voxlen-operated servers. Streaming dictation goes from your device to the speech provider on zero-retention endpoints and is discarded after transcription. And on the Privileged plan, offline mode means nothing leaves your device at all — transcription runs on your own hardware. For privileged work, that is the strongest guarantee any dictation product can make.",
     },
     {
       q: "Can my law firm or accounting practice get a team plan?",
-      a: "Yes. The Professional plan includes SSO, team management, per-client / per-matter vocabulary isolation, and firm-wide usage analytics — designed specifically for law firms and accounting practices. Contact hello@voxlen.ai for firm-wide pricing.",
+      a: "Yes. The Firm plan ($49/seat/month, five seats or more) includes central billing, seat management, shared clause libraries, and onboarding assistance — designed specifically for law firms and accounting practices. Contact hello@voxlen.ai to arrange it.",
     },
   ];
 
@@ -1143,41 +1026,26 @@ function FAQ() {
   return (
     <section id="faq" className="py-24">
       <div className="max-w-3xl mx-auto px-6">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="text-center mb-16"
-        >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            FAQ
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl font-black tracking-tight">
-            Questions? Answered.
-          </motion.h2>
-        </motion.div>
+        <SectionHead clause="§ 7" eyebrow="Questions" title="Asked and answered." />
 
-        <div className="space-y-2">
+        <div className="bg-white border border-rule rounded-md shadow-card divide-y divide-rule">
           {faqs.map((faq, i) => (
-            <div
-              key={i}
-              className="rounded-xl bg-[#111114] border border-white/5 overflow-hidden"
-            >
+            <div key={i}>
               <button
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="flex items-center justify-between w-full p-5 text-left"
+                className="flex items-center justify-between w-full p-5 text-left hover:bg-paper/60 transition-colors"
+                aria-expanded={openIndex === i}
               >
-                <span className="text-sm font-semibold pr-4">{faq.q}</span>
+                <span className="font-serif text-[15px] text-ink pr-4">{faq.q}</span>
                 {openIndex === i ? (
-                  <ChevronUp className="h-4 w-4 text-zinc-500 shrink-0" />
+                  <ChevronUp className="h-4 w-4 text-brass shrink-0" aria-hidden="true" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-zinc-500 shrink-0" />
+                  <ChevronDown className="h-4 w-4 text-ink-faint shrink-0" aria-hidden="true" />
                 )}
               </button>
               {openIndex === i && (
                 <div className="px-5 pb-5 -mt-1">
-                  <p className="text-sm text-zinc-400 leading-relaxed">{faq.a}</p>
+                  <p className="text-sm text-ink-soft leading-relaxed">{faq.a}</p>
                 </div>
               )}
             </div>
@@ -1294,7 +1162,7 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
   const PrimaryIcon = primary?.icon === "apple" ? Apple : Monitor;
 
   return (
-    <section id="download" className="py-24 bg-[#0c0c0f] relative overflow-hidden">
+    <section id="download" className="py-24 bg-paper-deep/60 relative">
       <div className="max-w-5xl mx-auto px-6 relative z-10">
         <motion.div
           initial="hidden"
@@ -1303,28 +1171,31 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
           variants={stagger}
           className="text-center"
         >
-          <motion.p variants={fadeUp} className="text-brand-400 text-sm font-semibold tracking-wider uppercase mb-3">
-            Download
+          <motion.p variants={fadeUp} className="font-mono text-brass text-sm mb-2">
+            § 8
           </motion.p>
-          <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-            Ready to ditch typing?
+          <motion.p variants={fadeUp} className="text-[11px] font-semibold tracking-caps uppercase text-ink-faint mb-4">
+            Execution
+          </motion.p>
+          <motion.h2 variants={fadeUp} className="font-display text-4xl md:text-5xl text-ink mb-4">
+            Put it in writing.
           </motion.h2>
-          <motion.p variants={fadeUp} className="text-lg text-zinc-400 mb-10">
+          <motion.p variants={fadeUp} className="text-lg text-ink-soft mb-10">
             {hasRelease === false
               ? `Be first to know when Voxlen launches${platform !== "unknown" ? ` on ${platform === "mac-arm" || platform === "mac-intel" ? "Mac" : platform === "windows" ? "Windows" : platform === "linux" ? "Linux" : platform}` : ""}.`
-              : "Free forever. No credit card. Under 2 minutes to first word."}
+              : "Free 14-day trial. No credit card. Under two minutes to first word."}
           </motion.p>
 
           {/* Primary auto-detected button — or early access if no release yet */}
           {hasRelease !== true ? (
             <motion.div variants={fadeUp} className="max-w-md mx-auto mb-10">
-              <div className="p-6 rounded-2xl bg-brand-600/10 border border-brand-600/20 text-center">
-                <div className="text-lg font-bold text-white mb-2">🚀 Early Access — Join the Waitlist</div>
-                <p className="text-sm text-zinc-400 mb-4">
-                  We're putting the finishing touches on the first public build. Join the waitlist and be first to download when it launches.
+              <div className="p-6 rounded-md bg-white border border-rule shadow-card text-center">
+                <div className="font-serif text-lg text-ink mb-2">Early access — join the waitlist</div>
+                <p className="text-sm text-ink-soft mb-4">
+                  We&rsquo;re putting the finishing touches on the first public build. Join the waitlist and be first to download when it launches.
                 </p>
                 <WaitlistForm platform="Desktop" />
-                <p className="text-xs text-zinc-600 mt-3">Mac, Windows, iOS, and Android — all covered.</p>
+                <p className="text-xs text-ink-faint mt-3">Mac, Windows, iOS, and Android — all covered.</p>
               </div>
             </motion.div>
           ) : primary && hasRelease ? (
@@ -1332,34 +1203,34 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
               {user ? (
                 <a
                   href={hrefFor(platform as Exclude<Platform, "unknown">)}
-                  className="group h-16 px-10 rounded-2xl bg-brand-600 text-white font-bold flex items-center gap-4 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.02]"
+                  className="group h-16 px-9 rounded-md bg-brass text-paper font-semibold flex items-center gap-4 hover:bg-brass-deep transition-colors"
                 >
-                  <PrimaryIcon className="h-7 w-7" />
+                  <PrimaryIcon className="h-6 w-6" aria-hidden="true" />
                   <div className="text-left">
                     <div className="text-lg leading-tight">{primary.label}</div>
-                    <div className="text-xs font-normal opacity-80">
+                    <div className="text-xs font-normal opacity-85">
                       {primary.subLabel} · {primary.size}
                     </div>
                   </div>
-                  <Download className="h-5 w-5 opacity-70 group-hover:translate-y-0.5 transition-transform" />
+                  <Download className="h-5 w-5 opacity-80 group-hover:translate-y-0.5 transition-transform" aria-hidden="true" />
                 </a>
               ) : (
                 <button
                   onClick={() => login()}
-                  className="group h-16 px-10 rounded-2xl bg-brand-600 text-white font-bold flex items-center gap-4 hover:bg-brand-700 transition-all shadow-xl shadow-brand-600/30 hover:shadow-brand-600/50 hover:scale-[1.02]"
+                  className="group h-16 px-9 rounded-md bg-brass text-paper font-semibold flex items-center gap-4 hover:bg-brass-deep transition-colors"
                 >
-                  <PrimaryIcon className="h-7 w-7" />
+                  <PrimaryIcon className="h-6 w-6" aria-hidden="true" />
                   <div className="text-left">
-                    <div className="text-lg leading-tight">Sign in to Download</div>
-                    <div className="text-xs font-normal opacity-80">Free — sign in with Google</div>
+                    <div className="text-lg leading-tight">Sign in to download</div>
+                    <div className="text-xs font-normal opacity-85">Free — sign in with Google</div>
                   </div>
-                  <Download className="h-5 w-5 opacity-70" />
+                  <Download className="h-5 w-5 opacity-80" aria-hidden="true" />
                 </button>
               )}
             </motion.div>
           ) : null}
 
-          <motion.p variants={fadeUp} className="text-xs text-zinc-500 mb-12">
+          <motion.p variants={fadeUp} className="font-mono text-xs text-ink-faint mb-12">
             Version {APP_VERSION} · Free to download · No credit card
           </motion.p>
         </motion.div>
@@ -1382,29 +1253,23 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
                   <motion.div
                     key={key}
                     variants={fadeUp}
-                    className={`relative p-5 rounded-xl border transition-all ${
-                      isDetected
-                        ? "bg-brand-600/5 border-brand-600/40"
-                        : "bg-white/[0.02] border-white/5"
+                    className={`relative p-5 rounded-md bg-white border transition-colors ${
+                      isDetected ? "border-brass" : "border-rule"
                     }`}
                   >
                     {isDetected && (
-                      <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-brand-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                      <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-sm bg-brass text-paper text-[10px] font-semibold uppercase tracking-caps">
                         Detected
                       </div>
                     )}
                     <div className="flex items-start justify-between mb-3">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          isDetected ? "bg-brand-600/20 text-brand-400" : "bg-white/5 text-zinc-400"
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
+                      <div className="w-10 h-10 rounded-sm bg-brass-wash border border-rule flex items-center justify-center text-brass">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-white mb-1">{platformLabel}</div>
-                    <div className="text-xs text-zinc-500 mb-3">{d.subLabel}</div>
-                    <p className="text-xs text-zinc-500 mb-3">
+                    <div className="text-sm font-semibold text-ink mb-1">{platformLabel}</div>
+                    <div className="font-mono text-[11px] text-ink-faint mb-3">{d.subLabel}</div>
+                    <p className="text-xs text-ink-soft mb-3">
                       Be first to know when Voxlen launches on {platformLabel}.
                     </p>
                     <WaitlistForm platform={platformLabel} />
@@ -1416,30 +1281,24 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
                   key={key}
                   variants={fadeUp}
                   href={hrefFor(key)}
-                  className={`group relative p-5 rounded-xl border transition-all ${
-                    isDetected
-                      ? "bg-brand-600/5 border-brand-600/40 hover:border-brand-600/60"
-                      : "bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10"
+                  className={`group relative p-5 rounded-md bg-white border transition-colors ${
+                    isDetected ? "border-brass" : "border-rule hover:border-brass/50"
                   }`}
                 >
                   {isDetected && (
-                    <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-brand-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                    <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-sm bg-brass text-paper text-[10px] font-semibold uppercase tracking-caps">
                       Detected
                     </div>
                   )}
                   <div className="flex items-start justify-between mb-3">
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        isDetected ? "bg-brand-600/20 text-brand-400" : "bg-white/5 text-zinc-400"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
+                    <div className="w-10 h-10 rounded-sm bg-brass-wash border border-rule flex items-center justify-center text-brass">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                     </div>
-                    <Download className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 group-hover:translate-y-0.5 transition-all" />
+                    <Download className="h-4 w-4 text-ink-faint group-hover:text-brass group-hover:translate-y-0.5 transition-all" aria-hidden="true" />
                   </div>
-                  <div className="text-sm font-semibold text-white mb-1">{platformLabel}</div>
-                  <div className="text-xs text-zinc-500 mb-3">{d.subLabel}</div>
-                  <div className="text-[10px] text-zinc-600 font-mono">{d.size}</div>
+                  <div className="text-sm font-semibold text-ink mb-1">{platformLabel}</div>
+                  <div className="font-mono text-[11px] text-ink-faint mb-3">{d.subLabel}</div>
+                  <div className="font-mono text-[10px] text-ink-faint">{d.size}</div>
                 </motion.a>
               );
             }
@@ -1455,31 +1314,31 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
           className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5"
         >
           {/* iOS */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-600/10 to-transparent border border-brand-600/20 flex flex-col gap-4">
+          <div className="p-6 rounded-md bg-white border border-rule shadow-card flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-brand-600/20 border border-brand-600/30 flex items-center justify-center shrink-0">
-                <Apple className="h-6 w-6 text-brand-400" />
+              <div className="w-12 h-12 rounded-sm bg-brass-wash border border-rule flex items-center justify-center shrink-0">
+                <Apple className="h-6 w-6 text-brass" aria-hidden="true" />
               </div>
               <div>
-                <div className="text-base font-bold text-white">iPhone & iPad Keyboard</div>
-                <div className="text-xs text-zinc-500">iOS 16+ — Custom keyboard extension</div>
+                <div className="font-serif text-base text-ink">iPhone &amp; iPad keyboard</div>
+                <div className="font-mono text-[11px] text-ink-faint">iOS 16+ — custom keyboard extension</div>
               </div>
             </div>
-            <p className="text-sm text-zinc-400">Nova-3 streaming dictation with AI grammar correction. Works in every iOS app — iMessage, WhatsApp, Mail, legal apps. 20+ languages.</p>
+            <p className="text-sm text-ink-soft">Nova-3 streaming dictation with AI grammar correction. Works in every iOS app — iMessage, WhatsApp, Mail, legal apps. 20+ languages.</p>
             <WaitlistForm platform="iOS" />
           </div>
           {/* Android */}
-          <div id="android-waitlist" className="p-6 rounded-2xl bg-gradient-to-br from-zinc-800/30 to-transparent border border-white/10 flex flex-col gap-4">
+          <div id="android-waitlist" className="p-6 rounded-md bg-white border border-rule shadow-card flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                <Smartphone className="h-6 w-6 text-zinc-400" />
+              <div className="w-12 h-12 rounded-sm bg-paper-deep border border-rule flex items-center justify-center shrink-0">
+                <Smartphone className="h-6 w-6 text-ink-soft" aria-hidden="true" />
               </div>
               <div>
-                <div className="text-base font-bold text-white">Android / Samsung Keyboard</div>
-                <div className="text-xs text-zinc-500">Android 10+ — Samsung Galaxy optimised</div>
+                <div className="font-serif text-base text-ink">Android / Samsung keyboard</div>
+                <div className="font-mono text-[11px] text-ink-faint">Android 10+ — Samsung Galaxy optimised</div>
               </div>
             </div>
-            <p className="text-sm text-zinc-400">Full custom Android keyboard with Nova-3 dictation and AI grammar polish. Galaxy S, Z Fold, and all Android devices. Join the waitlist for early access.</p>
+            <p className="text-sm text-ink-soft">Full custom Android keyboard with Nova-3 dictation and AI grammar polish. Galaxy S, Z Fold, and all Android devices. Join the waitlist for early access.</p>
             <WaitlistForm platform="Android" />
           </div>
         </motion.div>
@@ -1490,13 +1349,13 @@ function CTA({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Google
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          className="mt-8 text-center text-xs text-zinc-600"
+          className="mt-8 text-center text-xs text-ink-faint"
         >
           <a
             href="https://github.com/ccantynz-alt/voxlen/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-brand-400 transition-colors"
+            className="hover:text-brass transition-colors"
           >
             View all releases &amp; changelog →
           </a>
@@ -1539,8 +1398,8 @@ function WaitlistForm({ platform }: { platform: string }) {
 
   if (status === "submitted") {
     return (
-      <div className="flex items-center gap-2 text-sm text-green-400 font-medium">
-        <Check className="h-4 w-4" /> You're on the {platform} waitlist — we'll email you at launch.
+      <div className="flex items-center gap-2 text-sm text-brass-deep font-medium">
+        <Check className="h-4 w-4" aria-hidden="true" /> You&rsquo;re on the {platform} waitlist — we&rsquo;ll email you at launch.
       </div>
     );
   }
@@ -1554,21 +1413,21 @@ function WaitlistForm({ platform }: { platform: string }) {
           onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
           placeholder="your@email.com"
           disabled={status === "submitting"}
-          className={`flex-1 h-9 px-3 rounded-lg bg-black/40 border text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors disabled:opacity-60 ${status === "invalid" || status === "failed" ? "border-red-500 focus:border-red-400" : "border-white/10 focus:border-brand-500"}`}
+          className={`flex-1 min-w-0 h-9 px-3 rounded-md bg-paper border text-sm text-ink placeholder:text-ink-faint focus:outline-none transition-colors disabled:opacity-60 ${status === "invalid" || status === "failed" ? "border-redline focus:border-redline" : "border-rule focus:border-brass"}`}
         />
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="h-9 px-4 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shrink-0 disabled:opacity-60 disabled:cursor-wait"
+          className="h-9 px-4 rounded-md bg-brass text-paper text-sm font-semibold hover:bg-brass-deep transition-colors shrink-0 disabled:opacity-60 disabled:cursor-wait"
         >
           {status === "submitting" ? "Adding…" : status === "failed" ? "Retry" : "Notify me"}
         </button>
       </form>
       {status === "invalid" && (
-        <p className="text-xs text-red-400">Please enter a valid email address.</p>
+        <p className="text-xs text-redline">Please enter a valid email address.</p>
       )}
       {status === "failed" && (
-        <p className="text-xs text-red-400">Couldn't reach the waitlist server — please try again. Your email is saved locally in the meantime.</p>
+        <p className="text-xs text-redline">Couldn&rsquo;t reach the waitlist server — please try again. Your email is saved locally in the meantime.</p>
       )}
     </div>
   );
@@ -1617,45 +1476,40 @@ const FOOTER_LINKS: { heading: string; links: { href: string; label: string }[] 
 
 function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => void }) {
   return (
-    <footer className="py-16 border-t border-white/5 bg-[#09090b]">
+    <footer className="py-16">
       <div className="max-w-6xl mx-auto px-6">
-        {/* Logo + tagline + trust badges row */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-10 mb-10 border-b border-white/5">
+        <div className="rule-double pt-10" />
+
+        {/* Letterhead block */}
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-10 mb-10 border-b border-rule">
           <div>
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-                <Mic className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-lg font-black tracking-tight">Voxlen</span>
-              <span className="text-xs text-zinc-600">v{APP_VERSION}</span>
+            <div className="flex items-baseline gap-2.5 mb-2">
+              <span className="font-display text-2xl text-ink tracking-tight">
+                Vox<span className="italic text-brass">len</span>
+              </span>
+              <span className="font-mono text-[11px] text-ink-faint">v{APP_VERSION}</span>
             </div>
-            <p className="text-xs text-zinc-500 max-w-xs">The most advanced AI voice dictation for legal and accounting professionals.</p>
+            <p className="text-xs text-ink-soft max-w-xs leading-relaxed">
+              Dictation crafted for legal and accounting professionals. On-device
+              privacy. Billable-time precision.
+            </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-              <Shield className="h-3.5 w-3.5 text-green-400" />
-              <span className="text-xs font-semibold text-zinc-300">Local-First Storage</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-              <Lock className="h-3.5 w-3.5 text-blue-400" />
-              <span className="text-xs font-semibold text-zinc-300">GDPR Compliant</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-              <Shield className="h-3.5 w-3.5 text-purple-400" />
-              <span className="text-xs font-semibold text-zinc-300">Zero Retention</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] tracking-caps uppercase text-ink-faint">
+            <span className="flex items-center gap-1.5"><Shield className="h-3 w-3 text-brass" aria-hidden="true" /> Local-first storage</span>
+            <span className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-brass" aria-hidden="true" /> GDPR compliant</span>
+            <span className="flex items-center gap-1.5"><Cpu className="h-3 w-3 text-brass" aria-hidden="true" /> On-device mode</span>
           </div>
         </div>
 
         {/* Links grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pb-10 mb-10 border-b border-white/5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pb-10 mb-10 border-b border-rule">
           {FOOTER_LINKS.map((col) => (
             <div key={col.heading}>
-              <h4 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-3">{col.heading}</h4>
+              <h4 className="text-[11px] font-semibold text-ink tracking-caps uppercase mb-3">{col.heading}</h4>
               <ul className="space-y-2">
                 {col.links.map((l) => (
                   <li key={l.href}>
-                    <a href={l.href} className="text-xs text-zinc-500 hover:text-white transition-colors">{l.label}</a>
+                    <a href={l.href} className="text-xs text-ink-soft hover:text-brass transition-colors">{l.label}</a>
                   </li>
                 ))}
               </ul>
@@ -1665,15 +1519,15 @@ function Footer({ onOpenLegal }: { onOpenLegal: (type: "privacy" | "terms") => v
 
         {/* Bottom bar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-ink-faint">
             &copy; {new Date().getFullYear()} Voxlen. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-xs text-zinc-500">
-            <button onClick={() => onOpenLegal("privacy")} className="hover:text-white transition-colors">Privacy Policy</button>
-            <button onClick={() => onOpenLegal("terms")} className="hover:text-white transition-colors">Terms of Service</button>
-            <a href="/support" className="hover:text-white transition-colors">Support</a>
-            <a href="mailto:hello@voxlen.ai" className="hover:text-white transition-colors">hello@voxlen.ai</a>
-            <a href="https://github.com/ccantynz-alt/voxlen" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-ink-soft">
+            <button onClick={() => onOpenLegal("privacy")} className="hover:text-brass transition-colors">Privacy Policy</button>
+            <button onClick={() => onOpenLegal("terms")} className="hover:text-brass transition-colors">Terms of Service</button>
+            <a href="/support" className="hover:text-brass transition-colors">Support</a>
+            <a href="mailto:hello@voxlen.ai" className="hover:text-brass transition-colors">hello@voxlen.ai</a>
+            <a href="https://github.com/ccantynz-alt/voxlen" target="_blank" rel="noopener noreferrer" className="hover:text-brass transition-colors">GitHub</a>
           </div>
         </div>
       </div>
@@ -1696,12 +1550,12 @@ function LegalModal({ type, onClose }: { type: "privacy" | "terms"; onClose: () 
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl bg-[#111114] border border-white/10 p-8 md:p-12"
+        className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl bg-white border border-rule p-8 md:p-12"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-paper-deep hover:bg-paper-deep flex items-center justify-center text-ink-soft hover:text-ink transition-colors"
         >
           &times;
         </button>
@@ -1715,41 +1569,41 @@ function PrivacyContent() {
   return (
     <div className="max-w-none space-y-6">
       <h1 className="text-2xl font-black">Privacy Policy</h1>
-      <p className="text-xs text-zinc-500">Last updated: April 2026</p>
+      <p className="text-xs text-ink-soft">Last updated: April 2026</p>
 
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen ("we", "us", "our") is committed to protecting your privacy. This policy explains
         how our voice dictation application handles your data. We designed Voxlen with
         privacy-first principles, especially for professionals handling sensitive information.
       </p>
 
       <h2 className="text-lg font-bold mt-8">1. Data We Do NOT Collect</h2>
-      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li><strong className="text-zinc-200">Audio recordings</strong> — We never store, log, or retain your voice audio. Audio is streamed over zero-retention endpoints to the speech-to-text provider and immediately discarded after transcription.</li>
-        <li><strong className="text-zinc-200">Transcribed text</strong> — Your dictated text stays on your device. We never transmit transcription content to our servers.</li>
-        <li><strong className="text-zinc-200">Grammar-corrected content</strong> — Text sent for AI grammar correction goes directly to your chosen provider (Anthropic or OpenAI) using your own API key. We have no access to this content.</li>
-        <li><strong className="text-zinc-200">Documents or files</strong> — Voxlen never reads, scans, or accesses any files on your device beyond its own configuration.</li>
+      <ul className="text-ink-soft space-y-2 list-disc pl-5">
+        <li><strong className="text-ink">Audio recordings</strong> — We never store, log, or retain your voice audio. Audio is streamed over zero-retention endpoints to the speech-to-text provider and immediately discarded after transcription.</li>
+        <li><strong className="text-ink">Transcribed text</strong> — Your dictated text stays on your device. We never transmit transcription content to our servers.</li>
+        <li><strong className="text-ink">Grammar-corrected content</strong> — Text sent for AI grammar correction goes directly to your chosen provider (Anthropic or OpenAI) using your own API key. We have no access to this content.</li>
+        <li><strong className="text-ink">Documents or files</strong> — Voxlen never reads, scans, or accesses any files on your device beyond its own configuration.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">2. Data Processing Architecture</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen operates as a <strong>pass-through</strong> application. Even though paid plans
         include AI infrastructure as part of your subscription, your data flows directly between
         your device and the underlying AI providers — never through Voxlen-operated servers:
       </p>
-      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
-        <li><strong className="text-zinc-200">Speech-to-Text:</strong> Audio streams from your device over zero-retention endpoints to the speech-to-text provider and is never stored. Privileged Mode (coming soon) will process everything on-device so audio never leaves your device.</li>
-        <li><strong className="text-zinc-200">Grammar Correction:</strong> Text is sent from your device over zero-retention endpoints to the grammar AI provider (Anthropic or OpenAI). Nothing is stored or retained.</li>
-        <li><strong className="text-zinc-200">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
-        <li><strong className="text-zinc-200">API credentials:</strong> Voxlen provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
+      <ul className="text-ink-soft space-y-2 list-disc pl-5">
+        <li><strong className="text-ink">Speech-to-Text:</strong> Audio streams from your device over zero-retention endpoints to the speech-to-text provider and is never stored. Privileged Mode (coming soon) will process everything on-device so audio never leaves your device.</li>
+        <li><strong className="text-ink">Grammar Correction:</strong> Text is sent from your device over zero-retention endpoints to the grammar AI provider (Anthropic or OpenAI). Nothing is stored or retained.</li>
+        <li><strong className="text-ink">Text Injection:</strong> All text injection happens locally via OS-level APIs. No network transmission involved.</li>
+        <li><strong className="text-ink">API credentials:</strong> Voxlen provisions provider credentials as part of your subscription, but credentials are issued to your device and used only for direct device-to-provider traffic.</li>
       </ul>
 
       <h2 className="text-lg font-bold mt-8">3. Confidentiality for Legal &amp; Accounting Professionals</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         We understand that attorneys, accountants, and other professionals using Voxlen may handle
         privileged or confidential information. Voxlen is designed to respect these obligations:
       </p>
-      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+      <ul className="text-ink-soft space-y-2 list-disc pl-5">
         <li>No Voxlen-operated server ever receives your content — this is a hard architectural rule</li>
         <li>Session history is stored only on your local device and never synced to our infrastructure</li>
         <li>Custom vocabulary and dictionaries remain local to your device</li>
@@ -1759,37 +1613,37 @@ function PrivacyContent() {
       </ul>
 
       <h2 className="text-lg font-bold mt-8">4. Analytics &amp; Telemetry</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen collects minimal, anonymous usage telemetry to improve the product:
       </p>
-      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+      <ul className="text-ink-soft space-y-2 list-disc pl-5">
         <li>Application launch and feature usage counts (no content)</li>
         <li>Crash reports with stack traces (no user content)</li>
         <li>OS platform and app version</li>
       </ul>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         You can disable all telemetry in Settings &gt; Privacy. When disabled, zero data is transmitted.
       </p>
 
       <h2 className="text-lg font-bold mt-8">5. Third-Party Services</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen includes AI infrastructure as part of your paid subscription. Your audio and text
         are processed by our underlying AI providers on zero-retention endpoints:
       </p>
-      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+      <ul className="text-ink-soft space-y-2 list-disc pl-5">
         <li>Deepgram — processes audio for transcription</li>
         <li>OpenAI — processes audio (Whisper) or text (grammar correction)</li>
         <li>Anthropic — processes text for grammar correction</li>
       </ul>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         We configure zero-retention with every provider wherever it is available. The
         Professional plan enables the strictest retention and data-handling controls by default.
         Advanced users who prefer to supply their own credentials may do so in Settings.
       </p>
 
       <h2 className="text-lg font-bold mt-8">6. Contact</h2>
-      <p className="text-zinc-300 leading-relaxed">
-        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-brand-400 hover:underline">privacy@voxlen.ai</a>.
+      <p className="text-ink-soft leading-relaxed">
+        For privacy inquiries, contact us at <a href="mailto:privacy@voxlen.ai" className="text-brass hover:underline">privacy@voxlen.ai</a>.
       </p>
     </div>
   );
@@ -1799,14 +1653,14 @@ function TermsContent() {
   return (
     <div className="max-w-none space-y-6">
       <h1 className="text-2xl font-black">Terms of Service</h1>
-      <p className="text-xs text-zinc-500">Last updated: April 2026</p>
+      <p className="text-xs text-ink-soft">Last updated: April 2026</p>
 
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         By downloading or using Voxlen, you agree to these terms. Please read them carefully.
       </p>
 
       <h2 className="text-lg font-bold mt-8">1. Service Description</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen is a desktop and mobile application that provides voice-to-text dictation with
         AI-powered grammar correction and universal text injection. The application runs locally
         on your device and connects to third-party AI providers through zero-retention
@@ -1814,7 +1668,7 @@ function TermsContent() {
       </p>
 
       <h2 className="text-lg font-bold mt-8">2. AI Services &amp; Third-Party Providers</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Paid plans include all AI infrastructure (speech-to-text and grammar correction) as part of
         your subscription. You do not need to provide your own API keys. Audio streams directly
         from your device to the relevant AI providers on zero-retention endpoints — Voxlen
@@ -1823,7 +1677,7 @@ function TermsContent() {
       </p>
 
       <h2 className="text-lg font-bold mt-8">3. Subscription Plans</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen offers Free, Pro ($29/month), Professional ($79/month for legal and accounting
         teams), and Lifetime ($599 one-time) plans. The Free plan includes limited dictation. Paid
         plans unlock all features and include all AI costs. Subscriptions can be cancelled at any
@@ -1831,8 +1685,8 @@ function TermsContent() {
       </p>
 
       <h2 className="text-lg font-bold mt-8">4. Acceptable Use</h2>
-      <p className="text-zinc-300 leading-relaxed">You agree not to:</p>
-      <ul className="text-zinc-400 space-y-2 list-disc pl-5">
+      <p className="text-ink-soft leading-relaxed">You agree not to:</p>
+      <ul className="text-ink-soft space-y-2 list-disc pl-5">
         <li>Reverse-engineer, decompile, or disassemble the application</li>
         <li>Use the application for any unlawful purpose</li>
         <li>Redistribute, sublicense, or resell the application</li>
@@ -1840,36 +1694,36 @@ function TermsContent() {
       </ul>
 
       <h2 className="text-lg font-bold mt-8">5. Intellectual Property</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen and its original content, features, and functionality are owned by Voxlen and are
         protected by international copyright and trademark laws. Your transcribed content remains
         entirely yours — we claim no rights over content you create using Voxlen.
       </p>
 
       <h2 className="text-lg font-bold mt-8">6. Disclaimer of Warranties</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen is provided "as is" without warranties of any kind. We do not guarantee that
         transcriptions or grammar corrections will be error-free. You should review all output,
         especially for legal, medical, or financial documents.
       </p>
 
       <h2 className="text-lg font-bold mt-8">7. Limitation of Liability</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         Voxlen shall not be liable for any indirect, incidental, special, consequential, or punitive
         damages resulting from your use of the application, including but not limited to errors in
         transcription or grammar correction.
       </p>
 
       <h2 className="text-lg font-bold mt-8">8. Changes to Terms</h2>
-      <p className="text-zinc-300 leading-relaxed">
+      <p className="text-ink-soft leading-relaxed">
         We may update these terms from time to time. Continued use of Voxlen after changes
         constitutes acceptance of the new terms. We will notify users of significant changes
         through the application.
       </p>
 
       <h2 className="text-lg font-bold mt-8">9. Contact</h2>
-      <p className="text-zinc-300 leading-relaxed">
-        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-brand-400 hover:underline">legal@voxlen.ai</a>.
+      <p className="text-ink-soft leading-relaxed">
+        For questions about these terms, contact us at <a href="mailto:legal@voxlen.ai" className="text-brass hover:underline">legal@voxlen.ai</a>.
       </p>
     </div>
   );
@@ -1877,26 +1731,26 @@ function TermsContent() {
 
 function LegalPage({ type }: { type: "privacy" | "terms" }) {
   return (
-    <div className="min-h-screen bg-[#09090b] text-white">
-      <div className="border-b border-white/5 bg-[#0c0c0f]">
+    <div className="min-h-screen bg-paper text-ink font-sans">
+      <div className="border-b border-rule bg-paper-deep/60">
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center gap-3">
           <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
-              <Mic className="h-3.5 w-3.5 text-white" />
+            <div className="w-7 h-7 rounded-lg bg-brass flex items-center justify-center">
+              <Mic className="h-3.5 w-3.5 text-ink" />
             </div>
             <span className="font-bold tracking-tight">Voxlen</span>
           </a>
-          <span className="text-zinc-600">/</span>
-          <span className="text-zinc-400 text-sm capitalize">{type === "privacy" ? "Privacy Policy" : "Terms of Service"}</span>
+          <span className="text-ink-faint">/</span>
+          <span className="text-ink-soft text-sm capitalize">{type === "privacy" ? "Privacy Policy" : "Terms of Service"}</span>
         </div>
       </div>
       <div className="max-w-3xl mx-auto px-6 py-12">
         {type === "privacy" ? <PrivacyContent /> : <TermsContent />}
-        <div className="mt-12 pt-6 border-t border-white/10 flex gap-6 text-sm text-zinc-500">
-          <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
-          <a href="/support" className="hover:text-white transition-colors">Support</a>
-          <a href="/" className="hover:text-white transition-colors ml-auto">← Back to Voxlen</a>
+        <div className="mt-12 pt-6 border-t border-rule flex gap-6 text-sm text-ink-soft">
+          <a href="/privacy" className="hover:text-ink transition-colors">Privacy Policy</a>
+          <a href="/terms" className="hover:text-ink transition-colors">Terms of Service</a>
+          <a href="/support" className="hover:text-ink transition-colors">Support</a>
+          <a href="/" className="hover:text-ink transition-colors ml-auto">← Back to Voxlen</a>
         </div>
       </div>
     </div>
@@ -1905,45 +1759,45 @@ function LegalPage({ type }: { type: "privacy" | "terms" }) {
 
 function SupportPage() {
   return (
-    <div className="min-h-screen bg-[#09090b] text-white">
-      <div className="border-b border-white/5 bg-[#0c0c0f]">
+    <div className="min-h-screen bg-paper text-ink font-sans">
+      <div className="border-b border-rule bg-paper-deep/60">
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center gap-3">
           <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
-              <Mic className="h-3.5 w-3.5 text-white" />
+            <div className="w-7 h-7 rounded-lg bg-brass flex items-center justify-center">
+              <Mic className="h-3.5 w-3.5 text-ink" />
             </div>
             <span className="font-bold tracking-tight">Voxlen</span>
           </a>
-          <span className="text-zinc-600">/</span>
-          <span className="text-zinc-400 text-sm">Support</span>
+          <span className="text-ink-faint">/</span>
+          <span className="text-ink-soft text-sm">Support</span>
         </div>
       </div>
       <div className="max-w-3xl mx-auto px-6 py-12 space-y-10">
         <div>
           <h1 className="text-3xl font-black mb-2">Support</h1>
-          <p className="text-zinc-400">We're here to help. Reach out through any of the channels below.</p>
+          <p className="text-ink-soft">We're here to help. Reach out through any of the channels below.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <a
             href="mailto:support@voxlen.ai"
-            className="block p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors group"
+            className="block p-6 rounded-2xl border border-rule bg-white hover:bg-white/[0.05] transition-colors group"
           >
-            <div className="text-lg font-bold mb-1 group-hover:text-brand-400 transition-colors">Email Support</div>
-            <p className="text-zinc-400 text-sm mb-3">General help, billing questions, and account issues.</p>
-            <span className="text-brand-400 text-sm font-medium">support@voxlen.ai →</span>
+            <div className="text-lg font-bold mb-1 group-hover:text-brass transition-colors">Email Support</div>
+            <p className="text-ink-soft text-sm mb-3">General help, billing questions, and account issues.</p>
+            <span className="text-brass text-sm font-medium">support@voxlen.ai →</span>
           </a>
           <a
             href="mailto:legal@voxlen.ai"
-            className="block p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors group"
+            className="block p-6 rounded-2xl border border-rule bg-white hover:bg-white/[0.05] transition-colors group"
           >
-            <div className="text-lg font-bold mb-1 group-hover:text-brand-400 transition-colors">Legal &amp; Privacy</div>
-            <p className="text-zinc-400 text-sm mb-3">Terms, privacy policy, and data handling enquiries.</p>
-            <span className="text-brand-400 text-sm font-medium">legal@voxlen.ai →</span>
+            <div className="text-lg font-bold mb-1 group-hover:text-brass transition-colors">Legal &amp; Privacy</div>
+            <p className="text-ink-soft text-sm mb-3">Terms, privacy policy, and data handling enquiries.</p>
+            <span className="text-brass text-sm font-medium">legal@voxlen.ai →</span>
           </a>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-5">
+        <div className="rounded-2xl border border-rule bg-white p-6 space-y-5">
           <h2 className="text-lg font-bold">Frequently Asked Questions</h2>
           {[
             {
@@ -1967,17 +1821,17 @@ function SupportPage() {
               a: "Yes. All session history and custom vocabulary is stored on your device only. Audio streams over zero-retention endpoints — nothing is stored by Voxlen or its providers. Fully offline on-device mode is coming soon.",
             },
           ].map(({ q, a }) => (
-            <div key={q} className="border-t border-white/5 pt-4 first:border-0 first:pt-0">
-              <p className="font-semibold text-white mb-1">{q}</p>
-              <p className="text-zinc-400 text-sm leading-relaxed">{a}</p>
+            <div key={q} className="border-t border-rule pt-4 first:border-0 first:pt-0">
+              <p className="font-semibold text-ink mb-1">{q}</p>
+              <p className="text-ink-soft text-sm leading-relaxed">{a}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/10 flex gap-6 text-sm text-zinc-500">
-          <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
-          <a href="/" className="hover:text-white transition-colors ml-auto">← Back to Voxlen</a>
+        <div className="mt-8 pt-6 border-t border-rule flex gap-6 text-sm text-ink-soft">
+          <a href="/privacy" className="hover:text-ink transition-colors">Privacy Policy</a>
+          <a href="/terms" className="hover:text-ink transition-colors">Terms of Service</a>
+          <a href="/" className="hover:text-ink transition-colors ml-auto">← Back to Voxlen</a>
         </div>
       </div>
     </div>
@@ -2008,17 +1862,17 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
   }, [title]);
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white">
+    <div className="min-h-screen bg-paper text-ink font-sans">
       {/* Nav */}
-      <div className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur sticky top-0 z-50">
+      <div className="border-b border-rule bg-paper/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-brand-600 flex items-center justify-center">
-              <Zap className="h-3.5 w-3.5 text-white" />
+            <div className="w-7 h-7 rounded-md bg-brass flex items-center justify-center">
+              <Zap className="h-3.5 w-3.5 text-ink" />
             </div>
             <span className="font-bold text-sm tracking-tight">Voxlen</span>
           </a>
-          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
+          <a href="/#pricing" className="px-4 py-1.5 rounded-lg bg-brass text-ink text-sm font-semibold hover:bg-brass-deep transition-colors">
             Get Started
           </a>
         </div>
@@ -2027,16 +1881,16 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
       <div className="max-w-3xl mx-auto px-6 py-20">
         {/* Hero */}
         <div className="mb-16">
-          <p className="text-brand-400 text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
+          <p className="text-brass text-sm font-semibold uppercase tracking-wider mb-4">Voxlen</p>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-5 leading-tight">{headline}</h1>
-          <p className="text-xl text-zinc-400 mb-8 leading-relaxed">{subheadline}</p>
+          <p className="text-xl text-ink-soft mb-8 leading-relaxed">{subheadline}</p>
           <div className="flex flex-wrap gap-3">
-            <a href="/#download" className="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-colors">
+            <a href="/#download" className="px-6 py-3 rounded-xl bg-brass text-ink font-semibold hover:bg-brass-deep transition-colors">
               Download Free
             </a>
             <button
               onClick={() => login()}
-              className="px-6 py-3 rounded-xl border border-white/10 text-white font-semibold hover:bg-white/5 transition-colors"
+              className="px-6 py-3 rounded-xl border border-rule text-ink font-semibold hover:bg-paper-deep transition-colors"
             >
               Sign in with Google
             </button>
@@ -2045,16 +1899,16 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
 
         {/* Description */}
         <div className="mb-14">
-          <p className="text-zinc-300 text-lg leading-relaxed">{description}</p>
+          <p className="text-ink-soft text-lg leading-relaxed">{description}</p>
         </div>
 
         {/* Bullets */}
-        <div className="mb-16 rounded-2xl border border-white/10 bg-white/[0.02] p-8">
+        <div className="mb-16 rounded-2xl border border-rule bg-white p-8">
           <h2 className="text-xl font-bold mb-6">{cta}</h2>
           <ul className="space-y-3">
             {bullets.map((b) => (
-              <li key={b} className="flex items-start gap-3 text-zinc-300">
-                <Check className="h-4 w-4 text-brand-400 mt-0.5 shrink-0" />
+              <li key={b} className="flex items-start gap-3 text-ink-soft">
+                <Check className="h-4 w-4 text-brass mt-0.5 shrink-0" />
                 {b}
               </li>
             ))}
@@ -2066,19 +1920,19 @@ function SEOPage({ title, headline, subheadline, description, bullets, faq, cta,
           <h2 className="text-2xl font-bold mb-8">Frequently asked questions</h2>
           <div className="space-y-6">
             {faq.map(({ q, a }) => (
-              <div key={q} className="border-t border-white/5 pt-5">
-                <h3 className="font-semibold text-white mb-2">{q}</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed">{a}</p>
+              <div key={q} className="border-t border-rule pt-5">
+                <h3 className="font-semibold text-ink mb-2">{q}</h3>
+                <p className="text-ink-soft text-sm leading-relaxed">{a}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Footer nav */}
-        <div className="pt-8 border-t border-white/5 flex gap-6 text-sm text-zinc-500">
-          <a href="/" className="hover:text-white transition-colors">← Voxlen Home</a>
-          <a href="/#pricing" className="hover:text-white transition-colors">Pricing</a>
-          <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+        <div className="pt-8 border-t border-rule flex gap-6 text-sm text-ink-soft">
+          <a href="/" className="hover:text-ink transition-colors">← Voxlen Home</a>
+          <a href="/#pricing" className="hover:text-ink transition-colors">Pricing</a>
+          <a href="/privacy" className="hover:text-ink transition-colors">Privacy</a>
         </div>
       </div>
     </div>

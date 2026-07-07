@@ -27,12 +27,12 @@ function Slider({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-zinc-400">{label}</span>
-        <span className="text-sm font-semibold text-white tabular-nums">{format(value)}</span>
+        <span className="font-sans text-sm text-ink-soft">{label}</span>
+        <span className="font-mono text-sm font-semibold text-ink tabular-nums">{format(value)}</span>
       </div>
-      <div className="relative h-2 rounded-full bg-white/5">
+      <div className="relative h-2 rounded-full bg-rule/60 border-b border-rule">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-brand-600 transition-all"
+          className="absolute inset-y-0 left-0 rounded-full bg-brass transition-all motion-reduce:transition-none"
           style={{ width: `${pct}%` }}
         />
         <input
@@ -41,11 +41,12 @@ function Slider({
           max={max}
           step={step}
           value={value}
+          aria-label={label}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
+          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full bg-transparent focus:outline-none"
         />
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-brand-500 shadow-lg transition-all pointer-events-none"
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-brass shadow-[0_1px_3px_rgba(29,26,21,0.15)] transition-all motion-reduce:transition-none pointer-events-none"
           style={{ left: `calc(${pct}% - 8px)` }}
         />
       </div>
@@ -90,7 +91,7 @@ export default function ROICalculator() {
     : 0;
 
   return (
-    <section id="roi-calculator" className="py-24 px-6 bg-[#0c0c0f]">
+    <section id="roi-calculator" className="py-24 px-6 bg-paper-deep">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <motion.div
@@ -99,29 +100,29 @@ export default function ROICalculator() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-4">
-            <Calculator className="h-3 w-3" />
-            ROI Calculator
+          <div className="inline-flex items-center gap-2 uppercase tracking-[0.18em] text-[11px] font-sans font-semibold text-brass mb-4">
+            <Calculator className="h-3 w-3" aria-hidden="true" />
+            Billable-Time Ledger
           </div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+          <h2 className="font-display text-4xl md:text-5xl tracking-tight text-ink mb-4">
             How much billable time
             <br />
-            <span className="gradient-text">will you recover?</span>
+            <span className="italic">will you recover?</span>
           </h2>
-          <p className="text-zinc-400 text-lg max-w-xl mx-auto">
+          <p className="font-sans text-ink-soft text-lg max-w-xl mx-auto">
             Voxlen users dictate 3× faster than typing. See what that's worth for your practice.
           </p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Inputs */}
+          {/* Inputs — timesheet */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="rounded-2xl bg-[#111114] border border-white/10 p-6 space-y-6"
+            className="rounded-md bg-white border border-rule shadow-[0_1px_3px_rgba(29,26,21,0.06)] p-6 space-y-6"
           >
-            <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Your practice</h3>
+            <h3 className="uppercase tracking-[0.18em] text-[11px] font-sans font-semibold text-brass">Your practice</h3>
             <Slider
               label="Billing rate"
               value={rate}
@@ -159,14 +160,14 @@ export default function ROICalculator() {
               onChange={setWordsPerSession}
             />
 
-            <div className="pt-2 border-t border-white/5 text-xs text-zinc-600 space-y-0.5">
+            <div className="pt-2 border-t border-rule text-xs font-mono text-ink-soft space-y-0.5">
               <div>Typing speed assumption: {WORDS_PER_MINUTE_TYPING} wpm</div>
               <div>Dictation speed assumption: {WORDS_PER_MINUTE_DICTATION} wpm</div>
               <div>+ {ACCURACY_GAIN_MINUTES_PER_HOUR} min/hr saved on corrections</div>
             </div>
           </motion.div>
 
-          {/* Results */}
+          {/* Results — ledger */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -174,13 +175,13 @@ export default function ROICalculator() {
             className="space-y-4"
           >
             {/* Primary result */}
-            <div className="rounded-2xl bg-gradient-to-br from-brand-600/20 to-brand-900/10 border border-brand-500/30 p-6 text-center">
-              <div className="text-xs font-mono text-brand-400 uppercase tracking-wider mb-2">Billable time recovered / year</div>
-              <div className="text-6xl font-black text-white tabular-nums mb-1">
+            <div className="rounded-md bg-white border border-rule shadow-[0_1px_3px_rgba(29,26,21,0.06)] p-6 text-center">
+              <div className="uppercase tracking-[0.18em] text-[11px] font-sans font-semibold text-brass mb-2">Billable time recovered / year</div>
+              <div className="font-mono text-6xl text-ink tabular-nums mb-1">
                 {fmt$(savedBillablePerYear)}
               </div>
-              <div className="text-sm text-zinc-400">
-                {fmtH(savedMinutesPerYear)} freed up annually
+              <div className="font-sans text-sm text-ink-soft">
+                <span className="font-mono">{fmtH(savedMinutesPerYear)}</span> freed up annually
               </div>
             </div>
 
@@ -191,53 +192,46 @@ export default function ROICalculator() {
                   icon: Clock,
                   label: "Saved per day",
                   value: fmtH(savedMinutesPerDay),
-                  color: "text-blue-400",
-                  bg: "bg-blue-500/10 border-blue-500/20",
                 },
                 {
                   icon: TrendingUp,
                   label: "ROI vs cost",
                   value: `${roiMultiple}×`,
-                  color: "text-emerald-400",
-                  bg: "bg-emerald-500/10 border-emerald-500/20",
                 },
                 {
                   icon: DollarSign,
                   label: "Per week",
                   value: fmt$(savedBillablePerYear / 50),
-                  color: "text-amber-400",
-                  bg: "bg-amber-500/10 border-amber-500/20",
                 },
-              ].map(({ icon: Icon, label, value, color, bg }) => (
-                <div key={label} className={`rounded-xl border p-3 text-center ${bg}`}>
-                  <Icon className={`h-4 w-4 ${color} mx-auto mb-1.5`} />
-                  <div className={`text-lg font-black tabular-nums ${color}`}>{value}</div>
-                  <div className="text-[10px] text-zinc-500 mt-0.5">{label}</div>
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="rounded-md bg-white border border-rule shadow-[0_1px_3px_rgba(29,26,21,0.06)] p-3 text-center">
+                  <Icon className="h-4 w-4 text-brass mx-auto mb-1.5" aria-hidden="true" />
+                  <div className="font-mono text-lg text-ink tabular-nums">{value}</div>
+                  <div className="text-[10px] font-sans text-ink-soft mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
 
-            {/* Cost comparison */}
-            <div className="rounded-xl bg-[#111114] border border-white/10 p-4 space-y-2.5">
-              <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Cost vs return</div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-400">Voxlen Pro (annual)</span>
-                <span className="text-white font-semibold">{fmt$(voxlenCostPerYear)} / yr</span>
+            {/* Cost comparison — ledger rows */}
+            <div className="rounded-md bg-white border border-rule shadow-[0_1px_3px_rgba(29,26,21,0.06)] p-4 space-y-2.5">
+              <div className="uppercase tracking-[0.18em] text-[11px] font-sans font-semibold text-brass">Cost vs return</div>
+              <div className="flex items-center justify-between text-sm border-b border-rule pb-2">
+                <span className="font-sans text-ink-soft">Voxlen Pro (annual)</span>
+                <span className="font-mono text-ink tabular-nums">{fmt$(voxlenCostPerYear)} / yr</span>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-400">Billable time recovered</span>
-                <span className="text-emerald-400 font-semibold">{fmt$(savedBillablePerYear)} / yr</span>
+              <div className="flex items-center justify-between text-sm border-b border-rule pb-2">
+                <span className="font-sans text-ink-soft">Billable time recovered</span>
+                <span className="font-mono text-ink tabular-nums">{fmt$(savedBillablePerYear)} / yr</span>
               </div>
-              <div className="h-px bg-white/5" />
-              <div className="flex items-center justify-between text-sm font-semibold">
-                <span className="text-white">Net gain</span>
-                <span className="text-emerald-400">{fmt$(savedBillablePerYear - voxlenCostPerYear)} / yr</span>
+              <div className="flex items-center justify-between text-sm font-semibold pt-0.5">
+                <span className="font-serif text-ink">Net gain</span>
+                <span className="font-mono text-brass tabular-nums">{fmt$(savedBillablePerYear - voxlenCostPerYear)} / yr</span>
               </div>
             </div>
 
             <a
               href="#download"
-              className="block w-full h-12 rounded-xl bg-brand-600 text-white font-semibold text-center flex items-center justify-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:scale-[1.01]"
+              className="block w-full h-12 rounded-md bg-brass text-paper font-sans font-semibold text-center flex items-center justify-center gap-2 hover:bg-brass-deep transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-paper-deep"
             >
               Start recovering billable time →
             </a>

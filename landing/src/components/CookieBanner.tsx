@@ -44,18 +44,18 @@ export default function CookieBanner() {
       role="dialog"
       aria-live="polite"
       aria-label="Privacy notice"
-      className="fixed bottom-0 left-0 right-0 z-[60] border-t border-white/10 bg-[#18181b]/95 backdrop-blur-xl shadow-2xl"
+      className="fixed bottom-0 left-0 right-0 z-[60] border-t border-rule bg-white shadow-[0_-1px_3px_rgba(29,26,21,0.06)]"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <Shield className="h-4 w-4 text-[#7345d1] mt-0.5 shrink-0" />
-            <p className="text-sm text-zinc-300 leading-relaxed">
+            <Shield className="h-4 w-4 text-brass mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="font-sans text-sm text-ink-soft leading-relaxed">
               This site uses no tracking or advertising cookies and no analytics. We only use
               essential browser storage to remember your sign-in and preferences.{" "}
               <a
                 href="/privacy"
-                className="text-[#a78bfa] hover:text-[#c4b5fd] underline underline-offset-2 transition-colors"
+                className="text-brass hover:text-brass-deep underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm"
               >
                 Privacy Policy
               </a>
@@ -65,7 +65,7 @@ export default function CookieBanner() {
             <button
               type="button"
               onClick={dismiss}
-              className="h-9 px-5 rounded-xl bg-[#7345d1] hover:bg-[#6035bb] text-white text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7345d1] focus-visible:ring-offset-2 focus-visible:ring-offset-[#18181b] whitespace-nowrap"
+              className="h-9 px-5 rounded-md bg-brass hover:bg-brass-deep text-paper font-sans text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-white whitespace-nowrap"
             >
               Got it
             </button>
