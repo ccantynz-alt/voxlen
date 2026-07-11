@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
   Mic,
@@ -32,6 +32,7 @@ import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { useNavigationStore } from "@/stores/navigation";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
+import { suggestClient, suggestOverActive } from "@/lib/matterMatch";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
 import { downloadExport } from "@/lib/export";
@@ -428,6 +429,23 @@ export function DictationPanel() {
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
   const setActiveClient = useClientsStore((s) => s.setActiveClient);
 
+  // Contextual matter matching — suggest the client this dictation belongs
+  // to from its content (names, matter numbers, matter vocabulary). Local
+  // string matching only; never silent auto-assignment.
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
+  const clientSuggestion = useMemo(() => {
+    if (segments.length === 0 || allClients.length === 0) return null;
+    const text = segments.map((s) => s.correctedText || s.text).join(" ");
+    const suggestion = activeClientId
+      ? suggestOverActive(text, allClients, activeClientId)
+      : suggestClient(text, allClients);
+    if (!suggestion || dismissedSuggestions.includes(suggestion.clientId)) return null;
+    return suggestion;
+  }, [segments, allClients, activeClientId, dismissedSuggestions]);
+  const suggestedClient = clientSuggestion
+    ? allClients.find((c) => c.id === clientSuggestion.clientId) ?? null
+    : null;
+
   const currentTranscript = useDictationStore((s) => s.currentTranscript);
   const isActive = status === "listening" || status === "processing";
   const showControls = isActive || status === "paused";
@@ -623,6 +641,35 @@ export function DictationPanel() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Matter-match suggestion — content mentioned a known client/matter */}
+          {suggestedClient && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-brass-400/40 bg-brass-500/10 text-[11px] font-medium text-surface-800">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: suggestedClient.color }}
+              />
+              <span className="text-brass-500/90 text-[9px] uppercase tracking-widest">
+                {activeClientId ? "Different matter?" : "Suggested client"}
+              </span>
+              <span className="truncate max-w-[160px]">{suggestedClient.name}</span>
+              <button
+                onClick={() => setActiveClient(suggestedClient.id)}
+                className="text-brass-500 hover:text-brass-300 font-semibold underline transition-colors"
+              >
+                Use
+              </button>
+              <button
+                onClick={() =>
+                  setDismissedSuggestions((d) => [...d, suggestedClient.id])
+                }
+                aria-label="Dismiss suggestion"
+                className="text-surface-500 hover:text-surface-300 leading-none transition-colors"
+              >
+                ×
+              </button>
             </div>
           )}
 
