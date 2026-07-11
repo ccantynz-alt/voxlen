@@ -10,6 +10,8 @@ import {
   Zap,
   Volume2,
   AlertCircle,
+  Briefcase,
+  Clock,
 } from "lucide-react";
 
 function ShortcutTest({ shortcut, onTested }: { shortcut: string; onTested: () => void }) {
@@ -75,6 +77,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
+import { useClientsStore } from "@/stores/clients";
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -92,6 +95,24 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [dgKeyError, setDgKeyError] = useState("");
   const [dgKeyVerifying, setDgKeyVerifying] = useState(false);
   const [_shortcutTested, setShortcutTested] = useState(false);
+  // "Your practice" step — all optional.
+  const [practiceClientName, setPracticeClientName] = useState("");
+  const [practiceMatterNumber, setPracticeMatterNumber] = useState("");
+  const [practiceClientCreated, setPracticeClientCreated] = useState(false);
+
+  const commitPracticeStep = () => {
+    const name = practiceClientName.trim();
+    if (name && !practiceClientCreated) {
+      const id = useClientsStore.getState().addClient({
+        name,
+        matterNumber: practiceMatterNumber.trim() || undefined,
+        billableRate: 0, // use the default rate they just set
+        color: "",
+      });
+      useClientsStore.getState().setActiveClient(id);
+      setPracticeClientCreated(true);
+    }
+  };
 
   const handleCompleteWithConsent = () => {
     if (!legalAccepted) return;
@@ -237,6 +258,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     { title: "Welcome", icon: Sparkles },
     { title: "Microphone", icon: Mic },
     { title: "Connect", icon: Key },
+    { title: "Your practice", icon: Briefcase },
     { title: "Ready", icon: CheckCircle2 },
   ];
 
@@ -246,7 +268,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       case 1: return !!selectedDeviceId;
       // Step 2: connected if voxlenApiKey is set OR a direct STT key is set
       case 2: return !!settings.voxlenApiKey || !!settings.sttApiKey;
-      case 3: return true;
+      case 3: return true; // practice setup is entirely optional
+      case 4: return true;
       default: return true;
     }
   };
@@ -565,6 +588,101 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         )}
 
         {step === 3 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="font-display text-[26px] font-medium tracking-tight-display text-surface-950 mb-1 leading-tight">
+                Your practice
+              </h2>
+              <p className="text-[13px] text-surface-700 leading-relaxed">
+                Voxlen drafts a billable time entry for your review after every
+                dictation. Set your defaults now — or skip and do it later.
+              </p>
+            </div>
+
+            <div>
+              <label className="label-caps mb-1.5 block">Default Billable Rate ($/hr)</label>
+              <input
+                type="number"
+                min={0}
+                step={25}
+                value={settings.billableRatePerHour || ""}
+                onChange={(e) =>
+                  settings.updateSetting("billableRatePerHour", Math.max(0, Number(e.target.value) || 0))
+                }
+                placeholder="e.g. 350"
+                className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400 shadow-inset-hairline"
+              />
+              {settings.billableRatePerHour === 0 && (
+                <p className="text-[10px] text-amber-500 mt-1">
+                  Without a rate, drafted time entries come out at $0.00.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="label-caps mb-1.5 block">Time Rounding</label>
+              <div className="flex rounded-lg border border-surface-300/60 p-1 bg-surface-50 gap-1">
+                {([
+                  { value: 0.1, label: "6 min (0.1 hr)" },
+                  { value: 0.25, label: "15 min" },
+                  { value: 0, label: "Exact" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => settings.updateSetting("billingRoundingIncrement", opt.value)}
+                    className={cn(
+                      "flex-1 text-[12px] font-medium py-1.5 rounded-md transition-colors",
+                      settings.billingRoundingIncrement === opt.value
+                        ? "bg-white text-surface-900 shadow-inset-hairline"
+                        : "text-surface-600 hover:text-surface-800"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-surface-600 mt-1">
+                Standard legal convention rounds up to 6-minute units.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-surface-300/60">
+              <label className="label-caps mb-1.5 block">First Client / Matter (optional)</label>
+              <div className="space-y-2">
+                <input
+                  value={practiceClientName}
+                  onChange={(e) => setPracticeClientName(e.target.value)}
+                  placeholder="Client name — e.g. Smith v Jones"
+                  disabled={practiceClientCreated}
+                  className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400 shadow-inset-hairline disabled:opacity-60"
+                />
+                <input
+                  value={practiceMatterNumber}
+                  onChange={(e) => setPracticeMatterNumber(e.target.value)}
+                  placeholder="Matter / file number (optional)"
+                  disabled={practiceClientCreated}
+                  className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400 shadow-inset-hairline disabled:opacity-60"
+                />
+              </div>
+              {practiceClientCreated && (
+                <p className="text-[10px] text-emerald-500 mt-1">
+                  Client created and set as active for your first dictation.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-start gap-2 p-3 rounded-md bg-brass-400/8 border border-brass-400/25 shadow-inset-hairline">
+              <Clock className="h-4 w-4 text-brass-500 mt-0.5 shrink-0" strokeWidth={1.75} />
+              <p className="text-[10px] text-surface-600 leading-snug">
+                After each session you'll see a draft entry — accept, edit, or
+                discard it. Approved time exports as CSV, Clio CSV, or LEDES for
+                your billing system.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="text-center space-y-6">
             <div className="flex justify-center">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 border border-brass-400/30 flex items-center justify-center shadow-elevation-lg">
@@ -616,6 +734,26 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               These shortcuts work from any app — even when Voxlen is minimised.
             </p>
 
+            <div className="space-y-2 text-left">
+              <div className="p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+                <p className="text-[12px] font-medium text-surface-900 mb-0.5">Voice commands</p>
+                <p className="text-[10px] text-surface-600 leading-snug">
+                  Say <span className="font-mono text-surface-800">"new paragraph"</span>,{" "}
+                  <span className="font-mono text-surface-800">"scratch that"</span>, or{" "}
+                  <span className="font-mono text-surface-800">"log 30 minutes"</span> while
+                  dictating. The full list lives behind the <span className="font-medium">?</span> button
+                  in the dictation panel.
+                </p>
+              </div>
+              <div className="p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+                <p className="text-[12px] font-medium text-surface-900 mb-0.5">Always-Ready mode</p>
+                <p className="text-[10px] text-surface-600 leading-snug">
+                  Prefer hands-free? Enable Always-Ready in Settings → Dictation and your
+                  mic's hardware mute button becomes the only control — speak anytime.
+                </p>
+              </div>
+            </div>
+
             {/* Shortcut test */}
             <ShortcutTest
               shortcut={settings.shortcutToggle || "Alt+D"}
@@ -662,7 +800,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step < steps.length - 1 ? (
           <Button
             variant="primary"
-            onClick={() => setStep(step + 1)}
+            onClick={() => {
+              if (step === 3) commitPracticeStep();
+              setStep(step + 1);
+            }}
             disabled={!canProceed()}
           >
             Continue
