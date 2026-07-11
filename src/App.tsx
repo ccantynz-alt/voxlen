@@ -67,9 +67,17 @@ export default function App() {
     document.documentElement.style.setProperty("--app-font-size", `${fontSize}px`);
   }, [fontSize]);
 
-  // Load flywheel and clause data on startup
+  // Load flywheel and clause data on startup, then run the one-time
+  // migration of legacy flywheel time entries into the clients store.
   useEffect(() => {
-    loadFlywheel();
+    loadFlywheel().then(async () => {
+      try {
+        const { migrateLegacyTimeEntries } = await import("@/lib/migrateBilling");
+        await migrateLegacyTimeEntries();
+      } catch (err) {
+        console.error("Legacy time-entry migration failed:", err);
+      }
+    });
     loadCustomClauses();
   }, []);
 

@@ -113,9 +113,13 @@ interface DictationState {
    *  disabled; "armed" = watching for speech locally, nothing streaming;
    *  "streaming" = cloud session open. */
   alwaysReadyPhase: "off" | "armed" | "streaming" | "error";
+  /** Id of the draft billing entry created when the last session ended —
+   *  drives the post-session review banner. */
+  lastDraftEntryId: string | null;
 
   // Actions
   setStatus: (status: DictationStatus) => void;
+  setLastDraftEntryId: (id: string | null) => void;
   setAlwaysReadyPhase: (phase: "off" | "armed" | "streaming" | "error") => void;
   addSegment: (segment: TranscriptionSegment) => void;
   updateSegment: (id: string, updates: Partial<TranscriptionSegment>) => void;
@@ -152,8 +156,10 @@ export const useDictationStore = create<DictationState>((set, get) => ({
   sessionStartedAtMs: null,
   capsLock: false,
   alwaysReadyPhase: "off",
+  lastDraftEntryId: null,
 
   setAlwaysReadyPhase: (phase) => set({ alwaysReadyPhase: phase }),
+  setLastDraftEntryId: (id) => set({ lastDraftEntryId: id }),
 
   setStatus: (status) =>
     set((state) => {

@@ -8,7 +8,6 @@ import {
   BarChart3,
   ShieldCheck,
   Search,
-  Clock,
   Upload,
   Check,
 } from "lucide-react";
@@ -16,10 +15,12 @@ import { useSettingsStore } from "@/stores/settings";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { useFlywheelStore, TimeEntry } from "@/stores/flywheel";
+import { useFlywheelStore } from "@/stores/flywheel";
 import { formatDuration } from "@/lib/utils";
 
-type Tab = "vocabulary" | "corrections" | "metrics" | "time";
+// Billable time entries live in the Clients panel (clients store) — the
+// flywheel panel is purely for on-device learning data.
+type Tab = "vocabulary" | "corrections" | "metrics";
 
 export function FlywheelPanel() {
   const [tab, setTab] = useState<Tab>("vocabulary");
@@ -33,10 +34,6 @@ export function FlywheelPanel() {
   const addVocabulary = useFlywheelStore((s) => s.addVocabulary);
   const removeVocabulary = useFlywheelStore((s) => s.removeVocabulary);
   const clearAll = useFlywheelStore((s) => s.clearAll);
-  const timeEntries = useFlywheelStore((s) => s.timeEntries);
-  const removeTimeEntry = useFlywheelStore((s) => s.removeTimeEntry);
-  const getTotalBillableHours = useFlywheelStore((s) => s.getTotalBillableHours);
-  const getTotalBillableAmount = useFlywheelStore((s) => s.getTotalBillableAmount);
 
   const filteredVocab = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -153,16 +150,9 @@ export function FlywheelPanel() {
           icon={<BarChart3 className="h-3.5 w-3.5" />}
           label="Metrics"
         />
-        <TabButton
-          active={tab === "time"}
-          onClick={() => setTab("time")}
-          icon={<Clock className="h-3.5 w-3.5" />}
-          label="Time"
-          count={timeEntries.length > 0 ? timeEntries.length : undefined}
-        />
       </div>
 
-      {tab !== "metrics" && tab !== "time" && (
+      {tab !== "metrics" && (
         <div className="flex items-center gap-2">
           <div className="flex-1">
             <Input
@@ -213,14 +203,6 @@ export function FlywheelPanel() {
           <MetricsView
             metrics={metrics}
             acceptanceRate={acceptanceRate}
-          />
-        )}
-        {tab === "time" && (
-          <TimeEntriesList
-            entries={timeEntries}
-            onRemove={removeTimeEntry}
-            totalHours={getTotalBillableHours()}
-            totalAmount={getTotalBillableAmount()}
           />
         )}
       </div>
@@ -486,92 +468,6 @@ function MetricCard({
         {value}
       </div>
       {sub && <div className="text-[11px] text-surface-600 mt-0.5">{sub}</div>}
-    </div>
-  );
-}
-
-function TimeEntriesList({
-  entries,
-  onRemove,
-  totalHours,
-  totalAmount,
-}: {
-  entries: TimeEntry[];
-  onRemove: (id: string) => void;
-  totalHours: number;
-  totalAmount: number;
-}) {
-  if (entries.length === 0) {
-    return (
-      <EmptyState
-        icon={<Clock className="h-6 w-6" />}
-        title="No time entries yet"
-        description='Say "log thirty minutes" or "log one hour" during dictation to record billable time automatically.'
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Summary bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-surface-300/40 bg-surface-100/40">
-        <div className="flex gap-6">
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-surface-500">Total Hours</div>
-            <div className="text-lg font-bold text-surface-950">{totalHours.toFixed(1)}h</div>
-          </div>
-          {totalAmount > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-surface-500">Billable Value</div>
-              <div className="text-lg font-bold text-brass-500">
-                ${totalAmount.toFixed(2)}
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-1 text-[11px] text-surface-500">
-          <Clock className="h-3 w-3" />
-          {entries.length} {entries.length === 1 ? "entry" : "entries"}
-        </div>
-      </div>
-      <ul className="divide-y divide-surface-300/40 overflow-y-auto flex-1">
-        {entries.map((entry) => (
-          <li key={entry.id} className="flex items-start gap-3 px-4 py-3 group hover:bg-surface-100/40 transition-colors">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-surface-950">
-                  {entry.minutes >= 60
-                    ? `${(entry.minutes / 60).toFixed(1)}h`
-                    : `${entry.minutes}m`}
-                </span>
-                {entry.matter && (
-                  <span className="text-[11px] text-brass-500 font-medium truncate">
-                    {entry.matter}
-                  </span>
-                )}
-                {entry.amount > 0 && (
-                  <span className="text-[11px] text-surface-600">
-                    ${entry.amount.toFixed(2)}
-                  </span>
-                )}
-              </div>
-              {entry.notes && (
-                <p className="text-[11px] text-surface-600 mt-0.5 truncate">{entry.notes}</p>
-              )}
-              <p className="text-[10px] text-surface-500 mt-0.5">
-                {new Date(entry.createdAt).toLocaleString()}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onRemove(entry.id)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-surface-500 hover:text-red-500 p-1"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

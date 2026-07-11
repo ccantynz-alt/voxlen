@@ -28,7 +28,6 @@ beforeEach(() => {
     vocabulary: [],
     corrections: [],
     metrics: { ...defaultMetrics },
-    timeEntries: [],
   });
 });
 

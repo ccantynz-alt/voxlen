@@ -9,6 +9,7 @@ import { useHistoryStore } from "@/stores/history";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { applySmartFormat } from "@/lib/smartFormat";
 import { applyContextFormat } from "@/lib/contextFormat";
+import { computeBillableAmount, resolveRate, draftNarrative } from "@/lib/billing";
 import type { VoxlenContext } from "@/lib/contextFormat";
 import { useClauseStore } from "@/stores/clauses";
 
@@ -136,27 +137,27 @@ export function useTauriEvents(): void {
                     "__LOG_TIME__": 30, // default
                   };
                   const minutes = minuteMap[output] ?? 30;
-                  const { logTime } = useFlywheelStore.getState();
-                  const { billableRatePerHour } = useSettingsStore.getState() as { billableRatePerHour?: number };
+                  const vcSettings = useSettingsStore.getState();
                   const note = parsed.remainingText || "";
-                  logTime(minutes, "", note, billableRatePerHour ?? 0);
-                  // Also log to active client so it appears in billing dashboard
                   const { activeClientId: vcClientId, clients: vcClients, addEntry: vcAddEntry } = useClientsStore.getState();
-                  if (vcClientId) {
-                    const vcClient = vcClients.find((c) => c.id === vcClientId);
-                    if (vcClient) {
-                      const rate = vcClient.billableRate > 0 ? vcClient.billableRate : (billableRatePerHour ?? 0);
-                      vcAddEntry({
-                        clientId: vcClientId,
-                        date: Date.now(),
-                        durationSeconds: minutes * 60,
-                        wordCount: 0,
-                        billableAmount: (minutes / 60) * rate,
-                        rateAtTime: rate,
-                        note,
-                      });
-                    }
-                  }
+                  const vcClient = vcClients.find((c) => c.id === vcClientId);
+                  const { rate } = resolveRate(vcClient, vcSettings.billableRatePerHour);
+                  const billing = computeBillableAmount(minutes * 60, rate, {
+                    incrementHours: vcSettings.billingRoundingIncrement,
+                    minimumHours: vcSettings.billingMinimumHours,
+                  });
+                  // Explicit voice command = attorney intent → approved, not draft.
+                  vcAddEntry({
+                    clientId: vcClient?.id ?? "",
+                    date: Date.now(),
+                    durationSeconds: minutes * 60,
+                    wordCount: 0,
+                    billableAmount: billing.amount,
+                    rateAtTime: rate,
+                    note: note.slice(0, 120) || undefined,
+                    status: "approved",
+                    source: "voice-command",
+                  });
                   dictation.setCurrentTranscript("");
                   return;
                 }
@@ -619,23 +620,29 @@ export function useTauriEvents(): void {
             const engine = settings.sttEngine;
             useFlywheelStore.getState().recordSession(wc, dictState.sessionDuration, engine);
 
-            // Record billable entry for active client
-            const { activeClientId, clients, addEntry } = useClientsStore.getState();
-            if (activeClientId) {
+            // Auto-draft a billable time entry for attorney review — never
+            // silently approved. Sessions under 30s are noise, not billable work.
+            if (settings.autoTimeCapture && dictState.sessionDuration >= 30) {
+              const { activeClientId, clients, addEntry } = useClientsStore.getState();
               const client = clients.find((c) => c.id === activeClientId);
-              if (client) {
-                const rate = client.billableRate > 0
-                  ? client.billableRate
-                  : (settings.billableRatePerHour ?? 350);
-                const billable = (dictState.sessionDuration / 3600) * rate;
-                addEntry({
-                  clientId: activeClientId,
-                  date: Date.now(),
-                  durationSeconds: dictState.sessionDuration,
-                  wordCount: wc,
-                  billableAmount: billable,
-                  rateAtTime: rate,
-                });
+              const { rate } = resolveRate(client, settings.billableRatePerHour);
+              const billing = computeBillableAmount(dictState.sessionDuration, rate, {
+                incrementHours: settings.billingRoundingIncrement,
+                minimumHours: settings.billingMinimumHours,
+              });
+              const entryId = addEntry({
+                clientId: client?.id ?? "",
+                date: dictState.sessionStartedAtMs ?? Date.now(),
+                durationSeconds: dictState.sessionDuration,
+                wordCount: wc,
+                billableAmount: billing.amount,
+                rateAtTime: rate,
+                note: draftNarrative(fullText),
+                status: "draft",
+                source: "session",
+              });
+              if (entryId) {
+                useDictationStore.getState().setLastDraftEntryId(entryId);
               }
             }
           }

@@ -43,3 +43,4 @@ coverage/
 app-icon.png
 .claude/worktrees/
 .claude/session.log
+.vercel/

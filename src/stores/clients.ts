@@ -17,6 +17,7 @@ export interface Client {
 
 export interface MatterEntry {
   id: string;
+  /** Empty string = unassigned (no active client when the entry was created). */
   clientId: string;
   date: number; // epoch ms, start of session
   durationSeconds: number;
@@ -24,6 +25,14 @@ export interface MatterEntry {
   billableAmount: number; // $
   rateAtTime?: number; // $/hr rate locked at entry creation
   note?: string; // brief description of what was dictated
+  /** Drafts await attorney review; only approved entries count toward totals. */
+  status: "draft" | "approved";
+  /** How this entry was created. */
+  source: "session" | "voice-command" | "manual" | "migrated";
+  /** UTBMS activity code (e.g. "A103" Draft/revise). */
+  activityCode?: string;
+  /** Free-text matter label for entries migrated without a matching client. */
+  matterLabel?: string;
 }
 
 interface ClientsState {
@@ -39,10 +48,14 @@ interface ClientsState {
   deleteClient: (id: string) => void;
   setActiveClient: (id: string | null) => void;
 
-  addEntry: (entry: Omit<MatterEntry, "id">) => void;
+  addEntry: (entry: Omit<MatterEntry, "id">) => string;
+  updateEntry: (id: string, updates: Partial<Omit<MatterEntry, "id">>) => void;
+  approveEntry: (id: string) => void;
   deleteEntry: (id: string) => void;
 
   getClientEntries: (clientId: string) => MatterEntry[];
+  getDraftEntries: () => MatterEntry[];
+  getUnassignedEntries: () => MatterEntry[];
   getTotalBillable: (clientId: string) => number;
   getTotalHours: (clientId: string) => number;
 }
@@ -140,10 +153,27 @@ export const useClientsStore = create<ClientsState>()(
       },
 
       addEntry: (data) => {
-        const clientExists = get().clients.some((c) => c.id === data.clientId);
-        if (!clientExists) return;
+        // clientId "" = unassigned; anything else must reference a real client.
+        if (data.clientId && !get().clients.some((c) => c.id === data.clientId)) {
+          return "";
+        }
         const id = `entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         set((s) => ({ entries: [...s.entries, { ...data, id }] }));
+        return id;
+      },
+
+      updateEntry: (id, updates) => {
+        set((s) => ({
+          entries: s.entries.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+        }));
+      },
+
+      approveEntry: (id) => {
+        set((s) => ({
+          entries: s.entries.map((e) =>
+            e.id === id ? { ...e, status: "approved" as const } : e
+          ),
+        }));
       },
 
       deleteEntry: (id) => {
@@ -154,23 +184,45 @@ export const useClientsStore = create<ClientsState>()(
         return get().entries.filter((e) => e.clientId === clientId);
       },
 
+      getDraftEntries: () => {
+        return get().entries.filter((e) => e.status === "draft");
+      },
+
+      getUnassignedEntries: () => {
+        return get().entries.filter((e) => !e.clientId);
+      },
+
+      // Totals count approved entries only — drafts are pending attorney review.
       getTotalBillable: (clientId) => {
         return get()
-          .entries.filter((e) => e.clientId === clientId)
+          .entries.filter((e) => e.clientId === clientId && e.status === "approved")
           .reduce((sum, e) => sum + e.billableAmount, 0);
       },
 
       getTotalHours: (clientId) => {
         return (
           get()
-            .entries.filter((e) => e.clientId === clientId)
+            .entries.filter((e) => e.clientId === clientId && e.status === "approved")
             .reduce((sum, e) => sum + e.durationSeconds, 0) / 3600
         );
       },
     }),
     {
       name: "voxlen-clients",
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<ClientsState> | undefined;
+        if (!state) return persisted as ClientsState;
+        if (version < 2 && Array.isArray(state.entries)) {
+          // v1 entries predate review — treat them as already approved.
+          state.entries = state.entries.map((e) => ({
+            ...e,
+            status: e.status ?? ("approved" as const),
+            source: e.source ?? ("manual" as const),
+          }));
+        }
+        return state as ClientsState;
+      },
     }
   )
 );

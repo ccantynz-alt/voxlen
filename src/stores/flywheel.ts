@@ -41,21 +41,13 @@ export interface UsageMetrics {
   sessionsPerDay: Record<string, number>;
 }
 
-export interface TimeEntry {
-  id: string;
-  matter: string;        // matter/client name (optional, spoken)
-  minutes: number;
-  ratePerHour: number;
-  amount: number;        // minutes/60 * ratePerHour
-  notes: string;         // transcript snippet or manual note
-  createdAt: string;     // ISO timestamp
-}
+// Time entries moved to the clients store (MatterEntry) — see
+// src/lib/migrateBilling.ts for the one-time migration of legacy data.
 
 export interface FlywheelState {
   vocabulary: VocabularyEntry[];
   corrections: CorrectionPattern[];
   metrics: UsageMetrics;
-  timeEntries: TimeEntry[];
 
   addVocabulary: (word: string, source?: "manual" | "auto-detected") => void;
   removeVocabulary: (word: string) => void;
@@ -64,10 +56,6 @@ export interface FlywheelState {
   recordCorrectionFeedback: (accepted: boolean) => void;
   getTopCorrectionPatterns: (limit?: number) => CorrectionPattern[];
   getVocabularyList: () => string[];
-  logTime: (minutes: number, matter?: string, notes?: string, ratePerHour?: number) => void;
-  removeTimeEntry: (id: string) => void;
-  getTotalBillableHours: () => number;
-  getTotalBillableAmount: () => number;
   clearAll: () => void;
 }
 
@@ -97,7 +85,6 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
   vocabulary: [],
   corrections: [],
   metrics: { ...defaultMetrics },
-  timeEntries: [],
 
   addVocabulary: (word, source = "auto-detected") => {
     set((state) => {
@@ -218,43 +205,9 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
     return get().vocabulary.map((v) => v.word);
   },
 
-  logTime: (minutes, matter = "", notes = "", ratePerHour = 0) =>
-    set((state) => {
-      const entry: TimeEntry = {
-        id: crypto.randomUUID(),
-        matter,
-        minutes,
-        ratePerHour,
-        amount: Math.round((minutes / 60) * ratePerHour * 100) / 100,
-        // Truncate notes to 80 chars — time entries must not store full transcripts
-        // (privileged client content). Users can add a manual note if needed.
-        notes: notes.slice(0, 80),
-        createdAt: new Date().toISOString(),
-      };
-      schedulePersist();
-      return { timeEntries: [entry, ...state.timeEntries].slice(0, 500) };
-    }),
-
-  removeTimeEntry: (id) => {
-    set((state) => ({
-      timeEntries: state.timeEntries.filter((e) => e.id !== id),
-    }));
-    schedulePersist();
-  },
-
-  getTotalBillableHours: (): number => {
-    const entries: TimeEntry[] = get().timeEntries;
-    return entries.reduce((sum: number, e: TimeEntry) => sum + (e.minutes || 0) / 60, 0);
-  },
-
-  getTotalBillableAmount: (): number => {
-    const entries: TimeEntry[] = get().timeEntries;
-    return entries.reduce((sum: number, e: TimeEntry) => sum + (e.amount || 0), 0);
-  },
-
   clearAll: () => {
     for (const key of Object.keys(_pendingAutoVocab)) delete _pendingAutoVocab[key];
-    set({ vocabulary: [], corrections: [], metrics: { ...defaultMetrics }, timeEntries: [] });
+    set({ vocabulary: [], corrections: [], metrics: { ...defaultMetrics } });
     schedulePersist();
   },
 }));
@@ -266,12 +219,10 @@ export async function loadFlywheel(): Promise<void> {
     const vocab = await store.get<VocabularyEntry[]>("vocabulary");
     const corrections = await store.get<CorrectionPattern[]>("corrections");
     const metrics = await store.get<UsageMetrics>("metrics");
-    const timeEntries = await store.get<TimeEntry[]>("timeEntries");
     useFlywheelStore.setState({
       vocabulary: Array.isArray(vocab) ? vocab : [],
       corrections: Array.isArray(corrections) ? corrections : [],
       metrics: metrics || { ...defaultMetrics },
-      timeEntries: Array.isArray(timeEntries) ? timeEntries : [],
     });
   } catch {
     try {
@@ -282,7 +233,6 @@ export async function loadFlywheel(): Promise<void> {
           vocabulary: parsed.vocabulary || [],
           corrections: parsed.corrections || [],
           metrics: parsed.metrics || { ...defaultMetrics },
-          timeEntries: parsed.timeEntries || [],
         });
       }
     } catch {
@@ -297,7 +247,6 @@ async function persistFlywheel(): Promise<void> {
     vocabulary: state.vocabulary,
     corrections: state.corrections,
     metrics: state.metrics,
-    timeEntries: state.timeEntries,
   };
   try {
     const { load } = await import("@tauri-apps/plugin-store");
@@ -305,11 +254,12 @@ async function persistFlywheel(): Promise<void> {
     await store.set("vocabulary", data.vocabulary);
     await store.set("corrections", data.corrections);
     await store.set("metrics", data.metrics);
-    await store.set("timeEntries", data.timeEntries);
     await store.save();
   } catch {
     try {
-      localStorage.setItem("voxlen_flywheel", JSON.stringify(data));
+      const existing = JSON.parse(localStorage.getItem("voxlen_flywheel") ?? "{}");
+      // Preserve unknown keys (e.g. un-migrated legacy timeEntries).
+      localStorage.setItem("voxlen_flywheel", JSON.stringify({ ...existing, ...data }));
     } catch {
       // Ignore
     }

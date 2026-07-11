@@ -62,6 +62,25 @@ export interface AppSettings {
   legalMode: boolean; // enables Latin phrase recognition + legal smart format
   jurisdiction: "uk" | "us" | "australia" | "canada" | "nz" | "global";
   billableRatePerHour: number;
+
+  // Billing
+  /** Time-unit rounding for billable entries, in hours. 0 = no rounding. */
+  billingRoundingIncrement: 0 | 0.1 | 0.25;
+  /** Minimum billable hours per entry. */
+  billingMinimumHours: number;
+  /** Auto-draft a time entry for review when a dictation session ends. */
+  autoTimeCapture: boolean;
+  // LEDES export metadata
+  ledesLawFirmId: string;
+  ledesTimekeeperId: string;
+  ledesTimekeeperName: string;
+  ledesClassification: string;
+
+  // Flywheel
+  /** Automatically include learned vocabulary (freq >= 2) in STT config. */
+  flywheelAutoVocab: boolean;
+  /** Pre-apply learned correction patterns locally to final transcripts. */
+  applyLearnedCorrections: boolean;
   voxlenApiKey: string;
   voxlenContext: string; // VoxlenContext value
   voxlenTenantId: string;
@@ -139,6 +158,17 @@ const defaultSettings: AppSettings = {
   legalMode: false,
   jurisdiction: "global",
   billableRatePerHour: 0,
+
+  billingRoundingIncrement: 0.1,
+  billingMinimumHours: 0.1,
+  autoTimeCapture: true,
+  ledesLawFirmId: "",
+  ledesTimekeeperId: "",
+  ledesTimekeeperName: "",
+  ledesClassification: "PT",
+
+  flywheelAutoVocab: true,
+  applyLearnedCorrections: true,
   voxlenApiKey: "",
   voxlenContext: "legal_general",
   voxlenTenantId: "",
@@ -192,6 +222,15 @@ function schedulePersist() {
       legalMode: state.legalMode,
       jurisdiction: state.jurisdiction,
       billableRatePerHour: state.billableRatePerHour,
+      billingRoundingIncrement: state.billingRoundingIncrement,
+      billingMinimumHours: state.billingMinimumHours,
+      autoTimeCapture: state.autoTimeCapture,
+      ledesLawFirmId: state.ledesLawFirmId,
+      ledesTimekeeperId: state.ledesTimekeeperId,
+      ledesTimekeeperName: state.ledesTimekeeperName,
+      ledesClassification: state.ledesClassification,
+      flywheelAutoVocab: state.flywheelAutoVocab,
+      applyLearnedCorrections: state.applyLearnedCorrections,
       voxlenContext: state.voxlenContext,
       voxlenTenantId: state.voxlenTenantId,
       legalAcceptedVersion: state.legalAcceptedVersion,
