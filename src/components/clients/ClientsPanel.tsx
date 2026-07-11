@@ -4,6 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useClientsStore, type Client, type MatterEntry } from "../../stores/clients";
 import { useSettingsStore } from "../../stores/settings";
 import { exportBillingCsv, exportAllBillingCsv, downloadBillingExport } from "../../lib/export";
+import { exportLedes1998B, exportClioCsv } from "../../lib/exportLedes";
 import { formatBillableHours } from "../../lib/billing";
 import { Button } from "../ui/Button";
 
@@ -114,9 +115,84 @@ function AddClientModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Small dialog collecting invoice metadata for a LEDES export. */
+function LedesExportModal({ client, onClose }: { client: Client; onClose: () => void }) {
+  const settings = useSettingsStore();
+  const entries = useClientsStore((s) => s.entries).filter(
+    (e) => e.clientId === client.id && e.status === "approved"
+  );
+  const [invoiceNumber, setInvoiceNumber] = useState(
+    `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`
+  );
+  const [lawFirmId, setLawFirmId] = useState(settings.ledesLawFirmId);
+  const [timekeeperId, setTimekeeperId] = useState(settings.ledesTimekeeperId);
+  const [timekeeperName, setTimekeeperName] = useState(settings.ledesTimekeeperName);
+
+  const doExport = async () => {
+    // Remember firm/timekeeper details for next time.
+    settings.updateSettings({
+      ledesLawFirmId: lawFirmId,
+      ledesTimekeeperId: timekeeperId,
+      ledesTimekeeperName: timekeeperName,
+    });
+    const { content, filename, mimeType } = exportLedes1998B(client, entries, {
+      invoiceNumber,
+      invoiceDate: new Date(),
+      lawFirmId,
+      timekeeperId,
+      timekeeperName,
+      timekeeperClassification: settings.ledesClassification || "PT",
+    });
+    await downloadBillingExport(content, filename, mimeType, {
+      name: "LEDES 1998B",
+      extensions: ["txt", "ledes"],
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-surface-50 border border-surface-300/60 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <h2 className="text-lg font-bold text-surface-950 mb-1">LEDES 1998B Export</h2>
+        <p className="text-xs text-surface-600 mb-5">
+          {entries.length} approved entr{entries.length === 1 ? "y" : "ies"} for {client.name}
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label className="label-caps mb-1.5 block">Invoice Number *</label>
+            <input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className={INPUT_CLS} />
+          </div>
+          <div>
+            <label className="label-caps mb-1.5 block">Law Firm ID (tax/firm identifier)</label>
+            <input value={lawFirmId} onChange={(e) => setLawFirmId(e.target.value)} className={INPUT_CLS} placeholder="e.g. 12-3456789" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label-caps mb-1.5 block">Timekeeper ID</label>
+              <input value={timekeeperId} onChange={(e) => setTimekeeperId(e.target.value)} className={INPUT_CLS} placeholder="e.g. CC01" />
+            </div>
+            <div>
+              <label className="label-caps mb-1.5 block">Timekeeper Name</label>
+              <input value={timekeeperName} onChange={(e) => setTimekeeperName(e.target.value)} className={INPUT_CLS} placeholder="e.g. C. Canty" />
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <Button variant="primary" onClick={doExport} disabled={!invoiceNumber.trim() || entries.length === 0} className="flex-1">
+            Export LEDES
+          </Button>
+          <Button variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ClientCard({ client }: { client: Client }) {
   const { updateClient, archiveClient, deleteClient, getClientEntries, getTotalBillable, getTotalHours, addVocabularyTerm, removeVocabularyTerm } = useClientsStore();
   const defaultRate = useSettingsStore((s) => s.billableRatePerHour);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [ledesOpen, setLedesOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(client.name);
   const [editMatter, setEditMatter] = useState(client.matterNumber ?? "");
@@ -226,17 +302,46 @@ function ClientCard({ client }: { client: Client }) {
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               {entries.some((e) => e.status === "approved") && (
-                <button
-                  onClick={async () => {
-                    const approved = entries.filter((e) => e.status === "approved");
-                    const { content, filename, mimeType } = exportBillingCsv(client, approved);
-                    await downloadBillingExport(content, filename, mimeType);
-                  }}
-                  className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors"
-                  title="Export billing CSV"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setExportOpen((o) => !o)}
+                    className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors"
+                    title="Export billing"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  {exportOpen && (
+                    <div className="absolute right-0 top-full mt-1 z-40 w-40 rounded-lg border border-surface-300/60 bg-surface-50 shadow-elevation py-1">
+                      <button
+                        onClick={async () => {
+                          setExportOpen(false);
+                          const approved = entries.filter((e) => e.status === "approved");
+                          const { content, filename, mimeType } = exportBillingCsv(client, approved);
+                          await downloadBillingExport(content, filename, mimeType);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 transition-colors"
+                      >
+                        CSV
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setExportOpen(false);
+                          const { content, filename, mimeType } = exportClioCsv(client, entries);
+                          await downloadBillingExport(content, filename, mimeType);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 transition-colors"
+                      >
+                        Clio CSV
+                      </button>
+                      <button
+                        onClick={() => { setExportOpen(false); setLedesOpen(true); }}
+                        className="w-full text-left px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 transition-colors"
+                      >
+                        LEDES 1998B…
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
               <button onClick={() => archiveClient(client.id)} className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors" title="Archive">
                 <Archive className="w-3.5 h-3.5" />
@@ -336,6 +441,8 @@ function ClientCard({ client }: { client: Client }) {
           <p className="text-[10px] text-zinc-600 mt-2 italic leading-relaxed">{client.matterDescription}</p>
         )}
       </div>
+
+      {ledesOpen && <LedesExportModal client={client} onClose={() => setLedesOpen(false)} />}
     </div>
   );
 }

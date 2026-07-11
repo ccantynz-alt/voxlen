@@ -1460,19 +1460,54 @@ function VoxlenApiSettings() {
             </SettingRow>
           )}
 
-          {settings.legalMode && (
-            <SettingRow>
-              <Slider
-                label="Default Billable Rate"
-                value={settings.billableRatePerHour}
-                onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
-                min={0}
-                max={2000}
-                step={25}
-                formatValue={(v) => `$${v}/hr`}
-              />
-            </SettingRow>
-          )}
+          {/* Billing — always visible: time capture runs regardless of legal mode. */}
+          <SettingRow>
+            <Slider
+              label="Default Billable Rate"
+              value={settings.billableRatePerHour}
+              onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
+              min={0}
+              max={2000}
+              step={25}
+              formatValue={(v) => `$${v}/hr`}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Select
+              label="Billing Time Rounding"
+              value={String(settings.billingRoundingIncrement)}
+              onChange={(v) =>
+                settings.updateSetting(
+                  "billingRoundingIncrement",
+                  Number(v) as 0 | 0.1 | 0.25
+                )
+              }
+              options={[
+                { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney billing unit" },
+                { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour billing" },
+                { value: "0", label: "No rounding", description: "Bill exact duration" },
+              ]}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Switch
+              label="Automatic Time Capture"
+              description="Draft a billable time entry for review whenever a dictation session ends."
+              checked={settings.autoTimeCapture}
+              onChange={(v) => settings.updateSetting("autoTimeCapture", v)}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Input
+              label="LEDES Law Firm ID (optional)"
+              value={settings.ledesLawFirmId}
+              onChange={(e) => settings.updateSetting("ledesLawFirmId", e.target.value)}
+              placeholder="Firm tax / e-billing identifier for LEDES exports"
+            />
+          </SettingRow>
 
           <SettingRow>
             <Input
