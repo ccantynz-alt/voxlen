@@ -46,6 +46,8 @@ export interface BackendSessionSegment {
   language: string | null;
   timestamp_ms: number;
   grammar_applied: boolean;
+  /** Meeting sessions: "you" (mic) or "remote" (system audio). */
+  speaker?: string | null;
 }
 
 export interface BackendSessionRecord {
@@ -56,6 +58,8 @@ export interface BackendSessionRecord {
   word_count: number;
   language: string | null;
   segments: BackendSessionSegment[];
+  /** "dictation" (default) or "meeting". */
+  kind?: string;
 }
 
 const DRAFT_KEY = "voxlen_draft";

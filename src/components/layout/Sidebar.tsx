@@ -10,6 +10,7 @@ import {
   BarChart3,
   Briefcase,
   ChevronDown,
+  Headphones,
 } from "lucide-react";
 import { APP_VERSION } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ const coreItems = [
 ];
 
 const proItems = [
+  { id: "meeting", label: "Meetings", icon: Headphones, description: "Bot-free capture" },
   { id: "clauses", label: "Clauses", icon: BookOpen, description: "Clause library" },
   { id: "clients", label: "Clients", icon: Briefcase, description: "Billable matters" },
   { id: "analytics", label: "Analytics", icon: BarChart3, description: "Usage stats" },

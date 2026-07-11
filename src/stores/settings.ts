@@ -84,6 +84,11 @@ export interface AppSettings {
   flywheelAutoVocab: boolean;
   /** Pre-apply learned correction patterns locally to final transcripts. */
   applyLearnedCorrections: boolean;
+
+  // Meeting capture consent (Rust start-gate reads these; fail-closed)
+  meetingJurisdiction: string;
+  meetingConsentAckVersion: string | null;
+  meetingConsentAckAt: string | null;
   voxlenApiKey: string;
   voxlenContext: string; // VoxlenContext value
   voxlenTenantId: string;
@@ -173,6 +178,10 @@ const defaultSettings: AppSettings = {
 
   flywheelAutoVocab: true,
   applyLearnedCorrections: true,
+
+  meetingJurisdiction: "",
+  meetingConsentAckVersion: null,
+  meetingConsentAckAt: null,
   voxlenApiKey: "",
   voxlenContext: "legal_general",
   voxlenTenantId: "",
@@ -236,6 +245,9 @@ function schedulePersist() {
       ledesClassification: state.ledesClassification,
       flywheelAutoVocab: state.flywheelAutoVocab,
       applyLearnedCorrections: state.applyLearnedCorrections,
+      meetingJurisdiction: state.meetingJurisdiction,
+      meetingConsentAckVersion: state.meetingConsentAckVersion,
+      meetingConsentAckAt: state.meetingConsentAckAt,
       voxlenContext: state.voxlenContext,
       voxlenTenantId: state.voxlenTenantId,
       legalAcceptedVersion: state.legalAcceptedVersion,

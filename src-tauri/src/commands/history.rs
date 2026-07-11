@@ -11,6 +11,9 @@ pub struct TranscriptSegment {
     pub language: Option<String>,
     pub timestamp_ms: u64,
     pub grammar_applied: bool,
+    /// Meeting sessions: "you" (mic) or "remote" (system audio).
+    #[serde(default)]
+    pub speaker: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -22,6 +25,13 @@ pub struct SessionRecord {
     pub word_count: u32,
     pub language: Option<String>,
     pub segments: Vec<TranscriptSegment>,
+    /// "dictation" (default, incl. pre-existing records) or "meeting".
+    #[serde(default = "default_session_kind")]
+    pub kind: String,
+}
+
+fn default_session_kind() -> String {
+    "dictation".to_string()
 }
 
 const HISTORY_STORE_FILE: &str = "history.json";

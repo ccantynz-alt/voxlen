@@ -10,6 +10,7 @@ import { ClauseLibrary } from "@/components/clauses/ClauseLibrary";
 import { ClientsPanel } from "@/components/clients/ClientsPanel";
 import { AnalyticsPanel } from "@/components/analytics/AnalyticsPanel";
 import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
+import { MeetingPanel } from "@/components/meeting/MeetingPanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
@@ -29,6 +30,7 @@ type View =
   | "history"
   | "clauses"
   | "clients"
+  | "meeting"
   | "analytics"
   | "flywheel"
   | "admin"
@@ -305,6 +307,12 @@ export default function App() {
         return (
           <ErrorBoundary label="History">
             <HistoryPanel />
+          </ErrorBoundary>
+        );
+      case "meeting":
+        return (
+          <ErrorBoundary label="Meeting">
+            <MeetingPanel />
           </ErrorBoundary>
         );
       case "clauses":

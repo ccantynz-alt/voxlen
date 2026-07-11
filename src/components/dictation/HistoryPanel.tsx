@@ -28,6 +28,7 @@ interface HistorySession {
   durationMs: number;
   wordCount: number;
   language: string | null;
+  kind: string;
   segments: Array<{
     id: string;
     text: string;
@@ -36,6 +37,7 @@ interface HistorySession {
     language: string | null;
     timestampMs: number;
     grammarApplied: boolean;
+    speaker: string | null;
   }>;
 }
 
@@ -47,6 +49,7 @@ function fromBackend(record: BackendSessionRecord): HistorySession {
     durationMs: record.duration_ms,
     wordCount: record.word_count,
     language: record.language,
+    kind: record.kind ?? "dictation",
     segments: record.segments.map((s) => ({
       id: s.id,
       text: s.text,
@@ -55,6 +58,7 @@ function fromBackend(record: BackendSessionRecord): HistorySession {
       language: s.language,
       timestampMs: s.timestamp_ms,
       grammarApplied: s.grammar_applied,
+      speaker: s.speaker ?? null,
     })),
   };
 }
@@ -354,6 +358,11 @@ export function HistoryPanel() {
                         {session.language}
                       </span>
                     )}
+                    {session.kind === "meeting" && (
+                      <Badge variant="warning" className="text-[10px] py-0">
+                        Meeting
+                      </Badge>
+                    )}
                     {session.segments.some((s) => s.grammarApplied) && (
                       <Badge variant="info" className="text-[10px] py-0">
                         Polished
@@ -379,6 +388,11 @@ export function HistoryPanel() {
                               minute: "2-digit",
                               second: "2-digit",
                             })}
+                            {seg.speaker && (
+                              <span className="font-semibold uppercase tracking-wider text-brass-500">
+                                {seg.speaker === "you" ? "You" : "Remote"}
+                              </span>
+                            )}
                             {seg.grammarApplied && (
                               <Badge variant="info" className="text-[9px] py-0">
                                 Polished

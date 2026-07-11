@@ -86,6 +86,15 @@ pub struct AppSettings {
     #[serde(default = "default_translation_language")]
     pub translation_target_language: String,
 
+    // Meeting capture consent — the Rust-side start gate refuses to record
+    // system audio until an acknowledgment is stored (fail-closed).
+    #[serde(default)]
+    pub meeting_jurisdiction: String,
+    #[serde(default)]
+    pub meeting_consent_ack_version: Option<String>,
+    #[serde(default)]
+    pub meeting_consent_ack_at: Option<String>,
+
     // Voxlen account — when set, all STT and grammar calls are proxied
     // through voxlen.ai/api so users never need their own API keys.
     #[serde(default)]
@@ -157,6 +166,10 @@ impl Default for AppSettings {
 
             translation_enabled: false,
             translation_target_language: "en".to_string(),
+
+            meeting_jurisdiction: String::new(),
+            meeting_consent_ack_version: None,
+            meeting_consent_ack_at: None,
 
             voxlen_api_key: None,
             voxlen_tenant_id: None,

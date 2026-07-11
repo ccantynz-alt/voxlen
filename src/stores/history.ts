@@ -8,6 +8,8 @@ export interface HistoryEntry {
   language: string;
   timestamp: string; // ISO string for serialization
   grammarCorrected: boolean;
+  /** "dictation" (default for older entries) or "meeting". */
+  kind?: "dictation" | "meeting";
 }
 
 interface HistoryState {

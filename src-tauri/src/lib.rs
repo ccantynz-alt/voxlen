@@ -1,6 +1,7 @@
 mod audio;
 mod commands;
 mod grammar;
+mod meeting;
 mod stt;
 mod text_injection;
 
@@ -52,6 +53,7 @@ pub fn run() {
             let stt_engine = stt::SttEngine::new(app_handle.clone());
             app.manage(stt::SttState::new(stt_engine));
             app.manage(stt::SttSessionState::new());
+            app.manage(meeting::MeetingState::default());
 
             // Push the just-loaded settings into the STT + grammar engines so
             // API keys flow all the way through before the user's first hotkey.
@@ -238,6 +240,12 @@ pub fn run() {
             commands::keyring::keyring_get,
             commands::keyring::keyring_set,
             commands::keyring::keyring_delete,
+            // Meeting capture (bot-free, on-device, consent-gated)
+            commands::meeting::meeting_capture_supported,
+            commands::meeting::meeting_capture_active,
+            commands::meeting::start_meeting_capture,
+            commands::meeting::stop_meeting_capture,
+            meeting::extract::extract_meeting_items,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

@@ -65,6 +65,11 @@ export interface BackendAppSettings {
   translation_enabled: boolean;
   translation_target_language: string;
 
+  // Meeting capture consent
+  meeting_jurisdiction: string;
+  meeting_consent_ack_version: string | null;
+  meeting_consent_ack_at: string | null;
+
   // Voxlen account
   voxlen_api_key: string;
   voxlen_tenant_id: string;
@@ -129,6 +134,10 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
 
     translation_enabled: s.translationEnabled,
     translation_target_language: s.translationTargetLanguage,
+
+    meeting_jurisdiction: s.meetingJurisdiction,
+    meeting_consent_ack_version: s.meetingConsentAckVersion,
+    meeting_consent_ack_at: s.meetingConsentAckAt,
 
     voxlen_api_key: s.voxlenApiKey,
     voxlen_tenant_id: s.voxlenTenantId,
@@ -197,6 +206,10 @@ export function fromBackendSettings(
 
   if (s.translation_enabled !== undefined) out.translationEnabled = s.translation_enabled;
   if (s.translation_target_language !== undefined) out.translationTargetLanguage = s.translation_target_language;
+
+  if (s.meeting_jurisdiction !== undefined) out.meetingJurisdiction = s.meeting_jurisdiction;
+  if (s.meeting_consent_ack_version !== undefined) out.meetingConsentAckVersion = s.meeting_consent_ack_version;
+  if (s.meeting_consent_ack_at !== undefined) out.meetingConsentAckAt = s.meeting_consent_ack_at;
 
   if (s.voxlen_api_key !== undefined) out.voxlenApiKey = s.voxlen_api_key;
   if (s.voxlen_tenant_id !== undefined) out.voxlenTenantId = s.voxlen_tenant_id;

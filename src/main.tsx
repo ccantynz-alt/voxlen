@@ -63,8 +63,25 @@ window.addEventListener("unhandledrejection", (event) => {
   setTimeout(() => el.remove(), 7000);
 });
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// The always-on-top recording indicator is a separate Tauri window loading
+// the same bundle with a hash route — render only the indicator there.
+const isIndicator = window.location.hash === "#/meeting-indicator";
+
+async function renderIndicator() {
+  const { MeetingIndicator } = await import("./components/meeting/MeetingIndicator");
+  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    <React.StrictMode>
+      <MeetingIndicator />
+    </React.StrictMode>
+  );
+}
+
+if (isIndicator) {
+  renderIndicator();
+} else {
+  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}

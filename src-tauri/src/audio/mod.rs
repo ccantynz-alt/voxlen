@@ -1,5 +1,6 @@
 pub mod capture;
 pub mod devices;
+pub mod loopback;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
