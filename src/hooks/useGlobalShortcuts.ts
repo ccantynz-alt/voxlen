@@ -3,6 +3,7 @@ import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { collectVocabulary } from "@/lib/vocab";
 import { toast } from "@/components/ui/Toast";
 
 /**
@@ -182,14 +183,9 @@ export function useGlobalShortcuts(enabled: boolean): void {
               const textToCorrect = selection || lastSegment?.correctedText || lastSegment?.text || "";
               if (!textToCorrect.trim()) return;
 
-              const flyVocab = useFlywheelStore.getState().vocabulary
-                .filter((v) => v.frequency >= 2)
-                .map((v) => v.word);
               const { activeClientId, clients } = useClientsStore.getState();
               const activeClient = clients.find((c) => c.id === activeClientId);
-              const clientVocab = activeClient?.vocabulary ?? [];
-              const globalVocab = useSettingsStore.getState().customVocabulary;
-              const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocab, ...globalVocab]));
+              const mergedVocab = collectVocabulary();
               const matterContext = buildMatterContext(activeClient) || undefined;
 
               const result = await invoke<{

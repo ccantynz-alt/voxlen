@@ -10,6 +10,8 @@ import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { applySmartFormat } from "@/lib/smartFormat";
 import { applyContextFormat } from "@/lib/contextFormat";
 import { computeBillableAmount, resolveRate, draftNarrative } from "@/lib/billing";
+import { collectVocabulary } from "@/lib/vocab";
+import { applyLearnedCorrections } from "@/lib/localCorrections";
 import type { VoxlenContext } from "@/lib/contextFormat";
 import { useClauseStore } from "@/stores/clauses";
 
@@ -250,7 +252,16 @@ export function useTauriEvents(): void {
                   speakerLabel: speakerLabelForContext,
                 })
               : shaped;
-            const finalText = capsLock ? withContext.toUpperCase() : withContext;
+            // Pre-apply flywheel-learned correction patterns on-device —
+            // instant, free, and the only correction path in Privileged
+            // Mode where cloud grammar never runs.
+            const withLearned = settings.applyLearnedCorrections
+              ? applyLearnedCorrections(
+                  withContext,
+                  useFlywheelStore.getState().getTopCorrectionPatterns(50)
+                ).text
+              : withContext;
+            const finalText = capsLock ? withLearned.toUpperCase() : withLearned;
 
             // Clause library voice triggers — gated on the voice-commands
             // setting: with it off, a sentence merely containing a trigger
@@ -349,13 +360,9 @@ export function useTauriEvents(): void {
                 // Step 1: grammar correction
                 if (grammarEnabled) {
                   try {
-                    const flyVocab = useFlywheelStore.getState().vocabulary
-                      .filter((v) => v.frequency >= 2)
-                      .map((v) => v.word);
                     const { activeClientId: acid, clients: acls } = useClientsStore.getState();
                     const activeClientForAuto = acls.find((c) => c.id === acid);
-                    const clientVocabAuto = activeClientForAuto?.vocabulary ?? [];
-                    const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocabAuto, ...settings.customVocabulary]));
+                    const mergedVocab = collectVocabulary();
                     const matterContextAuto = buildMatterContext(activeClientForAuto) || undefined;
                     const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
                       "correct_grammar",

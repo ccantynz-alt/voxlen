@@ -28,11 +28,11 @@ import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
-import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { useNavigationStore } from "@/stores/navigation";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
 import { suggestClient, suggestOverActive } from "@/lib/matterMatch";
+import { collectVocabulary, collectVocabularyOrUndefined } from "@/lib/vocab";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
 import { downloadExport } from "@/lib/export";
@@ -208,13 +208,10 @@ export function DictationPanel() {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
 
-        // Always push current client's vocabulary into STT config so a client
-        // switch mid-session doesn't leak the previous client's terms.
-        const { activeClientId: cid, clients: cls } = useClientsStore.getState();
-        const activeClientForSTT = cls.find((c) => c.id === cid);
-        const matterVocab = activeClientForSTT?.vocabulary ?? [];
-        const globalVocab = useSettingsStore.getState().customVocabulary;
-        const mergedVocab = [...new Set([...globalVocab, ...matterVocab])];
+        // Always push the merged vocabulary (global + client + flywheel-
+        // learned) into STT config so a client switch mid-session doesn't
+        // leak the previous client's terms and learned words boost accuracy.
+        const mergedVocab = collectVocabulary();
         try {
           const currentCfg = await invoke<Record<string, unknown>>("get_stt_config");
           await invoke("set_stt_config", { config: { ...currentCfg, custom_vocabulary: mergedVocab } });
@@ -322,13 +319,7 @@ export function DictationPanel() {
         const { activeClientId: cid, clients: cls } = useClientsStore.getState();
         const activeClientForGrammar = cls.find((c) => c.id === cid);
         const matterContext = buildMatterContext(activeClientForGrammar) || undefined;
-        const flywheelVocab = useFlywheelStore.getState().vocabulary
-          .filter((v) => v.frequency >= 2)
-          .map((v) => v.word);
-        const clientVocab = activeClientForGrammar?.vocabulary ?? [];
-        const globalVocabList = useSettingsStore.getState().customVocabulary;
-        const mergedVocab = Array.from(new Set([...flywheelVocab, ...clientVocab, ...globalVocabList]));
-        const customVocabulary = mergedVocab.length > 0 ? mergedVocab : undefined;
+        const customVocabulary = collectVocabularyOrUndefined();
 
         const result = await invoke<{
           corrected: string;

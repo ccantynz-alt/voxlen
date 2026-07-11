@@ -34,6 +34,9 @@ export function FlywheelPanel() {
   const addVocabulary = useFlywheelStore((s) => s.addVocabulary);
   const removeVocabulary = useFlywheelStore((s) => s.removeVocabulary);
   const clearAll = useFlywheelStore((s) => s.clearAll);
+  const flywheelAutoVocab = useSettingsStore((s) => s.flywheelAutoVocab);
+  const applyLearnedCorrections = useSettingsStore((s) => s.applyLearnedCorrections);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
 
   const filteredVocab = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -127,6 +130,28 @@ export function FlywheelPanel() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Auto-feed controls — learned data flows back into STT/correction */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-1">
+        <label className="flex items-center gap-2 text-[11px] text-surface-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={flywheelAutoVocab}
+            onChange={(e) => updateSetting("flywheelAutoVocab", e.target.checked)}
+            className="accent-brass-500"
+          />
+          Automatically use learned vocabulary for speech recognition
+        </label>
+        <label className="flex items-center gap-2 text-[11px] text-surface-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={applyLearnedCorrections}
+            onChange={(e) => updateSetting("applyLearnedCorrections", e.target.checked)}
+            className="accent-brass-500"
+          />
+          Pre-apply learned corrections on-device
+        </label>
       </div>
 
       <div className="flex items-center gap-1 border-b border-surface-300/50">
@@ -324,7 +349,7 @@ function CorrectionsList({
       <EmptyState
         icon={<Wand2 className="h-6 w-6" />}
         title="No correction patterns yet"
-        description="As you accept grammar corrections, the most common edits appear here. Over time they can be pre-applied locally to cut API latency."
+        description="As you accept grammar corrections, the most common edits appear here. Patterns seen 3+ times are pre-applied on-device to every transcript — instantly, even in Privileged Mode."
       />
     );
   }
