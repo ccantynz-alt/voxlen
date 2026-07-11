@@ -43,8 +43,10 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 
 - **Desktop app:** Tauri v2, Rust backend (`src-tauri/`), React/TS frontend (`src/`)
 - **State management:** Zustand stores (`src/stores/`)
-- **STT engines:** Deepgram Nova-3 (streaming, default), OpenAI Whisper (cloud), Whisper Local (not yet implemented)
-- **Grammar AI:** Claude Sonnet 4.6 + GPT-4o-mini — proxied through api.voxlen.com when account key present; falls back to user BYOK keys
+- **STT engines:** Deepgram Nova-3 (streaming, default), OpenAI Whisper (cloud), Whisper Local (on-device, whisper-rs)
+- **Grammar engines:** cloud (Claude Sonnet 4.6 / GPT-4o-mini, voxlen.ai proxy or BYOK), local rules (`src-tauri/src/grammar/rules.rs`), local LLM (Qwen3-4B via llama-cpp-2, `dynamic-link` feature — static ggml collides with whisper-rs at link time)
+- **Meeting capture:** `src-tauri/src/meeting/` — WASAPI loopback + mic dual-channel (= You/Remote diarization), Whisper Local forced, Rust-side consent gate + indicator window
+- **Billing:** `src/lib/billing.ts` (round-UP 0.1hr convention) + clients store draft/approve entries + LEDES 1998B/Clio CSV export
 - **Text injection:** OS-level keyboard simulation (osascript/SendInput/xdotool)
 - **iOS keyboard:** Swift, `ios/VoxKeyboard/`
 - **Web SDK:** `sdk/` — embeddable JS library for AlecRae.com integration
@@ -56,9 +58,15 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 
 - [x] Whisper Local offline mode (whisper-rs + on-demand model manager) ✓ — build needs LLVM 18 + CMake (LIBCLANG_PATH/CMAKE user env vars are set on this machine)
 - [x] API key secure storage — keyring crate with windows-native/apple-native backends (Credential Manager / macOS Keychain) ✓
+- [x] Local grammar (Tier 1 rules + Tier 2 Qwen3-4B on-device) — privileged mode now corrects instead of no-op ✓
+- [x] Ambient billing — session-end draft time entries, 0.1hr rounding, LEDES/Clio export, matter auto-match ✓
+- [x] Bot-free meeting capture (Windows loopback, consent-gated) + task/deadline extraction ✓
+- [ ] macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
+- [ ] iOS local STT — feasible in main app (whisper.cpp + CoreML), NOT in keyboard extension (memory ceiling); quick win: `requiresOnDeviceRecognition = true` on the Apple Speech fallback
 - [ ] Android keyboard extension
 - [ ] Stripe payment links (replace REPLACE_* placeholders in landing/src/lib/stripe.ts with real Stripe dashboard URLs)
 - [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
+- [ ] Clio API integration (matters pull + time entry push) — export formats shipped as the base
 - [x] Noise suppression — high-pass filter + noise gate in capture pipeline ✓
 - [x] Payment system — Stripe integration on landing page ✓
 - [x] React error boundaries ✓
