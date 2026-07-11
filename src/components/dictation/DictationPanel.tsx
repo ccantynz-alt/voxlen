@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
+import { TimeEntryReviewBanner } from "./TimeEntryReviewBanner";
 import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
@@ -506,6 +507,8 @@ export function DictationPanel() {
           </div>
         </div>
       )}
+      {/* Post-session billing review */}
+      <TimeEntryReviewBanner />
       {/* Main dictation area */}
       <div className="flex-1 flex flex-col p-8 gap-7 overflow-hidden">
         {/* Mic control + waveform */}
@@ -623,16 +626,28 @@ export function DictationPanel() {
             </div>
           )}
 
-          {/* Live billing ticker — shown when recording with active client */}
+          {/* Live billing ticker — shown when recording with active client.
+              When no rate resolves, show a warning instead of hiding: silent
+              $0 billing was exactly the failure this surfaces. */}
           {isActive && activeClient && (() => {
             const rate = activeClient.billableRate > 0 ? activeClient.billableRate : (useSettingsStore.getState().billableRatePerHour ?? 0);
-            if (rate <= 0) return null;
+            if (rate <= 0) {
+              return (
+                <button
+                  onClick={() => useNavigationStore.getState().requestView("clients")}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-400/40 text-[11px] font-medium text-amber-500 hover:text-amber-300 transition-colors"
+                >
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  No rate set — $0.00/hr
+                </button>
+              );
+            }
             const elapsed = sessionDuration; // seconds
             const amount = (elapsed / 3600) * rate;
             return (
               <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brass-500/10 border border-brass-400/30 text-[11px] font-mono text-brass-600 tabular-nums">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-brass-500 animate-pulse" />
-                £{amount.toFixed(2)}
+                ${amount.toFixed(2)}
               </div>
             );
           })()}
