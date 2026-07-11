@@ -28,6 +28,7 @@ import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
+import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { useNavigationStore } from "@/stores/navigation";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
@@ -328,7 +329,12 @@ export function DictationPanel() {
             corrected: string;
             reason: string;
           }>;
-        }>("correct_grammar", { text, customVocabulary, matterContext });
+        }>("correct_grammar", {
+          text,
+          customVocabulary,
+          matterContext,
+          learnedPatterns: useFlywheelStore.getState().getTopCorrectionPatterns(50),
+        });
 
         // Apply the corrected text. The polish button passes the FULL
         // transcript — writing that into only the last segment would leave

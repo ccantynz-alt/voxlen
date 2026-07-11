@@ -16,6 +16,7 @@ const DEFAULTS: AppSettings = {
   grammarEnabled: true,
   grammarApiKey: "",
   grammarProvider: "claude",
+  grammarEngine: "cloud",
   writingStyle: "professional",
   autoCorrect: false,
   preserveTone: true,

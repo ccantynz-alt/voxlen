@@ -15,12 +15,30 @@ pub struct GrammarConfig {
     pub voxlen_context: Option<String>,
     #[serde(default)]
     pub voxlen_tenant_id: Option<String>,
+    #[serde(default)]
+    pub engine: GrammarEngine,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GrammarProvider {
     Claude,
     OpenAI,
+}
+
+/// Which correction engine handles requests. Cloud engines send the text
+/// to an external LLM; LocalRules runs the on-device deterministic
+/// pipeline (`crate::grammar::rules`) — the only engine reachable in
+/// privileged mode.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum GrammarEngine {
+    Cloud,
+    LocalRules,
+}
+
+impl Default for GrammarEngine {
+    fn default() -> Self {
+        GrammarEngine::Cloud
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,6 +62,7 @@ impl Default for GrammarConfig {
             voxlen_api_key: None,
             voxlen_context: None,
             voxlen_tenant_id: None,
+            engine: GrammarEngine::Cloud,
         }
     }
 }
@@ -76,6 +95,7 @@ pub async fn correct_grammar(
     text: String,
     custom_vocabulary: Option<Vec<String>>,
     matter_context: Option<String>,
+    learned_patterns: Option<Vec<crate::grammar::rules::LearnedPattern>>,
 ) -> Result<GrammarResult, String> {
     let config = get_config_store().read().clone();
 
@@ -88,7 +108,7 @@ pub async fn correct_grammar(
         });
     }
 
-    if !config.enabled || crate::commands::settings::get_privileged_mode() {
+    if !config.enabled {
         return Ok(GrammarResult {
             original: text.clone(),
             corrected: text,
@@ -98,6 +118,17 @@ pub async fn correct_grammar(
     }
 
     let vocab = custom_vocabulary.unwrap_or_default();
+    let patterns = learned_patterns.unwrap_or_default();
+
+    // Privileged mode: cloud engines are unreachable by design (fail-closed).
+    // Grammar still works — via the on-device rules engine — instead of the
+    // old behavior of returning the text untouched. Users may also select
+    // the local engine explicitly outside privileged mode.
+    if crate::commands::settings::get_privileged_mode()
+        || config.engine == GrammarEngine::LocalRules
+    {
+        return Ok(crate::grammar::rules::correct_with_rules(&text, &vocab, &patterns));
+    }
 
     // Merge matter context into voxlen_context if provided
     let effective_context = matter_context

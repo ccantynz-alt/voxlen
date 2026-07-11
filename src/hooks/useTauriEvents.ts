@@ -370,6 +370,7 @@ export function useTauriEvents(): void {
                         text: capturedFinalText,
                         customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
                         matterContext: matterContextAuto,
+                        learnedPatterns: useFlywheelStore.getState().getTopCorrectionPatterns(50),
                       }
                     );
                     if (grammarResult?.corrected) {

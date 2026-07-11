@@ -198,6 +198,7 @@ export function useGlobalShortcuts(enabled: boolean): void {
                   text: textToCorrect,
                   customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
                   matterContext,
+                  learnedPatterns: useFlywheelStore.getState().getTopCorrectionPatterns(50),
                 }
               );
 

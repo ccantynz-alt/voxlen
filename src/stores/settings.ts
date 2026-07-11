@@ -21,6 +21,9 @@ export interface AppSettings {
   grammarEnabled: boolean;
   grammarApiKey: string;
   grammarProvider: "claude" | "openai";
+  /** "cloud" sends text to an external LLM; "local_rules" runs the
+   *  on-device deterministic engine. Privileged mode forces local. */
+  grammarEngine: "cloud" | "local_rules";
   writingStyle: "professional" | "casual" | "academic" | "creative" | "technical";
   autoCorrect: boolean;
   preserveTone: boolean;
@@ -126,6 +129,7 @@ const defaultSettings: AppSettings = {
   grammarEnabled: true,
   grammarApiKey: "",
   grammarProvider: "claude",
+  grammarEngine: "cloud",
   writingStyle: "professional",
   autoCorrect: true,
   preserveTone: true,
@@ -196,6 +200,7 @@ function schedulePersist() {
       speakerDiarization: state.speakerDiarization,
       grammarEnabled: state.grammarEnabled,
       grammarProvider: state.grammarProvider,
+      grammarEngine: state.grammarEngine,
       writingStyle: state.writingStyle,
       autoCorrect: state.autoCorrect,
       preserveTone: state.preserveTone,

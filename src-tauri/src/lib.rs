@@ -1,5 +1,6 @@
 mod audio;
 mod commands;
+mod grammar;
 mod stt;
 mod text_injection;
 

@@ -706,6 +706,33 @@ function GrammarSettings() {
 
       <SettingRow>
         <Select
+          label="Correction Engine"
+          value={settings.privilegedMode ? "local_rules" : settings.grammarEngine}
+          onChange={(v) =>
+            settings.updateSetting("grammarEngine", v as "cloud" | "local_rules")
+          }
+          options={[
+            {
+              value: "cloud",
+              label: "Cloud AI (sends text)",
+              description: "Claude / OpenAI — best quality; transcript text is sent to the provider",
+            },
+            {
+              value: "local_rules",
+              label: "Local (on-device)",
+              description: "Deterministic rules + your learned corrections — nothing leaves this machine",
+            },
+          ]}
+        />
+        {settings.privilegedMode && (
+          <p className="text-[11px] text-emerald-500 mt-1.5">
+            Privileged mode forces the local engine — cloud correction is unreachable.
+          </p>
+        )}
+      </SettingRow>
+
+      <SettingRow>
+        <Select
           label="AI Provider"
           value={settings.grammarProvider}
           onChange={(v) =>

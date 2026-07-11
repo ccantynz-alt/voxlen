@@ -6,7 +6,7 @@ use tauri_plugin_store::StoreExt;
 use crate::audio::AudioState;
 use crate::stt::{SttConfig, SttEngineType, SttState};
 use crate::commands::grammar::{
-    set_grammar_config_internal, GrammarConfig, GrammarProvider, WritingStyle,
+    set_grammar_config_internal, GrammarConfig, GrammarEngine, GrammarProvider, WritingStyle,
 };
 use crate::commands::translate::{set_translation_config_internal, TranslationConfig};
 
@@ -33,6 +33,9 @@ pub struct AppSettings {
     pub grammar_enabled: bool,
     pub grammar_api_key: Option<String>,
     pub grammar_provider: String,
+    /// "cloud" | "local_rules" — privileged mode forces local regardless.
+    #[serde(default = "default_grammar_engine")]
+    pub grammar_engine: String,
     pub writing_style: String,
     pub auto_correct: bool,
     #[serde(default = "default_true")]
@@ -121,6 +124,7 @@ impl Default for AppSettings {
             grammar_enabled: true,
             grammar_api_key: None,
             grammar_provider: "claude".to_string(),
+            grammar_engine: "cloud".to_string(),
             writing_style: "professional".to_string(),
             auto_correct: true,
             preserve_tone: true,
@@ -167,6 +171,7 @@ impl Default for AppSettings {
 
 fn default_true() -> bool { true }
 fn default_whisper_model() -> String { "base.en".to_string() }
+fn default_grammar_engine() -> String { "cloud".to_string() }
 fn default_shortcut_correct_grammar() -> String { "CommandOrControl+Shift+G".to_string() }
 
 fn default_translation_language() -> String {
@@ -322,6 +327,11 @@ fn apply_settings_to_engines(
     // (engine applies Voxlen-first precedence with BYOK fallback).
     let grammar_api_key = s.grammar_api_key.clone().filter(|k| !k.is_empty());
 
+    let grammar_engine = match s.grammar_engine.as_str() {
+        "local_rules" => GrammarEngine::LocalRules,
+        _ => GrammarEngine::Cloud,
+    };
+
     let grammar_config = GrammarConfig {
         enabled: s.grammar_enabled,
         api_key: grammar_api_key,
@@ -332,6 +342,7 @@ fn apply_settings_to_engines(
         voxlen_api_key: voxlen_key,
         voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
         voxlen_tenant_id: s.voxlen_tenant_id.clone().filter(|k| !k.is_empty()),
+        engine: grammar_engine,
     };
     set_grammar_config_internal(grammar_config);
 
