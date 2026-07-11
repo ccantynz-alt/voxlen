@@ -360,6 +360,163 @@ interface WhisperModel {
   downloaded: boolean;
 }
 
+interface GrammarLlmModel {
+  id: string;
+  label: string;
+  description: string;
+  size_mb: number;
+  downloaded: boolean;
+}
+
+/** Download manager for the on-device grammar LLM (Tier-2 polish). */
+function GrammarModelManager() {
+  const grammarLocalModel = useSettingsStore((s) => s.grammarLocalModel);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const [models, setModels] = useState<GrammarLlmModel[]>([]);
+  const [progress, setProgress] = useState<Record<string, { received: number; total: number }>>({});
+  const [downloading, setDownloading] = useState<Record<string, boolean>>({});
+
+  const refresh = useCallback(async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      setModels(await invoke<GrammarLlmModel[]>("list_grammar_models"));
+    } catch {
+      // Non-Tauri (browser dev).
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        const un = await listen<{
+          id: string;
+          received: number;
+          total: number;
+          done: boolean;
+          error: string | null;
+        }>("grammar-model-progress", (e) => {
+          const p = e.payload;
+          if (p.done || p.error) {
+            setProgress((prev) => {
+              const next = { ...prev };
+              delete next[p.id];
+              return next;
+            });
+            setDownloading((prev) => ({ ...prev, [p.id]: false }));
+            if (p.error) toast(`Model download failed: ${p.error}`, "error", 6000);
+            refresh();
+          } else {
+            setProgress((prev) => ({ ...prev, [p.id]: { received: p.received, total: p.total } }));
+          }
+        });
+        if (cancelled) un();
+        else unlisten = un;
+      } catch {
+        // Non-Tauri.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [refresh]);
+
+  const handleDownload = async (id: string) => {
+    setDownloading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("download_grammar_model", { id });
+    } catch (e) {
+      toast(typeof e === "string" ? e : "Download failed — check your connection.", "error", 6000);
+      setDownloading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("delete_grammar_model", { id });
+      await refresh();
+    } catch {
+      // Ignore.
+    }
+  };
+
+  if (models.length === 0) return null;
+
+  return (
+    <SettingRow>
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-medium text-surface-900">On-Device Grammar AI</p>
+          <p className="text-xs text-surface-600 mt-0.5">
+            With a model downloaded, the local engine adds AI polish on top of the rules —
+            still entirely on this machine. Without one, the rules run alone.
+          </p>
+        </div>
+        <div className="rounded-lg border border-surface-300/50 divide-y divide-surface-300/40">
+          {models.map((m) => {
+            const p = progress[m.id];
+            const pct = p && p.total > 0 ? Math.min(100, Math.round((p.received / p.total) * 100)) : 0;
+            const isActive = m.downloaded && grammarLocalModel === m.id;
+            return (
+              <div key={m.id} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-surface-900">{m.label}</span>
+                    <span className="text-[11px] text-surface-500 font-mono">
+                      {m.size_mb >= 1000 ? `${(m.size_mb / 1000).toFixed(1)} GB` : `${m.size_mb} MB`}
+                    </span>
+                    {isActive && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-surface-600 truncate">{m.description}</p>
+                  {p && (
+                    <div className="mt-1.5 h-1 rounded-full bg-surface-200 overflow-hidden">
+                      <div className="h-full bg-brass-400 transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
+                </div>
+                {m.downloaded ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!isActive && (
+                      <Button variant="ghost" size="sm" onClick={() => updateSetting("grammarLocalModel", m.id)}>
+                        Use
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleDownload(m.id)}
+                    disabled={!!downloading[m.id]}
+                  >
+                    {downloading[m.id] ? "Downloading…" : "Download"}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SettingRow>
+  );
+}
+
 function WhisperModelManager() {
   const whisperLocalModel = useSettingsStore((s) => s.whisperLocalModel);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
@@ -719,17 +876,26 @@ function GrammarSettings() {
             },
             {
               value: "local_rules",
-              label: "Local (on-device)",
+              label: "Local rules (on-device)",
               description: "Deterministic rules + your learned corrections — nothing leaves this machine",
+            },
+            {
+              value: "local_llm",
+              label: "Local AI (on-device)",
+              description: "Rules + a small AI model running on this machine — needs a ~2.4 GB download",
             },
           ]}
         />
         {settings.privilegedMode && (
           <p className="text-[11px] text-emerald-500 mt-1.5">
-            Privileged mode forces the local engine — cloud correction is unreachable.
+            Privileged mode forces a local engine — cloud correction is unreachable.
           </p>
         )}
       </SettingRow>
+
+      {(settings.grammarEngine === "local_llm" || settings.privilegedMode) && (
+        <GrammarModelManager />
+      )}
 
       <SettingRow>
         <Select

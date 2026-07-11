@@ -2,6 +2,7 @@ mod audio;
 mod commands;
 mod grammar;
 mod meeting;
+mod models;
 mod stt;
 mod text_injection;
 
@@ -240,6 +241,11 @@ pub fn run() {
             commands::keyring::keyring_get,
             commands::keyring::keyring_set,
             commands::keyring::keyring_delete,
+            // Grammar LLM model manager (on-device Tier-2 polish)
+            grammar::llm_models::list_grammar_models,
+            grammar::llm_models::download_grammar_model,
+            grammar::llm_models::delete_grammar_model,
+            grammar::llm_models::has_grammar_model,
             // Meeting capture (bot-free, on-device, consent-gated)
             commands::meeting::meeting_capture_supported,
             commands::meeting::meeting_capture_active,

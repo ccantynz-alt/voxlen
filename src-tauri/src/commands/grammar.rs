@@ -33,6 +33,8 @@ pub enum GrammarProvider {
 pub enum GrammarEngine {
     Cloud,
     LocalRules,
+    /// Rules pass first, then a small on-device LLM polish (llama.cpp).
+    LocalLlm,
 }
 
 impl Default for GrammarEngine {
@@ -92,6 +94,7 @@ fn get_config_store() -> &'static parking_lot::RwLock<GrammarConfig> {
 
 #[tauri::command]
 pub async fn correct_grammar(
+    app: tauri::AppHandle,
     text: String,
     custom_vocabulary: Option<Vec<String>>,
     matter_context: Option<String>,
@@ -121,13 +124,35 @@ pub async fn correct_grammar(
     let patterns = learned_patterns.unwrap_or_default();
 
     // Privileged mode: cloud engines are unreachable by design (fail-closed).
-    // Grammar still works — via the on-device rules engine — instead of the
-    // old behavior of returning the text untouched. Users may also select
-    // the local engine explicitly outside privileged mode.
-    if crate::commands::settings::get_privileged_mode()
-        || config.engine == GrammarEngine::LocalRules
-    {
-        return Ok(crate::grammar::rules::correct_with_rules(&text, &vocab, &patterns));
+    // Grammar still works — via the on-device engines — instead of the old
+    // behavior of returning the text untouched. Users may also select a
+    // local engine explicitly outside privileged mode.
+    let privileged = crate::commands::settings::get_privileged_mode();
+    if privileged || config.engine != GrammarEngine::Cloud {
+        let rules_result = crate::grammar::rules::correct_with_rules(&text, &vocab, &patterns);
+        // LLM polish on top of the rules pass when selected and downloaded.
+        // In privileged mode this is still fully on-device — allowed.
+        let want_llm = config.engine == GrammarEngine::LocalLlm;
+        if want_llm {
+            let settings = crate::commands::settings::get_current_settings();
+            let style = match config.style {
+                WritingStyle::Professional => "professional",
+                WritingStyle::Casual => "casual",
+                WritingStyle::Academic => "academic",
+                WritingStyle::Creative => "creative",
+                WritingStyle::Technical => "technical",
+            };
+            let context = matter_context.clone().filter(|s| !s.is_empty());
+            return Ok(crate::grammar::llm_local::polish(
+                &app,
+                rules_result,
+                &settings.grammar_local_model,
+                style,
+                context,
+            )
+            .await);
+        }
+        return Ok(rules_result);
     }
 
     // Merge matter context into voxlen_context if provided

@@ -24,7 +24,8 @@ export interface BackendAppSettings {
   grammar_enabled: boolean;
   grammar_api_key: string;
   grammar_provider: "claude" | "openai";
-  grammar_engine: "cloud" | "local_rules";
+  grammar_engine: "cloud" | "local_rules" | "local_llm";
+  grammar_local_model: string;
   writing_style: "professional" | "casual" | "academic" | "creative" | "technical";
   auto_correct: boolean;
   preserve_tone: boolean;
@@ -102,6 +103,7 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
     grammar_api_key: s.grammarApiKey,
     grammar_provider: s.grammarProvider,
     grammar_engine: s.grammarEngine,
+    grammar_local_model: s.grammarLocalModel,
     writing_style: s.writingStyle,
     auto_correct: s.autoCorrect,
     preserve_tone: s.preserveTone,
@@ -174,6 +176,7 @@ export function fromBackendSettings(
   if (s.grammar_api_key !== undefined) out.grammarApiKey = s.grammar_api_key;
   if (s.grammar_provider !== undefined) out.grammarProvider = s.grammar_provider;
   if (s.grammar_engine !== undefined) out.grammarEngine = s.grammar_engine;
+  if (s.grammar_local_model !== undefined) out.grammarLocalModel = s.grammar_local_model;
   if (s.writing_style !== undefined) out.writingStyle = s.writing_style;
   if (s.auto_correct !== undefined) out.autoCorrect = s.auto_correct;
   if (s.preserve_tone !== undefined) out.preserveTone = s.preserve_tone;

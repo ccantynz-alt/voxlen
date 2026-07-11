@@ -5,4 +5,6 @@
 //! in Privileged Mode, where cloud grammar is unreachable by design.
 //! A Tier-2 local LLM polish (llama.cpp) will slot in alongside it.
 
+pub mod llm_local;
+pub mod llm_models;
 pub mod rules;

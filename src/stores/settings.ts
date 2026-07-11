@@ -22,8 +22,11 @@ export interface AppSettings {
   grammarApiKey: string;
   grammarProvider: "claude" | "openai";
   /** "cloud" sends text to an external LLM; "local_rules" runs the
-   *  on-device deterministic engine. Privileged mode forces local. */
-  grammarEngine: "cloud" | "local_rules";
+   *  on-device deterministic engine; "local_llm" adds an on-device AI
+   *  polish on top of the rules. Privileged mode forces local. */
+  grammarEngine: "cloud" | "local_rules" | "local_llm";
+  /** Catalog id of the downloaded grammar LLM (e.g. "qwen3-4b"). */
+  grammarLocalModel: string;
   writingStyle: "professional" | "casual" | "academic" | "creative" | "technical";
   autoCorrect: boolean;
   preserveTone: boolean;
@@ -135,6 +138,7 @@ const defaultSettings: AppSettings = {
   grammarApiKey: "",
   grammarProvider: "claude",
   grammarEngine: "cloud",
+  grammarLocalModel: "qwen3-4b",
   writingStyle: "professional",
   autoCorrect: true,
   preserveTone: true,
@@ -210,6 +214,7 @@ function schedulePersist() {
       grammarEnabled: state.grammarEnabled,
       grammarProvider: state.grammarProvider,
       grammarEngine: state.grammarEngine,
+      grammarLocalModel: state.grammarLocalModel,
       writingStyle: state.writingStyle,
       autoCorrect: state.autoCorrect,
       preserveTone: state.preserveTone,

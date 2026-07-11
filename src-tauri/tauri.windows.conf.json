@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "dlls/ggml.dll": "./ggml.dll",
+      "dlls/ggml-base.dll": "./ggml-base.dll",
+      "dlls/ggml-cpu.dll": "./ggml-cpu.dll",
+      "dlls/llama.dll": "./llama.dll",
+      "dlls/llama-common.dll": "./llama-common.dll"
+    }
+  }
+}

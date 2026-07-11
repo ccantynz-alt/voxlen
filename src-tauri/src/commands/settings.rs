@@ -33,9 +33,12 @@ pub struct AppSettings {
     pub grammar_enabled: bool,
     pub grammar_api_key: Option<String>,
     pub grammar_provider: String,
-    /// "cloud" | "local_rules" — privileged mode forces local regardless.
+    /// "cloud" | "local_rules" | "local_llm" — privileged mode forces local.
     #[serde(default = "default_grammar_engine")]
     pub grammar_engine: String,
+    /// Grammar LLM catalog id (e.g. "qwen3-4b") for the local_llm engine.
+    #[serde(default = "default_grammar_local_model")]
+    pub grammar_local_model: String,
     pub writing_style: String,
     pub auto_correct: bool,
     #[serde(default = "default_true")]
@@ -134,6 +137,7 @@ impl Default for AppSettings {
             grammar_api_key: None,
             grammar_provider: "claude".to_string(),
             grammar_engine: "cloud".to_string(),
+            grammar_local_model: "qwen3-4b".to_string(),
             writing_style: "professional".to_string(),
             auto_correct: true,
             preserve_tone: true,
@@ -185,6 +189,7 @@ impl Default for AppSettings {
 fn default_true() -> bool { true }
 fn default_whisper_model() -> String { "base.en".to_string() }
 fn default_grammar_engine() -> String { "cloud".to_string() }
+fn default_grammar_local_model() -> String { "qwen3-4b".to_string() }
 fn default_shortcut_correct_grammar() -> String { "CommandOrControl+Shift+G".to_string() }
 
 fn default_translation_language() -> String {
@@ -342,6 +347,7 @@ fn apply_settings_to_engines(
 
     let grammar_engine = match s.grammar_engine.as_str() {
         "local_rules" => GrammarEngine::LocalRules,
+        "local_llm" => GrammarEngine::LocalLlm,
         _ => GrammarEngine::Cloud,
     };
 
