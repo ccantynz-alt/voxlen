@@ -22,37 +22,30 @@
     "@type": "SoftwareApplication",
     "name": "Voxlen",
     "applicationCategory": "BusinessApplication",
-    "operatingSystem": "macOS, Windows, iOS",
-    "description": "AI-powered dictation software for UK accountants and finance professionals. Features HMRC terminology recognition, VAT return phrase library, billable time tracking, on-device Privileged Mode (coming soon), and seamless integration with accountancy workflows.",
+    "operatingSystem": "macOS, Windows, Linux",
+    "description": "AI-powered dictation software for UK accountants and finance professionals. Features HMRC terminology recognition, VAT return phrase library, billable time tracking, on-device Privileged Mode (available now), and seamless integration with accountancy workflows.",
     "url": "https://voxlen.ai/",
     "offers": [
       {
         "@type": "Offer",
-        "name": "Free",
-        "price": "0",
-        "priceCurrency": "GBP",
-        "description": "500 words/week, core dictation features"
-      },
-      {
-        "@type": "Offer",
-        "name": "Pro",
-        "price": "23",
-        "priceCurrency": "GBP",
-        "description": "Unlimited dictation, accounting phrase library, offline mode (coming soon)"
-      },
-      {
-        "@type": "Offer",
         "name": "Professional",
-        "price": "62",
-        "priceCurrency": "GBP",
-        "description": "Multi-user, priority support, advanced analytics"
+        "price": "29",
+        "priceCurrency": "USD",
+        "description": "Unlimited dictation, AI grammar included, optional BYOK"
       },
       {
         "@type": "Offer",
-        "name": "Lifetime",
-        "price": "469",
-        "priceCurrency": "GBP",
-        "description": "One-time payment, all Pro features forever"
+        "name": "Privileged",
+        "price": "59",
+        "priceCurrency": "USD",
+        "description": "Adds on-device Whisper, on-device grammar, client and matter billing, and clause library"
+      },
+      {
+        "@type": "Offer",
+        "name": "Firm",
+        "price": "49",
+        "priceCurrency": "USD",
+        "description": "Privileged features per seat for firms with 5 or more seats"
       }
     ],
     "publisher": {
@@ -74,7 +67,7 @@
         "name": "What is the best dictation software for accountants in the UK?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Voxlen is the best dictation software for UK accountants in 2026. It is purpose-built for finance professionals with features like HMRC terminology recognition, a 400-term accounting phrase library (covering VAT, PAYE, corporation tax, self-assessment, and more), automatic billable time tracking, and a Privileged Mode (coming soon) that will keep all client data entirely on-device. Unlike generic voice tools, Voxlen understands the language of UK accountancy and uses AI post-processing to correct financial terminology automatically."
+          "text": "Voxlen is the best dictation software for UK accountants in 2026. It is purpose-built for finance professionals with features like HMRC terminology recognition, a 400-term accounting phrase library (covering VAT, PAYE, corporation tax, self-assessment, and more), automatic billable time tracking, and a Privileged Mode that keeps all client data entirely on-device. Unlike generic voice tools, Voxlen understands the language of UK accountancy and uses AI post-processing to correct financial terminology automatically."
         }
       },
       {
@@ -90,7 +83,7 @@
         "name": "Is Voxlen GDPR compliant for UK accountancy practices?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Voxlen is designed with privacy as a core principle, not an afterthought. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode (coming soon) will process all audio and transcripts entirely on your own device — nothing sent to any cloud at all — helping UK accountancy practices regulated by ICAEW, ACCA, or CIMA remain fully compliant with GDPR and professional body data protection requirements."
+          "text": "Voxlen is designed with privacy as a core principle, not an afterthought. Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode processes all audio and transcripts entirely on your own device — nothing is sent to any cloud at all — helping UK accountancy practices regulated by ICAEW, ACCA, or CIMA remain fully compliant with GDPR and professional body data protection requirements."
         }
       },
       {
@@ -632,6 +625,13 @@
       letter-spacing: 0;
     }
 
+    .pricing-card .plan-price span {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 0;
+    }
+
     .pricing-card .plan-period {
       font-size: 13px;
       color: var(--text-dim);
@@ -875,7 +875,7 @@
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      Works on Mac, Windows &amp; iPhone
+      Runs on macOS, Windows, and Linux; iPhone keyboard coming soon
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -924,17 +924,17 @@
     <div class="features-grid">
 
       <div class="feature-card featured">
-        <div class="feature-badge">Pro</div>
+        <div class="feature-badge">Privileged</div>
         <div class="feature-icon">📚</div>
         <h3>Accounting Phrase Library</h3>
         <p>A 400-term library covering VAT, PAYE, corporation tax, self-assessment, capital allowances, Making Tax Digital, and standard HMRC form references. Dictate once — receive correctly formatted accounting language every time.</p>
       </div>
 
       <div class="feature-card featured">
-        <div class="feature-badge">Pro</div>
+        <div class="feature-badge">Privileged</div>
         <div class="feature-icon">🛡️</div>
-        <h3>Privileged Mode (Fully Offline) — Coming Soon</h3>
-        <p>When client confidentiality is paramount: Privileged Mode (coming soon) will run all transcription on-device via a local AI model. Zero audio leaving your machine. No cloud server. GDPR compliant by architecture. Today, all requests pass through zero-retention endpoints and nothing is retained.</p>
+        <h3>Privileged Mode (Fully Offline) — Available Now</h3>
+        <p>When client confidentiality is paramount: Privileged Mode runs all transcription on-device via a local AI model. Zero audio leaves your machine. No cloud server. GDPR compliant by architecture. In standard cloud mode, all requests pass through the voxlen.ai proxy under zero-content-retention controls.</p>
       </div>
 
       <div class="feature-card">
@@ -1018,7 +1018,7 @@
           <td class="no">No</td>
         </tr>
         <tr>
-          <td>Mac + Windows + iPhone support</td>
+          <td>Mac + Windows; iPhone keyboard coming soon</td>
           <td class="yes">Yes</td>
           <td class="partial">Windows only</td>
           <td class="yes">Yes</td>
@@ -1026,10 +1026,10 @@
         </tr>
         <tr>
           <td>Starting price</td>
-          <td class="yes">Free / £23/mo</td>
-          <td class="no">£550+ one-time</td>
+          <td class="yes">$29/mo (14-day free trial)</td>
+          <td class="no">High per-seat pricing</td>
           <td class="partial">Microsoft 365 only</td>
-          <td class="partial">Free / £10/mo</td>
+          <td class="partial">Free and paid tiers</td>
         </tr>
       </tbody>
     </table>
@@ -1075,63 +1075,24 @@
     <h2 class="section-title">Simple, Transparent Pricing<br>for Every Practice Size</h2>
     <p class="section-sub">No per-client fees. No annual lock-in. Cancel any time.</p>
     <div class="pricing-grid">
-
       <div class="pricing-card">
-        <p class="plan-name">Free</p>
-        <p class="plan-price">$<span>0</span></p>
-        <p class="plan-period">Forever free</p>
-        <ul>
-          <li><span class="check">✓</span> 500 words / week</li>
-          <li><span class="check">✓</span> Core AI dictation</li>
-          <li><span class="check">✓</span> Mac &amp; Windows</li>
-          <li><span class="check">✓</span> Basic grammar correction</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta secondary">Download Free</a>
+        <p class="plan-name pricing-name">Professional</p>
+        <p class="plan-price pricing-price">$29<span>/month</span></p>
+        <ul class="pricing-features"><li>Unlimited dictation</li><li>AI grammar included</li><li>Optional BYOK</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta secondary">Start 14-Day Free Trial</a>
       </div>
-
-      <div class="pricing-card popular">
-        <div class="popular-badge">Most Popular</div>
-        <p class="plan-name">Pro</p>
-        <p class="plan-price"><sup>$</sup>29<span style="font-size:18px;font-weight:500;color:var(--text-muted)">/mo</span></p>
-        <p class="plan-period">Billed monthly &middot; cancel any time</p>
-        <ul>
-          <li><span class="check">✓</span> Unlimited dictation</li>
-          <li><span class="check">✓</span> Accounting phrase library (400 terms)</li>
-          <li><span class="check">🔜</span> Privileged Mode (offline) — coming soon</li>
-          <li><span class="check">✓</span> Billable time tracking</li>
-          <li><span class="check">✓</span> AI grammar &amp; formatting</li>
-          <li><span class="check">✓</span> iOS keyboard app</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta primary">Start 14-Day Trial</a>
+      <div class="pricing-card popular featured">
+        <p class="plan-name pricing-name">Privileged</p>
+        <p class="plan-price pricing-price">$59<span>/month</span></p>
+        <ul class="pricing-features"><li>Everything in Professional</li><li>On-device Whisper and grammar</li><li>Client/matter billing and clause library</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta primary">Start 14-Day Free Trial</a>
       </div>
-
       <div class="pricing-card">
-        <p class="plan-name">Professional</p>
-        <p class="plan-price"><sup>$</sup>79<span style="font-size:18px;font-weight:500;color:var(--text-muted)">/mo</span></p>
-        <p class="plan-period">Per practice &middot; up to 5 users</p>
-        <ul>
-          <li><span class="check">✓</span> Everything in Pro</li>
-          <li><span class="check">✓</span> Up to 5 users</li>
-          <li><span class="check">✓</span> Shared phrase library</li>
-          <li><span class="check">✓</span> Priority support</li>
-          <li><span class="check">✓</span> Advanced analytics dashboard</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta primary">Start Free Trial</a>
+        <p class="plan-name pricing-name">Firm</p>
+        <p class="plan-price pricing-price">$49<span>/seat/month</span></p>
+        <ul class="pricing-features"><li>For firms with 5+ seats</li><li>Everything in Privileged, per seat</li><li>AI costs included</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta secondary">View Firm Plan</a>
       </div>
-
-      <div class="pricing-card">
-        <p class="plan-name">Lifetime</p>
-        <p class="plan-price"><sup>$</sup>599</p>
-        <p class="plan-period">One-time payment &middot; yours forever</p>
-        <ul>
-          <li><span class="check">✓</span> Everything in Pro</li>
-          <li><span class="check">✓</span> All future updates included</li>
-          <li><span class="check">✓</span> No recurring fees ever</li>
-          <li><span class="check">✓</span> Priority support for life</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta gold">Get Lifetime Access</a>
-      </div>
-
     </div>
   </div>
 </section>
@@ -1150,7 +1111,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Voxlen is the best dictation software for UK accountants in 2026. It is purpose-built for finance professionals with a 400-term accounting phrase library covering VAT, PAYE, corporation tax, self-assessment, capital allowances, Making Tax Digital, and standard HMRC form references. Unlike generic voice tools such as Microsoft Dictate or Google Docs Voice Typing, Voxlen understands the language of UK accountancy and uses AI post-processing to correct financial terminology automatically. It also integrates billable time tracking, and a Privileged Mode (coming soon) will keep all client data entirely on-device.
+            Voxlen is the best dictation software for UK accountants in 2026. It is purpose-built for finance professionals with a 400-term accounting phrase library covering VAT, PAYE, corporation tax, self-assessment, capital allowances, Making Tax Digital, and standard HMRC form references. Unlike generic voice tools such as Microsoft Dictate or Google Docs Voice Typing, Voxlen understands the language of UK accountancy and uses AI post-processing to correct financial terminology automatically. It also integrates billable time tracking, and its Privileged Mode keeps all client data entirely on-device.
           </div>
         </div>
       </div>
@@ -1174,7 +1135,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Voxlen is designed with privacy as a core principle. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode (coming soon) will process all audio and transcripts entirely on your own device — nothing sent to any cloud at all — helping UK accountancy practices regulated by ICAEW, ACCA, or CIMA remain fully compliant with UK GDPR and professional body data protection requirements.
+            Voxlen is designed with privacy as a core principle. Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode processes all audio and transcripts entirely on your own device — nothing is sent to any cloud at all — helping UK accountancy practices regulated by ICAEW, ACCA, or CIMA remain fully compliant with UK GDPR and professional body data protection requirements.
           </div>
         </div>
       </div>

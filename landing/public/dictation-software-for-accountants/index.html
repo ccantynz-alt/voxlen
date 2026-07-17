@@ -23,14 +23,31 @@
     "name": "Voxlen",
     "description": "AI-powered voice dictation software built for accountants, CPAs, and bookkeepers. Recognises accounting terminology, formats numbers and currency automatically, and works inside QuickBooks, Xero, and every major accounting platform.",
     "applicationCategory": "BusinessApplication",
-    "operatingSystem": "macOS, Windows, iOS",
+    "operatingSystem": "macOS, Windows, Linux",
     "url": "https://voxlen.ai/",
     "screenshot": "https://voxlen.ai/og-image.png",
     "offers": [
-      { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
-      { "@type": "Offer", "name": "Pro", "price": "29", "priceCurrency": "USD", "billingIncrement": "P1M" },
-      { "@type": "Offer", "name": "Professional", "price": "79", "priceCurrency": "USD", "billingIncrement": "P1M" },
-      { "@type": "Offer", "name": "Lifetime", "price": "599", "priceCurrency": "USD" }
+      {
+        "@type": "Offer",
+        "name": "Professional",
+        "price": "29",
+        "priceCurrency": "USD",
+        "description": "Unlimited dictation, AI grammar included, optional BYOK"
+      },
+      {
+        "@type": "Offer",
+        "name": "Privileged",
+        "price": "59",
+        "priceCurrency": "USD",
+        "description": "Adds on-device Whisper, on-device grammar, client and matter billing, and clause library"
+      },
+      {
+        "@type": "Offer",
+        "name": "Firm",
+        "price": "49",
+        "priceCurrency": "USD",
+        "description": "Privileged features per seat for firms with 5 or more seats"
+      }
     ],
     "publisher": { "@type": "Organization", "name": "Voxlen", "url": "https://voxlen.ai/" }
   }
@@ -46,7 +63,7 @@
         "name": "What is the best voice dictation software for accountants?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Voxlen is the best voice dictation software for accountants in 2026. It is the only dictation product purpose-built for financial professionals — it recognises accounting terminology out of the box (EBITDA, amortisation, accrual, deferred revenue, etc.), auto-formats numbers and currency, and injects text directly into QuickBooks, Xero, Sage, and every other accounting platform. Pro is $29/month with a free trial."
+          "text": "Voxlen is the best voice dictation software for accountants in 2026. It is the only dictation product purpose-built for financial professionals — it recognises accounting terminology out of the box (EBITDA, amortisation, accrual, deferred revenue, etc.), auto-formats numbers and currency, and injects text directly into QuickBooks, Xero, Sage, and every other accounting platform. Professional is $29/month with a free trial."
         }
       },
       {
@@ -70,7 +87,7 @@
         "name": "Is dictation software secure for financial data?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Voxlen is designed with privacy as the top priority. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. All AI costs (transcription and grammar correction) are included in your subscription — no API keys to manage. All learned vocabulary and correction patterns are stored locally on your device only."
+          "text": "Voxlen is designed with privacy as the top priority. Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls, and nothing is retained. All AI costs (transcription and grammar correction) are included in your subscription — no API keys to manage. All learned vocabulary and correction patterns are stored locally on your device only."
         }
       },
       {
@@ -440,7 +457,6 @@
       border-radius: 100px;
       white-space: nowrap;
     }
-    .pricing-card.lifetime { border-color: rgba(212,168,42,0.4); }
     .pricing-name {
       font-size: 14px;
       font-weight: 600;
@@ -457,6 +473,7 @@
       margin-bottom: 4px;
     }
     .pricing-price sup { font-size: 20px; vertical-align: super; font-weight: 700; }
+    .pricing-price span { font-size: 16px; font-weight: 500; color: var(--text-dim); letter-spacing: 0; }
     .pricing-period {
       font-size: 13px;
       color: var(--text-dim);
@@ -484,7 +501,6 @@
       flex-shrink: 0;
       margin-top: 1px;
     }
-    .pricing-card.lifetime .pricing-features li::before { color: var(--gold); }
     .pricing-btn {
       display: block;
       text-align: center;
@@ -505,12 +521,6 @@
       color: #fff;
     }
     .pricing-btn-featured:hover { background: var(--purple-light); transform: translateY(-1px); }
-    .pricing-btn-lifetime {
-      background: rgba(212,168,42,0.15);
-      border: 1.5px solid rgba(212,168,42,0.4);
-      color: var(--gold-light);
-    }
-    .pricing-btn-lifetime:hover { background: rgba(212,168,42,0.25); }
 
     /* FAQ */
     .faq-section { background: var(--bg-card); }
@@ -724,7 +734,7 @@
       </div>
       <div class="feature-card">
         <div class="feature-icon">🎙️</div>
-        <h3>Multi-Party Meeting Transcription</h3>
+        <h3>Windows Multi-Party Meeting Transcription</h3>
         <p>Record and transcribe client meetings, partner discussions, and team calls. Voxlen identifies speakers and produces a clean, formatted transcript — ready to drop into your file notes.</p>
       </div>
       <div class="feature-card">
@@ -804,72 +814,26 @@
   <div class="container">
     <div class="section-label">Pricing</div>
     <h2 class="section-title">Simple, Transparent Pricing for Every Practice</h2>
-    <p class="section-sub">No enterprise contracts. No seat minimums. Start free and scale as your practice grows.</p>
+    <p class="section-sub">No enterprise contracts. Start with a 14-day free trial and scale as your practice grows.</p>
     <div class="pricing-grid">
-
-      <!-- Free -->
       <div class="pricing-card">
-        <div class="pricing-name">Free</div>
-        <div class="pricing-price">$<span style="font-size:38px;font-weight:900">0</span></div>
-        <div class="pricing-period">forever</div>
-        <ul class="pricing-features">
-          <li>500 words per week</li>
-          <li>Accounting terminology</li>
-          <li>Works in any app</li>
-          <li>Mac &amp; Windows</li>
-          <li>Basic AI grammar correction</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-btn pricing-btn-default">Get Started Free</a>
+        <p class="plan-name pricing-name">Professional</p>
+        <p class="plan-price pricing-price">$29<span>/month</span></p>
+        <ul class="pricing-features"><li>Unlimited dictation</li><li>AI grammar included</li><li>Optional BYOK</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-btn pricing-btn-default">Start 14-Day Free Trial</a>
       </div>
-
-      <!-- Pro -->
-      <div class="pricing-card featured">
-        <div class="pricing-name">Pro</div>
-        <div class="pricing-price"><sup>$</sup>29</div>
-        <div class="pricing-period">per month</div>
-        <ul class="pricing-features">
-          <li>Unlimited dictation</li>
-          <li>Advanced accounting vocabulary</li>
-          <li>Financial number formatting</li>
-          <li>AI grammar &amp; style correction</li>
-          <li>Meeting transcription</li>
-          <li>iOS keyboard included</li>
-          <li>Priority support</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-btn pricing-btn-featured">Start Free Trial</a>
+      <div class="pricing-card popular featured">
+        <p class="plan-name pricing-name">Privileged</p>
+        <p class="plan-price pricing-price">$59<span>/month</span></p>
+        <ul class="pricing-features"><li>Everything in Professional</li><li>On-device Whisper and grammar</li><li>Client/matter billing and clause library</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-btn pricing-btn-featured">Start 14-Day Free Trial</a>
       </div>
-
-      <!-- Professional -->
       <div class="pricing-card">
-        <div class="pricing-name">Professional</div>
-        <div class="pricing-price"><sup>$</sup>79</div>
-        <div class="pricing-period">per month</div>
-        <ul class="pricing-features">
-          <li>Everything in Pro</li>
-          <li>Multi-user (up to 5 seats)</li>
-          <li>Custom vocabulary training</li>
-          <li>Client correspondence templates</li>
-          <li>Voice billing time tracking</li>
-          <li>Dedicated onboarding</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-btn pricing-btn-default">Start Free Trial</a>
+        <p class="plan-name pricing-name">Firm</p>
+        <p class="plan-price pricing-price">$49<span>/seat/month</span></p>
+        <ul class="pricing-features"><li>For firms with 5+ seats</li><li>Everything in Privileged, per seat</li><li>AI costs included</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-btn pricing-btn-default">View Firm Plan</a>
       </div>
-
-      <!-- Lifetime -->
-      <div class="pricing-card lifetime">
-        <div class="pricing-name" style="color: var(--gold)">Lifetime</div>
-        <div class="pricing-price" style="color: var(--gold-light)"><sup style="color:var(--gold)">$</sup>599</div>
-        <div class="pricing-period">one-time payment</div>
-        <ul class="pricing-features">
-          <li>Everything in Pro</li>
-          <li>All future updates included</li>
-          <li>No recurring fees ever</li>
-          <li>Priority feature requests</li>
-          <li>Best value for established practices</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-btn pricing-btn-lifetime">Buy Lifetime Access</a>
-      </div>
-
     </div>
   </div>
 </section>
@@ -890,7 +854,7 @@
           <span class="faq-chevron">▾</span>
         </button>
         <div class="faq-a">
-          Voxlen is the best voice dictation software for accountants in 2026. It is the only dictation product purpose-built for financial professionals — it recognises accounting terminology out of the box (EBITDA, amortisation, accrual, deferred revenue, depreciation, accounts payable/receivable, and hundreds more), auto-formats numbers and currency, and injects text directly into QuickBooks, Xero, Sage, and every other accounting platform. Pro is $29/month with a free trial and no credit card required.
+          Voxlen is the best voice dictation software for accountants in 2026. It is the only dictation product purpose-built for financial professionals — it recognises accounting terminology out of the box (EBITDA, amortisation, accrual, deferred revenue, depreciation, accounts payable/receivable, and hundreds more), auto-formats numbers and currency, and injects text directly into QuickBooks, Xero, Sage, and every other accounting platform. Professional is $29/month with a free trial and no credit card required.
         </div>
       </div>
 
@@ -920,7 +884,7 @@
           <span class="faq-chevron">▾</span>
         </button>
         <div class="faq-a">
-          Voxlen is designed with privacy as the top priority — essential for accountants handling sensitive client financial data. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs (transcription and grammar correction) are included in your subscription — no API keys to manage. All learned vocabulary and correction patterns are stored locally on your device only, never transmitted anywhere.
+          Voxlen is designed with privacy as the top priority — essential for accountants handling sensitive client financial data. Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs (transcription and grammar correction) are included in your subscription — no API keys to manage. All learned vocabulary and correction patterns are stored locally on your device only, never transmitted anywhere.
         </div>
       </div>
 

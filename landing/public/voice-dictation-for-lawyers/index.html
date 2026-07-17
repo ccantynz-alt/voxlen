@@ -22,37 +22,30 @@
     "@type": "SoftwareApplication",
     "name": "Voxlen",
     "applicationCategory": "BusinessApplication",
-    "operatingSystem": "macOS, Windows, iOS",
-    "description": "Voice dictation software purpose-built for lawyers. Features a legal clause library, Latin legal phrase recognition, zero-retention privacy for attorney-client privilege (offline Privileged Mode coming soon), court-filing formatting, GDPR compliance, and billable time tracking.",
+    "operatingSystem": "macOS, Windows, Linux",
+    "description": "Voice dictation software purpose-built for lawyers. Features a legal clause library, Latin legal phrase recognition, zero-retention privacy for attorney-client privilege (offline Privileged Mode available now), court-filing formatting, GDPR compliance, and billable time tracking.",
     "url": "https://voxlen.ai/",
     "offers": [
       {
         "@type": "Offer",
-        "name": "Free",
-        "price": "0",
-        "priceCurrency": "USD",
-        "description": "500 words/week, core dictation features"
-      },
-      {
-        "@type": "Offer",
-        "name": "Pro",
+        "name": "Professional",
         "price": "29",
         "priceCurrency": "USD",
-        "description": "Unlimited dictation, legal clause library, billable time tracking, Privileged Mode (coming soon)"
+        "description": "Unlimited dictation, AI grammar included, optional BYOK"
       },
       {
         "@type": "Offer",
-        "name": "Professional",
-        "price": "79",
+        "name": "Privileged",
+        "price": "59",
         "priceCurrency": "USD",
-        "description": "Multi-user, shared clause library, priority support, analytics"
+        "description": "Adds on-device Whisper, on-device grammar, client and matter billing, and clause library"
       },
       {
         "@type": "Offer",
-        "name": "Lifetime",
-        "price": "599",
+        "name": "Firm",
+        "price": "49",
         "priceCurrency": "USD",
-        "description": "One-time payment, all Pro features forever"
+        "description": "Privileged features per seat for firms with 5 or more seats"
       }
     ],
     "publisher": {
@@ -74,7 +67,7 @@
         "name": "Is Voxlen GDPR compliant for law firms?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. Voxlen is designed with privacy as a foundational principle, not an afterthought. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode (coming soon) will process all audio and transcripts entirely on-device, so nothing is sent to any server at all — helping law firms in EU jurisdictions remain fully GDPR compliant and satisfy bar association guidance on data protection obligations."
+          "text": "Yes. Voxlen is designed with privacy as a foundational principle, not an afterthought. Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode processes all audio and transcripts entirely on-device, so nothing is sent to any server at all — helping law firms in EU jurisdictions remain fully GDPR compliant and satisfy bar association guidance on data protection obligations."
         }
       },
       {
@@ -98,7 +91,7 @@
         "name": "Can I use Voxlen for privileged client communications?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. Today, Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. Session history and custom vocabulary stay on your device only. Privileged Mode (coming soon) will go further: fully offline dictation with zero audio or text leaving your device, with transcription running on a local AI model with no external network calls — designed for attorney-client privileged communications, grand jury matters, M&A transactions, and any matter where absolute confidentiality is required."
+          "text": "Yes. In standard cloud mode, Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls, and nothing is retained. Session history and custom vocabulary stay on your device only. Privileged Mode goes further: fully offline dictation with zero audio or text leaving your device, with transcription running on a local AI model with no external network calls — designed for attorney-client privileged communications, grand jury matters, M&A transactions, and any matter where absolute confidentiality is required."
         }
       }
     ]
@@ -553,6 +546,13 @@
       letter-spacing: 0;
     }
 
+    .pricing-card .plan-price span {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 0;
+    }
+
     .pricing-card .plan-period { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
 
     .pricing-card ul {
@@ -710,7 +710,7 @@
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      Privileged Mode — offline, zero cloud (coming soon)
+      Privileged Mode — offline and fully on-device (available now)
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -759,14 +759,14 @@
     <div class="features-grid">
 
       <div class="feature-card featured">
-        <div class="feature-badge">Pro</div>
+        <div class="feature-badge">Privileged</div>
         <div class="feature-icon">🛡️</div>
-        <h3>Privileged Mode (Offline) — Coming Soon</h3>
-        <p>The most important feature on our roadmap for any legal dictation tool. Privileged Mode (coming soon) will run all transcription and AI processing entirely on-device — no audio, no transcript, nothing leaving your machine. Designed for attorney-client privileged communications, grand jury matters, and any work requiring absolute confidentiality. Today, all requests pass through zero-retention endpoints and nothing is retained.</p>
+        <h3>Privileged Mode (Offline) — Available Now</h3>
+        <p>The most important feature of any legal dictation tool. Privileged Mode runs all transcription and AI processing entirely on-device — no audio, no transcript, nothing leaves your machine. Designed for attorney-client privileged communications, grand jury matters, and any work requiring absolute confidentiality. In standard cloud mode, all requests pass through the voxlen.ai proxy under zero-content-retention controls.</p>
       </div>
 
       <div class="feature-card featured">
-        <div class="feature-badge">Pro</div>
+        <div class="feature-badge">Privileged</div>
         <div class="feature-icon">📚</div>
         <h3>Legal Clause Library</h3>
         <p>A 500-term library of legal phrases, standard clauses, and boilerplate language. Dictate "insert governing law clause" or "insert confidentiality provision" and have perfectly formatted text appear instantly — fully editable, fully yours.</p>
@@ -792,7 +792,7 @@
 
       <div class="feature-card">
         <div class="feature-icon">🎙️</div>
-        <h3>Speaker Diarization</h3>
+        <h3>Windows Meeting Capture &amp; Speaker Diarization</h3>
         <p>In depositions or client interviews with multiple speakers, Voxlen automatically labels who said what. Export a clean deposition transcript with labelled turns, ready for paralegal review — no manual attribution required.</p>
       </div>
 
@@ -840,7 +840,7 @@
           </tr>
           <tr>
             <td class="feature-name">iPhone / iOS App</td>
-            <td class="voxlen-col"><span class="yes">✓ Keyboard app</span></td>
+            <td class="voxlen-col"><span class="yes">Coming soon — waitlist</span></td>
             <td><span class="partial">~ Limited</span></td>
             <td><span class="yes">✓ Yes</span></td>
             <td><span class="yes">✓ Yes</span></td>
@@ -894,7 +894,7 @@
           </tr>
           <tr>
             <td class="feature-name">Pricing</td>
-            <td class="voxlen-col"><span class="yes">$29/mo or $599 lifetime</span></td>
+            <td class="voxlen-col"><span class="yes">$29/month Professional, $59/month Privileged, or $49/seat/month Firm (5+ seats)</span></td>
             <td><span class="no">$699+ one-time</span></td>
             <td><span class="no">Enterprise pricing</span></td>
             <td><span class="partial">~$99/user/year</span></td>
@@ -944,67 +944,26 @@
   <div class="section-inner">
     <p class="section-label">Pricing</p>
     <h2 class="section-title">Transparent Pricing for<br>Every Practice Size</h2>
-    <p class="section-sub">Dragon Legal costs $699+ and is Windows-only. Voxlen Pro is $29/month, works on Mac, Windows and iPhone, and includes features Dragon doesn't have.</p>
+    <p class="section-sub">Dragon Legal costs $699+ and is Windows-only. Voxlen Professional is $29/month, runs on macOS, Windows, and Linux; iPhone keyboard coming soon, and includes features Dragon doesn't have.</p>
     <div class="pricing-grid">
-
       <div class="pricing-card">
-        <p class="plan-name">Free</p>
-        <p class="plan-price">$<span>0</span></p>
-        <p class="plan-period">Forever free</p>
-        <ul>
-          <li><span class="check">✓</span> 500 words / week</li>
-          <li><span class="check">✓</span> Core AI dictation</li>
-          <li><span class="check">✓</span> Mac &amp; Windows</li>
-          <li><span class="check">✓</span> Basic grammar correction</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta secondary">Download Free</a>
+        <p class="plan-name pricing-name">Professional</p>
+        <p class="plan-price pricing-price">$29<span>/month</span></p>
+        <ul class="pricing-features"><li>Unlimited dictation</li><li>AI grammar included</li><li>Optional BYOK</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta secondary">Start 14-Day Free Trial</a>
       </div>
-
-      <div class="pricing-card popular">
-        <div class="popular-badge">Best for Lawyers</div>
-        <p class="plan-name">Pro</p>
-        <p class="plan-price"><sup>$</sup>29<span style="font-size:18px;font-weight:500;color:var(--text-muted)">/mo</span></p>
-        <p class="plan-period">Billed monthly · cancel any time</p>
-        <ul>
-          <li><span class="check">✓</span> Unlimited dictation</li>
-          <li><span class="check">✓</span> Legal clause library (500 terms)</li>
-          <li><span class="check">🔜</span> Privileged Mode (fully offline) — coming soon</li>
-          <li><span class="check">✓</span> Legal formatting templates</li>
-          <li><span class="check">✓</span> 26 Latin legal phrases</li>
-          <li><span class="check">✓</span> Billable time tracking</li>
-          <li><span class="check">✓</span> iOS keyboard app</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta primary">Start 14-Day Trial</a>
+      <div class="pricing-card popular featured">
+        <p class="plan-name pricing-name">Privileged</p>
+        <p class="plan-price pricing-price">$59<span>/month</span></p>
+        <ul class="pricing-features"><li>Everything in Professional</li><li>On-device Whisper and grammar</li><li>Client/matter billing and clause library</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta primary">Start 14-Day Free Trial</a>
       </div>
-
       <div class="pricing-card">
-        <p class="plan-name">Professional</p>
-        <p class="plan-price"><sup>$</sup>79<span style="font-size:18px;font-weight:500;color:var(--text-muted)">/mo</span></p>
-        <p class="plan-period">Per firm · up to 5 users</p>
-        <ul>
-          <li><span class="check">✓</span> Everything in Pro</li>
-          <li><span class="check">✓</span> Up to 5 users</li>
-          <li><span class="check">✓</span> Speaker diarization</li>
-          <li><span class="check">✓</span> Shared clause library</li>
-          <li><span class="check">✓</span> Priority support</li>
-          <li><span class="check">✓</span> Advanced analytics dashboard</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta primary">Start Free Trial</a>
+        <p class="plan-name pricing-name">Firm</p>
+        <p class="plan-price pricing-price">$49<span>/seat/month</span></p>
+        <ul class="pricing-features"><li>For firms with 5+ seats</li><li>Everything in Privileged, per seat</li><li>AI costs included</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta secondary">View Firm Plan</a>
       </div>
-
-      <div class="pricing-card">
-        <p class="plan-name">Lifetime</p>
-        <p class="plan-price"><sup>$</sup>599</p>
-        <p class="plan-period">One-time payment · yours forever</p>
-        <ul>
-          <li><span class="check">✓</span> Everything in Pro</li>
-          <li><span class="check">✓</span> All future updates included</li>
-          <li><span class="check">✓</span> No recurring fees ever</li>
-          <li><span class="check">✓</span> Priority support for life</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta gold">Get Lifetime Access</a>
-      </div>
-
     </div>
   </div>
 </section>
@@ -1023,7 +982,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Yes. Voxlen is designed with privacy as a foundational principle. Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode (coming soon) will process all audio and transcripts entirely on-device, so nothing is sent to any server at all — helping law firms in EU jurisdictions remain fully GDPR compliant and satisfy bar association guidance on data protection obligations.
+            Yes. Voxlen is designed with privacy as a foundational principle. Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls (Deepgram, Anthropic, OpenAI), and nothing is retained. All AI costs are included in your subscription, with no API keys to manage. Privileged Mode processes all audio and transcripts entirely on-device, so nothing is sent to any server at all — helping law firms in EU jurisdictions remain fully GDPR compliant and satisfy bar association guidance on data protection obligations.
           </div>
         </div>
       </div>
@@ -1059,7 +1018,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Yes. Today, Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. Session history and custom vocabulary stay on your device only. Privileged Mode (coming soon) will go further: all transcription and AI processing running on-device with zero external network calls — no audio leaving your device, no transcript transmitted to any server. It is designed for attorney-client privileged communications, grand jury matters, M&amp;A transactions, criminal defence work, and any matter where absolute confidentiality is required.
+            Yes. In standard cloud mode, Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls, and nothing is retained. Session history and custom vocabulary stay on your device only. Privileged Mode goes further: all transcription and AI processing runs on-device with zero external network calls — no audio leaves your device, no transcript is transmitted to any server. It is designed for attorney-client privileged communications, grand jury matters, M&amp;A transactions, criminal defence work, and any matter where absolute confidentiality is required.
           </div>
         </div>
       </div>
