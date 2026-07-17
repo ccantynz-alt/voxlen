@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, mintDesktopToken, corsHeaders, applyHeaders } from "./_auth.js";
+import { verifyAccessToken, extractBearer, mintDesktopToken, lookupPlan, corsHeaders, applyHeaders } from "./_auth.js";
 import type { VoxlenPlan } from "./_auth.js";
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
@@ -45,7 +45,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } else if (caller.isAdmin || caller.email === ADMIN_EMAIL) {
     plan = "admin";
   } else {
-    plan = (caller.plan as VoxlenPlan) ?? "free";
+    // Non-admin: targetEmail === caller.email (enforced above), but look up by
+    // caller.email anyway so a request-supplied email can never select the plan.
+    plan = await lookupPlan(caller.email) ?? (caller.plan as VoxlenPlan) ?? "free";
   }
 
   // TTL: default 180 days for regular users, 365 for admin.
@@ -68,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : `email:${targetEmail}`;
 
   try {
-    const { token: apiKey, expiresAt: exp } = mintDesktopToken(
+    const { token: apiKey, expiresAt: exp } = await mintDesktopToken(
       { sub: targetSub, email: targetEmail, name: targetName },
       { ttlDays, expiresAt, plan },
     );

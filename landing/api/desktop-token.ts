@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { token, expiresAt } = mintDesktopToken(user);
+    const { token, expiresAt } = await mintDesktopToken(user);
     return applyHeaders(res, headers).status(200).json({ token, expires_at: expiresAt });
   } catch {
     // VOXLEN_TOKEN_SECRET not configured â€” caller should fall back to the session token

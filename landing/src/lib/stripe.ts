@@ -1,5 +1,7 @@
 // Stripe integration — replace placeholder keys with real ones from the Stripe dashboard.
 // Price IDs are created per product in Stripe → Products.
+import { getStoredToken } from "./auth";
+
 export const STRIPE_PUBLISHABLE_KEY = "pk_live_REPLACE_ME";
 
 // Schedule of fees:
@@ -33,6 +35,30 @@ export async function redirectToCheckout(priceId: string, email?: string): Promi
   if (url && !url.includes("REPLACE")) {
     window.location.href = email ? `${url}?prefilled_email=${encodeURIComponent(email)}` : url;
     return true;
+  }
+
+  const plans: Record<string, "professional" | "privileged" | "firm"> = {
+    [PRICE_PROFESSIONAL_MONTHLY]: "professional",
+    [PRICE_PRIVILEGED_MONTHLY]: "privileged",
+    [PRICE_FIRM_SEAT_MONTHLY]: "firm",
+  };
+  const plan = plans[priceId];
+  const token = getStoredToken();
+  if (plan && token) {
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await response.json() as { url?: string; error?: string };
+      if (response.ok && data.url) {
+        window.location.href = data.url;
+        return true;
+      }
+    } catch {
+      // Preserve the existing waitlist fallback on network or API failures.
+    }
   }
 
   // Stripe not yet configured — scroll to waitlist; caller shows a visible notice
