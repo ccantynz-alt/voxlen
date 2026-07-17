@@ -17,7 +17,9 @@ import { Slider } from "@/components/ui/Slider";
 import { Input } from "@/components/ui/Input";
 import { useSettingsStore } from "@/stores/settings";
 import { useAudioStore } from "@/stores/audio";
+import { useFlywheelStore } from "@/stores/flywheel";
 import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
+import { mergeVocabulary, parseVocabularyFile } from "@/lib/vocabImport";
 import { toast } from "@/components/ui/Toast";
 
 const tabs = [
@@ -769,7 +771,9 @@ function SttSettings() {
 function CustomVocabularyEditor() {
   const vocabulary = useSettingsStore((s) => s.customVocabulary);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const addVocabulary = useFlywheelStore((s) => s.addVocabulary);
   const [draft, setDraft] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const add = () => {
     const term = draft.trim();
@@ -787,6 +791,34 @@ function CustomVocabularyEditor() {
       "customVocabulary",
       vocabulary.filter((t) => t !== term)
     );
+  };
+
+  const importVocabulary = async () => {
+    try {
+      setImporting(true);
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const path = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: "Dragon Vocabulary", extensions: ["txt", "voc"] }],
+      });
+      if (!path) return;
+
+      const { readTextFile } = await import("@tauri-apps/plugin-fs");
+      const imported = parseVocabularyFile(await readTextFile(path));
+      const { merged, added, addedTerms } = mergeVocabulary(vocabulary, imported);
+
+      if (added > 0) {
+        updateSetting("customVocabulary", merged);
+        addedTerms.forEach((term) => addVocabulary(term, "manual"));
+      }
+      toast(`${imported.length} terms imported (${added} new)`, "success", 4000);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      toast(`Vocabulary import failed${detail ? `: ${detail}` : ""}`, "error", 6000);
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -816,6 +848,9 @@ function CustomVocabularyEditor() {
         />
         <Button size="sm" variant="secondary" onClick={add} disabled={!draft.trim()}>
           Add
+        </Button>
+        <Button size="sm" variant="secondary" onClick={importVocabulary} disabled={importing}>
+          {importing ? "Importing..." : "Import"}
         </Button>
       </div>
 
