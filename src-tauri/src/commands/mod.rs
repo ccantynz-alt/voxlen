@@ -6,6 +6,7 @@ pub mod history;
 pub mod keyring;
 pub mod meeting;
 pub mod permissions;
+pub mod review;
 pub mod settings;
 pub mod stt;
 pub mod text_injection;

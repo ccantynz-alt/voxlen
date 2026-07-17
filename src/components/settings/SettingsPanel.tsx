@@ -1810,6 +1810,18 @@ function PrivacySettings() {
         </p>
       </div>
 
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 space-y-4">
+        <div className="flex items-center gap-2"><FolderOpen className="h-4 w-4 text-brass-500" /><h4 className="label-caps">Review workflow</h4></div>
+        <Button variant="secondary" size="sm" onClick={async () => {
+          const { open } = await import("@tauri-apps/plugin-dialog");
+          const selected = await open({ directory: true, multiple: false });
+          if (typeof selected === "string") settings.updateSetting("reviewSharedFolderPath", selected);
+        }}><FolderOpen className="h-3.5 w-3.5" />Choose shared folder</Button>
+        <p className="text-[11px] text-surface-600 break-all">{settings.reviewSharedFolderPath || "No review folder selected"}</p>
+        <Input label="Your display name" value={settings.reviewDisplayName} onChange={(e) => settings.updateSetting("reviewDisplayName", e.target.value)} placeholder="e.g. Alex Morgan" />
+        <p className="text-[11px] text-surface-600">Review sync is file-based through firm-controlled storage. No Voxlen servers are used.</p>
+      </div>
+
       <SettingRow>
         <Switch
           label="Usage Analytics"

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type View = "dictation" | "history" | "grammar" | "analytics" | "clients" | "flywheel" | "clauses" | "meeting" | "settings";
+type View = "dictation" | "history" | "review" | "grammar" | "analytics" | "clients" | "flywheel" | "clauses" | "meeting" | "settings";
 
 interface NavigationState {
   pendingView: View | null;

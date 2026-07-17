@@ -43,6 +43,8 @@ const DEFAULTS: AppSettings = {
   autoDocEnabled: false,
   autoDocRootPath: "",
   autoDocFilenamePattern: "{date} {kind}",
+  reviewSharedFolderPath: "",
+  reviewDisplayName: "",
   privilegedMode: false,
   legalMode: false,
   jurisdiction: "global",

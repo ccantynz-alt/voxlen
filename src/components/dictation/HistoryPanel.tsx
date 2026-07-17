@@ -12,6 +12,7 @@ import {
   ChevronRight,
   AlertTriangle,
   FolderInput,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -23,6 +24,7 @@ import { downloadExport, type ExportFormat } from "@/lib/export";
 import { useSettingsStore } from "@/stores/settings";
 import { autoSaveSessionDocument, autoDocFailureMessage } from "@/lib/autoDoc";
 import { toast } from "@/components/ui/Toast";
+import { sendSessionForReview } from "@/lib/sendReview";
 
 interface HistorySession {
   id: string;
@@ -127,6 +129,7 @@ export function HistoryPanel() {
   const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
   const autoDocEnabled = useSettingsStore((s) => s.autoDocEnabled);
   const autoDocRootPath = useSettingsStore((s) => s.autoDocRootPath);
+  const reviewSharedFolderPath = useSettingsStore((s) => s.reviewSharedFolderPath);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -222,6 +225,11 @@ export function HistoryPanel() {
     } catch (error) {
       toast(autoDocFailureMessage(error), "error", 5000);
     }
+  };
+
+  const handleSendForReview = async (session: HistorySession) => {
+    try { await sendSessionForReview(toBackend(session)); toast("Sent for review", "success"); }
+    catch (e) { toast(`Could not send for review: ${e instanceof Error ? e.message : String(e)}`, "error", 6000); }
   };
 
   const sortedSessions = useMemo(
@@ -379,6 +387,9 @@ export function HistoryPanel() {
                         >
                           <FolderInput className="h-3 w-3" />
                         </Button>
+                      )}
+                      {reviewSharedFolderPath && session.segments.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => handleSendForReview(session)} className="h-7 px-2" title="Send for review" aria-label="Send for review"><ClipboardCheck className="h-3 w-3" /></Button>
                       )}
                       <Button
                         variant="ghost"

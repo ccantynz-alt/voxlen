@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Mic,
   Settings,
@@ -11,9 +11,11 @@ import {
   Briefcase,
   ChevronDown,
   Headphones,
+  ClipboardCheck,
 } from "lucide-react";
 import { APP_VERSION } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useReviewStore } from "@/stores/review";
 
 interface SidebarProps {
   activeView: string;
@@ -24,6 +26,7 @@ const coreItems = [
   { id: "dictation", label: "Dictation", icon: Mic, description: "Voice to text" },
   { id: "grammar", label: "Grammar", icon: SpellCheck, description: "AI correction" },
   { id: "history", label: "History", icon: History, description: "Past sessions" },
+  { id: "review", label: "Review", icon: ClipboardCheck, description: "Secretary queue" },
 ];
 
 const proItems = [
@@ -40,8 +43,8 @@ const bottomItems = [
 ];
 
 function NavButton({
-  id, label, icon: Icon, activeView, onViewChange,
-}: { id: string; label: string; icon: React.ElementType; activeView: string; onViewChange: (v: string) => void }) {
+  id, label, icon: Icon, activeView, onViewChange, badge,
+}: { id: string; label: string; icon: React.ElementType; activeView: string; onViewChange: (v: string) => void; badge?: number }) {
   const isActive = activeView === id;
   return (
     <button
@@ -66,11 +69,15 @@ function NavButton({
       <span className={cn("font-medium truncate tracking-tight", isActive ? "text-surface-950" : "")}>
         {label}
       </span>
+      {!!badge && <span className="ml-auto rounded-full bg-brass-400 text-surface-0 text-[9px] min-w-4 h-4 px-1 flex items-center justify-center">{badge}</span>}
     </button>
   );
 }
 
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
+  const pendingCount = useReviewStore((s) => s.packets.filter((p) => p.status?.status === "pending_review").length);
+  const refreshReview = useReviewStore((s) => s.refresh);
+  useEffect(() => { void refreshReview(); }, [refreshReview]);
   const proIsActive = proItems.some((i) => i.id === activeView);
   const [proExpanded, setProExpanded] = useState(() => {
     try { return localStorage.getItem("voxlen_pro_expanded") === "true" || proIsActive; } catch { return proIsActive; }
@@ -90,7 +97,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
 
       <nav className="flex-1 px-3 pb-3 space-y-1">
         {coreItems.map((item) => (
-          <NavButton key={item.id} {...item} activeView={activeView} onViewChange={onViewChange} />
+          <NavButton key={item.id} {...item} badge={item.id === "review" ? pendingCount : undefined} activeView={activeView} onViewChange={onViewChange} />
         ))}
 
         {/* Professional tools expander */}

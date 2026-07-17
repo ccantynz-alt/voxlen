@@ -199,6 +199,10 @@ pub fn run() {
             commands::dictation::get_dictation_status,
             commands::dictation::get_always_ready_state,
             commands::documents::save_document,
+            commands::review::create_review_packet,
+            commands::review::list_review_packets,
+            commands::review::read_review_file,
+            commands::review::write_review_file,
             // Whisper Local model manager
             commands::whisper::list_whisper_models,
             commands::whisper::download_whisper_model,

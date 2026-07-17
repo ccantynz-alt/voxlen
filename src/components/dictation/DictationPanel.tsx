@@ -17,6 +17,7 @@ import {
   Download,
   ShieldCheck,
   ShieldOff,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -38,6 +39,7 @@ import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
 import { downloadExport } from "@/lib/export";
 import type { ExportFormat } from "@/lib/export";
+import { sendSessionForReview } from "@/lib/sendReview";
 
 function DevicePicker({
   activeDeviceName,
@@ -134,6 +136,7 @@ export function DictationPanel() {
   const setActiveDeviceName = useAudioStore((s) => s.setActiveDeviceName);
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
   const showWaveform = useSettingsStore((s) => s.showWaveform);
+  const reviewSharedFolderPath = useSettingsStore((s) => s.reviewSharedFolderPath);
 
   const restoreDraft = useDictationStore((s) => s.restoreDraft);
   const discardDraft = useDictationStore((s) => s.discardDraft);
@@ -399,6 +402,13 @@ export function DictationPanel() {
     }
     clearSession();
   }, [clearSession]);
+
+  const handleSendForReview = useCallback(async () => {
+    const record = buildSessionRecord();
+    if (!record) return;
+    try { await sendSessionForReview(record); toast("Sent for review", "success"); }
+    catch (e) { toast(`Could not send for review: ${e instanceof Error ? e.message : String(e)}`, "error", 6000); }
+  }, [buildSessionRecord]);
 
   const sttApiKey = useSettingsStore((s) => s.sttApiKey);
   const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
@@ -918,6 +928,9 @@ export function DictationPanel() {
                 <Trash2 className="h-3.5 w-3.5" />
                 Clear
               </Button>
+              {reviewSharedFolderPath && (
+                <Button variant="ghost" size="sm" onClick={handleSendForReview} title="Send for review"><ClipboardCheck className="h-3.5 w-3.5" />Send for review</Button>
+              )}
               <div className="relative">
                 <Button
                   variant="ghost"

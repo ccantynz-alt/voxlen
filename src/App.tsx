@@ -11,6 +11,7 @@ import { ClientsPanel } from "@/components/clients/ClientsPanel";
 import { AnalyticsPanel } from "@/components/analytics/AnalyticsPanel";
 import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
 import { MeetingPanel } from "@/components/meeting/MeetingPanel";
+import { ReviewQueuePanel } from "@/components/review/ReviewQueuePanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
@@ -28,6 +29,7 @@ type View =
   | "dictation"
   | "grammar"
   | "history"
+  | "review"
   | "clauses"
   | "clients"
   | "meeting"
@@ -307,6 +309,12 @@ export default function App() {
         return (
           <ErrorBoundary label="History">
             <HistoryPanel />
+          </ErrorBoundary>
+        );
+      case "review":
+        return (
+          <ErrorBoundary label="Review">
+            <ReviewQueuePanel />
           </ErrorBoundary>
         );
       case "meeting":

@@ -67,6 +67,8 @@ export interface AppSettings {
   autoDocEnabled: boolean;
   autoDocRootPath: string;
   autoDocFilenamePattern: string;
+  reviewSharedFolderPath: string;
+  reviewDisplayName: string;
   privilegedMode: boolean;
   legalMode: boolean; // enables Latin phrase recognition + legal smart format
   jurisdiction: "uk" | "us" | "australia" | "canada" | "nz" | "global";
@@ -173,6 +175,8 @@ const defaultSettings: AppSettings = {
   autoDocEnabled: false,
   autoDocRootPath: "",
   autoDocFilenamePattern: "{date} {kind}",
+  reviewSharedFolderPath: "",
+  reviewDisplayName: "",
   privilegedMode: false,
   legalMode: false,
   jurisdiction: "global",
@@ -246,6 +250,8 @@ function schedulePersist() {
       autoDocEnabled: state.autoDocEnabled,
       autoDocRootPath: state.autoDocRootPath,
       autoDocFilenamePattern: state.autoDocFilenamePattern,
+      reviewSharedFolderPath: state.reviewSharedFolderPath,
+      reviewDisplayName: state.reviewDisplayName,
       privilegedMode: state.privilegedMode,
       legalMode: state.legalMode,
       jurisdiction: state.jurisdiction,
