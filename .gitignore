@@ -44,4 +44,6 @@ app-icon.png
 .claude/worktrees/
 .claude/session.log
 .vercel/
+.playwright-mcp/
+.agent/
 src-tauri/dlls/
