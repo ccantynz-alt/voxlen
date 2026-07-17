@@ -47,6 +47,8 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - **Grammar engines:** cloud (Claude Sonnet 4.6 / GPT-4o-mini, voxlen.ai proxy or BYOK), local rules (`src-tauri/src/grammar/rules.rs`), local LLM (Qwen3-4B via llama-cpp-2, `dynamic-link` feature — static ggml collides with whisper-rs at link time)
 - **Meeting capture:** `src-tauri/src/meeting/` — WASAPI loopback + mic dual-channel (= You/Remote diarization), Whisper Local forced, Rust-side consent gate + indicator window
 - **Billing:** `src/lib/billing.ts` (round-UP 0.1hr convention) + clients store draft/approve entries + LEDES 1998B/Clio CSV export
+- **Auto-documents:** `src/lib/autoDoc.ts` + `src-tauri/src/commands/documents.rs` (per-matter .docx, atomic writes, opt-in Documents settings card)
+- **Review workflow:** `src/lib/reviewPacket.ts` + `src/stores/review.ts` + `src-tauri/src/commands/review.rs` (file-based secretary queue under `<shared>/voxlen-review/`, statuses `pending_review`/`in_review`/`finalized`)
 - **Text injection:** OS-level keyboard simulation (osascript/SendInput/xdotool)
 - **iOS keyboard:** Swift, `ios/VoxKeyboard/`
 - **Web SDK:** `sdk/` — embeddable JS library for AlecRae.com integration
@@ -62,9 +64,9 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - [x] Ambient billing — session-end draft time entries, 0.1hr rounding, LEDES/Clio export, matter auto-match ✓
 - [x] Bot-free meeting capture (Windows loopback, consent-gated) + task/deadline extraction ✓
 - [ ] macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
-- [ ] iOS local STT — feasible in main app (whisper.cpp + CoreML), NOT in keyboard extension (memory ceiling); quick win: `requiresOnDeviceRecognition = true` on the Apple Speech fallback
+- [ ] iOS local STT — the Apple Speech fallback is currently a stub (removed in commit `77d9e93` when Deepgram STT landed), so the `requiresOnDeviceRecognition` quick-win note no longer applies; the real task is restoring an `SFSpeechRecognizer` on-device path
 - [ ] Android keyboard extension
-- [ ] Stripe payment links (replace REPLACE_* placeholders in landing/src/lib/stripe.ts with real Stripe dashboard URLs)
+- [ ] Stripe payment links — `/api/checkout`, `/api/stripe-webhook`, and KV plan entitlement shipped 2026-07-18; only real `STRIPE_*` env vars in Vercel remain
 - [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
 - [ ] Clio API integration (matters pull + time entry push) — export formats shipped as the base
 - [x] Noise suppression — high-pass filter + noise gate in capture pipeline ✓
@@ -75,10 +77,10 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - [x] Speaker diarization ✓
 - [x] Real-time translation ✓
 - [x] Analytics dashboard ✓
-- [x] Tests (88 passing) ✓
+- [x] Tests (250 TS + 37 Rust) ✓
 - [x] Flywheel UI panel ✓
 - [x] Per-client matter tracking + billable time ✓
-- [x] SEO landing pages (13 pages, 40k+ searches/month targeted) ✓
+- [x] SEO landing pages (19 static pages, 40k+ searches/month targeted) ✓
 
 ## Commit Convention
 
