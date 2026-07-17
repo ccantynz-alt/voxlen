@@ -7,7 +7,7 @@
  * internal tools, kiosks, local prototypes — never on a public site.
  *
  * The safe alternative for public deployments is Voxlen-API mode
- * (`voxlenApiKey`), where provider keys stay on the Voxlen server and the
+ * (`voxlenKey`), where provider keys stay on the Voxlen server and the
  * browser only ever holds a revocable, metered Voxlen platform key.
  */
 
@@ -30,7 +30,7 @@ export function warnBrowserKeyUse(provider: BrowserKeyProvider): void {
     `[Voxlen SDK] SECURITY: a ${provider} API key is being used directly from the browser. ` +
       "Every visitor to this page can extract this key (DevTools > Network) and spend your quota with it. " +
       "This mode is intended for trusted environments only (internal tools, prototypes). " +
-      "For public sites, configure `voxlenApiKey` instead so provider keys stay server-side " +
+      "For public sites, configure `voxlenKey` instead so provider keys stay server-side " +
       "(see the Voxlen SDK README, Security section)."
   );
 }

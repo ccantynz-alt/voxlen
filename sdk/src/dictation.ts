@@ -3,7 +3,7 @@ import { warnBrowserKeyUse } from "./browser-key-warning";
 
 /**
  * Voice dictation engine.
- * Routes through Voxlen API when voxlenApiKey is provided (preferred).
+ * Routes through Voxlen API when voxlenKey is provided (preferred).
  * Falls back to Deepgram WebSocket streaming when a deepgramApiKey is provided.
  * Final fallback: Web Speech API (free, built into browsers).
  */
@@ -27,7 +27,7 @@ export class VoxlenDictation {
     this.isListening = true; // set eagerly to prevent concurrent start() calls
 
     try {
-      if (this.config.voxlenApiKey) {
+      if (this.config.voxlenKey) {
         await this.startVoxlenStream();
       } else if (this.config.deepgramApiKey) {
         await this.startDeepgram();
@@ -153,13 +153,12 @@ export class VoxlenDictation {
 
   // ---------- Deepgram WebSocket (fallback, requires deepgramApiKey) ----------
 
-  private async startDeepgram(): Promise<void> {
-    const apiKey = this.config.deepgramApiKey!;
+  private async startDeepgram(apiKey = this.config.deepgramApiKey!, warn = true): Promise<void> {
     const lang = this.config.language || "en-US";
 
     // The key is sent as a WebSocket subprotocol — visible to anyone inspecting
     // the page. Trusted environments only; warn once so integrators know.
-    warnBrowserKeyUse("deepgram");
+    if (warn) warnBrowserKeyUse("deepgram");
 
     // Get microphone stream
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -231,28 +230,33 @@ export class VoxlenDictation {
     };
   }
 
-  // ---------- Voxlen API streaming (primary, requires voxlenApiKey) ----------
+  // ---------- Voxlen API streaming (primary, requires voxlenKey) ----------
 
   private async startVoxlenStream(): Promise<void> {
     const { VoxlenApiClient } = await import("./api-client");
     const client = new VoxlenApiClient({
-      voxlenApiKey: this.config.voxlenApiKey!,
+      voxlenKey: this.config.voxlenKey!,
       voxlenApiBase: this.config.voxlenApiBase,
-      tenantId: this.config.tenantId,
     });
+
+    const token = await client.getDeepgramToken();
+    await this.startDeepgram(token.key, false);
+    return;
+
+    /* Legacy implementation removed in 0.2.0.
 
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },
     });
 
     // INTERIM DESIGN — replace when the Voxlen WebSocket streaming endpoint ships.
-    // The current REST /transcribe/stream endpoint only accepts a complete blob,
+    // The old REST streaming design accepted a complete blob,
     // so "streaming" here means periodically re-uploading the full accumulated
     // audio (O(n^2) total bytes). To bound the damage until a true WS stream
     // exists we (a) upload every 3s instead of 500ms and (b) cap the session at
     // MAX_INTERIM_UPLOADS re-uploads (~60s of audio, matching the sync
     // transcription limit). Longer recordings should use transcribeFile() /
-    // transcribeAsync() instead.
+    // file transcription instead.
     const INTERIM_UPLOAD_MS = 3000;
     const MAX_INTERIM_UPLOADS = 20; // 20 * 3s = ~60s session cap
 
@@ -275,7 +279,7 @@ export class VoxlenDictation {
         this.config.onError?.(
           new Error(
             `Voxlen live-streaming session limit reached (~${(MAX_INTERIM_UPLOADS * INTERIM_UPLOAD_MS) / 1000}s). ` +
-              "Restart dictation, or use transcribeFile()/transcribeAsync() for longer recordings."
+              "Restart dictation, or use transcribeFile() for longer recordings."
           )
         );
         return;
@@ -302,5 +306,6 @@ export class VoxlenDictation {
 
     recorder.start(INTERIM_UPLOAD_MS);
     (this as any)._recorder = recorder;
+    */
   }
 }

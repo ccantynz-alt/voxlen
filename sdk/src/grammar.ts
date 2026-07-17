@@ -7,7 +7,7 @@ import { warnBrowserKeyUse } from "./browser-key-warning";
  *
  * SECURITY: this class calls provider APIs directly with a raw provider key.
  * In a browser, that key is readable by every visitor — use this only in
- * trusted environments. For public sites, use Voxlen-API mode (voxlenApiKey).
+ * trusted environments. For public sites, use Voxlen-API mode (voxlenKey).
  */
 export class VoxlenGrammar {
   private config: VoxlenConfig;
@@ -20,6 +20,15 @@ export class VoxlenGrammar {
   async correct(text: string): Promise<GrammarResult> {
     if (!text.trim()) {
       return { original: text, corrected: text, changes: [], score: 1.0 };
+    }
+
+    if (this.config.voxlenKey) {
+      const { VoxlenApiClient } = await import("./api-client");
+      return new VoxlenApiClient(this.config).polishGrammar(text, {
+        context: this.config.context,
+        writingStyle: this.config.writingStyle,
+        vocabularyHints: this.config.vocabularyHints,
+      });
     }
 
     const provider = this.config.grammarProvider || "claude";

@@ -117,7 +117,7 @@ describe("VoxlenGrammar", () => {
       const securityWarns = warnSpy.mock.calls.filter((c) => String(c[0]).includes("SECURITY"));
       expect(securityWarns).toHaveLength(1);
       // Must point users to the safe alternative
-      expect(String(securityWarns[0][0])).toMatch(/voxlenApiKey/);
+      expect(String(securityWarns[0][0])).toMatch(/voxlenKey/);
       warnSpy.mockRestore();
     });
   });
