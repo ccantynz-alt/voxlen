@@ -354,7 +354,7 @@ export function MeetingPanel() {
                   <span
                     className={cn(
                       "text-[10px] font-semibold uppercase tracking-wider shrink-0 w-14 pt-0.5",
-                      s.speaker === "you" ? "text-brass-500" : "text-marcoreid-400"
+                      s.speaker === "you" ? "text-brass-500" : "text-voxlen-400"
                     )}
                   >
                     {s.speaker === "you" ? "You" : "Remote"}

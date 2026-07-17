@@ -1,4 +1,4 @@
-package com.marcoreid.voice.keyboard
+package com.voxlen.keyboard
 
 import android.Manifest
 import android.content.SharedPreferences
@@ -19,7 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
 
-class MarcoReidKeyboardService : InputMethodService(), DeepgramClient.DeepgramListener {
+class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListener {
 
     private lateinit var prefs: SharedPreferences
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -303,7 +303,7 @@ class MarcoReidKeyboardService : InputMethodService(), DeepgramClient.DeepgramLi
         currentUtterance.clear()
 
         micButton?.clearColorFilter()
-        grammarLabel?.text = "Marco Reid Voice"
+        grammarLabel?.text = "Voxlen"
         partialLabel?.visibility = View.GONE
     }
 
@@ -403,7 +403,7 @@ class MarcoReidKeyboardService : InputMethodService(), DeepgramClient.DeepgramLi
                 polishButton?.isEnabled = true
 
                 delay(2000)
-                grammarLabel?.text = "Marco Reid Voice"
+                grammarLabel?.text = "Voxlen"
             } catch (e: Exception) {
                 grammarLabel?.text = "Error — check API key"
                 polishButton?.isEnabled = true
@@ -426,9 +426,9 @@ class MarcoReidKeyboardService : InputMethodService(), DeepgramClient.DeepgramLi
                 ic.deleteSurroundingText(text.length + 1, 0)
                 ic.commitText("$corrected ", 1)
 
-                grammarLabel?.text = "Marco Reid Voice"
+                grammarLabel?.text = "Voxlen"
             } catch (_: Exception) {
-                grammarLabel?.text = "Marco Reid Voice"
+                grammarLabel?.text = "Voxlen"
             }
         }
     }

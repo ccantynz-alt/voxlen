@@ -553,7 +553,7 @@ export function DictationPanel() {
                 !hasApiKey && !isActive
                   ? "opacity-40 cursor-not-allowed bg-gradient-to-br from-surface-100 to-surface-200 text-surface-500"
                   : isActive
-                  ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation-lg scale-105"
+                  ? "bg-gradient-to-br from-voxlen-700 to-voxlen-900 text-brass-300 shadow-elevation-lg scale-105"
                   : "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-700 hover:from-surface-200 hover:to-surface-300 hover:text-surface-900 shadow-elevation"
               )}
             >
@@ -627,7 +627,7 @@ export function DictationPanel() {
                     onClick={() => { setActiveClient(null); setClientOpen(false); }}
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-[11px] transition-colors",
-                      !activeClientId ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                      !activeClientId ? "bg-voxlen-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
                     )}
                   >
                     No client
@@ -638,7 +638,7 @@ export function DictationPanel() {
                       onClick={() => { setActiveClient(c.id); setClientOpen(false); }}
                       className={cn(
                         "w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 transition-colors",
-                        c.id === activeClientId ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                        c.id === activeClientId ? "bg-voxlen-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
                       )}
                     >
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
@@ -728,7 +728,7 @@ export function DictationPanel() {
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-[11px] transition-colors",
                       ctx.value === voxlenContext
-                        ? "bg-marcoreid-900/20 text-surface-950 font-semibold"
+                        ? "bg-voxlen-900/20 text-surface-950 font-semibold"
                         : "text-surface-700 hover:bg-surface-100"
                     )}
                   >
@@ -759,7 +759,7 @@ export function DictationPanel() {
                   }}
                   className={cn(
                     "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center gap-2",
-                    autoDetectLanguage ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                    autoDetectLanguage ? "bg-voxlen-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
                   )}
                 >
                   <span>🌐</span> Auto-detect
@@ -775,7 +775,7 @@ export function DictationPanel() {
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center gap-2",
                       !autoDetectLanguage && lang.code === sttLanguage
-                        ? "bg-marcoreid-900/20 text-surface-950 font-semibold"
+                        ? "bg-voxlen-900/20 text-surface-950 font-semibold"
                         : "text-surface-700 hover:bg-surface-100"
                     )}
                   >

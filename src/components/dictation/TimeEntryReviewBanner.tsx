@@ -48,7 +48,7 @@ export function TimeEntryReviewBanner() {
   };
 
   return (
-    <div className="px-5 py-2.5 bg-marcoreid-950/60 border-b border-brass-500/20">
+    <div className="px-5 py-2.5 bg-voxlen-950/60 border-b border-brass-500/20">
       <div className="flex items-center gap-2.5">
         <Clock className="h-3.5 w-3.5 text-brass-400 shrink-0" strokeWidth={1.75} />
         <p className="text-[11px] text-surface-200 font-medium truncate">

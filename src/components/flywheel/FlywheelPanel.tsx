@@ -463,7 +463,7 @@ function MetricsView({
                 title={d.day + ": " + d.count}
               >
                 <div
-                  className="w-full rounded-sm bg-gradient-to-t from-marcoreid-700 to-brass-400/70 min-h-[2px]"
+                  className="w-full rounded-sm bg-gradient-to-t from-voxlen-700 to-brass-400/70 min-h-[2px]"
                   style={{ height: h + "%" }}
                 />
               </div>

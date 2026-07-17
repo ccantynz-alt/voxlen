@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.marcoreid.voice.keyboard"
+    namespace = "com.voxlen.keyboard"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.marcoreid.voice.keyboard"
+        applicationId = "com.voxlen.keyboard"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

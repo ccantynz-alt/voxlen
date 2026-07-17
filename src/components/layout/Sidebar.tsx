@@ -52,7 +52,7 @@ function NavButton({
       className={cn(
         "group relative flex items-center gap-3 w-full pl-4 pr-3 py-2 rounded-md text-sm transition-all duration-200",
         isActive
-          ? "bg-marcoreid-900/40 text-surface-950"
+          ? "bg-voxlen-900/40 text-surface-950"
           : "text-surface-700 hover:bg-surface-100/80 hover:text-surface-900"
       )}
     >

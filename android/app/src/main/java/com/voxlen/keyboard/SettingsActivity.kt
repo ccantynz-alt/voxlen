@@ -1,4 +1,4 @@
-package com.marcoreid.voice.keyboard
+package com.voxlen.keyboard
 
 import android.content.Intent
 import android.os.Bundle
@@ -29,7 +29,7 @@ class SettingsActivity : AppCompatActivity() {
 
         // Header
         layout.addView(TextView(this).apply {
-            text = "Marco Reid Voice"
+            text = "Voxlen"
             textSize = 28f
             setTextColor(0xFF7345D1.toInt())
             setPadding(0, 0, 0, 8)
@@ -52,7 +52,7 @@ class SettingsActivity : AppCompatActivity() {
         })
 
         layout.addView(Button(this).apply {
-            text = "Select Marco Reid Voice as Keyboard"
+            text = "Select Voxlen as Keyboard"
             setOnClickListener {
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showInputMethodPicker()

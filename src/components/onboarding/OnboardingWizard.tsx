@@ -278,7 +278,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     <div className="flex flex-col items-center justify-center min-h-screen bg-surface-0 p-8">
       {/* Brand mark — editorial wordmark, hairline rule. */}
       <div className="flex flex-col items-center gap-2 mb-10">
-        <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
+        <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-voxlen-700 to-voxlen-900 shadow-elevation shadow-inset-hairline">
           <Mic className="h-4 w-4 text-brass-300" strokeWidth={2} />
         </div>
         <div className="flex items-baseline leading-none">
@@ -300,7 +300,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               className={cn(
                 "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono tabular-nums transition-all shadow-inset-hairline",
                 i === step
-                  ? "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation"
+                  ? "bg-gradient-to-b from-voxlen-700 to-voxlen-900 text-brass-300 shadow-elevation"
                   : i < step
                     ? "bg-brass-400/10 text-brass-500 border border-brass-400/30"
                     : "bg-surface-100 text-surface-600 border border-surface-300/60"
@@ -376,7 +376,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 label: d.name,
                 description: d.isExternal ? "External - Recommended" : "Built-in",
                 icon: d.isExternal ? (
-                  <Mic className="h-4 w-4 text-marcoreid-400" />
+                  <Mic className="h-4 w-4 text-voxlen-400" />
                 ) : (
                   <Mic className="h-4 w-4 text-surface-600" />
                 ),
@@ -685,7 +685,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 4 && (
           <div className="text-center space-y-6">
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 border border-brass-400/30 flex items-center justify-center shadow-elevation-lg">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-voxlen-700 to-voxlen-900 border border-brass-400/30 flex items-center justify-center shadow-elevation-lg">
                 <CheckCircle2 className="h-7 w-7 text-brass-300" strokeWidth={1.75} />
               </div>
             </div>

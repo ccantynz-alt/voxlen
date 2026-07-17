@@ -27,7 +27,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           "inline-flex items-center justify-center gap-2 font-medium tracking-tight transition-all duration-200 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass-400/60 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-50 disabled:opacity-50 disabled:pointer-events-none",
           {
             // Variants — oxford navy with restrained brass accents, not neon.
-            "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900 text-surface-50 hover:from-marcoreid-600 hover:to-marcoreid-800 active:from-marcoreid-800 active:to-marcoreid-900 shadow-elevation shadow-inset-hairline":
+            "bg-gradient-to-b from-voxlen-700 to-voxlen-900 text-surface-50 hover:from-voxlen-600 hover:to-voxlen-800 active:from-voxlen-800 active:to-voxlen-900 shadow-elevation shadow-inset-hairline":
               variant === "primary",
             "bg-surface-100 text-surface-900 hover:bg-surface-200 active:bg-surface-300 border border-surface-300/70 shadow-inset-hairline":
               variant === "secondary",
@@ -35,7 +35,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               variant === "ghost",
             "bg-red-600/90 text-surface-50 hover:bg-red-600 active:bg-red-700 shadow-inset-hairline":
               variant === "danger",
-            "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900 text-brass-300 hover:from-marcoreid-600 hover:to-marcoreid-800 shadow-elevation shadow-inset-hairline":
+            "bg-gradient-to-b from-voxlen-700 to-voxlen-900 text-brass-300 hover:from-voxlen-600 hover:to-voxlen-800 shadow-elevation shadow-inset-hairline":
               variant === "glow",
             // Sizes
             "h-8 px-3 text-xs": size === "sm",

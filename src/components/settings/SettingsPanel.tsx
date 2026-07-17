@@ -130,7 +130,7 @@ export function SettingsPanel({ onReopenSetup }: { onReopenSetup?: () => void } 
               className={cn(
                 "group relative flex items-center gap-2.5 w-full pl-4 pr-3 py-2 rounded-md text-sm transition-all duration-200",
                 isActive
-                  ? "bg-marcoreid-900/40 text-surface-950"
+                  ? "bg-voxlen-900/40 text-surface-950"
                   : "text-surface-700 hover:bg-surface-100/80 hover:text-surface-900"
               )}
             >
@@ -321,7 +321,7 @@ function AudioSettings() {
             label: d.name,
             description: `${d.sampleRate / 1000}kHz ${d.channels}ch${d.isExternal ? " - External" : ""}`,
             icon: d.isExternal ? (
-              <Mic className="h-4 w-4 text-marcoreid-400" />
+              <Mic className="h-4 w-4 text-voxlen-400" />
             ) : (
               <Mic className="h-4 w-4 text-surface-600" />
             ),

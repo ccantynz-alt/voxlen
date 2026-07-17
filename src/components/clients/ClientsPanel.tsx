@@ -266,7 +266,7 @@ function ClientCard({ client }: { client: Client }) {
                 onChange={(e) => setEditDescription(e.target.value)}
                 placeholder="Matter description (used by AI for context-aware correction)"
                 rows={2}
-                className="w-full bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-marcoreid-500 resize-none dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
+                className="w-full bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-voxlen-500 resize-none dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
               />
             </div>
           ) : (
@@ -427,7 +427,7 @@ function ClientCard({ client }: { client: Client }) {
             onChange={(e) => setNewVocabTerm(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddVocab(); } }}
             placeholder="Add term (party names, case refs…)"
-            className="flex-1 bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-marcoreid-500 dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
+            className="flex-1 bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-voxlen-500 dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
           />
           <button
             onClick={handleAddVocab}
@@ -572,7 +572,7 @@ export function ClientsPanel() {
 
       {/* Draft time entries awaiting review */}
       {drafts.length > 0 && (
-        <div className="px-4 py-3 border-b border-surface-300/50 shrink-0 bg-marcoreid-950/20">
+        <div className="px-4 py-3 border-b border-surface-300/50 shrink-0 bg-voxlen-950/20">
           <p className="label-caps mb-2 flex items-center gap-1.5">
             <Clock className="w-3 h-3 text-brass-500" />
             Draft time entries — review &amp; approve ({drafts.length})

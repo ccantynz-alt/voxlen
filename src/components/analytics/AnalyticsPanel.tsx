@@ -138,7 +138,7 @@ export function AnalyticsPanel() {
                   <div
                     className={cn(
                       "w-full rounded-sm transition-all",
-                      day.count > 0 ? "bg-marcoreid-700/70" : "bg-surface-200/60"
+                      day.count > 0 ? "bg-voxlen-700/70" : "bg-surface-200/60"
                     )}
                     style={{
                       height: day.count > 0

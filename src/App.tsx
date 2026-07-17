@@ -108,7 +108,12 @@ export default function App() {
         }
       } catch {
         // Not in Tauri - check localStorage
-        const completed = localStorage.getItem("marcoreid_onboarding_complete");
+        let completed = localStorage.getItem("voxlen_onboarding_complete");
+        if (!completed && localStorage.getItem("marcoreid_onboarding_complete")) {
+          completed = "true";
+          localStorage.setItem("voxlen_onboarding_complete", "true");
+          localStorage.removeItem("marcoreid_onboarding_complete");
+        }
         setShowOnboarding(!completed);
 
         // Load saved settings from localStorage
@@ -271,7 +276,8 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("marcoreid_onboarding_complete", "true");
+      localStorage.setItem("voxlen_onboarding_complete", "true");
+      localStorage.removeItem("marcoreid_onboarding_complete");
     }
 
     // Save current settings through the persistence pipeline
