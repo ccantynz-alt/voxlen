@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "rust:check": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "rust:test": "cargo test --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
@@ -29,6 +31,7 @@
     "@tauri-apps/plugin-store": "^2.2.0",
     "@tauri-apps/plugin-updater": "^2.2.0",
     "clsx": "^2.1.1",
+    "docx": "^9.7.1",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",

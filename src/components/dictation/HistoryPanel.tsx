@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   AlertTriangle,
+  FolderInput,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -20,6 +21,8 @@ import type { BackendSessionRecord } from "@/stores/dictation";
 import type { TranscriptionSegment } from "@/stores/dictation";
 import { downloadExport, type ExportFormat } from "@/lib/export";
 import { useSettingsStore } from "@/stores/settings";
+import { autoSaveSessionDocument, autoDocFailureMessage } from "@/lib/autoDoc";
+import { toast } from "@/components/ui/Toast";
 
 interface HistorySession {
   id: string;
@@ -29,6 +32,9 @@ interface HistorySession {
   wordCount: number;
   language: string | null;
   kind: string;
+  clientId: string | null;
+  clientName: string | null;
+  matterLabel: string | null;
   segments: Array<{
     id: string;
     text: string;
@@ -50,6 +56,9 @@ function fromBackend(record: BackendSessionRecord): HistorySession {
     wordCount: record.word_count,
     language: record.language,
     kind: record.kind ?? "dictation",
+    clientId: record.client_id ?? null,
+    clientName: record.client_name ?? null,
+    matterLabel: record.matter_label ?? null,
     segments: record.segments.map((s) => ({
       id: s.id,
       text: s.text,
@@ -59,6 +68,31 @@ function fromBackend(record: BackendSessionRecord): HistorySession {
       timestampMs: s.timestamp_ms,
       grammarApplied: s.grammar_applied,
       speaker: s.speaker ?? null,
+    })),
+  };
+}
+
+function toBackend(session: HistorySession): BackendSessionRecord {
+  return {
+    id: session.id,
+    started_at_ms: session.startedAt.getTime(),
+    ended_at_ms: session.endedAt.getTime(),
+    duration_ms: session.durationMs,
+    word_count: session.wordCount,
+    language: session.language,
+    kind: session.kind,
+    client_id: session.clientId,
+    client_name: session.clientName,
+    matter_label: session.matterLabel,
+    segments: session.segments.map((s) => ({
+      id: s.id,
+      text: s.text,
+      corrected_text: s.correctedText,
+      confidence: s.confidence,
+      language: s.language,
+      timestamp_ms: s.timestampMs,
+      grammar_applied: s.grammarApplied,
+      speaker: s.speaker,
     })),
   };
 }
@@ -91,6 +125,8 @@ export function HistoryPanel() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState<boolean>(false);
   const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
+  const autoDocEnabled = useSettingsStore((s) => s.autoDocEnabled);
+  const autoDocRootPath = useSettingsStore((s) => s.autoDocRootPath);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -177,6 +213,15 @@ export function HistoryPanel() {
 
   const handleExport = async (session: HistorySession, format: ExportFormat) => {
     await downloadExport(sessionToSegments(session), format);
+  };
+
+  const handleSaveToMatter = async (session: HistorySession) => {
+    try {
+      const path = await autoSaveSessionDocument(toBackend(session));
+      toast(`Document saved — ${path}`, "success", 5000);
+    } catch (error) {
+      toast(autoDocFailureMessage(error), "error", 5000);
+    }
   };
 
   const sortedSessions = useMemo(
@@ -323,6 +368,18 @@ export function HistoryPanel() {
                           <Copy className="h-3 w-3" />
                         )}
                       </Button>
+                      {autoDocEnabled && autoDocRootPath && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSaveToMatter(session)}
+                          className="h-7 px-2"
+                          title="Save to matter folder"
+                          aria-label="Save to matter folder"
+                        >
+                          <FolderInput className="h-3 w-3" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

@@ -64,6 +64,9 @@ export interface AppSettings {
   // Privacy
   telemetryEnabled: boolean;
   saveTranscripts: boolean;
+  autoDocEnabled: boolean;
+  autoDocRootPath: string;
+  autoDocFilenamePattern: string;
   privilegedMode: boolean;
   legalMode: boolean; // enables Latin phrase recognition + legal smart format
   jurisdiction: "uk" | "us" | "australia" | "canada" | "nz" | "global";
@@ -167,6 +170,9 @@ const defaultSettings: AppSettings = {
 
   telemetryEnabled: false,
   saveTranscripts: true,
+  autoDocEnabled: false,
+  autoDocRootPath: "",
+  autoDocFilenamePattern: "{date} {kind}",
   privilegedMode: false,
   legalMode: false,
   jurisdiction: "global",
@@ -237,6 +243,9 @@ function schedulePersist() {
       launchAtLogin: state.launchAtLogin,
       telemetryEnabled: state.telemetryEnabled,
       saveTranscripts: state.saveTranscripts,
+      autoDocEnabled: state.autoDocEnabled,
+      autoDocRootPath: state.autoDocRootPath,
+      autoDocFilenamePattern: state.autoDocFilenamePattern,
       privilegedMode: state.privilegedMode,
       legalMode: state.legalMode,
       jurisdiction: state.jurisdiction,

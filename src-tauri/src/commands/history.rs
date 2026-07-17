@@ -28,6 +28,12 @@ pub struct SessionRecord {
     /// "dictation" (default, incl. pre-existing records) or "meeting".
     #[serde(default = "default_session_kind")]
     pub kind: String,
+    #[serde(default)]
+    pub client_id: Option<String>,
+    #[serde(default)]
+    pub client_name: Option<String>,
+    #[serde(default)]
+    pub matter_label: Option<String>,
 }
 
 fn default_session_kind() -> String {

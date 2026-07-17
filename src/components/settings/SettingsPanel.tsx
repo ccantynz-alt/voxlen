@@ -8,6 +8,7 @@ import {
   Shield,
   Zap,
   Globe,
+  FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -1769,6 +1770,45 @@ function PrivacySettings() {
           onChange={(v) => settings.updateSetting("saveTranscripts", v)}
         />
       </SettingRow>
+
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <FolderOpen className="h-4 w-4 text-brass-500" />
+          <h4 className="label-caps">Documents</h4>
+        </div>
+        <Switch
+          label="Automatically save Word documents"
+          description="Create a .docx document whenever a dictation session ends"
+          checked={settings.autoDocEnabled}
+          onChange={(v) => settings.updateSetting("autoDocEnabled", v)}
+        />
+        <div className="space-y-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              const { open } = await import("@tauri-apps/plugin-dialog");
+              const selected = await open({ directory: true, multiple: false });
+              if (typeof selected === "string") settings.updateSetting("autoDocRootPath", selected);
+            }}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            Choose folder
+          </Button>
+          <p className="text-[11px] text-surface-600 break-all">
+            {settings.autoDocRootPath || "No folder selected"}
+          </p>
+        </div>
+        <Input
+          label="Filename pattern"
+          value={settings.autoDocFilenamePattern}
+          onChange={(e) => settings.updateSetting("autoDocFilenamePattern", e.target.value)}
+          placeholder="{date} {kind}"
+        />
+        <p className="text-[11px] text-surface-600">
+          Tokens: {`{date} {time} {client} {matter} {kind}`}. Per-client subfolders are created automatically.
+        </p>
+      </div>
 
       <SettingRow>
         <Switch

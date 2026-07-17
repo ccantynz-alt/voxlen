@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useClientsStore } from "@/stores/clients";
 
 export type DictationStatus =
   | "idle"
@@ -60,6 +61,9 @@ export interface BackendSessionRecord {
   segments: BackendSessionSegment[];
   /** "dictation" (default) or "meeting". */
   kind?: string;
+  client_id?: string | null;
+  client_name?: string | null;
+  matter_label?: string | null;
 }
 
 const DRAFT_KEY = "voxlen_draft";
@@ -334,6 +338,8 @@ export function buildSessionRecord(): BackendSessionRecord | null {
 
   const started = state.sessionStartedAtMs ?? state.segments[0].timestamp.getTime();
   const ended = Date.now();
+  const { activeClientId, clients } = useClientsStore.getState();
+  const client = clients.find((c) => c.id === activeClientId);
 
   return {
     id: crypto.randomUUID(),
@@ -342,6 +348,9 @@ export function buildSessionRecord(): BackendSessionRecord | null {
     duration_ms: Math.max(0, ended - started),
     word_count: state.wordCount,
     language: state.segments.find((s) => s.language)?.language ?? null,
+    client_id: activeClientId,
+    client_name: client?.name ?? null,
+    matter_label: client?.matterNumber?.trim() || null,
     segments: state.segments.map((s) => ({
       id: s.id,
       text: s.text,

@@ -14,6 +14,7 @@ import { collectVocabulary } from "@/lib/vocab";
 import { applyLearnedCorrections } from "@/lib/localCorrections";
 import type { VoxlenContext } from "@/lib/contextFormat";
 import { useClauseStore } from "@/stores/clauses";
+import { autoSaveSessionDocument, autoDocFailureMessage } from "@/lib/autoDoc";
 
 interface TranscriptionEvent {
   text: string;
@@ -614,6 +615,7 @@ export function useTauriEvents(): void {
           const alreadySaved = sessionKey === lastSavedSessionKey;
           if (!alreadySaved) {
             lastSavedSessionKey = sessionKey;
+            const record = buildSessionRecord();
             useHistoryStore.getState().addEntry({
               id: crypto.randomUUID(),
               text: fullText,
@@ -631,8 +633,10 @@ export function useTauriEvents(): void {
             // Auto-draft a billable time entry for attorney review — never
             // silently approved. Sessions under 30s are noise, not billable work.
             if (settings.autoTimeCapture && dictState.sessionDuration >= 30) {
-              const { activeClientId, clients, addEntry } = useClientsStore.getState();
-              const client = clients.find((c) => c.id === activeClientId);
+              const { clients, addEntry, activeClientId } = useClientsStore.getState();
+              // record is non-null here (segments exist), but fall back to the
+              // active client so a null record can't silently drop the client rate.
+              const client = clients.find((c) => c.id === (record?.client_id ?? activeClientId));
               const { rate } = resolveRate(client, settings.billableRatePerHour);
               const billing = computeBillableAmount(dictState.sessionDuration, rate, {
                 incrementHours: settings.billingRoundingIncrement,
@@ -653,21 +657,24 @@ export function useTauriEvents(): void {
                 useDictationStore.getState().setLastDraftEntryId(entryId);
               }
             }
-          }
-        }
 
-        if (settings.saveTranscripts) {
-          const record = buildSessionRecord();
-          if (record) {
-            // Fire and forget; graceful fallback for non-Tauri.
-            (async () => {
-              try {
-                const { invoke } = await import("@tauri-apps/api/core");
-                await invoke("save_session", { session: record });
-              } catch {
-                // Non-Tauri environment — skip.
-              }
-            })();
+            if (record && settings.saveTranscripts) {
+              void (async () => {
+                try {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  await invoke("save_session", { session: record });
+                } catch {
+                  // Non-Tauri environment — skip.
+                }
+              })();
+            }
+
+            if (record && settings.autoDocEnabled && settings.autoDocRootPath) {
+              void autoSaveSessionDocument(record).then(
+                (path) => toast(`Document saved — ${path}`, "success", 5000),
+                (error) => toast(autoDocFailureMessage(error), "error", 5000),
+              );
+            }
           }
         }
 

@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod dictation;
+pub mod documents;
 pub mod grammar;
 pub mod history;
 pub mod keyring;
