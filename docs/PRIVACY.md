@@ -26,12 +26,12 @@ Everything Voxlen retains lives on your machine, under the Tauri app data direct
 
 | File              | Contents                                                          |
 | ----------------- | ----------------------------------------------------------------- |
-| `settings.json`   | All user preferences, including API keys (**plaintext**, see below) |
+| `settings.json`   | Non-secret user preferences (API keys are **not** stored here)    |
 | `history.json`    | Up to 500 most recent dictation sessions with transcripts         |
 
-### Plaintext API keys
+### API keys live in the OS keychain
 
-API keys are written to `settings.json` in plaintext. They are not encrypted at rest. Anyone with read access to your user profile can read them. Integrating a hardware-backed keystore is on the roadmap — see [SECURITY.md](./SECURITY.md).
+API keys are stored in the operating system's secure credential store (Windows Credential Manager, macOS Keychain, Linux Secret Service) via the `keyring` crate — encrypted at rest by the OS and scoped to your user account. See [SECURITY.md](./SECURITY.md).
 
 ### Deleting your data
 

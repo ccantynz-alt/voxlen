@@ -17,7 +17,10 @@ This produces:
 
 ### Wire up the public key
 
-Open `src-tauri/tauri.conf.json` and replace the placeholder in the updater block:
+> **Status:** the updater plugin is not yet registered and `tauri.conf.json`
+> currently has an empty `"plugins": {}` block. To enable auto-update, add
+> `tauri-plugin-updater` to `Cargo.toml`/`lib.rs` first, then add the block
+> below to `tauri.conf.json`:
 
 ```json
 "updater": {
@@ -68,7 +71,7 @@ The updater polls:
 https://releases.voxlen.ai/{{target}}/{{current_version}}
 ```
 
-Your release server must respond with a signed JSON manifest per the [Tauri updater spec](https://v2.tauri.app/plugin/updater/#server-support). Until that host exists, the updater is wired but no updates will be delivered.
+Your release server must respond with a signed JSON manifest per the [Tauri updater spec](https://v2.tauri.app/plugin/updater/#server-support). Until the updater plugin is registered **and** that host exists, no updates will be delivered — users install releases manually.
 
 ## Troubleshooting
 
