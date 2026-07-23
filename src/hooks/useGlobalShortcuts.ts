@@ -67,13 +67,20 @@ export function useGlobalShortcuts(enabled: boolean): void {
         }
       }
 
-      // Toggle — on Pressed, flip listening/idle. In Always-Ready mode the
-      // supervisor owns start/stop, so the hotkey pauses/resumes instead.
+      // Toggle — on Pressed, flip listening/idle. In Always-Ready or
+      // mic-switch mode the supervisor owns start/stop, so the hotkey
+      // pauses/resumes instead.
       if (shortcutToggle) {
         await registerOne(shortcutToggle, (event) => {
           if (event.state !== "Pressed") return;
           const dictation = useDictationStore.getState();
-          if (dictation.alwaysReadyPhase !== "off") {
+          // While the physical mic switch is off, it is the only control —
+          // the hotkey can't start a hardware-muted mic.
+          if (dictation.micSwitchPhase === "muted") {
+            toast("Mic switch is off — flip the switch on your microphone to dictate.", "info", 4000);
+            return;
+          }
+          if (dictation.alwaysReadyPhase !== "off" || dictation.micSwitchPhase !== "off") {
             const resuming = dictation.status === "paused";
             dictation.setStatus(resuming ? "listening" : "paused");
             (async () => {

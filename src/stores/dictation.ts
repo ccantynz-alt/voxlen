@@ -121,6 +121,10 @@ interface DictationState {
    *  disabled; "armed" = watching for speech locally, nothing streaming;
    *  "streaming" = cloud session open. */
   alwaysReadyPhase: "off" | "armed" | "streaming" | "error";
+  /** Hardware mic-switch phase (backend-driven). "off" when the mode is
+   *  disabled; "live" = physical switch on, dictating; "muted" = switch
+   *  off, waiting for the user to flip it back on. */
+  micSwitchPhase: "off" | "live" | "muted";
   /** Id of the draft billing entry created when the last session ended —
    *  drives the post-session review banner. */
   lastDraftEntryId: string | null;
@@ -129,6 +133,7 @@ interface DictationState {
   setStatus: (status: DictationStatus) => void;
   setLastDraftEntryId: (id: string | null) => void;
   setAlwaysReadyPhase: (phase: "off" | "armed" | "streaming" | "error") => void;
+  setMicSwitchPhase: (phase: "off" | "live" | "muted") => void;
   addSegment: (segment: TranscriptionSegment) => void;
   updateSegment: (id: string, updates: Partial<TranscriptionSegment>) => void;
   popLastSegment: () => void;
@@ -164,9 +169,11 @@ export const useDictationStore = create<DictationState>((set, get) => ({
   sessionStartedAtMs: null,
   capsLock: false,
   alwaysReadyPhase: "off",
+  micSwitchPhase: "off",
   lastDraftEntryId: null,
 
   setAlwaysReadyPhase: (phase) => set({ alwaysReadyPhase: phase }),
+  setMicSwitchPhase: (phase) => set({ micSwitchPhase: phase }),
   setLastDraftEntryId: (id) => set({ lastDraftEntryId: id }),
 
   setStatus: (status) =>

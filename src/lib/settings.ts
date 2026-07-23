@@ -35,6 +35,7 @@ export interface BackendAppSettings {
   smart_format: boolean;
   voice_commands_enabled: boolean;
   always_ready_mode: boolean;
+  mic_switch_mode: boolean;
 
   // Text injection
   injection_mode: "keyboard" | "clipboard" | "buffer";
@@ -112,6 +113,7 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
     smart_format: s.smartFormat,
     voice_commands_enabled: s.voiceCommandsEnabled,
     always_ready_mode: s.alwaysReadyMode,
+    mic_switch_mode: s.micSwitchMode,
 
     injection_mode: s.injectionMode,
 
@@ -185,6 +187,7 @@ export function fromBackendSettings(
   if (s.smart_format !== undefined) out.smartFormat = s.smart_format;
   if (s.voice_commands_enabled !== undefined) out.voiceCommandsEnabled = s.voice_commands_enabled;
   if (s.always_ready_mode !== undefined) out.alwaysReadyMode = s.always_ready_mode;
+  if (s.mic_switch_mode !== undefined) out.micSwitchMode = s.mic_switch_mode;
 
   if (s.injection_mode !== undefined) out.injectionMode = s.injection_mode;
 
