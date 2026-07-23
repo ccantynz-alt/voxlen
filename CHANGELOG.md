@@ -1,5 +1,37 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Hardware mic-switch mode**: the physical mute/power switch on an external mic (Razer, Yeti, Elgato Wave…) now starts and stops dictation directly — flip on to dictate, flip off to finalize. Detection is digital-silence based, works with every STT engine (including privileged fully-local), and survives mics whose switch powers the USB interface off.
+- **Legal vocabulary pack**: Legal Mode now boosts recognition of ~90 legal terms of art (Latin phrases, procedure, property, probate) plus jurisdiction-specific courts and instruments (UK/US/AU/CA/NZ) via Deepgram Nova-3 keyterm prompting. User, client-matter, and flywheel-learned terms always win the keyterm budget.
+
+### Fixed
+- Documentation truth-up: Nova-2 → Nova-3 references, grammar model (Claude Sonnet 4.6, not Haiku), keychain key storage (no longer plaintext), unwired auto-updater claims, test-suite docs, SDK example, and stale gap-list entries (Android keyboard and API proxy are shipped).
+
+## [1.2.0] - 2026-07
+
+### Added
+- Legal secretary review queue: file-based firm-storage sync (`pending_review` → `in_review` → `finalized`), zero Voxlen servers.
+- Auto-document pipeline: every dictation can write a per-client/matter `.docx` (atomic writes, opt-in).
+- Dragon vocabulary import (`.txt`/`.voc`) into custom vocabulary + flywheel.
+- Stripe checkout, signature-verified webhook, and KV plan entitlement on the landing site.
+- Onboarding "Your practice" step: default rate, rounding, first client.
+
+### Changed
+- Completed the Marco Reid Voice → Voxlen rebrand.
+- Web SDK Voxlen-API mode now targets the real voxlen.ai contract.
+
+## [1.1.0] - 2026-06
+
+### Added
+- Fully offline Whisper Local engine (whisper-rs) with on-demand model manager.
+- On-device grammar: Tier-1 rules engine + Tier-2 Qwen3-4B LLM (llama.cpp) — Privileged Mode now corrects locally instead of no-op.
+- Bot-free meeting transcription: WASAPI loopback + mic dual-channel capture with Rust-side consent gate and indicator window; task/deadline extraction.
+- Ambient billing: session-end draft time entries, 0.1 hr rounding, LEDES 1998B/Clio CSV export, matter auto-match.
+- API keys moved to the OS keychain (Windows Credential Manager / macOS Keychain) via the `keyring` crate.
+- Deepgram Nova-3 (upgraded from Nova-2), speaker diarization, real-time translation, analytics dashboard, flywheel UI panel, per-client matter tracking, SEO landing pages.
+
 ## [1.0.5] - 2026-04-17
 
 ### Fixed
@@ -50,14 +82,6 @@
 
 ### Changed
 - Version bump for fresh release tag (no code changes beyond version strings; the 1.0.0 tag existed from earlier failed CI runs without any published installers).
-
-## [Unreleased]
-
-### Planned for v1.1
-- Fully offline Whisper Local engine (whisper-rs integration)
-- iOS keyboard extension App Store build
-- Webhook emitter for enterprise integrations
-- Batched grammar API calls for cost optimization
 
 ## [1.0.0] - 2026-04-09
 

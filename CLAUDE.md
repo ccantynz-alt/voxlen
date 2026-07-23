@@ -44,6 +44,8 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - **Desktop app:** Tauri v2, Rust backend (`src-tauri/`), React/TS frontend (`src/`)
 - **State management:** Zustand stores (`src/stores/`)
 - **STT engines:** Deepgram Nova-3 (streaming, default), OpenAI Whisper (cloud), Whisper Local (on-device, whisper-rs)
+- **Hands-free modes:** Always-Ready (`src-tauri/src/stt/gate.rs`, VAD-gated cloud sessions) + hardware mic-switch mode (`src-tauri/src/stt/switch.rs`, physical mute/power switch on external mics starts/stops dictation via digital-silence detection; works with every engine incl. privileged local)
+- **Legal vocabulary pack:** `src/lib/legalVocab.ts` — jurisdiction-aware legal keyterm boost merged into STT config when Legal Mode is on (user/client/flywheel terms win the 100-keyterm budget)
 - **Grammar engines:** cloud (Claude Sonnet 4.6 / GPT-4o-mini, voxlen.ai proxy or BYOK), local rules (`src-tauri/src/grammar/rules.rs`), local LLM (Qwen3-4B via llama-cpp-2, `dynamic-link` feature — static ggml collides with whisper-rs at link time)
 - **Meeting capture:** `src-tauri/src/meeting/` — WASAPI loopback + mic dual-channel (= You/Remote diarization), Whisper Local forced, Rust-side consent gate + indicator window
 - **Billing:** `src/lib/billing.ts` (round-UP 0.1hr convention) + clients store draft/approve entries + LEDES 1998B/Clio CSV export
@@ -65,9 +67,9 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - [x] Bot-free meeting capture (Windows loopback, consent-gated) + task/deadline extraction ✓
 - [ ] macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
 - [ ] iOS local STT — the Apple Speech fallback is currently a stub (removed in commit `77d9e93` when Deepgram STT landed), so the `requiresOnDeviceRecognition` quick-win note no longer applies; the real task is restoring an `SFSpeechRecognizer` on-device path
-- [ ] Android keyboard extension
-- [ ] Stripe payment links — `/api/checkout`, `/api/stripe-webhook`, and KV plan entitlement shipped 2026-07-18; only real `STRIPE_*` env vars in Vercel remain
-- [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
+- [x] Android keyboard extension — `android/app/.../keyboard/` (VoxlenKeyboardService + Deepgram/Grammar clients, ~850 lines Kotlin) ✓
+- [x] Stripe payment links — `/api/checkout`, `/api/stripe-webhook`, and KV plan entitlement shipped 2026-07-18 ✓ (only real `STRIPE_*` env vars in Vercel remain — ops task, not code)
+- [x] API proxy backend — serverless functions under `landing/api/` (`stt`, `grammar`, `translate`, `deepgram-token`, `me`, `generate-key`, …) hold provider keys on voxlen.ai/api ✓ (dedicated api.voxlen.com host remains optional ops work)
 - [ ] Clio API integration (matters pull + time entry push) — export formats shipped as the base
 - [x] Noise suppression — high-pass filter + noise gate in capture pipeline ✓
 - [x] Payment system — Stripe integration on landing page ✓
@@ -77,7 +79,7 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - [x] Speaker diarization ✓
 - [x] Real-time translation ✓
 - [x] Analytics dashboard ✓
-- [x] Tests (250 TS + 37 Rust) ✓
+- [x] Tests (259 TS + 43 Rust) ✓
 - [x] Flywheel UI panel ✓
 - [x] Per-client matter tracking + billable time ✓
 - [x] SEO landing pages (19 static pages, 40k+ searches/month targeted) ✓

@@ -1,6 +1,6 @@
 # Voxlen iOS Keyboard Extension
 
-AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, supporting 20+ languages. Powered by Deepgram Nova-2 for real-time speech-to-text.
+AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, supporting 20+ languages. Powered by Deepgram Nova-3 for real-time speech-to-text.
 
 ## Setup in Xcode
 
@@ -16,7 +16,7 @@ AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, 
 
 To use voice dictation and grammar correction, users need to provide their own API keys in the app settings:
 
-- **Deepgram API key** — Required for voice dictation. Get one at [console.deepgram.com](https://console.deepgram.com). Deepgram Nova-2 provides the real-time speech-to-text engine.
+- **Deepgram API key** — Required for voice dictation. Get one at [console.deepgram.com](https://console.deepgram.com). Deepgram Nova-3 provides the real-time speech-to-text engine.
 - **Claude or OpenAI API key** — Required for grammar correction. Provide a Claude API key (Anthropic) or an OpenAI API key to power the "Polish" grammar correction feature.
 
 Keys are stored locally on-device via App Groups and are never sent to Voxlen servers.
@@ -43,7 +43,7 @@ xcodebuild -scheme VoxKeyboard -destination 'generic/platform=iOS' archive
 - The main app (`VoxApp`) provides settings management and API key configuration
 - The keyboard extension (`VoxKeyboardExtension`) is a custom keyboard
 - Settings are shared via App Groups (`group.com.voxlen.app`)
-- Voice dictation uses Deepgram Nova-2 via WebSocket streaming for low-latency, real-time transcription in 20+ languages
+- Voice dictation uses Deepgram Nova-3 via WebSocket streaming for low-latency, real-time transcription in 20+ languages
 - The "Polish" button in the keyboard bar sends text to Claude/OpenAI for grammar correction
 - Corrected text replaces the original directly in any text field
 
@@ -53,13 +53,13 @@ The keyboard extension works on both iPhone and iPad. The layout adapts automati
 
 ## API Usage & Cost
 
-Using Claude Haiku for grammar correction:
-- ~$0.25 per 1M input tokens, ~$1.25 per 1M output tokens
-- Average text correction: ~100 tokens = ~$0.00003 per correction
-- 1000 corrections per month = ~$0.03/month
-- This is **100x cheaper** than a Grammarly subscription ($12/month)
+Using Claude Sonnet 4.6 for grammar correction:
+- $3 per 1M input tokens, $15 per 1M output tokens
+- Average text correction: ~150 tokens round-trip ≈ $0.0005 per correction
+- 1000 corrections per month ≈ $0.50/month
+- Still **20x+ cheaper** than a Grammarly subscription ($12/month)
 
-Using Deepgram Nova-2 for voice dictation:
+Using Deepgram Nova-3 for voice dictation:
 - $0.0043 per minute (pay-as-you-go)
 - 10 minutes of dictation per day = ~$1.29/month
 - Combined with grammar correction, total cost stays well under $2/month for typical usage

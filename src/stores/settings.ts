@@ -39,6 +39,10 @@ export interface AppSettings {
    *  local voice-activity gate opens the cloud session only while speech is
    *  present. The mic's hardware mute button becomes the only control. */
   alwaysReadyMode: boolean;
+  /** Hardware mic-switch mode: the physical mute/power switch on an
+   *  external mic (Razer, Yeti, …) starts and stops dictation directly —
+   *  no Win+H, no keyboard shortcut. Works with every STT engine. */
+  micSwitchMode: boolean;
 
   // Translation
   translationEnabled: boolean;
@@ -152,6 +156,7 @@ const defaultSettings: AppSettings = {
   smartFormat: true,
   voiceCommandsEnabled: true,
   alwaysReadyMode: false,
+  micSwitchMode: false,
 
   translationEnabled: false,
   translationTargetLanguage: "en",
@@ -232,6 +237,7 @@ function schedulePersist() {
       smartFormat: state.smartFormat,
       voiceCommandsEnabled: state.voiceCommandsEnabled,
       alwaysReadyMode: state.alwaysReadyMode,
+      micSwitchMode: state.micSwitchMode,
       translationEnabled: state.translationEnabled,
       translationTargetLanguage: state.translationTargetLanguage,
       injectionMode: state.injectionMode,

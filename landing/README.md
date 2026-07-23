@@ -45,5 +45,5 @@ vercel --prod # promote to production
 
 ## Notes
 
-- The landing site has no runtime API keys; it is fully static.
+- The site is a full-stack Vercel deployment: the static Vite front-end plus serverless functions under `landing/api/` (`stt`, `grammar`, `translate`, `checkout`, `stripe-webhook`, `deepgram-token`, …) that hold provider and Stripe keys **server-side** as Vercel environment variables. No keys ship to the browser.
 - Assets live in `landing/src/` and the Vite entry is `landing/index.html`.

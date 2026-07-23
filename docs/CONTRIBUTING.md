@@ -56,13 +56,15 @@ Breaking changes: append `!` after the type/scope and include a `BREAKING CHANGE
 
 ## Testing
 
-Automated tests are in progress. For now:
+The project has a full automated test suite (Vitest for TypeScript, `cargo test` for Rust):
 
-- Run `npm run build` to verify the TypeScript frontend compiles cleanly.
-- Run `cargo check` and `cargo test` inside `src-tauri/` for Rust changes.
-- Exercise your change manually via `npm run tauri dev`.
+- `npm run test` — run the frontend test suite (Vitest).
+- `npx tsc --noEmit` — type-check the frontend.
+- `cargo test` inside `src-tauri/` — run the Rust unit tests.
+- `cargo check` inside `src-tauri/` — fast type-check for Rust changes.
+- Exercise UI changes manually via `npm run tauri dev`.
 
-Once the test suite lands we will document how to run it here.
+All TypeScript changes must pass `tsc --noEmit` and `npm run test`; all Rust changes must pass `cargo check` and `cargo test` before a PR is opened.
 
 ## Code style
 

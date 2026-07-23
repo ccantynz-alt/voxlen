@@ -19,10 +19,11 @@ We will acknowledge receipt within 3 business days and aim to provide an initial
 
 | Version  | Supported          |
 | -------- | ------------------ |
-| 1.0.x    | Yes                |
+| 1.2.x    | Yes                |
+| 1.0.x–1.1.x | Upgrade to 1.2.x |
 | < 1.0    | No (pre-release)   |
 
-Security fixes are shipped in the next 1.0.x patch release. The auto-updater delivers these to all installed clients once the release is promoted out of draft.
+Security fixes are shipped in the next 1.2.x patch release. Auto-update is not yet wired (no updater plugin is registered); until it is, users must install patch releases manually.
 
 ## Scope
 
@@ -41,11 +42,11 @@ Out of scope:
 
 Please read these before reporting — they are documented trade-offs, not undisclosed issues:
 
-- **API keys are stored in plaintext** on disk via `tauri-plugin-store` (`settings.json`). They are not encrypted at rest and are readable by any process running as the current user. Hardware-backed keystore integration is on the roadmap.
+- **API keys are stored in the OS keychain** (Windows Credential Manager, macOS Keychain, Linux Secret Service) via the `keyring` crate — never in plain JSON. Non-secret settings remain in `settings.json` via `tauri-plugin-store`.
 - **Transcripts are stored in plaintext** in `history.json`. Users can delete sessions or clear the history from the History panel.
 - **Audio and text are sent to the providers you configure.** Voxlen itself does not proxy or log this data, but the upstream vendor's privacy policy applies to any data you send them.
 - **No telemetry** is collected by Voxlen.
 
 ## Signed releases
 
-Release binaries are signed. Auto-updater payloads are verified against the embedded public key configured in `src-tauri/tauri.conf.json` (`plugins.updater.pubkey`). Report any validation bypass.
+Release binaries are signed. The auto-updater is **not yet wired** — `tauri.conf.json` has no updater block and the updater plugin is not registered. When it lands, updater payloads will be verified against an embedded public key; see [RELEASE.md](./RELEASE.md).

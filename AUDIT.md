@@ -1,5 +1,12 @@
 # Voxlen Product Audit Report
 
+> **⚠️ HISTORICAL SNAPSHOT — superseded.** This audit describes the codebase
+> as of 2026-04-14 (~75% complete, v1.0-era). Almost every gap it lists has
+> since been closed: Whisper Local, keyring secure storage, tests (260+ TS,
+> 43 Rust), Android keyboard, iOS Deepgram voice input, error boundaries,
+> CSP, Nova-3, and more. Do **not** treat its findings as current — see
+> `CLAUDE.md` (gap list) and `CHANGELOG.md` for live status.
+
 **Date:** 2026-04-14
 **Scope:** Full end-to-end codebase audit, launch readiness, AlecRae.com Email Client integration, cross-device strategy
 

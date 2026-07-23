@@ -410,14 +410,14 @@ The Web SDK (`sdk/`) exposes a JavaScript API for embedding voice dictation in w
 ### Key types
 
 ```ts
-// Initialise the SDK
-const voxlen = new VoxlenSDK({ apiKey: "...", engine: "deepgram" });
+// Initialise the SDK (Voxlen-API mode; BYOK fields also supported — see sdk/README.md)
+const voxlen = new VoxlenSDK({ voxlenKey: "vxl_..." });
 
 // Start dictation
 await voxlen.startDictation({ language: "en", onPartial, onFinal });
 
 // Stop
-await voxlen.stopDictation();
+await voxlen.stop();
 
 // Grammar correction
 const result = await voxlen.correctGrammar(text, { style: "professional" });

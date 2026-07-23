@@ -9,6 +9,7 @@
 import { useSettingsStore } from "@/stores/settings";
 import { useClientsStore } from "@/stores/clients";
 import { useFlywheelStore } from "@/stores/flywheel";
+import { legalTermsForJurisdiction, mergeVocabulary } from "@/lib/legalVocab";
 
 export function collectVocabulary(): string[] {
   const settings = useSettingsStore.getState();
@@ -21,9 +22,17 @@ export function collectVocabulary(): string[] {
         .vocabulary.filter((v) => v.frequency >= 2)
         .map((v) => v.word)
     : [];
-  return Array.from(
-    new Set([...settings.customVocabulary, ...clientVocab, ...flywheelVocab])
-  );
+  // Legal Mode adds the built-in jurisdiction-aware term pack, lowest
+  // priority so user/client/learned terms always win the keyterm budget.
+  const legalPack = settings.legalMode
+    ? legalTermsForJurisdiction(settings.jurisdiction)
+    : [];
+  return mergeVocabulary([
+    settings.customVocabulary,
+    clientVocab,
+    flywheelVocab,
+    legalPack,
+  ]);
 }
 
 /** Convenience for `correct_grammar` calls: undefined when empty. */

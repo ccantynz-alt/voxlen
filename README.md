@@ -12,11 +12,13 @@ Voxlen is a desktop voice dictation tool that transcribes your speech in real ti
 
 ## Features
 
-- Real-time streaming transcription via Deepgram Nova-2 (sub-300ms latency)
-- Cloud transcription via OpenAI Whisper; offline Whisper Local scaffolded for v1.1
-- AI grammar correction powered by Anthropic Claude Haiku or OpenAI GPT-4o-mini
+- Real-time streaming transcription via Deepgram Nova-3 (sub-300ms latency)
+- Cloud transcription via OpenAI Whisper; fully offline on-device Whisper Local (whisper.cpp)
+- AI grammar correction powered by Anthropic Claude Sonnet 4.6 or OpenAI GPT-4o-mini, plus a fully local rules + on-device LLM engine for privileged work
 - Universal text injection into any application (keyboard simulation or clipboard paste)
+- Hardware mic-switch mode: the physical mute/power switch on an external mic (Razer, Yeti, Wave…) starts and stops dictation — no hotkey needed
 - Voice commands: new line, period, comma, delete that, stop listening, and more
+- Legal Mode: jurisdiction-aware legal vocabulary boost, Latin phrase recognition, and legal smart formatting
 - 20+ languages with optional auto-detection (roadmap extends coverage to 90+)
 - Five writing styles: Professional, Casual, Academic, Creative, Technical
 - Global hotkeys, system tray with quick actions, waveform visualizer
@@ -70,13 +72,13 @@ npm run tauri build        # produce a release bundle for the host platform
 
 ## Configuration
 
-Voxlen needs API keys for its cloud providers. Enter them in **Settings** (or during the first-run Onboarding Wizard). Keys are persisted locally via `tauri-plugin-store`.
+Voxlen needs API keys for its cloud providers (or a Voxlen account key that proxies them). Enter them in **Settings** (or during the first-run Onboarding Wizard). Keys are stored in the OS keychain (Windows Credential Manager / macOS Keychain / Secret Service); non-secret settings persist via `tauri-plugin-store`.
 
-| Provider   | Used for              | Where to get a key                                   |
-| ---------- | --------------------- | ---------------------------------------------------- |
-| Deepgram   | Streaming STT         | https://console.deepgram.com                         |
-| OpenAI     | Cloud Whisper + GPT   | https://platform.openai.com/api-keys                 |
-| Anthropic  | Claude Haiku grammar  | https://console.anthropic.com/settings/keys          |
+| Provider   | Used for                     | Where to get a key                                   |
+| ---------- | ---------------------------- | ---------------------------------------------------- |
+| Deepgram   | Streaming STT (Nova-3)       | https://console.deepgram.com                         |
+| OpenAI     | Cloud Whisper + GPT          | https://platform.openai.com/api-keys                 |
+| Anthropic  | Claude Sonnet 4.6 grammar    | https://console.anthropic.com/settings/keys          |
 
 You only need the keys for the providers you actually enable.
 

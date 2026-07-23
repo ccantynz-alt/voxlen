@@ -2,12 +2,24 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::{State, Emitter, Manager};
 use crate::audio::{AudioState, DictationStatus};
-use crate::stt::{SttState, SttEngineType, SttSessionState, streaming, processor, gate};
+use crate::stt::{SttState, SttEngineType, SttSessionState, streaming, processor, gate, switch};
 
 /// True while Always-Ready mode is armed. While armed, the watchdog treats
 /// Idle/Error as recoverable (re-arms capture) instead of terminal, so the
 /// mic pipeline survives stops, device unplugs, and sleep/wake indefinitely.
 pub static ALWAYS_READY_ARMED: AtomicBool = AtomicBool::new(false);
+
+/// True while hardware mic-switch mode is armed: the physical mute/power
+/// switch on the user's external mic (Razer, Yeti, …) starts and stops
+/// dictation. Shares the Always-Ready watchdog semantics — capture must
+/// survive device unplugs (switches that power the USB interface off) and
+/// come back up the moment the mic re-enumerates.
+pub static MIC_SWITCH_ARMED: AtomicBool = AtomicBool::new(false);
+
+/// Either hands-free mode counts as armed for watchdog recovery purposes.
+fn hands_free_armed() -> bool {
+    ALWAYS_READY_ARMED.load(Ordering::SeqCst) || MIC_SWITCH_ARMED.load(Ordering::SeqCst)
+}
 
 /// Retry cadence once normal recovery has repeatedly failed while armed —
 /// slow enough not to spam a missing device, fast enough to pick a replugged
@@ -51,6 +63,16 @@ fn start_dictation_internal(
     // Snapshot the STT config without holding the lock across the spawn.
     let config = stt_state.0.read().get_config();
     let status_arc = audio_state.0.read().status.clone();
+
+    // Hardware mic-switch mode takes precedence and covers every engine:
+    // the physical switch on the mic is the start/stop control, and the
+    // switch task opens/closes engine sessions (streaming or local batch)
+    // itself as the switch is flipped.
+    if s.mic_switch_mode {
+        let handle = switch::start_switch(receiver, stt_state.0.clone(), status_arc, app.clone());
+        session_state.set_switched(handle);
+        return Ok(active_device);
+    }
 
     match config.engine {
         SttEngineType::DeepgramCloud => {
@@ -132,7 +154,7 @@ fn spawn_capture_watchdog(app: tauri::AppHandle) {
                 // UNLESS Always-Ready is armed, in which case Idle/Error means
                 // the pipeline must be brought back up.
                 DictationStatus::Idle | DictationStatus::Error => {
-                    if !ALWAYS_READY_ARMED.load(Ordering::SeqCst) {
+                    if !hands_free_armed() {
                         break;
                     }
                     // Pace retries: normal settle first, slow cadence once
@@ -143,7 +165,7 @@ fn spawn_capture_watchdog(app: tauri::AppHandle) {
                         std::thread::sleep(RECOVERY_SETTLE);
                     }
                     // Re-check: user may have disarmed while we slept.
-                    if !ALWAYS_READY_ARMED.load(Ordering::SeqCst) {
+                    if !hands_free_armed() {
                         break;
                     }
                     match restart_capture(&app) {
@@ -166,8 +188,17 @@ fn spawn_capture_watchdog(app: tauri::AppHandle) {
                 }
                 // Paused: keep the watchdog alive but don't restart capture —
                 // recovering here would silently resume a session the user
-                // deliberately paused.
-                DictationStatus::Paused => continue,
+                // deliberately paused. EXCEPTION: in mic-switch mode "Paused"
+                // means the physical switch is off while capture keeps running
+                // to watch for the flip back on — if the device itself dies in
+                // that state (a switch that powers the USB interface off),
+                // fall through to the fault check so capture is re-armed and
+                // the flip-on is still detected when the mic re-enumerates.
+                DictationStatus::Paused => {
+                    if !MIC_SWITCH_ARMED.load(Ordering::SeqCst) {
+                        continue;
+                    }
+                }
                 // Listening, or Processing (batch mode sets Processing during
                 // HTTP transcription): keep watching for device faults.
                 DictationStatus::Listening | DictationStatus::Processing => {}
@@ -203,7 +234,7 @@ fn spawn_capture_watchdog(app: tauri::AppHandle) {
                             audio_state.0.read().mark_error();
                         }
                         let _ = app.emit("audio-recovery-giveup", ());
-                        if ALWAYS_READY_ARMED.load(Ordering::SeqCst) {
+                        if hands_free_armed() {
                             // Status is now Error; the Idle/Error arm above
                             // keeps retrying on the slow cadence while armed.
                             continue;
@@ -272,6 +303,52 @@ fn sync_tray_check(app: &tauri::AppHandle, checked: bool) {
 #[tauri::command]
 pub fn get_always_ready_state() -> Result<bool, String> {
     Ok(ALWAYS_READY_ARMED.load(Ordering::SeqCst))
+}
+
+/// Arm hardware mic-switch mode: bring the capture pipeline up and keep the
+/// watchdog alive so it survives faults, stops, and mics whose physical
+/// switch powers the whole USB interface off. Idempotent; called on the
+/// false→true edge of the setting from `update_settings`.
+pub fn arm_mic_switch(app: &tauri::AppHandle) {
+    if MIC_SWITCH_ARMED
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return; // Already armed.
+    }
+    log::info!("Hardware mic-switch mode armed");
+    let app = app.clone();
+    std::thread::spawn(move || {
+        if let Err(e) = restart_capture(&app) {
+            // Watchdog will keep retrying — just surface the first failure.
+            log::warn!("Mic-switch initial start failed (watchdog will retry): {}", e);
+        }
+        spawn_capture_watchdog(app);
+    });
+}
+
+/// Disarm hardware mic-switch mode and tear the pipeline down. Idempotent.
+pub fn disarm_mic_switch(app: &tauri::AppHandle) {
+    if MIC_SWITCH_ARMED
+        .compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return; // Already disarmed.
+    }
+    log::info!("Hardware mic-switch mode disarmed");
+    if let Some(session_state) = app.try_state::<SttSessionState>() {
+        session_state.stop();
+    }
+    if let Some(audio_state) = app.try_state::<AudioState>() {
+        let _ = audio_state.0.read().stop_capture();
+    }
+    let _ = app.emit("mic-switch-state", "off");
+}
+
+/// Whether mic-switch mode is currently armed — for frontend hydration.
+#[tauri::command]
+pub fn get_mic_switch_state() -> Result<bool, String> {
+    Ok(MIC_SWITCH_ARMED.load(Ordering::SeqCst))
 }
 
 #[tauri::command]
