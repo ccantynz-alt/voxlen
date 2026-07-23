@@ -93,7 +93,7 @@ export function GrammarPanel() {
   };
 
   const categoryColors: Record<string, string> = {
-    grammar: "text-marcoreid-500 bg-marcoreid-500/10 border border-marcoreid-500/20",
+    grammar: "text-voxlen-500 bg-voxlen-500/10 border border-voxlen-500/20",
     spelling: "text-red-500 bg-red-500/10 border border-red-500/20",
     punctuation: "text-amber-500 bg-amber-500/10 border border-amber-500/20",
     style: "text-brass-500 bg-brass-400/10 border border-brass-400/25",
@@ -104,7 +104,7 @@ export function GrammarPanel() {
       {/* Header — editorial header with brass mark. */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3.5">
-          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
+          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-voxlen-700 to-voxlen-900 shadow-elevation shadow-inset-hairline">
             <SpellCheck className="h-4 w-4 text-brass-300" strokeWidth={2} />
           </div>
           <div>

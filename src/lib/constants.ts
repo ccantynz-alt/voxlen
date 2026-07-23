@@ -87,4 +87,10 @@ export const STT_ENGINES = {
     description: "Fastest real-time transcription",
     icon: "zap",
   },
+  whisper_local: {
+    id: "whisper_local",
+    name: "Whisper Local (offline)",
+    description: "On-device transcription — audio never leaves your machine",
+    icon: "shield",
+  },
 } as const;

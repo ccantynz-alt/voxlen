@@ -74,11 +74,13 @@ describe("archiveClient", () => {
   });
 });
 
+const entryDefaults = { status: "approved" as const, source: "manual" as const };
+
 describe("addEntry and getTotalBillable", () => {
   it("addEntry stores the entry and getTotalBillable sums billableAmount", () => {
     const store = useClientsStore.getState();
     const clientId = store.addClient({ name: "Law Firm", billableRate: 500, color: "" });
-    const base = { clientId, date: Date.now(), durationSeconds: 3600, wordCount: 500 };
+    const base = { clientId, date: Date.now(), durationSeconds: 3600, wordCount: 500, ...entryDefaults };
     store.addEntry({ ...base, billableAmount: 500 });
     store.addEntry({ ...base, billableAmount: 250 });
     const total = useClientsStore.getState().getTotalBillable(clientId);
@@ -89,7 +91,7 @@ describe("addEntry and getTotalBillable", () => {
     const store = useClientsStore.getState();
     const id1 = store.addClient({ name: "Client 1", billableRate: 0, color: "" });
     const id2 = store.addClient({ name: "Client 2", billableRate: 0, color: "" });
-    const base = { date: Date.now(), durationSeconds: 1800, wordCount: 200 };
+    const base = { date: Date.now(), durationSeconds: 1800, wordCount: 200, ...entryDefaults };
     store.addEntry({ ...base, clientId: id1, billableAmount: 100 });
     store.addEntry({ ...base, clientId: id2, billableAmount: 999 });
     expect(useClientsStore.getState().getTotalBillable(id1)).toBe(100);
@@ -97,8 +99,65 @@ describe("addEntry and getTotalBillable", () => {
 
   it("silently drops entries with unknown clientId", () => {
     const store = useClientsStore.getState();
-    store.addEntry({ clientId: "nonexistent", date: Date.now(), durationSeconds: 60, wordCount: 10, billableAmount: 100 });
+    store.addEntry({ clientId: "nonexistent", date: Date.now(), durationSeconds: 60, wordCount: 10, billableAmount: 100, ...entryDefaults });
     expect(useClientsStore.getState().entries).toHaveLength(0);
+  });
+
+  it("accepts unassigned entries (clientId '')", () => {
+    const store = useClientsStore.getState();
+    const id = store.addEntry({ clientId: "", date: Date.now(), durationSeconds: 60, wordCount: 10, billableAmount: 0, ...entryDefaults });
+    expect(id).toBeTruthy();
+    expect(useClientsStore.getState().getUnassignedEntries()).toHaveLength(1);
+  });
+
+  it("excludes draft entries from totals", () => {
+    const store = useClientsStore.getState();
+    const clientId = store.addClient({ name: "Draft Co", billableRate: 100, color: "" });
+    store.addEntry({ clientId, date: Date.now(), durationSeconds: 3600, wordCount: 100, billableAmount: 100, status: "draft", source: "session" });
+    store.addEntry({ clientId, date: Date.now(), durationSeconds: 3600, wordCount: 100, billableAmount: 200, ...entryDefaults });
+    expect(useClientsStore.getState().getTotalBillable(clientId)).toBe(200);
+    expect(useClientsStore.getState().getTotalHours(clientId)).toBeCloseTo(1);
+    expect(useClientsStore.getState().getDraftEntries()).toHaveLength(1);
+  });
+
+  it("approveEntry promotes a draft into the totals", () => {
+    const store = useClientsStore.getState();
+    const clientId = store.addClient({ name: "Approve Co", billableRate: 100, color: "" });
+    const id = store.addEntry({ clientId, date: Date.now(), durationSeconds: 360, wordCount: 50, billableAmount: 10, status: "draft", source: "session" });
+    useClientsStore.getState().approveEntry(id);
+    expect(useClientsStore.getState().getTotalBillable(clientId)).toBe(10);
+    expect(useClientsStore.getState().getDraftEntries()).toHaveLength(0);
+  });
+
+  it("updateEntry edits fields in place", () => {
+    const store = useClientsStore.getState();
+    const clientId = store.addClient({ name: "Edit Co", billableRate: 100, color: "" });
+    const id = store.addEntry({ clientId, date: Date.now(), durationSeconds: 360, wordCount: 50, billableAmount: 10, status: "draft", source: "session" });
+    useClientsStore.getState().updateEntry(id, { note: "Revised narrative", billableAmount: 25 });
+    const entry = useClientsStore.getState().entries.find((e) => e.id === id);
+    expect(entry?.note).toBe("Revised narrative");
+    expect(entry?.billableAmount).toBe(25);
+    expect(entry?.status).toBe("draft");
+  });
+});
+
+describe("persist migration v1 → v2", () => {
+  it("stamps legacy entries as approved/manual", () => {
+    const persistOptions = (useClientsStore as unknown as {
+      persist: { getOptions: () => { migrate?: (s: unknown, v: number) => unknown } };
+    }).persist.getOptions();
+    const migrated = persistOptions.migrate!(
+      {
+        clients: [],
+        activeClientId: null,
+        entries: [
+          { id: "e1", clientId: "c1", date: 1, durationSeconds: 60, wordCount: 5, billableAmount: 10 },
+        ],
+      },
+      1
+    ) as { entries: Array<{ status?: string; source?: string }> };
+    expect(migrated.entries[0].status).toBe("approved");
+    expect(migrated.entries[0].source).toBe("manual");
   });
 });
 
@@ -168,8 +227,8 @@ describe("getTotalHours", () => {
   it("converts durationSeconds to hours correctly", () => {
     const store = useClientsStore.getState();
     const clientId = store.addClient({ name: "Accountant", billableRate: 300, color: "" });
-    store.addEntry({ clientId, date: Date.now(), durationSeconds: 3600, wordCount: 400, billableAmount: 300 });
-    store.addEntry({ clientId, date: Date.now(), durationSeconds: 1800, wordCount: 200, billableAmount: 150 });
+    store.addEntry({ clientId, date: Date.now(), durationSeconds: 3600, wordCount: 400, billableAmount: 300, ...entryDefaults });
+    store.addEntry({ clientId, date: Date.now(), durationSeconds: 1800, wordCount: 200, billableAmount: 150, ...entryDefaults });
     const hours = useClientsStore.getState().getTotalHours(clientId);
     expect(hours).toBeCloseTo(1.5);
   });

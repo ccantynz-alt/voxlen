@@ -1,11 +1,15 @@
 pub mod audio;
 pub mod dictation;
+pub mod documents;
 pub mod grammar;
 pub mod history;
 pub mod keyring;
+pub mod meeting;
 pub mod permissions;
+pub mod review;
 pub mod settings;
 pub mod stt;
 pub mod text_injection;
 pub mod translate;
+pub mod whisper;
 pub mod window;

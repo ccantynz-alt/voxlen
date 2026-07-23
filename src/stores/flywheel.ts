@@ -41,21 +41,13 @@ export interface UsageMetrics {
   sessionsPerDay: Record<string, number>;
 }
 
-export interface TimeEntry {
-  id: string;
-  matter: string;        // matter/client name (optional, spoken)
-  minutes: number;
-  ratePerHour: number;
-  amount: number;        // minutes/60 * ratePerHour
-  notes: string;         // transcript snippet or manual note
-  createdAt: string;     // ISO timestamp
-}
+// Time entries moved to the clients store (MatterEntry) — see
+// src/lib/migrateBilling.ts for the one-time migration of legacy data.
 
 export interface FlywheelState {
   vocabulary: VocabularyEntry[];
   corrections: CorrectionPattern[];
   metrics: UsageMetrics;
-  timeEntries: TimeEntry[];
 
   addVocabulary: (word: string, source?: "manual" | "auto-detected") => void;
   removeVocabulary: (word: string) => void;
@@ -64,10 +56,6 @@ export interface FlywheelState {
   recordCorrectionFeedback: (accepted: boolean) => void;
   getTopCorrectionPatterns: (limit?: number) => CorrectionPattern[];
   getVocabularyList: () => string[];
-  logTime: (minutes: number, matter?: string, notes?: string, ratePerHour?: number) => void;
-  removeTimeEntry: (id: string) => void;
-  getTotalBillableHours: () => number;
-  getTotalBillableAmount: () => number;
   clearAll: () => void;
 }
 
@@ -89,28 +77,38 @@ function schedulePersist() {
   persistTimer = setTimeout(() => persistFlywheel(), 1000);
 }
 
+// In-memory counter for auto-detected vocabulary candidates — not persisted,
+// so privileged terms that appear only once don't survive a restart.
+const _pendingAutoVocab: Record<string, number> = {};
+
 export const useFlywheelStore = create<FlywheelState>((set, get) => ({
   vocabulary: [],
   corrections: [],
   metrics: { ...defaultMetrics },
-  timeEntries: [],
 
   addVocabulary: (word, source = "auto-detected") => {
     set((state) => {
       const existing = state.vocabulary.find((v) => v.word.toLowerCase() === word.toLowerCase());
       if (existing) {
+        const updated = { ...existing, frequency: existing.frequency + 1 };
         return {
           vocabulary: state.vocabulary.map((v) =>
-            v.word.toLowerCase() === word.toLowerCase()
-              ? { ...v, frequency: v.frequency + 1 }
-              : v
+            v.word.toLowerCase() === word.toLowerCase() ? updated : v
           ),
         };
+      }
+      // Auto-detected words are only persisted once they've been seen 3 times
+      // to avoid capturing rare privileged terms on first occurrence.
+      if (source === "auto-detected") {
+        // Track pending counts outside the persisted store
+        const count = (_pendingAutoVocab[word.toLowerCase()] = (_pendingAutoVocab[word.toLowerCase()] || 0) + 1);
+        if (count < 3) return state;
+        delete _pendingAutoVocab[word.toLowerCase()];
       }
       return {
         vocabulary: [
           ...state.vocabulary,
-          { word, frequency: 1, addedAt: new Date().toISOString(), source },
+          { word, frequency: source === "auto-detected" ? 3 : 1, addedAt: new Date().toISOString(), source },
         ].slice(0, 1000),
       };
     });
@@ -125,8 +123,12 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
   },
 
   recordCorrection: (original, corrected, category) => {
+    // Truncate to 60 chars — correction patterns are word/phrase level, not sentences.
+    // This prevents privileged content from being stored when a full transcript is passed.
+    const safeOriginal = original.slice(0, 60);
+    const safeCorrected = corrected.slice(0, 60);
     set((state) => {
-      const key = `${original.toLowerCase()}→${corrected.toLowerCase()}`;
+      const key = `${safeOriginal.toLowerCase()}→${safeCorrected.toLowerCase()}`;
       const existing = state.corrections.find(
         (c) => `${c.original.toLowerCase()}→${c.corrected.toLowerCase()}` === key
       );
@@ -142,7 +144,7 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
       return {
         corrections: [
           ...state.corrections,
-          { original, corrected, category, occurrences: 1, lastSeen: new Date().toISOString() },
+          { original: safeOriginal, corrected: safeCorrected, category, occurrences: 1, lastSeen: new Date().toISOString() },
         ].slice(0, 500),
       };
     });
@@ -203,40 +205,9 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
     return get().vocabulary.map((v) => v.word);
   },
 
-  logTime: (minutes, matter = "", notes = "", ratePerHour = 0) =>
-    set((state) => {
-      const entry: TimeEntry = {
-        id: crypto.randomUUID(),
-        matter,
-        minutes,
-        ratePerHour,
-        amount: (minutes / 60) * ratePerHour,
-        notes,
-        createdAt: new Date().toISOString(),
-      };
-      schedulePersist();
-      return { timeEntries: [entry, ...state.timeEntries].slice(0, 500) };
-    }),
-
-  removeTimeEntry: (id) => {
-    set((state) => ({
-      timeEntries: state.timeEntries.filter((e) => e.id !== id),
-    }));
-    schedulePersist();
-  },
-
-  getTotalBillableHours: (): number => {
-    const entries: TimeEntry[] = get().timeEntries;
-    return entries.reduce((sum: number, e: TimeEntry) => sum + (e.minutes || 0) / 60, 0);
-  },
-
-  getTotalBillableAmount: (): number => {
-    const entries: TimeEntry[] = get().timeEntries;
-    return entries.reduce((sum: number, e: TimeEntry) => sum + (e.amount || 0), 0);
-  },
-
   clearAll: () => {
-    set({ vocabulary: [], corrections: [], metrics: { ...defaultMetrics }, timeEntries: [] });
+    for (const key of Object.keys(_pendingAutoVocab)) delete _pendingAutoVocab[key];
+    set({ vocabulary: [], corrections: [], metrics: { ...defaultMetrics } });
     schedulePersist();
   },
 }));
@@ -248,23 +219,20 @@ export async function loadFlywheel(): Promise<void> {
     const vocab = await store.get<VocabularyEntry[]>("vocabulary");
     const corrections = await store.get<CorrectionPattern[]>("corrections");
     const metrics = await store.get<UsageMetrics>("metrics");
-    const timeEntries = await store.get<TimeEntry[]>("timeEntries");
     useFlywheelStore.setState({
       vocabulary: Array.isArray(vocab) ? vocab : [],
       corrections: Array.isArray(corrections) ? corrections : [],
       metrics: metrics || { ...defaultMetrics },
-      timeEntries: Array.isArray(timeEntries) ? timeEntries : [],
     });
   } catch {
     try {
-      const saved = localStorage.getItem("voxlen_flywheel") ?? localStorage.getItem("marcoreid_flywheel");
+      const saved = localStorage.getItem("voxlen_flywheel");
       if (saved) {
         const parsed = JSON.parse(saved);
         useFlywheelStore.setState({
           vocabulary: parsed.vocabulary || [],
           corrections: parsed.corrections || [],
           metrics: parsed.metrics || { ...defaultMetrics },
-          timeEntries: parsed.timeEntries || [],
         });
       }
     } catch {
@@ -279,7 +247,6 @@ async function persistFlywheel(): Promise<void> {
     vocabulary: state.vocabulary,
     corrections: state.corrections,
     metrics: state.metrics,
-    timeEntries: state.timeEntries,
   };
   try {
     const { load } = await import("@tauri-apps/plugin-store");
@@ -287,11 +254,12 @@ async function persistFlywheel(): Promise<void> {
     await store.set("vocabulary", data.vocabulary);
     await store.set("corrections", data.corrections);
     await store.set("metrics", data.metrics);
-    await store.set("timeEntries", data.timeEntries);
     await store.save();
   } catch {
     try {
-      localStorage.setItem("voxlen_flywheel", JSON.stringify(data));
+      const existing = JSON.parse(localStorage.getItem("voxlen_flywheel") ?? "{}");
+      // Preserve unknown keys (e.g. un-migrated legacy timeEntries).
+      localStorage.setItem("voxlen_flywheel", JSON.stringify({ ...existing, ...data }));
     } catch {
       // Ignore
     }

@@ -38,7 +38,10 @@ pub fn start_capture(
     app_handle: AppHandle,
     device_fault: Arc<AtomicBool>,
 ) -> anyhow::Result<(CaptureHandle, Option<String>)> {
-    start_capture_with_options(device_id, sender, input_level, app_handle, 1.0, true, device_fault)
+    start_capture_with_options(
+        device_id, sender, input_level, app_handle, 1.0, true, device_fault,
+        Arc::new(AtomicBool::new(false)),
+    )
 }
 
 pub fn start_capture_with_options(
@@ -49,6 +52,7 @@ pub fn start_capture_with_options(
     input_gain: f32,
     noise_suppression: bool,
     device_fault: Arc<AtomicBool>,
+    paused: Arc<AtomicBool>,
 ) -> anyhow::Result<(CaptureHandle, Option<String>)> {
     let (device, resolved_id, was_fallback) = devices::resolve_input_device(device_id.as_deref())
         .ok_or_else(|| anyhow::anyhow!("No input device available"))?;
@@ -113,6 +117,7 @@ pub fn start_capture_with_options(
         let waveform_last_emit_clone = waveform_last_emit.clone();
         let noise_state = Arc::new(Mutex::new(NoiseState::new(sample_rate)));
         let noise_state_clone = noise_state.clone();
+        let paused_clone = paused.clone();
 
         let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_input_stream(
@@ -131,6 +136,7 @@ pub fn start_capture_with_options(
                         input_gain,
                         noise_suppression,
                         &noise_state_clone,
+                        &paused_clone,
                     );
                 },
                 err_fn,
@@ -153,6 +159,7 @@ pub fn start_capture_with_options(
                         input_gain,
                         noise_suppression,
                         &noise_state_clone,
+                        &paused_clone,
                     );
                 },
                 err_fn,
@@ -178,6 +185,7 @@ pub fn start_capture_with_options(
                         input_gain,
                         noise_suppression,
                         &noise_state_clone,
+                        &paused_clone,
                     );
                 },
                 err_fn,
@@ -244,7 +252,19 @@ fn process_audio_data(
     input_gain: f32,
     noise_suppression: bool,
     noise_state: &Arc<Mutex<NoiseState>>,
+    paused: &Arc<AtomicBool>,
 ) {
+    // While paused, discard everything: no buffering, no chunk forwarding,
+    // no level/waveform emits. Nothing recorded while "Paused" may leave
+    // the machine — this gate is the guarantee.
+    if paused.load(Ordering::Relaxed) {
+        let mut buf = buffer.write();
+        if !buf.is_empty() {
+            buf.clear();
+        }
+        return;
+    }
+
     // Apply input gain + noise processing
     let processed: Vec<f32> = {
         let mut state = noise_state.lock();
@@ -395,7 +415,7 @@ fn apply_audio_processing(
     out
 }
 
-fn calculate_rms(samples: &[f32]) -> f32 {
+pub(crate) fn calculate_rms(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
     }

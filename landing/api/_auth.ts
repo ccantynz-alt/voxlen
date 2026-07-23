@@ -1,6 +1,7 @@
 /** Shared Google ID token verifier (no external library needed — we verify via Google's tokeninfo endpoint) */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { effectivePlan, readPlanEntitlement } from "./_plans.js";
 
 export interface VoxlenUser {
   sub: string;
@@ -20,22 +21,38 @@ function b64url(data: string): string {
   return Buffer.from(data, "utf8").toString("base64url");
 }
 
-export type VoxlenPlan = "admin" | "pro" | "professional" | "free_trial" | "free";
+export type VoxlenPlan = "admin" | "pro" | "professional" | "privileged" | "firm" | "free_trial" | "free";
+
+/** Never throws: an entitlement-store outage must degrade to "free", not break token issuance. */
+export async function lookupPlan(email: string): Promise<VoxlenPlan | null> {
+  try {
+    return effectivePlan(await readPlanEntitlement(email));
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Mint a Voxlen desktop token (HS256 JWT). Stateless — no database needed.
  * Supports arbitrary plans and TTLs so we can issue free-trial keys with
  * a specific expiry date.
  */
-export function mintDesktopToken(
+export async function mintDesktopToken(
   user: Pick<VoxlenUser, "sub" | "email" | "name">,
   opts: { ttlDays?: number; expiresAt?: number; plan?: VoxlenPlan } = {},
-): { token: string; expiresAt: number } {
+): Promise<{ token: string; expiresAt: number }> {
   const secret = process.env.VOXLEN_TOKEN_SECRET;
   if (!secret) throw new Error("VOXLEN_TOKEN_SECRET not configured");
   const now = Math.floor(Date.now() / 1000);
   const exp = opts.expiresAt ?? (now + (opts.ttlDays ?? 180) * 86400);
-  const plan: VoxlenPlan = opts.plan ?? (user.email === ADMIN_EMAIL ? "admin" : "free");
+  let plan: VoxlenPlan;
+  if (opts.plan) {
+    plan = opts.plan;
+  } else if (user.email === ADMIN_EMAIL) {
+    plan = "admin";
+  } else {
+    plan = (await lookupPlan(user.email)) ?? "free";
+  }
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = b64url(JSON.stringify({
     iss: VOXLEN_ISSUER,
@@ -72,7 +89,7 @@ function verifyDesktopToken(token: string): VoxlenUser | null {
   if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
     throw new Error("Token expired — sign in at voxlen.ai/dashboard and copy a fresh key");
   }
-  const VALID_PLANS: VoxlenPlan[] = ["admin", "pro", "professional", "free_trial", "free"];
+  const VALID_PLANS: VoxlenPlan[] = ["admin", "pro", "professional", "privileged", "firm", "free_trial", "free"];
   const plan = VALID_PLANS.includes(payload.plan as VoxlenPlan) ? (payload.plan as VoxlenPlan) : "free";
   return {
     sub: payload.sub ?? "",

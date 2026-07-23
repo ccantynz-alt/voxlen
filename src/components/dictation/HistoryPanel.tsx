@@ -11,6 +11,8 @@ import {
   ChevronDown,
   ChevronRight,
   AlertTriangle,
+  FolderInput,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -20,6 +22,9 @@ import type { BackendSessionRecord } from "@/stores/dictation";
 import type { TranscriptionSegment } from "@/stores/dictation";
 import { downloadExport, type ExportFormat } from "@/lib/export";
 import { useSettingsStore } from "@/stores/settings";
+import { autoSaveSessionDocument, autoDocFailureMessage } from "@/lib/autoDoc";
+import { toast } from "@/components/ui/Toast";
+import { sendSessionForReview } from "@/lib/sendReview";
 
 interface HistorySession {
   id: string;
@@ -28,6 +33,10 @@ interface HistorySession {
   durationMs: number;
   wordCount: number;
   language: string | null;
+  kind: string;
+  clientId: string | null;
+  clientName: string | null;
+  matterLabel: string | null;
   segments: Array<{
     id: string;
     text: string;
@@ -36,6 +45,7 @@ interface HistorySession {
     language: string | null;
     timestampMs: number;
     grammarApplied: boolean;
+    speaker: string | null;
   }>;
 }
 
@@ -47,6 +57,10 @@ function fromBackend(record: BackendSessionRecord): HistorySession {
     durationMs: record.duration_ms,
     wordCount: record.word_count,
     language: record.language,
+    kind: record.kind ?? "dictation",
+    clientId: record.client_id ?? null,
+    clientName: record.client_name ?? null,
+    matterLabel: record.matter_label ?? null,
     segments: record.segments.map((s) => ({
       id: s.id,
       text: s.text,
@@ -55,6 +69,32 @@ function fromBackend(record: BackendSessionRecord): HistorySession {
       language: s.language,
       timestampMs: s.timestamp_ms,
       grammarApplied: s.grammar_applied,
+      speaker: s.speaker ?? null,
+    })),
+  };
+}
+
+function toBackend(session: HistorySession): BackendSessionRecord {
+  return {
+    id: session.id,
+    started_at_ms: session.startedAt.getTime(),
+    ended_at_ms: session.endedAt.getTime(),
+    duration_ms: session.durationMs,
+    word_count: session.wordCount,
+    language: session.language,
+    kind: session.kind,
+    client_id: session.clientId,
+    client_name: session.clientName,
+    matter_label: session.matterLabel,
+    segments: session.segments.map((s) => ({
+      id: s.id,
+      text: s.text,
+      corrected_text: s.correctedText,
+      confidence: s.confidence,
+      language: s.language,
+      timestamp_ms: s.timestampMs,
+      grammar_applied: s.grammarApplied,
+      speaker: s.speaker,
     })),
   };
 }
@@ -87,6 +127,9 @@ export function HistoryPanel() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState<boolean>(false);
   const saveTranscripts = useSettingsStore((s) => s.saveTranscripts);
+  const autoDocEnabled = useSettingsStore((s) => s.autoDocEnabled);
+  const autoDocRootPath = useSettingsStore((s) => s.autoDocRootPath);
+  const reviewSharedFolderPath = useSettingsStore((s) => s.reviewSharedFolderPath);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -173,6 +216,20 @@ export function HistoryPanel() {
 
   const handleExport = async (session: HistorySession, format: ExportFormat) => {
     await downloadExport(sessionToSegments(session), format);
+  };
+
+  const handleSaveToMatter = async (session: HistorySession) => {
+    try {
+      const path = await autoSaveSessionDocument(toBackend(session));
+      toast(`Document saved — ${path}`, "success", 5000);
+    } catch (error) {
+      toast(autoDocFailureMessage(error), "error", 5000);
+    }
+  };
+
+  const handleSendForReview = async (session: HistorySession) => {
+    try { await sendSessionForReview(toBackend(session)); toast("Sent for review", "success"); }
+    catch (e) { toast(`Could not send for review: ${e instanceof Error ? e.message : String(e)}`, "error", 6000); }
   };
 
   const sortedSessions = useMemo(
@@ -319,6 +376,21 @@ export function HistoryPanel() {
                           <Copy className="h-3 w-3" />
                         )}
                       </Button>
+                      {autoDocEnabled && autoDocRootPath && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSaveToMatter(session)}
+                          className="h-7 px-2"
+                          title="Save to matter folder"
+                          aria-label="Save to matter folder"
+                        >
+                          <FolderInput className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {reviewSharedFolderPath && session.segments.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => handleSendForReview(session)} className="h-7 px-2" title="Send for review" aria-label="Send for review"><ClipboardCheck className="h-3 w-3" /></Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -354,6 +426,11 @@ export function HistoryPanel() {
                         {session.language}
                       </span>
                     )}
+                    {session.kind === "meeting" && (
+                      <Badge variant="warning" className="text-[10px] py-0">
+                        Meeting
+                      </Badge>
+                    )}
                     {session.segments.some((s) => s.grammarApplied) && (
                       <Badge variant="info" className="text-[10px] py-0">
                         Polished
@@ -379,6 +456,11 @@ export function HistoryPanel() {
                               minute: "2-digit",
                               second: "2-digit",
                             })}
+                            {seg.speaker && (
+                              <span className="font-semibold uppercase tracking-wider text-brass-500">
+                                {seg.speaker === "you" ? "You" : "Remote"}
+                              </span>
+                            )}
                             {seg.grammarApplied && (
                               <Badge variant="info" className="text-[9px] py-0">
                                 Polished

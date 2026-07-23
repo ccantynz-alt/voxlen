@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { corsHeaders, extractBearer, verifyAccessToken, applyHeaders } from "./_auth";
+import { corsHeaders, extractBearer, verifyAccessToken, applyHeaders } from "./_auth.js";
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
 

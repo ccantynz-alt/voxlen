@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MarcoReidVoice" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.Voxlen" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">#7345D1</item>
         <item name="colorPrimaryVariant">#5B2EAF</item>
         <item name="colorOnPrimary">#FFFFFF</item>

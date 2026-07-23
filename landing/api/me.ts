@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, lookupPlan, corsHeaders, applyHeaders } from "./_auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
@@ -14,8 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const user = await verifyAccessToken(token);
-    const plan = user.plan ?? (user.isAdmin ? "admin" : "free");
-    const isPaid = user.isAdmin || plan === "admin" || plan === "pro" || plan === "professional" || plan === "free_trial";
+    const plan = user.isAdmin ? "admin" : (await lookupPlan(user.email) ?? user.plan ?? "free");
+    const isPaid = user.isAdmin || plan === "admin" || plan === "pro" || plan === "professional" || plan === "privileged" || plan === "firm" || plan === "free_trial";
     return applyHeaders(res, headers).status(200).json({
       sub: user.sub,
       email: user.email,

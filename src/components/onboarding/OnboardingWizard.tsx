@@ -10,9 +10,60 @@ import {
   Zap,
   Volume2,
   AlertCircle,
-  ExternalLink,
-  FileText,
+  Briefcase,
+  Clock,
 } from "lucide-react";
+
+function ShortcutTest({ shortcut, onTested }: { shortcut: string; onTested: () => void }) {
+  const [pressed, setPressed] = useState(false);
+
+  useEffect(() => {
+    const parts = shortcut.toLowerCase().split("+");
+    const handler = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      const needsAlt = parts.includes("alt");
+      const needsCtrl = parts.includes("ctrl") || parts.includes("control");
+      const needsShift = parts.includes("shift");
+      const mainKey = parts[parts.length - 1];
+      if (
+        (needsAlt ? e.altKey : !e.altKey) &&
+        (needsCtrl ? e.ctrlKey : !e.ctrlKey) &&
+        (needsShift ? e.shiftKey : !e.shiftKey) &&
+        key === mainKey
+      ) {
+        e.preventDefault();
+        setPressed(true);
+        onTested();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [shortcut, onTested]);
+
+  return (
+    <div className={cn(
+      "rounded-lg border p-3 flex items-center gap-3 transition-colors",
+      pressed
+        ? "border-emerald-500/40 bg-emerald-500/5"
+        : "border-surface-300/60 bg-surface-50"
+    )}>
+      <div className={cn(
+        "w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] transition-colors",
+        pressed ? "bg-emerald-500 text-white" : "bg-surface-200 text-surface-600"
+      )}>
+        {pressed ? "✓" : "?"}
+      </div>
+      <div className="flex-1">
+        <p className="text-[12px] text-surface-800">
+          {pressed ? "Shortcut works." : "Test your toggle shortcut — press it now."}
+        </p>
+      </div>
+      <kbd className="px-2 py-0.5 rounded bg-surface-100 border border-surface-300/70 text-[10px] font-mono text-surface-700">
+        {shortcut}
+      </kbd>
+    </div>
+  );
+}
 
 export const LEGAL_POLICY_VERSION = "2026-04-16";
 const LEGAL_BASE_URL =
@@ -26,6 +77,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
+import { useClientsStore } from "@/stores/clients";
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -37,15 +89,61 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [voxlenKeyValid, setVoxlenKeyValid] = useState<boolean | "unverified" | null>(null);
   const [legalAccepted, setLegalAccepted] = useState(false);
-  const [consentAccepted, setConsentAccepted] = useState(false);
+  // Onboarding consent checkbox — simplified to single acceptance
+  const [connectMode, setConnectMode] = useState<"voxlen" | "deepgram">("deepgram");
+  const [dgKeyInput, setDgKeyInput] = useState("");
+  const [dgKeyError, setDgKeyError] = useState("");
+  const [dgKeyVerifying, setDgKeyVerifying] = useState(false);
+  const [_shortcutTested, setShortcutTested] = useState(false);
+  // "Your practice" step — all optional.
+  const [practiceClientName, setPracticeClientName] = useState("");
+  const [practiceMatterNumber, setPracticeMatterNumber] = useState("");
+  const [practiceClientCreated, setPracticeClientCreated] = useState(false);
+
+  const commitPracticeStep = () => {
+    const name = practiceClientName.trim();
+    if (name && !practiceClientCreated) {
+      const id = useClientsStore.getState().addClient({
+        name,
+        matterNumber: practiceMatterNumber.trim() || undefined,
+        billableRate: 0, // use the default rate they just set
+        color: "",
+      });
+      useClientsStore.getState().setActiveClient(id);
+      setPracticeClientCreated(true);
+    }
+  };
 
   const handleCompleteWithConsent = () => {
-    if (!legalAccepted || !consentAccepted) return;
+    if (!legalAccepted) return;
     settings.updateSettings({
       legalAcceptedVersion: LEGAL_POLICY_VERSION,
       legalAcceptedAt: new Date().toISOString(),
     });
     onComplete();
+  };
+
+  const handleSaveDgKey = async () => {
+    const key = dgKeyInput.trim();
+    if (!key) return;
+    setDgKeyError("");
+    setDgKeyVerifying(true);
+    try {
+      const res = await fetch("https://api.deepgram.com/v1/projects", {
+        headers: { Authorization: `Token ${key}` },
+      });
+      if (!res.ok) {
+        setDgKeyError("Key rejected — double-check it at console.deepgram.com.");
+        setDgKeyVerifying(false);
+        return;
+      }
+    } catch {
+      // Offline — save anyway.
+    }
+    setDgKeyVerifying(false);
+    settings.updateSetting("sttApiKey", key);
+    settings.updateSetting("sttEngine", "deepgram");
+    setDgKeyInput("");
   };
 
   const devices = useAudioStore((s) => s.devices);
@@ -160,6 +258,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     { title: "Welcome", icon: Sparkles },
     { title: "Microphone", icon: Mic },
     { title: "Connect", icon: Key },
+    { title: "Your practice", icon: Briefcase },
     { title: "Ready", icon: CheckCircle2 },
   ];
 
@@ -169,7 +268,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       case 1: return !!selectedDeviceId;
       // Step 2: connected if voxlenApiKey is set OR a direct STT key is set
       case 2: return !!settings.voxlenApiKey || !!settings.sttApiKey;
-      case 3: return true;
+      case 3: return true; // practice setup is entirely optional
+      case 4: return true;
       default: return true;
     }
   };
@@ -178,7 +278,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     <div className="flex flex-col items-center justify-center min-h-screen bg-surface-0 p-8">
       {/* Brand mark — editorial wordmark, hairline rule. */}
       <div className="flex flex-col items-center gap-2 mb-10">
-        <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-elevation shadow-inset-hairline">
+        <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gradient-to-br from-voxlen-700 to-voxlen-900 shadow-elevation shadow-inset-hairline">
           <Mic className="h-4 w-4 text-brass-300" strokeWidth={2} />
         </div>
         <div className="flex items-baseline leading-none">
@@ -200,7 +300,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               className={cn(
                 "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono tabular-nums transition-all shadow-inset-hairline",
                 i === step
-                  ? "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation"
+                  ? "bg-gradient-to-b from-voxlen-700 to-voxlen-900 text-brass-300 shadow-elevation"
                   : i < step
                     ? "bg-brass-400/10 text-brass-500 border border-brass-400/30"
                     : "bg-surface-100 text-surface-600 border border-surface-300/60"
@@ -276,7 +376,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 label: d.name,
                 description: d.isExternal ? "External - Recommended" : "Built-in",
                 icon: d.isExternal ? (
-                  <Mic className="h-4 w-4 text-marcoreid-400" />
+                  <Mic className="h-4 w-4 text-voxlen-400" />
                 ) : (
                   <Mic className="h-4 w-4 text-surface-600" />
                 ),
@@ -355,74 +455,237 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           <div className="space-y-5">
             <div className="text-center">
               <h2 className="font-display text-[26px] font-medium tracking-tight-display text-surface-950 mb-1 leading-tight">
-                Connect your account
+                Add your API key
               </h2>
               <p className="text-[13px] text-surface-700 leading-relaxed">
-                Sign in to your Voxlen account and you're ready to dictate — no other keys needed.
+                Voxlen needs one key to transcribe. Pick the option you have.
               </p>
             </div>
 
-            {settings.voxlenApiKey ? (
+            {/* Already connected state */}
+            {(settings.voxlenApiKey || settings.sttApiKey) && (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <span className="text-emerald-400">✓</span>
-                </div>
+                <span className="text-emerald-400 text-lg">✓</span>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-surface-900">Voxlen account connected</p>
-                  <p className="text-[11px] text-surface-600">Transcription and AI grammar are ready.</p>
+                  <p className="text-sm font-semibold text-surface-900">
+                    {settings.voxlenApiKey ? "Voxlen account connected" : "Deepgram key saved"}
+                  </p>
+                  <p className="text-[11px] text-surface-600">Transcription is ready.</p>
                 </div>
                 <button
-                  onClick={() => settings.updateSetting("voxlenApiKey", "")}
-                  className="text-[10px] text-surface-400 hover:text-red-400"
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-surface-300/60 bg-surface-50/60 p-5 space-y-4">
-                <ol className="space-y-2 text-[12px] text-surface-700 leading-relaxed list-decimal list-inside">
-                  <li>Open your Voxlen dashboard and sign in (or create a free account).</li>
-                  <li>In <span className="font-medium text-surface-900">Connect Desktop App</span>, copy your account key.</li>
-                  <li>Paste it below — that's it. Transcription and AI grammar are included.</li>
-                </ol>
-                <a
-                  href="https://voxlen.ai/dashboard"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-2 w-full bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
-                >
-                  Open voxlen.ai/dashboard
-                </a>
-                <Input
-                  label="Voxlen Account Key"
-                  type="password"
-                  value={settings.voxlenApiKey}
-                  onChange={(e) => {
-                    settings.updateSetting("voxlenApiKey", e.target.value);
-                    setVoxlenKeyValid(null);
+                  onClick={() => {
+                    settings.updateSetting("voxlenApiKey", "");
+                    settings.updateSetting("sttApiKey", "");
                   }}
-                  onBlur={() => { if (settings.voxlenApiKey) handleValidateVoxlenKey(); }}
-                  placeholder="Paste your account key"
-                  icon={<Key className="h-4 w-4" />}
-                  success={voxlenKeyValid === true ? "Key verified" : undefined}
-                  error={voxlenKeyValid === false ? "Invalid key — re-copy it from voxlen.ai/dashboard" : undefined}
-                />
-                {voxlenKeyValid === "unverified" && (
-                  <p className="text-[11px] text-amber-500 leading-relaxed">
-                    Couldn't reach voxlen.ai to verify this key. You can continue — Voxlen will
-                    verify it the first time you dictate.
-                  </p>
-                )}
+                  className="text-[10px] text-surface-400 hover:text-red-400 transition-colors"
+                >
+                  Change
+                </button>
               </div>
             )}
 
+            {!settings.voxlenApiKey && !settings.sttApiKey && (
+              <>
+                {/* Tab switcher */}
+                <div className="flex rounded-lg border border-surface-300/60 p-1 bg-surface-50 gap-1">
+                  <button
+                    onClick={() => setConnectMode("deepgram")}
+                    className={cn(
+                      "flex-1 text-[12px] font-medium py-1.5 rounded-md transition-colors",
+                      connectMode === "deepgram"
+                        ? "bg-white text-surface-900 shadow-inset-hairline"
+                        : "text-surface-600 hover:text-surface-800"
+                    )}
+                  >
+                    Deepgram key
+                  </button>
+                  <button
+                    onClick={() => setConnectMode("voxlen")}
+                    className={cn(
+                      "flex-1 text-[12px] font-medium py-1.5 rounded-md transition-colors",
+                      connectMode === "voxlen"
+                        ? "bg-white text-surface-900 shadow-inset-hairline"
+                        : "text-surface-600 hover:text-surface-800"
+                    )}
+                  >
+                    Voxlen account
+                  </button>
+                </div>
+
+                {connectMode === "deepgram" && (
+                  <div className="space-y-3">
+                    <p className="text-[12px] text-surface-700 leading-relaxed">
+                      Get a free key at{" "}
+                      <a href="https://console.deepgram.com" target="_blank" rel="noreferrer" className="text-brass-500 hover:underline font-mono">
+                        console.deepgram.com
+                      </a>
+                      {" "}— the free tier covers hours of dictation.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={dgKeyInput}
+                        onChange={(e) => { setDgKeyInput(e.target.value); setDgKeyError(""); }}
+                        onKeyDown={(e) => e.key === "Enter" && handleSaveDgKey()}
+                        placeholder="Paste Deepgram API key…"
+                        className="flex-1 bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-[#7345d1] shadow-inset-hairline"
+                        autoFocus
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleSaveDgKey}
+                        disabled={!dgKeyInput.trim() || dgKeyVerifying}
+                      >
+                        {dgKeyVerifying ? "Checking…" : "Save"}
+                      </Button>
+                    </div>
+                    {dgKeyError && (
+                      <p className="text-[11px] text-red-500">{dgKeyError}</p>
+                    )}
+                  </div>
+                )}
+
+                {connectMode === "voxlen" && (
+                  <div className="space-y-3">
+                    <ol className="space-y-1.5 text-[12px] text-surface-700 leading-relaxed list-decimal list-inside">
+                      <li>Sign in at voxlen.ai/dashboard (or create a free account).</li>
+                      <li>Copy your account key from <span className="font-medium">Connect Desktop App</span>.</li>
+                      <li>Paste it below — transcription and AI grammar are included.</li>
+                    </ol>
+                    <a
+                      href="https://voxlen.ai/dashboard"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-2 w-full bg-[#7345d1] hover:bg-[#5c35b0] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors"
+                    >
+                      Open voxlen.ai/dashboard
+                    </a>
+                    <Input
+                      label="Voxlen Account Key"
+                      type="password"
+                      value={settings.voxlenApiKey}
+                      onChange={(e) => {
+                        settings.updateSetting("voxlenApiKey", e.target.value);
+                        setVoxlenKeyValid(null);
+                      }}
+                      onBlur={() => { if (settings.voxlenApiKey) handleValidateVoxlenKey(); }}
+                      placeholder="Paste your account key"
+                      icon={<Key className="h-4 w-4" />}
+                      success={voxlenKeyValid === true ? "Key verified" : undefined}
+                      error={voxlenKeyValid === false ? "Invalid key — re-copy it from voxlen.ai/dashboard" : undefined}
+                    />
+                    {voxlenKeyValid === "unverified" && (
+                      <p className="text-[11px] text-amber-500 leading-relaxed">
+                        Couldn't reach voxlen.ai to verify. You can continue — it'll be checked on first use.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
         {step === 3 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="font-display text-[26px] font-medium tracking-tight-display text-surface-950 mb-1 leading-tight">
+                Your practice
+              </h2>
+              <p className="text-[13px] text-surface-700 leading-relaxed">
+                Voxlen drafts a billable time entry for your review after every
+                dictation. Set your defaults now — or skip and do it later.
+              </p>
+            </div>
+
+            <div>
+              <label className="label-caps mb-1.5 block">Default Billable Rate ($/hr)</label>
+              <input
+                type="number"
+                min={0}
+                step={25}
+                value={settings.billableRatePerHour || ""}
+                onChange={(e) =>
+                  settings.updateSetting("billableRatePerHour", Math.max(0, Number(e.target.value) || 0))
+                }
+                placeholder="e.g. 350"
+                className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400 shadow-inset-hairline"
+              />
+              {settings.billableRatePerHour === 0 && (
+                <p className="text-[10px] text-amber-500 mt-1">
+                  Without a rate, drafted time entries come out at $0.00.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="label-caps mb-1.5 block">Time Rounding</label>
+              <div className="flex rounded-lg border border-surface-300/60 p-1 bg-surface-50 gap-1">
+                {([
+                  { value: 0.1, label: "6 min (0.1 hr)" },
+                  { value: 0.25, label: "15 min" },
+                  { value: 0, label: "Exact" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => settings.updateSetting("billingRoundingIncrement", opt.value)}
+                    className={cn(
+                      "flex-1 text-[12px] font-medium py-1.5 rounded-md transition-colors",
+                      settings.billingRoundingIncrement === opt.value
+                        ? "bg-white text-surface-900 shadow-inset-hairline"
+                        : "text-surface-600 hover:text-surface-800"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-surface-600 mt-1">
+                Standard legal convention rounds up to 6-minute units.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-surface-300/60">
+              <label className="label-caps mb-1.5 block">First Client / Matter (optional)</label>
+              <div className="space-y-2">
+                <input
+                  value={practiceClientName}
+                  onChange={(e) => setPracticeClientName(e.target.value)}
+                  placeholder="Client name — e.g. Smith v Jones"
+                  disabled={practiceClientCreated}
+                  className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400 shadow-inset-hairline disabled:opacity-60"
+                />
+                <input
+                  value={practiceMatterNumber}
+                  onChange={(e) => setPracticeMatterNumber(e.target.value)}
+                  placeholder="Matter / file number (optional)"
+                  disabled={practiceClientCreated}
+                  className="w-full bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-brass-400 shadow-inset-hairline disabled:opacity-60"
+                />
+              </div>
+              {practiceClientCreated && (
+                <p className="text-[10px] text-emerald-500 mt-1">
+                  Client created and set as active for your first dictation.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-start gap-2 p-3 rounded-md bg-brass-400/8 border border-brass-400/25 shadow-inset-hairline">
+              <Clock className="h-4 w-4 text-brass-500 mt-0.5 shrink-0" strokeWidth={1.75} />
+              <p className="text-[10px] text-surface-600 leading-snug">
+                After each session you'll see a draft entry — accept, edit, or
+                discard it. Approved time exports as CSV, Clio CSV, or LEDES for
+                your billing system.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="text-center space-y-6">
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 border border-brass-400/30 flex items-center justify-center shadow-elevation-lg">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-voxlen-700 to-voxlen-900 border border-brass-400/30 flex items-center justify-center shadow-elevation-lg">
                 <CheckCircle2 className="h-7 w-7 text-brass-300" strokeWidth={1.75} />
               </div>
             </div>
@@ -471,38 +734,34 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               These shortcuts work from any app — even when Voxlen is minimised.
             </p>
 
-            {/* Legal acceptance — required before first use. */}
-            <div className="mt-6 pt-5 border-t border-surface-300/60 space-y-4 text-left">
-              <div>
-                <p className="label-caps mb-2">Before you begin</p>
-                <p className="text-[12px] text-surface-800 leading-relaxed">
-                  Voxlen is a professional tool. Please read and accept the
-                  terms below. You can review them again any time from Settings.
+            <div className="space-y-2 text-left">
+              <div className="p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+                <p className="text-[12px] font-medium text-surface-900 mb-0.5">Voice commands</p>
+                <p className="text-[10px] text-surface-600 leading-snug">
+                  Say <span className="font-mono text-surface-800">"new paragraph"</span>,{" "}
+                  <span className="font-mono text-surface-800">"scratch that"</span>, or{" "}
+                  <span className="font-mono text-surface-800">"log 30 minutes"</span> while
+                  dictating. The full list lives behind the <span className="font-medium">?</span> button
+                  in the dictation panel.
                 </p>
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: "Licence (EULA)", path: "EULA.md" },
-                  { label: "Terms of Service", path: "TERMS.md" },
-                  { label: "Privacy Policy", path: "PRIVACY_POLICY.md" },
-                  { label: "Acceptable Use", path: "ACCEPTABLE_USE.md" },
-                ].map((doc) => (
-                  <button
-                    key={doc.path}
-                    type="button"
-                    onClick={() => openLegalDoc(doc.path)}
-                    className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline hover:bg-surface-100 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText className="h-3.5 w-3.5 text-brass-500 shrink-0" strokeWidth={1.75} />
-                      <span className="text-[11px] text-surface-900 truncate">{doc.label}</span>
-                    </div>
-                    <ExternalLink className="h-3 w-3 text-surface-600 shrink-0" strokeWidth={1.75} />
-                  </button>
-                ))}
+              <div className="p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
+                <p className="text-[12px] font-medium text-surface-900 mb-0.5">Always-Ready mode</p>
+                <p className="text-[10px] text-surface-600 leading-snug">
+                  Prefer hands-free? Enable Always-Ready in Settings → Dictation and your
+                  mic's hardware mute button becomes the only control — speak anytime.
+                </p>
               </div>
+            </div>
 
+            {/* Shortcut test */}
+            <ShortcutTest
+              shortcut={settings.shortcutToggle || "Alt+D"}
+              onTested={() => setShortcutTested(true)}
+            />
+
+            {/* Legal acceptance — single checkbox, links to full docs. */}
+            <div className="pt-5 border-t border-surface-300/60 space-y-3 text-left">
               <label className="flex items-start gap-3 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -511,53 +770,17 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   className="mt-0.5 h-3.5 w-3.5 rounded border-surface-400 text-brass-500 focus:ring-brass-400/50"
                 />
                 <span className="text-[11px] text-surface-800 leading-relaxed">
-                  I have read and agree to the{" "}
-                  <button type="button" onClick={() => openLegalDoc("EULA.md")} className="text-brass-500 hover:underline">
-                    End User Licence Agreement
-                  </button>
-                  , the{" "}
-                  <button type="button" onClick={() => openLegalDoc("TERMS.md")} className="text-brass-500 hover:underline">
-                    Terms of Service
-                  </button>
-                  , the{" "}
-                  <button type="button" onClick={() => openLegalDoc("PRIVACY_POLICY.md")} className="text-brass-500 hover:underline">
-                    Privacy Policy
-                  </button>
-                  , and the{" "}
-                  <button type="button" onClick={() => openLegalDoc("ACCEPTABLE_USE.md")} className="text-brass-500 hover:underline">
-                    Acceptable Use Policy
-                  </button>
-                  .
+                  I agree to the{" "}
+                  <button type="button" onClick={() => openLegalDoc("EULA.md")} className="text-brass-500 hover:underline">EULA</button>
+                  ,{" "}
+                  <button type="button" onClick={() => openLegalDoc("TERMS.md")} className="text-brass-500 hover:underline">Terms</button>
+                  ,{" "}
+                  <button type="button" onClick={() => openLegalDoc("PRIVACY_POLICY.md")} className="text-brass-500 hover:underline">Privacy Policy</button>
+                  , and{" "}
+                  <button type="button" onClick={() => openLegalDoc("ACCEPTABLE_USE.md")} className="text-brass-500 hover:underline">Acceptable Use Policy</button>
+                  . I will review all output before relying on it professionally.
                 </span>
               </label>
-
-              <label className="flex items-start gap-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={consentAccepted}
-                  onChange={(e) => setConsentAccepted(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-surface-400 text-brass-500 focus:ring-brass-400/50"
-                />
-                <span className="text-[11px] text-surface-800 leading-relaxed">
-                  I confirm that (a) I am authorised to process any client, patient,
-                  or other confidential information I dictate, (b) I have any
-                  consents required by law to record or transcribe other people, and
-                  (c) I will review every output before relying on it or delivering
-                  it to a client, court, or regulator. Output is{" "}
-                  <span className="italic">not</span> legal, accounting, tax,
-                  medical, or financial advice.
-                </span>
-              </label>
-
-              <div className="rounded-md bg-amber-500/8 border border-amber-500/25 shadow-inset-hairline p-3 flex items-start gap-2">
-                <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" strokeWidth={1.75} />
-                <p className="text-[10.5px] text-surface-800 leading-snug">
-                  API keys and transcripts are stored locally in plaintext. Use
-                  full-disk encryption and a protected user account — especially for
-                  privileged, PHI, or regulated content. OS keychain integration is
-                  on the roadmap.
-                </p>
-              </div>
             </div>
           </div>
         )}
@@ -577,7 +800,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step < steps.length - 1 ? (
           <Button
             variant="primary"
-            onClick={() => setStep(step + 1)}
+            onClick={() => {
+              if (step === 3) commitPracticeStep();
+              setStep(step + 1);
+            }}
             disabled={!canProceed()}
           >
             Continue
@@ -587,7 +813,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           <Button
             variant="glow"
             onClick={handleCompleteWithConsent}
-            disabled={!legalAccepted || !consentAccepted}
+            disabled={!legalAccepted}
           >
             <Sparkles className="h-4 w-4" strokeWidth={1.75} />
             Accept &amp; begin
@@ -595,13 +821,13 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         )}
       </div>
 
-      {/* Skip link — only when legal step hasn't been reached. */}
-      {step < steps.length - 1 && (
+      {/* Skip link — only on step 2 if user genuinely has no key yet (will show banner in app) */}
+      {step === 2 && !settings.voxlenApiKey && !settings.sttApiKey && (
         <button
-          onClick={() => setStep(steps.length - 1)}
-          className="mt-5 text-[11px] italic text-surface-600 hover:text-surface-800 transition-colors font-display"
+          onClick={() => setStep(step + 1)}
+          className="mt-5 text-[11px] italic text-surface-500 hover:text-surface-700 transition-colors"
         >
-          Skip setup &mdash; jump to terms.
+          I'll add a key later
         </button>
       )}
     </div>

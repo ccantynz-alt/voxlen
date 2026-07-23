@@ -5,6 +5,13 @@ import { DictationPanel } from "@/components/dictation/DictationPanel";
 import { GrammarPanel } from "@/components/grammar/GrammarPanel";
 import { HistoryPanel } from "@/components/dictation/HistoryPanel";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
+import { AdminPanel } from "@/components/settings/AdminPanel";
+import { ClauseLibrary } from "@/components/clauses/ClauseLibrary";
+import { ClientsPanel } from "@/components/clients/ClientsPanel";
+import { AnalyticsPanel } from "@/components/analytics/AnalyticsPanel";
+import { FlywheelPanel } from "@/components/flywheel/FlywheelPanel";
+import { MeetingPanel } from "@/components/meeting/MeetingPanel";
+import { ReviewQueuePanel } from "@/components/review/ReviewQueuePanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
@@ -14,8 +21,22 @@ import { loadFlywheel } from "@/stores/flywheel";
 import { loadSettings, persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { loadCustomClauses } from "@/stores/clauses";
+import { useNavigationStore } from "@/stores/navigation";
+import { ToastContainer } from "@/components/ui/Toast";
 
-type View = "dictation" | "grammar" | "history" | "settings" | "admin";
+type View =
+  | "dictation"
+  | "grammar"
+  | "history"
+  | "review"
+  | "clauses"
+  | "clients"
+  | "meeting"
+  | "analytics"
+  | "flywheel"
+  | "admin"
+  | "settings";
 
 export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
@@ -24,6 +45,14 @@ export default function App() {
   const hydrateSettingsStore = useSettingsStore((s) => s.hydrateSettings);
   const theme = useSettingsStore((s) => s.theme);
   const fontSize = useSettingsStore((s) => s.fontSize);
+  const { pendingView, clearPendingView } = useNavigationStore();
+
+  useEffect(() => {
+    if (pendingView) {
+      setActiveView(pendingView as View);
+      clearPendingView();
+    }
+  }, [pendingView, clearPendingView]);
 
   // Apply theme class to document root
   useEffect(() => {
@@ -42,9 +71,18 @@ export default function App() {
     document.documentElement.style.setProperty("--app-font-size", `${fontSize}px`);
   }, [fontSize]);
 
-  // Load flywheel data on startup
+  // Load flywheel and clause data on startup, then run the one-time
+  // migration of legacy flywheel time entries into the clients store.
   useEffect(() => {
-    loadFlywheel();
+    loadFlywheel().then(async () => {
+      try {
+        const { migrateLegacyTimeEntries } = await import("@/lib/migrateBilling");
+        await migrateLegacyTimeEntries();
+      } catch (err) {
+        console.error("Legacy time-entry migration failed:", err);
+      }
+    });
+    loadCustomClauses();
   }, []);
 
   // Wire Tauri events (audio-level, waveform-samples, transcription, etc.).
@@ -70,7 +108,12 @@ export default function App() {
         }
       } catch {
         // Not in Tauri - check localStorage
-        const completed = localStorage.getItem("marcoreid_onboarding_complete");
+        let completed = localStorage.getItem("voxlen_onboarding_complete");
+        if (!completed && localStorage.getItem("marcoreid_onboarding_complete")) {
+          completed = "true";
+          localStorage.setItem("voxlen_onboarding_complete", "true");
+          localStorage.removeItem("marcoreid_onboarding_complete");
+        }
         setShowOnboarding(!completed);
 
         // Load saved settings from localStorage
@@ -84,11 +127,23 @@ export default function App() {
         }
       }
 
-      // Hydrate settings from backend on boot.
+      // Hydrate ONLY the API keys from the backend on boot. The backend's
+      // get_settings returns Rust defaults for everything except the keys it
+      // hydrates from the OS keychain — merging the full object would wipe
+      // the user's saved settings back to defaults on every launch (which it
+      // did, for months). The frontend settings.json is the source of truth
+      // for everything else; the persist subscriber below pushes the merged
+      // result back to the Rust engine.
       try {
         const backendSettings = await loadSettings();
         if (backendSettings) {
-          hydrateSettingsStore(backendSettings);
+          const keysOnly: Record<string, unknown> = {};
+          if (backendSettings.sttApiKey) keysOnly.sttApiKey = backendSettings.sttApiKey;
+          if (backendSettings.grammarApiKey) keysOnly.grammarApiKey = backendSettings.grammarApiKey;
+          if (backendSettings.voxlenApiKey) keysOnly.voxlenApiKey = backendSettings.voxlenApiKey;
+          if (Object.keys(keysOnly).length > 0) {
+            hydrateSettingsStore(keysOnly);
+          }
         }
       } catch {
         // Already handled inside loadSettings.
@@ -221,7 +276,8 @@ export default function App() {
       await store.set("onboarding_complete", true);
       await store.save();
     } catch {
-      localStorage.setItem("marcoreid_onboarding_complete", "true");
+      localStorage.setItem("voxlen_onboarding_complete", "true");
+      localStorage.removeItem("marcoreid_onboarding_complete");
     }
 
     // Save current settings through the persistence pipeline
@@ -261,6 +317,48 @@ export default function App() {
             <HistoryPanel />
           </ErrorBoundary>
         );
+      case "review":
+        return (
+          <ErrorBoundary label="Review">
+            <ReviewQueuePanel />
+          </ErrorBoundary>
+        );
+      case "meeting":
+        return (
+          <ErrorBoundary label="Meeting">
+            <MeetingPanel />
+          </ErrorBoundary>
+        );
+      case "clauses":
+        return (
+          <ErrorBoundary label="Clauses">
+            <ClauseLibrary />
+          </ErrorBoundary>
+        );
+      case "clients":
+        return (
+          <ErrorBoundary label="Clients">
+            <ClientsPanel />
+          </ErrorBoundary>
+        );
+      case "analytics":
+        return (
+          <ErrorBoundary label="Analytics">
+            <AnalyticsPanel />
+          </ErrorBoundary>
+        );
+      case "flywheel":
+        return (
+          <ErrorBoundary label="Flywheel">
+            <FlywheelPanel />
+          </ErrorBoundary>
+        );
+      case "admin":
+        return (
+          <ErrorBoundary label="Admin">
+            <AdminPanel />
+          </ErrorBoundary>
+        );
       case "settings":
         return (
           <ErrorBoundary label="Settings">
@@ -285,15 +383,18 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-surface-0 rounded-xl overflow-hidden border border-surface-300/30">
-      <TitleBar />
-      <div className="flex flex-1 min-h-0">
-        <Sidebar
-          activeView={activeView}
-          onViewChange={(v) => setActiveView(v as View)}
-        />
-        <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
+    <>
+      <div className="flex flex-col h-screen bg-surface-0 rounded-xl overflow-hidden border border-surface-300/30">
+        <TitleBar />
+        <div className="flex flex-1 min-h-0">
+          <Sidebar
+            activeView={activeView}
+            onViewChange={(v) => setActiveView(v as View)}
+          />
+          <main className="flex-1 min-w-0 overflow-hidden">{renderView()}</main>
+        </div>
       </div>
-    </div>
+      <ToastContainer />
+    </>
   );
 }

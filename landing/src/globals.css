@@ -9,14 +9,21 @@
 }
 
 body {
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family: "Public Sans", system-ui, -apple-system, sans-serif;
+  background-color: #faf7f0;
+  color: #1d1a15;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
+::selection {
+  background: #f0e7d2;
+  color: #1d1a15;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -24,52 +31,103 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 3px;
+  background: #e4dcc9;
+  border-radius: 4px;
 }
 
-/* Shimmer headline accent. */
-.gradient-text {
-  background: linear-gradient(120deg, #598bff 0%, #8eb4ff 40%, #bcd2ff 50%, #8eb4ff 60%, #598bff 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer-text 4s linear infinite;
-}
-
-@keyframes shimmer-text {
-  0% { background-position: 200% center; }
-  100% { background-position: -200% center; }
-}
-
-/* Faint ambient tint at the top of the hero — kept very subtle. */
-.glow-hero {
-  background: radial-gradient(ellipse 700px 320px at 50% 0%, rgba(51, 102, 255, 0.06) 0%, transparent 70%);
-}
-
-/* Legacy decorative orbs — disabled in favour of a clean, confident layout. */
-.glow-orb {
-  display: none;
-}
-
-.card-glow {
+/* Letterhead double rule — the horizontal device that divides sections,
+   borrowed from engraved legal stationery. */
+.rule-double {
+  border-top: 1px solid #e4dcc9;
   position: relative;
 }
-
-/* Quiet hairline border instead of a neon gradient ring. */
-.card-glow::before {
+.rule-double::after {
   content: "";
   position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: rgba(255, 255, 255, 0.06);
-  z-index: -1;
+  top: 3px;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #e4dcc9;
 }
 
-/* Floating animation retired — elements sit still. */
-.float {
-  animation: none;
+/* Rubber stamp — used once for PRIVILEGED / on-device processing. */
+.stamp {
+  display: inline-block;
+  padding: 0.3em 0.75em;
+  border: 2px solid #96382b;
+  border-radius: 3px;
+  color: #96382b;
+  font-family: "Public Sans", sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+  opacity: 0.85;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40'><filter id='n'><feTurbulence baseFrequency='0.7' numOctaves='2'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0.1'/></filter><rect width='120' height='40' fill='white' filter='url(%23n)'/></svg>");
+  mask-size: cover;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40'><filter id='n'><feTurbulence baseFrequency='0.7' numOctaves='2'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0.1'/></filter><rect width='120' height='40' fill='white' filter='url(%23n)'/></svg>");
+  -webkit-mask-size: cover;
+}
+
+/* Redline correction marks — the hero's signature. A struck word in
+   proofreader's red, its replacement inserted in brass. */
+.redline-strike {
+  color: #96382b;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+.redline-insert {
+  color: #7e5c20;
+  border-bottom: 1.5px solid #a0762c;
+}
+
+/* Hero transcript lines type in, then corrections apply. */
+@keyframes record-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.record-line {
+  opacity: 0;
+  animation: record-line-in 0.45s ease-out forwards;
+}
+
+@keyframes correction-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.correction {
+  opacity: 0;
+  animation: correction-in 0.5s ease-out forwards;
+}
+
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-4deg) scale(1.4);
+  }
+  60% {
+    opacity: 0.9;
+    transform: rotate(-4deg) scale(0.96);
+  }
+  100% {
+    opacity: 0.85;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+.stamp-animate {
+  opacity: 0;
+  animation: stamp-in 0.4s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -80,5 +138,10 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .record-line,
+  .correction,
+  .stamp-animate {
+    opacity: 1;
   }
 }

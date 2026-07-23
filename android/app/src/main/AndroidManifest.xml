@@ -8,13 +8,13 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Marco Reid Voice"
+        android:label="Voxlen"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MarcoReidVoice">
+        android:theme="@style/Theme.Voxlen">
 
         <!-- Keyboard InputMethodService -->
         <service
-            android:name=".MarcoReidKeyboardService"
+            android:name=".VoxlenKeyboardService"
             android:exported="true"
             android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
@@ -29,8 +29,8 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="true"
-            android:label="Marco Reid Voice Settings"
-            android:theme="@style/Theme.MarcoReidVoice">
+            android:label="Voxlen Settings"
+            android:theme="@style/Theme.Voxlen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

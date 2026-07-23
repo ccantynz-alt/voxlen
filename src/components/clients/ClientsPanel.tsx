@@ -1,8 +1,11 @@
 import { useState, useRef } from "react";
-import { Plus, Briefcase, Archive, Trash2, Edit2, Check, X, Download, BookOpen } from "lucide-react";
-import { useClientsStore, type Client } from "../../stores/clients";
+import { Plus, Briefcase, Archive, Trash2, Edit2, Check, X, Download, BookOpen, Clock, AlertTriangle } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
+import { useClientsStore, type Client, type MatterEntry } from "../../stores/clients";
 import { useSettingsStore } from "../../stores/settings";
 import { exportBillingCsv, exportAllBillingCsv, downloadBillingExport } from "../../lib/export";
+import { exportLedes1998B, exportClioCsv } from "../../lib/exportLedes";
+import { formatBillableHours } from "../../lib/billing";
 import { Button } from "../ui/Button";
 
 const CLIENT_COLORS = [
@@ -112,8 +115,84 @@ function AddClientModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Small dialog collecting invoice metadata for a LEDES export. */
+function LedesExportModal({ client, onClose }: { client: Client; onClose: () => void }) {
+  const settings = useSettingsStore();
+  const entries = useClientsStore((s) => s.entries).filter(
+    (e) => e.clientId === client.id && e.status === "approved"
+  );
+  const [invoiceNumber, setInvoiceNumber] = useState(
+    `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`
+  );
+  const [lawFirmId, setLawFirmId] = useState(settings.ledesLawFirmId);
+  const [timekeeperId, setTimekeeperId] = useState(settings.ledesTimekeeperId);
+  const [timekeeperName, setTimekeeperName] = useState(settings.ledesTimekeeperName);
+
+  const doExport = async () => {
+    // Remember firm/timekeeper details for next time.
+    settings.updateSettings({
+      ledesLawFirmId: lawFirmId,
+      ledesTimekeeperId: timekeeperId,
+      ledesTimekeeperName: timekeeperName,
+    });
+    const { content, filename, mimeType } = exportLedes1998B(client, entries, {
+      invoiceNumber,
+      invoiceDate: new Date(),
+      lawFirmId,
+      timekeeperId,
+      timekeeperName,
+      timekeeperClassification: settings.ledesClassification || "PT",
+    });
+    await downloadBillingExport(content, filename, mimeType, {
+      name: "LEDES 1998B",
+      extensions: ["txt", "ledes"],
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-surface-50 border border-surface-300/60 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <h2 className="text-lg font-bold text-surface-950 mb-1">LEDES 1998B Export</h2>
+        <p className="text-xs text-surface-600 mb-5">
+          {entries.length} approved entr{entries.length === 1 ? "y" : "ies"} for {client.name}
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label className="label-caps mb-1.5 block">Invoice Number *</label>
+            <input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className={INPUT_CLS} />
+          </div>
+          <div>
+            <label className="label-caps mb-1.5 block">Law Firm ID (tax/firm identifier)</label>
+            <input value={lawFirmId} onChange={(e) => setLawFirmId(e.target.value)} className={INPUT_CLS} placeholder="e.g. 12-3456789" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label-caps mb-1.5 block">Timekeeper ID</label>
+              <input value={timekeeperId} onChange={(e) => setTimekeeperId(e.target.value)} className={INPUT_CLS} placeholder="e.g. CC01" />
+            </div>
+            <div>
+              <label className="label-caps mb-1.5 block">Timekeeper Name</label>
+              <input value={timekeeperName} onChange={(e) => setTimekeeperName(e.target.value)} className={INPUT_CLS} placeholder="e.g. C. Canty" />
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <Button variant="primary" onClick={doExport} disabled={!invoiceNumber.trim() || entries.length === 0} className="flex-1">
+            Export LEDES
+          </Button>
+          <Button variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ClientCard({ client }: { client: Client }) {
   const { updateClient, archiveClient, deleteClient, getClientEntries, getTotalBillable, getTotalHours, addVocabularyTerm, removeVocabularyTerm } = useClientsStore();
+  const defaultRate = useSettingsStore((s) => s.billableRatePerHour);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [ledesOpen, setLedesOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(client.name);
   const [editMatter, setEditMatter] = useState(client.matterNumber ?? "");
@@ -187,7 +266,7 @@ function ClientCard({ client }: { client: Client }) {
                 onChange={(e) => setEditDescription(e.target.value)}
                 placeholder="Matter description (used by AI for context-aware correction)"
                 rows={2}
-                className="w-full bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-marcoreid-500 resize-none dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
+                className="w-full bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-voxlen-500 resize-none dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
               />
             </div>
           ) : (
@@ -196,8 +275,13 @@ function ClientCard({ client }: { client: Client }) {
               {client.matterNumber && (
                 <p className="text-xs text-surface-600 mt-0.5">{client.matterNumber}</p>
               )}
-              <p className="text-xs text-surface-600 mt-0.5">
+              <p className="text-xs text-surface-600 mt-0.5 flex items-center gap-1.5">
                 {client.billableRate === 0 ? "Default rate" : `$${client.billableRate}/hr`}
+                {client.billableRate === 0 && defaultRate === 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 font-semibold">
+                    <AlertTriangle className="w-2.5 h-2.5" /> $0/hr — set a rate
+                  </span>
+                )}
               </p>
             </>
           )}
@@ -217,17 +301,47 @@ function ClientCard({ client }: { client: Client }) {
               <button onClick={() => setEditing(true)} className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors" title="Edit">
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
-              {entries.length > 0 && (
-                <button
-                  onClick={async () => {
-                    const { content, filename, mimeType } = exportBillingCsv(client, entries);
-                    await downloadBillingExport(content, filename, mimeType);
-                  }}
-                  className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors"
-                  title="Export billing CSV"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
+              {entries.some((e) => e.status === "approved") && (
+                <div className="relative">
+                  <button
+                    onClick={() => setExportOpen((o) => !o)}
+                    className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors"
+                    title="Export billing"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  {exportOpen && (
+                    <div className="absolute right-0 top-full mt-1 z-40 w-40 rounded-lg border border-surface-300/60 bg-surface-50 shadow-elevation py-1">
+                      <button
+                        onClick={async () => {
+                          setExportOpen(false);
+                          const approved = entries.filter((e) => e.status === "approved");
+                          const { content, filename, mimeType } = exportBillingCsv(client, approved);
+                          await downloadBillingExport(content, filename, mimeType);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 transition-colors"
+                      >
+                        CSV
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setExportOpen(false);
+                          const { content, filename, mimeType } = exportClioCsv(client, entries);
+                          await downloadBillingExport(content, filename, mimeType);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 transition-colors"
+                      >
+                        Clio CSV
+                      </button>
+                      <button
+                        onClick={() => { setExportOpen(false); setLedesOpen(true); }}
+                        className="w-full text-left px-3 py-1.5 text-[11px] text-surface-700 hover:bg-surface-100 transition-colors"
+                      >
+                        LEDES 1998B…
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
               <button onClick={() => archiveClient(client.id)} className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors" title="Archive">
                 <Archive className="w-3.5 h-3.5" />
@@ -267,6 +381,9 @@ function ClientCard({ client }: { client: Client }) {
               <span className="text-surface-600">
                 {new Date(entry.date).toLocaleDateString()} · {Math.round(entry.durationSeconds / 60)}m
                 {entry.wordCount > 0 && ` · ${entry.wordCount} words`}
+                {entry.status === "draft" && (
+                  <span className="ml-1.5 text-[9px] uppercase tracking-wide text-amber-500 font-semibold">draft</span>
+                )}
               </span>
               <span className="text-surface-800 font-medium">${entry.billableAmount.toFixed(2)}</span>
             </div>
@@ -310,7 +427,7 @@ function ClientCard({ client }: { client: Client }) {
             onChange={(e) => setNewVocabTerm(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddVocab(); } }}
             placeholder="Add term (party names, case refs…)"
-            className="flex-1 bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-marcoreid-500 dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
+            className="flex-1 bg-surface-100/50 border border-surface-300/60 rounded px-2 py-1 text-xs text-surface-900 placeholder-surface-500 focus:outline-none focus:border-voxlen-500 dark:bg-surface-900 dark:border-surface-700 dark:text-surface-100 dark:placeholder-surface-500"
           />
           <button
             onClick={handleAddVocab}
@@ -324,6 +441,73 @@ function ClientCard({ client }: { client: Client }) {
           <p className="text-[10px] text-zinc-600 mt-2 italic leading-relaxed">{client.matterDescription}</p>
         )}
       </div>
+
+      {ledesOpen && <LedesExportModal client={client} onClose={() => setLedesOpen(false)} />}
+    </div>
+  );
+}
+
+function DraftEntryRow({ entry }: { entry: MatterEntry }) {
+  const clients = useClientsStore((s) => s.clients);
+  const updateEntry = useClientsStore((s) => s.updateEntry);
+  const approveEntry = useClientsStore((s) => s.approveEntry);
+  const deleteEntry = useClientsStore((s) => s.deleteEntry);
+
+  const rate = entry.rateAtTime ?? 0;
+  const hours = rate > 0 ? entry.billableAmount / rate : entry.durationSeconds / 3600;
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-100/60 border border-surface-300/40 text-xs">
+      <span className="font-mono text-surface-900 tabular-nums shrink-0 w-12">
+        {formatBillableHours(hours)}h
+      </span>
+      <select
+        value={entry.clientId}
+        onChange={(e) => {
+          const next = clients.find((c) => c.id === e.target.value);
+          const nextRate = next && next.billableRate > 0 ? next.billableRate : rate;
+          updateEntry(entry.id, {
+            clientId: e.target.value,
+            rateAtTime: nextRate,
+            billableAmount: Math.round(hours * nextRate * 100) / 100,
+          });
+        }}
+        className="bg-surface-50 border border-surface-300/60 rounded px-1.5 py-0.5 text-xs text-surface-800 shrink-0 max-w-[140px]"
+      >
+        <option value="">Unassigned</option>
+        {clients.filter((c) => !c.archived).map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+      <input
+        value={entry.note ?? ""}
+        onChange={(e) => updateEntry(entry.id, { note: e.target.value })}
+        placeholder="Narrative…"
+        className="flex-1 min-w-0 bg-transparent border-b border-surface-300/40 px-1 py-0.5 text-xs text-surface-700 placeholder-surface-500 focus:outline-none focus:border-brass-400"
+      />
+      <span className="text-surface-500 shrink-0">{new Date(entry.date).toLocaleDateString()}</span>
+      {rate <= 0 ? (
+        <span className="flex items-center gap-0.5 text-[10px] text-amber-500 font-semibold shrink-0">
+          <AlertTriangle className="w-2.5 h-2.5" /> $0.00
+        </span>
+      ) : (
+        <span className="font-medium text-surface-900 shrink-0">${entry.billableAmount.toFixed(2)}</span>
+      )}
+      <button
+        onClick={() => approveEntry(entry.id)}
+        disabled={!entry.clientId}
+        title={entry.clientId ? "Approve" : "Assign a client first"}
+        className="p-1 text-green-600 hover:bg-green-500/10 rounded transition-colors disabled:opacity-30 shrink-0"
+      >
+        <Check className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={() => deleteEntry(entry.id)}
+        title="Discard"
+        className="p-1 text-surface-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors shrink-0"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
@@ -334,18 +518,23 @@ export function ClientsPanel() {
   const [showArchived, setShowArchived] = useState(false);
 
   const handleExportAll = async () => {
-    const { content, filename, mimeType } = exportAllBillingCsv(clients, entries);
+    // Approved entries only — drafts haven't been reviewed by the attorney.
+    const approved = entries.filter((e) => e.status === "approved");
+    const { content, filename, mimeType } = exportAllBillingCsv(clients, approved);
     await downloadBillingExport(content, filename, mimeType);
   };
 
   const active = clients.filter((c) => !c.archived);
   const archived = clients.filter((c) => c.archived);
+  const drafts = useClientsStore(
+    useShallow((s) => s.entries.filter((e) => e.status === "draft"))
+  );
 
   const totalBillable = useClientsStore((s) =>
-    s.entries.reduce((sum, e) => sum + e.billableAmount, 0)
+    s.entries.reduce((sum, e) => sum + (e.status === "approved" ? e.billableAmount : 0), 0)
   );
   const totalHours = useClientsStore((s) =>
-    s.entries.reduce((sum, e) => sum + e.durationSeconds, 0) / 3600
+    s.entries.reduce((sum, e) => sum + (e.status === "approved" ? e.durationSeconds : 0), 0) / 3600
   );
 
   return (
@@ -380,6 +569,23 @@ export function ClientsPanel() {
           </Button>
         </div>
       </div>
+
+      {/* Draft time entries awaiting review */}
+      {drafts.length > 0 && (
+        <div className="px-4 py-3 border-b border-surface-300/50 shrink-0 bg-voxlen-950/20">
+          <p className="label-caps mb-2 flex items-center gap-1.5">
+            <Clock className="w-3 h-3 text-brass-500" />
+            Draft time entries — review &amp; approve ({drafts.length})
+          </p>
+          <div className="space-y-1.5 max-h-44 overflow-y-auto">
+            {[...drafts]
+              .sort((a, b) => b.date - a.date)
+              .map((entry) => (
+                <DraftEntryRow key={entry.id} entry={entry} />
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Active client selector */}
       {active.length > 0 && (

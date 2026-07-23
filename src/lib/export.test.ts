@@ -94,9 +94,11 @@ const mockClient: Client = {
   billableRate: 400, color: "#7345d1", archived: false, createdAt: 1700000000000,
 };
 
+const entryDefaults = { status: "approved" as const, source: "manual" as const };
+
 const mockEntries: MatterEntry[] = [
-  { id: "e1", clientId: "c1", date: new Date("2026-05-01").getTime(), durationSeconds: 3600, wordCount: 800, billableAmount: 400, note: "Contract draft" },
-  { id: "e2", clientId: "c1", date: new Date("2026-05-10").getTime(), durationSeconds: 1800, wordCount: 400, billableAmount: 200 },
+  { id: "e1", clientId: "c1", date: new Date("2026-05-01").getTime(), durationSeconds: 3600, wordCount: 800, billableAmount: 400, note: "Contract draft", ...entryDefaults },
+  { id: "e2", clientId: "c1", date: new Date("2026-05-10").getTime(), durationSeconds: 1800, wordCount: 400, billableAmount: 200, ...entryDefaults },
 ];
 
 describe("exportBillingCsv", () => {
@@ -111,7 +113,7 @@ describe("exportBillingCsv", () => {
   });
 
   it("wraps notes with commas in quotes", () => {
-    const e: MatterEntry = { id: "e3", clientId: "c1", date: Date.now(), durationSeconds: 600, wordCount: 100, billableAmount: 66.67, note: "Draft, review" };
+    const e: MatterEntry = { id: "e3", clientId: "c1", date: Date.now(), durationSeconds: 600, wordCount: 100, billableAmount: 66.67, note: "Draft, review", ...entryDefaults };
     const { content } = exportBillingCsv(mockClient, [e]);
     expect(content).toContain('"Draft, review"');
   });

@@ -1,6 +1,6 @@
 [package]
 name = "voxlen"
-version = "1.1.0"
+version = "1.2.0"
 description = "Voxlen — AI-powered voice dictation for legal and accounting professionals"
 authors = ["Voxlen"]
 edition = "2021"
@@ -39,11 +39,30 @@ env_logger = "0.11"
 anyhow = "1"
 thiserror = "2"
 parking_lot = "0.12"
-keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
+# keyring v3 keystores are opt-in per platform: windows-native (Credential
+# Manager), apple-native (macOS Keychain), sync-secret-service (Linux DBus).
+# Without the platform feature the crate silently uses an in-memory mock store
+# and keys vanish on every app restart.
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service", "crypto-rust"] }
 crossbeam-channel = "0.5"
 bytemuck = { version = "1", features = ["derive"] }
 futures-util = "0.3"
 rodio = "0.20"
+# On-device transcription (whisper.cpp bindings). Builds native C++ via
+# cmake + MSVC; models are downloaded on demand, never bundled.
+whisper-rs = "0.14"
+# On-device grammar rules engine (pure Rust).
+regex = "1"
+# Natural-language date parsing for meeting deadline extraction
+# (maintained fork of chrono-english).
+interim = { version = "0.2", features = ["chrono_0_4"] }
+# On-device grammar LLM (llama.cpp bindings) — same cmake + libclang build
+# stack as whisper-rs. Pinned: tracks llama.cpp closely.
+# dynamic-link: whisper-rs-sys and llama-cpp-sys-2 both vendor ggml —
+# static linking both collides (LNK2005). Dynamic llama/ggml DLLs avoid it.
+llama-cpp-2 = { version = "=0.1.151", features = ["dynamic-link"] }
+# Word-level diff for LLM polish change lists.
+similar = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26"

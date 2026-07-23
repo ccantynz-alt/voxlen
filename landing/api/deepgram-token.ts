@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth.js";
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY!;
 const DEEPGRAM_KEYS_URL = "https://api.deepgram.com/v1/projects";
 
 /** Issues a short-lived Deepgram temporary key for the verified user.
  *  The desktop app uses this key to open a WebSocket directly to Deepgram.
- *  TTL: 30 seconds — enough to open the connection, not enough to be abused. */
+ *  TTL: 30 seconds â€” enough to open the connection, not enough to be abused. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
   if (req.method === "OPTIONS") {

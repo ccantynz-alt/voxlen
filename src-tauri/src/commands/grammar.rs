@@ -15,12 +15,32 @@ pub struct GrammarConfig {
     pub voxlen_context: Option<String>,
     #[serde(default)]
     pub voxlen_tenant_id: Option<String>,
+    #[serde(default)]
+    pub engine: GrammarEngine,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GrammarProvider {
     Claude,
     OpenAI,
+}
+
+/// Which correction engine handles requests. Cloud engines send the text
+/// to an external LLM; LocalRules runs the on-device deterministic
+/// pipeline (`crate::grammar::rules`) — the only engine reachable in
+/// privileged mode.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum GrammarEngine {
+    Cloud,
+    LocalRules,
+    /// Rules pass first, then a small on-device LLM polish (llama.cpp).
+    LocalLlm,
+}
+
+impl Default for GrammarEngine {
+    fn default() -> Self {
+        GrammarEngine::Cloud
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,6 +64,7 @@ impl Default for GrammarConfig {
             voxlen_api_key: None,
             voxlen_context: None,
             voxlen_tenant_id: None,
+            engine: GrammarEngine::Cloud,
         }
     }
 }
@@ -73,9 +94,11 @@ fn get_config_store() -> &'static parking_lot::RwLock<GrammarConfig> {
 
 #[tauri::command]
 pub async fn correct_grammar(
+    app: tauri::AppHandle,
     text: String,
     custom_vocabulary: Option<Vec<String>>,
     matter_context: Option<String>,
+    learned_patterns: Option<Vec<crate::grammar::rules::LearnedPattern>>,
 ) -> Result<GrammarResult, String> {
     let config = get_config_store().read().clone();
 
@@ -88,7 +111,7 @@ pub async fn correct_grammar(
         });
     }
 
-    if !config.enabled || crate::commands::settings::get_privileged_mode() {
+    if !config.enabled {
         return Ok(GrammarResult {
             original: text.clone(),
             corrected: text,
@@ -98,6 +121,39 @@ pub async fn correct_grammar(
     }
 
     let vocab = custom_vocabulary.unwrap_or_default();
+    let patterns = learned_patterns.unwrap_or_default();
+
+    // Privileged mode: cloud engines are unreachable by design (fail-closed).
+    // Grammar still works — via the on-device engines — instead of the old
+    // behavior of returning the text untouched. Users may also select a
+    // local engine explicitly outside privileged mode.
+    let privileged = crate::commands::settings::get_privileged_mode();
+    if privileged || config.engine != GrammarEngine::Cloud {
+        let rules_result = crate::grammar::rules::correct_with_rules(&text, &vocab, &patterns);
+        // LLM polish on top of the rules pass when selected and downloaded.
+        // In privileged mode this is still fully on-device — allowed.
+        let want_llm = config.engine == GrammarEngine::LocalLlm;
+        if want_llm {
+            let settings = crate::commands::settings::get_current_settings();
+            let style = match config.style {
+                WritingStyle::Professional => "professional",
+                WritingStyle::Casual => "casual",
+                WritingStyle::Academic => "academic",
+                WritingStyle::Creative => "creative",
+                WritingStyle::Technical => "technical",
+            };
+            let context = matter_context.clone().filter(|s| !s.is_empty());
+            return Ok(crate::grammar::llm_local::polish(
+                &app,
+                rules_result,
+                &settings.grammar_local_model,
+                style,
+                context,
+            )
+            .await);
+        }
+        return Ok(rules_result);
+    }
 
     // Merge matter context into voxlen_context if provided
     let effective_context = matter_context
@@ -205,7 +261,10 @@ Text to correct:
         text = text
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
     let response = client
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", api_key)
@@ -213,7 +272,7 @@ Text to correct:
         .header("content-type", "application/json")
         .json(&serde_json::json!({
             "model": "claude-sonnet-4-6",
-            "max_tokens": 2048,
+            "max_tokens": 8192,
             "messages": [{
                 "role": "user",
                 "content": prompt
@@ -223,9 +282,13 @@ Text to correct:
         .await
         .map_err(|e| format!("API request failed: {}", e))?;
 
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err("Grammar AI rate limit reached — try again in a moment (HTTP 429)".to_string());
+    }
     if !response.status().is_success() {
+        let status = response.status();
         let error = response.text().await.unwrap_or_default();
-        return Err(format!("Claude API error: {}", error));
+        return Err(format!("Claude API error {status}: {error}"));
     }
 
     let result: serde_json::Value = response
@@ -310,7 +373,10 @@ Text:
         text = text
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
     let response = client
         .post("https://api.openai.com/v1/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
@@ -325,9 +391,13 @@ Text:
         .await
         .map_err(|e| format!("API request failed: {}", e))?;
 
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err("Grammar AI rate limit reached — try again in a moment (HTTP 429)".to_string());
+    }
     if !response.status().is_success() {
+        let status = response.status();
         let error = response.text().await.unwrap_or_default();
-        return Err(format!("OpenAI API error: {}", error));
+        return Err(format!("OpenAI API error {status}: {error}"));
     }
 
     let result: serde_json::Value = response
@@ -373,7 +443,17 @@ async fn correct_with_voxlen_proxy(
     config: &GrammarConfig,
     custom_vocabulary: &[String],
 ) -> Result<GrammarResult, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("HTTP client error: {}", e))?;
+    let style_str = match config.style {
+        WritingStyle::Professional => "professional",
+        WritingStyle::Casual => "casual",
+        WritingStyle::Academic => "academic",
+        WritingStyle::Creative => "creative",
+        WritingStyle::Technical => "technical",
+    };
     let mut req = client
         .post("https://voxlen.ai/api/grammar")
         .header("Authorization", format!("Bearer {}", voxlen_key))
@@ -384,7 +464,7 @@ async fn correct_with_voxlen_proxy(
     let response = req
         .json(&serde_json::json!({
             "text": text,
-            "style": format!("{:?}", config.style).to_lowercase(),
+            "style": style_str,
             "context": context.unwrap_or("general"),
             "custom_vocabulary": custom_vocabulary,
             "preserve_tone": config.preserve_tone,
@@ -393,6 +473,9 @@ async fn correct_with_voxlen_proxy(
         .await
         .map_err(|e| format!("Voxlen API error: {}", e))?;
 
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err("Grammar AI rate limit reached — try again in a moment (HTTP 429)".to_string());
+    }
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();

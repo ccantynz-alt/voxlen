@@ -8,6 +8,7 @@ import {
   Shield,
   Zap,
   Globe,
+  FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +18,10 @@ import { Slider } from "@/components/ui/Slider";
 import { Input } from "@/components/ui/Input";
 import { useSettingsStore } from "@/stores/settings";
 import { useAudioStore } from "@/stores/audio";
+import { useFlywheelStore } from "@/stores/flywheel";
 import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
+import { mergeVocabulary, parseVocabularyFile } from "@/lib/vocabImport";
+import { toast } from "@/components/ui/Toast";
 
 const tabs = [
   { id: "voxlen-api", label: "Account", icon: Globe },
@@ -126,7 +130,7 @@ export function SettingsPanel({ onReopenSetup }: { onReopenSetup?: () => void } 
               className={cn(
                 "group relative flex items-center gap-2.5 w-full pl-4 pr-3 py-2 rounded-md text-sm transition-all duration-200",
                 isActive
-                  ? "bg-marcoreid-900/40 text-surface-950"
+                  ? "bg-voxlen-900/40 text-surface-950"
                   : "text-surface-700 hover:bg-surface-100/80 hover:text-surface-900"
               )}
             >
@@ -317,7 +321,7 @@ function AudioSettings() {
             label: d.name,
             description: `${d.sampleRate / 1000}kHz ${d.channels}ch${d.isExternal ? " - External" : ""}`,
             icon: d.isExternal ? (
-              <Mic className="h-4 w-4 text-marcoreid-400" />
+              <Mic className="h-4 w-4 text-voxlen-400" />
             ) : (
               <Mic className="h-4 w-4 text-surface-600" />
             ),
@@ -350,6 +354,329 @@ function AudioSettings() {
   );
 }
 
+interface WhisperModel {
+  id: string;
+  label: string;
+  description: string;
+  size_mb: number;
+  multilingual: boolean;
+  downloaded: boolean;
+}
+
+interface GrammarLlmModel {
+  id: string;
+  label: string;
+  description: string;
+  size_mb: number;
+  downloaded: boolean;
+}
+
+/** Download manager for the on-device grammar LLM (Tier-2 polish). */
+function GrammarModelManager() {
+  const grammarLocalModel = useSettingsStore((s) => s.grammarLocalModel);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const [models, setModels] = useState<GrammarLlmModel[]>([]);
+  const [progress, setProgress] = useState<Record<string, { received: number; total: number }>>({});
+  const [downloading, setDownloading] = useState<Record<string, boolean>>({});
+
+  const refresh = useCallback(async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      setModels(await invoke<GrammarLlmModel[]>("list_grammar_models"));
+    } catch {
+      // Non-Tauri (browser dev).
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        const un = await listen<{
+          id: string;
+          received: number;
+          total: number;
+          done: boolean;
+          error: string | null;
+        }>("grammar-model-progress", (e) => {
+          const p = e.payload;
+          if (p.done || p.error) {
+            setProgress((prev) => {
+              const next = { ...prev };
+              delete next[p.id];
+              return next;
+            });
+            setDownloading((prev) => ({ ...prev, [p.id]: false }));
+            if (p.error) toast(`Model download failed: ${p.error}`, "error", 6000);
+            refresh();
+          } else {
+            setProgress((prev) => ({ ...prev, [p.id]: { received: p.received, total: p.total } }));
+          }
+        });
+        if (cancelled) un();
+        else unlisten = un;
+      } catch {
+        // Non-Tauri.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [refresh]);
+
+  const handleDownload = async (id: string) => {
+    setDownloading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("download_grammar_model", { id });
+    } catch (e) {
+      toast(typeof e === "string" ? e : "Download failed — check your connection.", "error", 6000);
+      setDownloading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("delete_grammar_model", { id });
+      await refresh();
+    } catch {
+      // Ignore.
+    }
+  };
+
+  if (models.length === 0) return null;
+
+  return (
+    <SettingRow>
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-medium text-surface-900">On-Device Grammar AI</p>
+          <p className="text-xs text-surface-600 mt-0.5">
+            With a model downloaded, the local engine adds AI polish on top of the rules —
+            still entirely on this machine. Without one, the rules run alone.
+          </p>
+        </div>
+        <div className="rounded-lg border border-surface-300/50 divide-y divide-surface-300/40">
+          {models.map((m) => {
+            const p = progress[m.id];
+            const pct = p && p.total > 0 ? Math.min(100, Math.round((p.received / p.total) * 100)) : 0;
+            const isActive = m.downloaded && grammarLocalModel === m.id;
+            return (
+              <div key={m.id} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-surface-900">{m.label}</span>
+                    <span className="text-[11px] text-surface-500 font-mono">
+                      {m.size_mb >= 1000 ? `${(m.size_mb / 1000).toFixed(1)} GB` : `${m.size_mb} MB`}
+                    </span>
+                    {isActive && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-surface-600 truncate">{m.description}</p>
+                  {p && (
+                    <div className="mt-1.5 h-1 rounded-full bg-surface-200 overflow-hidden">
+                      <div className="h-full bg-brass-400 transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
+                </div>
+                {m.downloaded ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!isActive && (
+                      <Button variant="ghost" size="sm" onClick={() => updateSetting("grammarLocalModel", m.id)}>
+                        Use
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleDownload(m.id)}
+                    disabled={!!downloading[m.id]}
+                  >
+                    {downloading[m.id] ? "Downloading…" : "Download"}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SettingRow>
+  );
+}
+
+function WhisperModelManager() {
+  const whisperLocalModel = useSettingsStore((s) => s.whisperLocalModel);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const [models, setModels] = useState<WhisperModel[]>([]);
+  const [progress, setProgress] = useState<Record<string, { received: number; total: number }>>({});
+  const [downloading, setDownloading] = useState<Record<string, boolean>>({});
+
+  const refresh = useCallback(async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      setModels(await invoke<WhisperModel[]>("list_whisper_models"));
+    } catch {
+      // Non-Tauri (browser dev) — leave the list empty.
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        const un = await listen<{
+          id: string;
+          received: number;
+          total: number;
+          done: boolean;
+          error: string | null;
+        }>("whisper-model-progress", (e) => {
+          const p = e.payload;
+          if (p.done || p.error) {
+            setProgress((prev) => {
+              const next = { ...prev };
+              delete next[p.id];
+              return next;
+            });
+            setDownloading((prev) => ({ ...prev, [p.id]: false }));
+            if (p.error) {
+              toast(`Model download failed: ${p.error}`, "error", 6000);
+            }
+            refresh();
+          } else {
+            setProgress((prev) => ({ ...prev, [p.id]: { received: p.received, total: p.total } }));
+          }
+        });
+        if (cancelled) un();
+        else unlisten = un;
+      } catch {
+        // Non-Tauri.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [refresh]);
+
+  const handleDownload = async (id: string) => {
+    setDownloading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("download_whisper_model", { id });
+    } catch (e) {
+      toast(typeof e === "string" ? e : "Download failed — check your connection.", "error", 6000);
+      setDownloading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("delete_whisper_model", { id });
+      await refresh();
+    } catch {
+      // Ignore.
+    }
+  };
+
+  if (models.length === 0) return null;
+
+  return (
+    <SettingRow>
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-medium text-surface-900">Offline Models (Whisper Local)</p>
+          <p className="text-xs text-surface-600 mt-0.5">
+            Downloaded models run fully on-device — this powers Privileged mode. Larger models are
+            more accurate but slower.
+          </p>
+        </div>
+        <div className="rounded-lg border border-surface-300/50 divide-y divide-surface-300/40">
+          {models.map((m) => {
+            const p = progress[m.id];
+            const pct = p && p.total > 0 ? Math.min(100, Math.round((p.received / p.total) * 100)) : 0;
+            const isActive = m.downloaded && whisperLocalModel === m.id;
+            return (
+              <div key={m.id} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-surface-900">{m.label}</span>
+                    <span className="text-[11px] text-surface-500 font-mono">
+                      {m.size_mb >= 1000 ? `${(m.size_mb / 1000).toFixed(1)} GB` : `${m.size_mb} MB`}
+                    </span>
+                    {isActive && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-surface-600 truncate">{m.description}</p>
+                  {p && (
+                    <div className="mt-1.5 h-1 rounded-full bg-surface-200 overflow-hidden">
+                      <div
+                        className="h-full bg-brass-400 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+                {m.downloaded ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!isActive && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateSetting("whisperLocalModel", m.id)}
+                      >
+                        Use
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!!downloading[m.id]}
+                    onClick={() => handleDownload(m.id)}
+                  >
+                    {downloading[m.id] ? (p ? `${pct}%` : "Starting…") : "Download"}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SettingRow>
+  );
+}
+
 function SttSettings() {
   const settings = useSettingsStore();
 
@@ -357,7 +684,7 @@ function SttSettings() {
     <div className="space-y-6 max-w-lg">
       <SectionHeader
         title="Speech-to-Text Engine"
-        description="Choose your transcription engine. Offline mode (Whisper Local) is coming soon."
+        description="Choose your transcription engine — including fully offline on-device dictation."
       />
 
       <SettingRow>
@@ -372,6 +699,8 @@ function SttSettings() {
           }))}
         />
       </SettingRow>
+
+      <WhisperModelManager />
 
       <SettingRow>
         <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${settings.voxlenApiKey ? "bg-purple-500/10 border border-purple-500/30 text-purple-300" : "bg-surface-100 border border-surface-300/50 text-surface-500"}`}>
@@ -443,7 +772,9 @@ function SttSettings() {
 function CustomVocabularyEditor() {
   const vocabulary = useSettingsStore((s) => s.customVocabulary);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const addVocabulary = useFlywheelStore((s) => s.addVocabulary);
   const [draft, setDraft] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const add = () => {
     const term = draft.trim();
@@ -461,6 +792,34 @@ function CustomVocabularyEditor() {
       "customVocabulary",
       vocabulary.filter((t) => t !== term)
     );
+  };
+
+  const importVocabulary = async () => {
+    try {
+      setImporting(true);
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const path = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: "Dragon Vocabulary", extensions: ["txt", "voc"] }],
+      });
+      if (!path) return;
+
+      const { readTextFile } = await import("@tauri-apps/plugin-fs");
+      const imported = parseVocabularyFile(await readTextFile(path));
+      const { merged, added, addedTerms } = mergeVocabulary(vocabulary, imported);
+
+      if (added > 0) {
+        updateSetting("customVocabulary", merged);
+        addedTerms.forEach((term) => addVocabulary(term, "manual"));
+      }
+      toast(`${imported.length} terms imported (${added} new)`, "success", 4000);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      toast(`Vocabulary import failed${detail ? `: ${detail}` : ""}`, "error", 6000);
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -490,6 +849,9 @@ function CustomVocabularyEditor() {
         />
         <Button size="sm" variant="secondary" onClick={add} disabled={!draft.trim()}>
           Add
+        </Button>
+        <Button size="sm" variant="secondary" onClick={importVocabulary} disabled={importing}>
+          {importing ? "Importing..." : "Import"}
         </Button>
       </div>
 
@@ -534,6 +896,42 @@ function GrammarSettings() {
           onChange={(v) => settings.updateSetting("grammarEnabled", v)}
         />
       </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="Correction Engine"
+          value={settings.privilegedMode ? "local_rules" : settings.grammarEngine}
+          onChange={(v) =>
+            settings.updateSetting("grammarEngine", v as "cloud" | "local_rules")
+          }
+          options={[
+            {
+              value: "cloud",
+              label: "Cloud AI (sends text)",
+              description: "Claude / OpenAI — best quality; transcript text is sent to the provider",
+            },
+            {
+              value: "local_rules",
+              label: "Local rules (on-device)",
+              description: "Deterministic rules + your learned corrections — nothing leaves this machine",
+            },
+            {
+              value: "local_llm",
+              label: "Local AI (on-device)",
+              description: "Rules + a small AI model running on this machine — needs a ~2.4 GB download",
+            },
+          ]}
+        />
+        {settings.privilegedMode && (
+          <p className="text-[11px] text-emerald-500 mt-1.5">
+            Privileged mode forces a local engine — cloud correction is unreachable.
+          </p>
+        )}
+      </SettingRow>
+
+      {(settings.grammarEngine === "local_llm" || settings.privilegedMode) && (
+        <GrammarModelManager />
+      )}
 
       <SettingRow>
         <Select
@@ -824,6 +1222,20 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
 
       <SettingRow>
         <Switch
+          label="Always-Ready Dictation"
+          description={
+            settings.privilegedMode
+              ? "Unavailable while Privileged mode is on — Always-Ready streams to the cloud during speech"
+              : "Mic stays armed in the tray; your mute button is the only control. Audio is sent to the cloud only while you're actually speaking"
+          }
+          checked={settings.alwaysReadyMode && !settings.privilegedMode}
+          disabled={settings.privilegedMode}
+          onChange={(v) => settings.updateSetting("alwaysReadyMode", v)}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Switch
           label="Start Minimized"
           description="Launch Voxlen minimized to the system tray"
           checked={settings.startMinimized}
@@ -874,7 +1286,14 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
         <Button
           variant="danger"
           size="sm"
-          onClick={() => settings.resetToDefaults()}
+          onClick={() => {
+            // Resetting blanks the stored API keys, which deletes them from
+            // the OS keychain — that must never happen silently.
+            const ok = window.confirm(
+              "Reset all settings to defaults?\n\nThis also removes your saved API keys from the system keychain — you will need to re-enter them."
+            );
+            if (ok) settings.resetToDefaults();
+          }}
         >
           Reset All Settings
         </Button>
@@ -978,7 +1397,39 @@ function VoxlenApiSettings() {
   const [verifying, setVerifying] = useState(false);
   const [keyInput, setKeyInput] = useState("");
   const [keyError, setKeyError] = useState("");
+  const [dgKeyInput, setDgKeyInput] = useState("");
+  const [dgKeyError, setDgKeyError] = useState("");
+  const [dgKeyVerifying, setDgKeyVerifying] = useState(false);
   const isConnected = Boolean(settings.voxlenApiKey);
+  const hasDgKey = Boolean(settings.sttApiKey);
+
+  const saveDgKey = async () => {
+    const key = dgKeyInput.trim();
+    if (!key) return;
+    setDgKeyError("");
+    setDgKeyVerifying(true);
+    try {
+      const res = await fetch("https://api.deepgram.com/v1/projects", {
+        headers: { Authorization: `Token ${key}` },
+      });
+      if (!res.ok) {
+        setDgKeyError("Key rejected by Deepgram — check it at console.deepgram.com.");
+        return;
+      }
+    } catch {
+      // Network error — save anyway so offline users aren't blocked, but warn.
+      setDgKeyError("Could not verify key (no connection) — saved anyway.");
+    } finally {
+      setDgKeyVerifying(false);
+    }
+    settings.updateSetting("sttApiKey", key);
+    settings.updateSetting("sttEngine", "deepgram");
+    setDgKeyInput("");
+  };
+
+  const removeDgKey = () => {
+    settings.updateSetting("sttApiKey", "");
+  };
 
   const openDashboard = async () => {
     try {
@@ -1110,6 +1561,65 @@ function VoxlenApiSettings() {
         </div>
       )}
 
+      {/* Deepgram BYOK — always visible, independent of Voxlen account */}
+      <div className="space-y-3">
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-surface-300/50" />
+            <span className="text-[10px] text-surface-500 uppercase tracking-wider">
+              or bring your own Deepgram key
+            </span>
+            <div className="flex-1 h-px bg-surface-300/50" />
+          </div>
+
+          {hasDgKey ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-surface-900">Deepgram Key Active</p>
+                <p className="text-[11px] text-surface-600 mt-0.5">
+                  Nova-3 streaming — real-time transcription ready.
+                </p>
+              </div>
+              <button
+                onClick={removeDgKey}
+                className="text-[11px] text-surface-500 hover:text-red-400 transition-colors ml-4 shrink-0"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[11px] text-surface-600">
+                Get a free API key at{" "}
+                <span className="font-mono text-surface-700">console.deepgram.com</span>.
+                Your key is stored securely in the OS keychain.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={dgKeyInput}
+                  onChange={(e) => { setDgKeyInput(e.target.value); setDgKeyError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && saveDgKey()}
+                  placeholder="Paste Deepgram API key…"
+                  className="flex-1 bg-surface-50 border border-surface-300/70 rounded-lg px-3 py-2 text-sm text-surface-900 placeholder-surface-500 focus:outline-none focus:border-[#7345d1] shadow-inset-hairline"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={saveDgKey}
+                  disabled={!dgKeyInput.trim() || dgKeyVerifying}
+                >
+                  {dgKeyVerifying ? "Verifying…" : "Save"}
+                </Button>
+              </div>
+              {dgKeyError && (
+                <p className={`text-[11px] ${dgKeyError.startsWith("Could not verify") ? "text-amber-500" : "text-red-500"}`}>
+                  {dgKeyError}
+                </p>
+              )}
+            </div>
+          )}
+      </div>
+
       {isConnected && (
         <>
           <SectionHeader title="Dictation Settings" description="" />
@@ -1126,10 +1636,27 @@ function VoxlenApiSettings() {
           <SettingRow>
             <Switch
               label="Privileged Mode"
-              description="Block all cloud STT — local processing only. Coming soon: requires Whisper Local (offline mode) which is not yet available."
-              checked={false}
-              onChange={() => {}}
-              disabled
+              description="Block all cloud processing — dictation runs fully on-device via Whisper Local. Requires a downloaded local model (Speech Engine tab)."
+              checked={settings.privilegedMode}
+              onChange={async (v) => {
+                if (v) {
+                  try {
+                    const { invoke } = await import("@tauri-apps/api/core");
+                    const has = await invoke<boolean>("has_whisper_model");
+                    if (!has) {
+                      toast(
+                        "Download a local Whisper model first — Settings › Speech Engine › Offline Models.",
+                        "error",
+                        6000
+                      );
+                      return;
+                    }
+                  } catch {
+                    // Non-Tauri dev — allow the toggle.
+                  }
+                }
+                settings.updateSetting("privilegedMode", v);
+              }}
             />
           </SettingRow>
 
@@ -1162,19 +1689,54 @@ function VoxlenApiSettings() {
             </SettingRow>
           )}
 
-          {settings.legalMode && (
-            <SettingRow>
-              <Slider
-                label="Default Billable Rate"
-                value={settings.billableRatePerHour}
-                onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
-                min={0}
-                max={2000}
-                step={25}
-                formatValue={(v) => `$${v}/hr`}
-              />
-            </SettingRow>
-          )}
+          {/* Billing — always visible: time capture runs regardless of legal mode. */}
+          <SettingRow>
+            <Slider
+              label="Default Billable Rate"
+              value={settings.billableRatePerHour}
+              onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
+              min={0}
+              max={2000}
+              step={25}
+              formatValue={(v) => `$${v}/hr`}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Select
+              label="Billing Time Rounding"
+              value={String(settings.billingRoundingIncrement)}
+              onChange={(v) =>
+                settings.updateSetting(
+                  "billingRoundingIncrement",
+                  Number(v) as 0 | 0.1 | 0.25
+                )
+              }
+              options={[
+                { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney billing unit" },
+                { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour billing" },
+                { value: "0", label: "No rounding", description: "Bill exact duration" },
+              ]}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Switch
+              label="Automatic Time Capture"
+              description="Draft a billable time entry for review whenever a dictation session ends."
+              checked={settings.autoTimeCapture}
+              onChange={(v) => settings.updateSetting("autoTimeCapture", v)}
+            />
+          </SettingRow>
+
+          <SettingRow>
+            <Input
+              label="LEDES Law Firm ID (optional)"
+              value={settings.ledesLawFirmId}
+              onChange={(e) => settings.updateSetting("ledesLawFirmId", e.target.value)}
+              placeholder="Firm tax / e-billing identifier for LEDES exports"
+            />
+          </SettingRow>
 
           <SettingRow>
             <Input
@@ -1209,6 +1771,57 @@ function PrivacySettings() {
         />
       </SettingRow>
 
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <FolderOpen className="h-4 w-4 text-brass-500" />
+          <h4 className="label-caps">Documents</h4>
+        </div>
+        <Switch
+          label="Automatically save Word documents"
+          description="Create a .docx document whenever a dictation session ends"
+          checked={settings.autoDocEnabled}
+          onChange={(v) => settings.updateSetting("autoDocEnabled", v)}
+        />
+        <div className="space-y-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              const { open } = await import("@tauri-apps/plugin-dialog");
+              const selected = await open({ directory: true, multiple: false });
+              if (typeof selected === "string") settings.updateSetting("autoDocRootPath", selected);
+            }}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            Choose folder
+          </Button>
+          <p className="text-[11px] text-surface-600 break-all">
+            {settings.autoDocRootPath || "No folder selected"}
+          </p>
+        </div>
+        <Input
+          label="Filename pattern"
+          value={settings.autoDocFilenamePattern}
+          onChange={(e) => settings.updateSetting("autoDocFilenamePattern", e.target.value)}
+          placeholder="{date} {kind}"
+        />
+        <p className="text-[11px] text-surface-600">
+          Tokens: {`{date} {time} {client} {matter} {kind}`}. Per-client subfolders are created automatically.
+        </p>
+      </div>
+
+      <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 space-y-4">
+        <div className="flex items-center gap-2"><FolderOpen className="h-4 w-4 text-brass-500" /><h4 className="label-caps">Review workflow</h4></div>
+        <Button variant="secondary" size="sm" onClick={async () => {
+          const { open } = await import("@tauri-apps/plugin-dialog");
+          const selected = await open({ directory: true, multiple: false });
+          if (typeof selected === "string") settings.updateSetting("reviewSharedFolderPath", selected);
+        }}><FolderOpen className="h-3.5 w-3.5" />Choose shared folder</Button>
+        <p className="text-[11px] text-surface-600 break-all">{settings.reviewSharedFolderPath || "No review folder selected"}</p>
+        <Input label="Your display name" value={settings.reviewDisplayName} onChange={(e) => settings.updateSetting("reviewDisplayName", e.target.value)} placeholder="e.g. Alex Morgan" />
+        <p className="text-[11px] text-surface-600">Review sync is file-based through firm-controlled storage. No Voxlen servers are used.</p>
+      </div>
+
       <SettingRow>
         <Switch
           label="Usage Analytics"
@@ -1229,7 +1842,7 @@ function PrivacySettings() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>
-            Offline mode (Whisper Local) coming soon — no audio will leave your device.
+            Offline mode (Whisper Local) — with a downloaded model, no audio ever leaves your device.
           </li>
           <li className="flex items-start gap-2">
             <span className="text-brass-500 mt-0.5">&mdash;</span>

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { VoxlenGrammar } from "./grammar";
+import { resetBrowserKeyWarnings } from "./browser-key-warning";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -100,6 +101,24 @@ describe("VoxlenGrammar", () => {
     it("throws when no OpenAI key is set", async () => {
       const grammar = new VoxlenGrammar({ grammarProvider: "openai" });
       await expect(grammar.correct("some text")).rejects.toThrow(/api key/i);
+    });
+  });
+
+  describe("browser key exposure warning", () => {
+    it("warns exactly once when a provider key is used in a browser context", async () => {
+      resetBrowserKeyWarnings();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      mockFetch.mockResolvedValue(makeApiResponse("x"));
+
+      const grammar = new VoxlenGrammar({ grammarApiKey: "test-key" });
+      await grammar.correct("text one");
+      await grammar.correct("text two");
+
+      const securityWarns = warnSpy.mock.calls.filter((c) => String(c[0]).includes("SECURITY"));
+      expect(securityWarns).toHaveLength(1);
+      // Must point users to the safe alternative
+      expect(String(securityWarns[0][0])).toMatch(/voxlenKey/);
+      warnSpy.mockRestore();
     });
   });
 });

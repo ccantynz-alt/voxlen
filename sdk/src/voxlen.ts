@@ -10,8 +10,10 @@ import type { VoxlenConfig, DictationEvent } from "./types";
  *
  * @example
  * ```ts
+ * // Recommended: Voxlen platform key — provider keys stay on the server.
+ * // Copy this JWT from the voxlen.ai dashboard.
  * const voxlen = new VoxlenSDK({
- *   grammarApiKey: 'sk-ant-...',
+ *   voxlenKey: 'your-dashboard-jwt',
  *   writingStyle: 'professional',
  * });
  *
@@ -21,7 +23,14 @@ import type { VoxlenConfig, DictationEvent } from "./types";
  * // Or use programmatically
  * voxlen.startDictation();
  * voxlen.on('transcript', (e) => console.log(e.text));
+ *
+ * // Low-level API access (async — the client module is loaded on demand)
+ * const api = await voxlen.getApi();
  * ```
+ *
+ * Trusted-environment only: direct provider keys (grammarApiKey, openaiApiKey,
+ * deepgramApiKey) are supported for internal tools/prototypes, but any key
+ * shipped to a browser is readable by every visitor. See README, Security.
  */
 export class VoxlenSDK {
   private config: VoxlenConfig;
@@ -30,7 +39,8 @@ export class VoxlenSDK {
   private targetElement: HTMLElement | null = null;
   private micButton: HTMLButtonElement | null = null;
   private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
-  private _apiClient: any = null;
+  private _apiClient: import("./api-client").VoxlenApiClient | null = null;
+  private _apiClientPromise: Promise<import("./api-client").VoxlenApiClient> | null = null;
 
   constructor(config: VoxlenConfig = {}) {
     this.config = {
@@ -115,36 +125,46 @@ export class VoxlenSDK {
     this.listeners.set(event, list.filter((cb) => cb !== callback));
   }
 
-  /** Access the Voxlen API client directly (requires voxlenApiKey) */
-  get api(): import("./api-client").VoxlenApiClient | null {
-    if (!this.config.voxlenApiKey) return null;
-    if (!this._apiClient) {
-      import("./api-client").then(({ VoxlenApiClient }) => {
+  /**
+   * Get the low-level Voxlen API client (requires voxlenKey).
+   * The client module is dynamically imported on first call and cached.
+   * Resolves to null when no voxlenKey is configured.
+   */
+  async getApi(): Promise<import("./api-client").VoxlenApiClient | null> {
+    if (!this.config.voxlenKey) return null;
+    if (this._apiClient) return this._apiClient;
+    if (!this._apiClientPromise) {
+      this._apiClientPromise = import("./api-client").then(({ VoxlenApiClient }) => {
         this._apiClient = new VoxlenApiClient({
-          voxlenApiKey: this.config.voxlenApiKey!,
+          voxlenKey: this.config.voxlenKey!,
           voxlenApiBase: this.config.voxlenApiBase,
-          tenantId: this.config.tenantId,
         });
+        return this._apiClient;
       });
     }
-    return this._apiClient ?? null;
+    return this._apiClientPromise;
+  }
+
+  /**
+   * @deprecated Use `await sdk.getApi()` instead. The client module is loaded
+   * asynchronously, so this getter returns null until that import resolves —
+   * the first access always misses. Kept for back-compat only.
+   */
+  get api(): import("./api-client").VoxlenApiClient | null {
+    if (!this.config.voxlenKey) return null;
+    if (!this._apiClient) void this.getApi(); // kick off loading for later accesses
+    return this._apiClient;
   }
 
   /** Transcribe a recorded audio file via Voxlen API */
   async transcribeFile(audio: Blob): Promise<import("./types").TranscribeResponse | null> {
-    if (!this.config.voxlenApiKey) {
-      this.config.onError?.(new Error("voxlenApiKey required for file transcription"));
+    const client = await this.getApi();
+    if (!client) {
+      this.config.onError?.(new Error("voxlenKey required for file transcription"));
       return null;
     }
-    const { VoxlenApiClient } = await import("./api-client");
-    const client = new VoxlenApiClient({
-      voxlenApiKey: this.config.voxlenApiKey,
-      voxlenApiBase: this.config.voxlenApiBase,
-      tenantId: this.config.tenantId,
-    });
     return client.transcribe(audio, {
-      context: this.config.context,
-      language: this.config.language?.split("-")[0],
+      language: this.config.language,
       vocabularyHints: this.config.vocabularyHints,
       speakerLabels: this.config.speakerLabels,
     });
@@ -171,7 +191,7 @@ export class VoxlenSDK {
     }
 
     // Auto-correct if enabled
-    if (this.config.autoCorrect && (this.config.grammarApiKey || this.config.openaiApiKey)) {
+    if (this.config.autoCorrect && (this.config.voxlenKey || this.config.grammarApiKey || this.config.openaiApiKey)) {
       this.grammar
         .correct(event.text)
         .then((result) => {

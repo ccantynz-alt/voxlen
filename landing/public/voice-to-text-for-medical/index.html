@@ -8,7 +8,7 @@
   <meta name="keywords" content="voice to text medical, medical dictation software, clinical dictation, doctor dictation software, healthcare voice recognition, medical speech to text, clinical documentation software" />
   <link rel="canonical" href="https://voxlen.ai/voice-to-text-for-medical" />
   <meta property="og:title" content="Voice to Text Medical Dictation Software | Voxlen AI" />
-  <meta property="og:description" content="AI-powered medical dictation software for clinicians. 95%+ accuracy on clinical terminology, zero-retention privacy (HIPAA-ready on-device mode coming soon), patient record dictation, and structured clinical note formatting. Free 14-day trial." />
+  <meta property="og:description" content="AI-powered medical dictation software for clinicians. 95%+ accuracy on clinical terminology, zero-retention privacy (HIPAA-ready fully on-device mode available now), patient record dictation, and structured clinical note formatting. Free 14-day trial." />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="https://voxlen.ai/voice-to-text-for-medical" />
   <meta property="og:site_name" content="Voxlen" />
@@ -22,37 +22,30 @@
     "@type": "SoftwareApplication",
     "name": "Voxlen",
     "applicationCategory": "MedicalApplication",
-    "operatingSystem": "macOS, Windows, iOS",
-    "description": "AI-powered medical dictation software for doctors, nurses, and healthcare professionals. Features clinical terminology recognition, SOAP note formatting, structured clinical documentation templates, and on-device Privileged Mode (coming soon) for patient data privacy.",
+    "operatingSystem": "macOS, Windows, Linux",
+    "description": "AI-powered medical dictation software for doctors, nurses, and healthcare professionals. Features clinical terminology recognition, SOAP note formatting, structured clinical documentation templates, and on-device Privileged Mode (available now) for patient data privacy.",
     "url": "https://voxlen.ai/",
     "offers": [
       {
         "@type": "Offer",
-        "name": "Free",
-        "price": "0",
-        "priceCurrency": "USD",
-        "description": "500 words/week, core dictation features"
-      },
-      {
-        "@type": "Offer",
-        "name": "Pro",
+        "name": "Professional",
         "price": "29",
         "priceCurrency": "USD",
-        "description": "Unlimited dictation, clinical phrase library, offline mode (coming soon)"
+        "description": "Unlimited dictation, AI grammar included, optional BYOK"
       },
       {
         "@type": "Offer",
-        "name": "Professional",
-        "price": "79",
+        "name": "Privileged",
+        "price": "59",
         "priceCurrency": "USD",
-        "description": "Multi-user, priority support, advanced analytics"
+        "description": "Adds on-device Whisper, on-device grammar, client and matter billing, and clause library"
       },
       {
         "@type": "Offer",
-        "name": "Lifetime",
-        "price": "599",
+        "name": "Firm",
+        "price": "49",
         "priceCurrency": "USD",
-        "description": "One-time payment, all Pro features forever"
+        "description": "Privileged features per seat for firms with 5 or more seats"
       }
     ],
     "publisher": {
@@ -74,7 +67,7 @@
         "name": "What is the best voice to text software for medical professionals?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Voxlen is the best voice-to-text software for medical professionals in 2026. It uses Deepgram Nova-3 for 95%+ word-level accuracy on clinical terminology, including drug names, anatomical terms, diagnostic codes, and procedural nomenclature. A built-in clinical phrase library covers over 500 medical terms across general practice, surgery, radiology, and psychiatry. Privileged Mode (coming soon) will process all audio on-device with no data leaving the machine — critical for HIPAA and NHS data governance compliance. Today, Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained."
+          "text": "Voxlen is the best voice-to-text software for medical professionals in 2026. It uses Deepgram Nova-3 for 95%+ word-level accuracy on clinical terminology, including drug names, anatomical terms, diagnostic codes, and procedural nomenclature. A built-in clinical phrase library covers over 500 medical terms across general practice, surgery, radiology, and psychiatry. Privileged Mode processes all audio on-device with no data leaving the machine — critical for HIPAA and NHS data governance compliance. In standard cloud mode, Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls, and nothing is retained."
         }
       },
       {
@@ -82,7 +75,7 @@
         "name": "Is medical dictation software HIPAA compliant?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Voxlen's Privileged Mode (coming soon) is designed to support HIPAA compliance requirements. It will process all audio and transcripts entirely on-device — no patient-identifiable information transmitted to any cloud server — providing the strongest available privacy guarantee: physical isolation of PHI to the practitioner's own device. Today, Voxlen never stores audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained."
+          "text": "Voxlen's Privileged Mode is designed to support HIPAA compliance requirements. It processes all audio and transcripts entirely on-device — no patient-identifiable information is transmitted to any cloud server — providing the strongest available privacy guarantee: physical isolation of PHI to the practitioner's own device. In standard cloud mode, Voxlen never stores audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls, and nothing is retained."
         }
       },
       {
@@ -629,6 +622,13 @@
       letter-spacing: 0;
     }
 
+    .pricing-card .plan-price span {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 0;
+    }
+
     .pricing-card .plan-period {
       font-size: 13px;
       color: var(--text-dim);
@@ -872,7 +872,7 @@
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      HIPAA-ready on-device mode coming soon
+      HIPAA-ready on-device mode available now
     </div>
     <div class="trust-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -921,17 +921,17 @@
     <div class="features-grid">
 
       <div class="feature-card featured">
-        <div class="feature-badge">Pro</div>
+        <div class="feature-badge">Privileged</div>
         <div class="feature-icon">🏥</div>
         <h3>Clinical Phrase Library</h3>
         <p>Over 500 medical terms across general practice, surgery, radiology, psychiatry, and pharmacy — including drug names, anatomical terms, diagnostic codes, and procedural nomenclature. Dictate drug names and dosages with confidence.</p>
       </div>
 
       <div class="feature-card featured">
-        <div class="feature-badge">Pro</div>
+        <div class="feature-badge">Privileged</div>
         <div class="feature-icon">🛡️</div>
-        <h3>Privileged Mode (Fully Offline) — Coming Soon</h3>
-        <p>Privileged Mode (coming soon) will run all transcription on-device with no patient data ever leaving your machine. Designed to support HIPAA safe harbour, NHS DSP Toolkit compliance, and GDPR requirements. Today, all requests pass through zero-retention endpoints and nothing is retained.</p>
+        <h3>Privileged Mode (Fully Offline) — Available Now</h3>
+        <p>Privileged Mode runs all transcription on-device with no patient data ever leaving your machine. Designed to support HIPAA safe harbour, NHS DSP Toolkit compliance, and GDPR requirements. In standard cloud mode, all requests pass through the voxlen.ai proxy under zero-content-retention controls.</p>
       </div>
 
       <div class="feature-card">
@@ -954,7 +954,7 @@
 
       <div class="feature-card">
         <div class="feature-icon">🎙️</div>
-        <h3>Speaker Diarization</h3>
+        <h3>Windows Meeting Capture &amp; Speaker Diarization</h3>
         <p>For multi-clinician rounds, MDT discussions, or consultations with interpreters, Voxlen automatically identifies and labels different speakers. Export a clean, labelled transcript for clinical records with minimal post-editing.</p>
       </div>
 
@@ -1008,7 +1008,7 @@
           <td class="partial">Office only</td>
         </tr>
         <tr>
-          <td>Mac + Windows + iPhone support</td>
+          <td>Mac + Windows; iPhone keyboard coming soon</td>
           <td class="yes">Yes</td>
           <td class="partial">Windows primary</td>
           <td class="partial">iOS + selected</td>
@@ -1016,7 +1016,7 @@
         </tr>
         <tr>
           <td>Monthly price per user</td>
-          <td class="yes">Free / $29/mo</td>
+          <td class="yes">$29/mo (14-day free trial)</td>
           <td class="no">$99+/mo</td>
           <td class="no">$149+/mo</td>
           <td class="partial">Microsoft 365</td>
@@ -1070,65 +1070,26 @@
   <div class="section-inner">
     <p class="section-label">Pricing</p>
     <h2 class="section-title">A Fraction of the Cost of<br>Dragon Medical One</h2>
-    <p class="section-sub">Dragon Medical One costs $99+/month per clinician. Voxlen Pro is $29/month — with more features and no lock-in.</p>
+    <p class="section-sub">Dragon Medical One costs $99+/month per clinician. Voxlen Professional is $29/month — with more features and no lock-in.</p>
     <div class="pricing-grid">
-
       <div class="pricing-card">
-        <p class="plan-name">Free</p>
-        <p class="plan-price">$<span>0</span></p>
-        <p class="plan-period">Forever free</p>
-        <ul>
-          <li><span class="check">✓</span> 500 words / week</li>
-          <li><span class="check">✓</span> Core AI dictation</li>
-          <li><span class="check">✓</span> Mac &amp; Windows</li>
-          <li><span class="check">✓</span> Basic grammar correction</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta secondary">Download Free</a>
+        <p class="plan-name pricing-name">Professional</p>
+        <p class="plan-price pricing-price">$29<span>/month</span></p>
+        <ul class="pricing-features"><li>Unlimited dictation</li><li>AI grammar included</li><li>Optional BYOK</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta secondary">Start 14-Day Free Trial</a>
       </div>
-
-      <div class="pricing-card popular">
-        <div class="popular-badge">Most Popular</div>
-        <p class="plan-name">Pro</p>
-        <p class="plan-price"><sup>$</sup>29<span style="font-size:18px;font-weight:500;color:var(--text-muted)">/mo</span></p>
-        <p class="plan-period">Billed monthly &middot; cancel any time</p>
-        <ul>
-          <li><span class="check">✓</span> Unlimited dictation</li>
-          <li><span class="check">✓</span> Clinical phrase library (500+ terms)</li>
-          <li><span class="check">🔜</span> Privileged Mode (offline) — coming soon</li>
-          <li><span class="check">✓</span> SOAP note &amp; clinical templates</li>
-          <li><span class="check">✓</span> Speaker diarization</li>
-          <li><span class="check">✓</span> iOS keyboard app</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta primary">Start 14-Day Trial</a>
+      <div class="pricing-card popular featured">
+        <p class="plan-name pricing-name">Privileged</p>
+        <p class="plan-price pricing-price">$59<span>/month</span></p>
+        <ul class="pricing-features"><li>Everything in Professional</li><li>On-device Whisper and grammar</li><li>Client/matter billing and clause library</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta primary">Start 14-Day Free Trial</a>
       </div>
-
       <div class="pricing-card">
-        <p class="plan-name">Professional</p>
-        <p class="plan-price"><sup>$</sup>79<span style="font-size:18px;font-weight:500;color:var(--text-muted)">/mo</span></p>
-        <p class="plan-period">Per practice &middot; up to 5 users</p>
-        <ul>
-          <li><span class="check">✓</span> Everything in Pro</li>
-          <li><span class="check">✓</span> Up to 5 users</li>
-          <li><span class="check">✓</span> Shared phrase library</li>
-          <li><span class="check">✓</span> Priority support</li>
-          <li><span class="check">✓</span> Advanced analytics dashboard</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta primary">Start Free Trial</a>
+        <p class="plan-name pricing-name">Firm</p>
+        <p class="plan-price pricing-price">$49<span>/seat/month</span></p>
+        <ul class="pricing-features"><li>For firms with 5+ seats</li><li>Everything in Privileged, per seat</li><li>AI costs included</li></ul>
+        <a href="https://voxlen.ai/#pricing" class="pricing-cta secondary">View Firm Plan</a>
       </div>
-
-      <div class="pricing-card">
-        <p class="plan-name">Lifetime</p>
-        <p class="plan-price"><sup>$</sup>599</p>
-        <p class="plan-period">One-time payment &middot; yours forever</p>
-        <ul>
-          <li><span class="check">✓</span> Everything in Pro</li>
-          <li><span class="check">✓</span> All future updates included</li>
-          <li><span class="check">✓</span> No recurring fees ever</li>
-          <li><span class="check">✓</span> Priority support for life</li>
-        </ul>
-        <a href="https://voxlen.ai/#download" class="pricing-cta gold">Get Lifetime Access</a>
-      </div>
-
     </div>
   </div>
 </section>
@@ -1147,7 +1108,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Voxlen is the best voice-to-text software for medical professionals in 2026. It uses Deepgram Nova-3 for 95%+ word-level accuracy on clinical terminology, including drug names, anatomical terms, diagnostic codes, and procedural nomenclature. The built-in clinical phrase library covers over 500 medical terms. Privileged Mode (coming soon) will process all audio on-device with no patient data leaving the machine — critical for HIPAA, NHS Data Security and Protection Toolkit, and GDPR compliance. Today, Voxlen never stores your audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. At $29/month, it costs less than a third of Dragon Medical One.
+            Voxlen is the best voice-to-text software for medical professionals in 2026. It uses Deepgram Nova-3 for 95%+ word-level accuracy on clinical terminology, including drug names, anatomical terms, diagnostic codes, and procedural nomenclature. The built-in clinical phrase library covers over 500 medical terms. Privileged Mode processes all audio on-device with no patient data leaving the machine — critical for HIPAA, NHS Data Security and Protection Toolkit, and GDPR compliance. In standard cloud mode, Voxlen never stores your audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls, and nothing is retained. At $29/month, it costs less than a third of Dragon Medical One.
           </div>
         </div>
       </div>
@@ -1159,7 +1120,7 @@
         </button>
         <div class="faq-answer" role="region">
           <div class="faq-answer-inner">
-            Voxlen's Privileged Mode (coming soon) is designed to support HIPAA compliance requirements. It will process all audio and transcripts entirely on-device — no Protected Health Information transmitted to any cloud server — providing the strongest available privacy guarantee: complete physical isolation of PHI to the practitioner's own device. Today, Voxlen never stores audio or transcripts — requests pass through zero-retention endpoints straight to the AI providers, and nothing is retained. Practices should review their specific compliance obligations with their privacy officer before deployment.
+            Voxlen's Privileged Mode is designed to support HIPAA compliance requirements. It processes all audio and transcripts entirely on-device — no Protected Health Information is transmitted to any cloud server — providing the strongest available privacy guarantee: complete physical isolation of PHI to the practitioner's own device. In standard cloud mode, Voxlen never stores audio or transcripts — requests pass through the voxlen.ai proxy to AI providers under zero-content-retention controls, and nothing is retained. Practices should review their specific compliance obligations with their privacy officer before deployment.
           </div>
         </div>
       </div>

@@ -10,6 +10,8 @@ export interface AppSettings {
   // STT
   sttEngine: string;
   sttApiKey: string;
+  /** Local Whisper model id (e.g. "base.en") used by the offline engine. */
+  whisperLocalModel: string;
   sttLanguage: string;
   autoDetectLanguage: boolean;
   customVocabulary: string[];
@@ -19,6 +21,12 @@ export interface AppSettings {
   grammarEnabled: boolean;
   grammarApiKey: string;
   grammarProvider: "claude" | "openai";
+  /** "cloud" sends text to an external LLM; "local_rules" runs the
+   *  on-device deterministic engine; "local_llm" adds an on-device AI
+   *  polish on top of the rules. Privileged mode forces local. */
+  grammarEngine: "cloud" | "local_rules" | "local_llm";
+  /** Catalog id of the downloaded grammar LLM (e.g. "qwen3-4b"). */
+  grammarLocalModel: string;
   writingStyle: "professional" | "casual" | "academic" | "creative" | "technical";
   autoCorrect: boolean;
   preserveTone: boolean;
@@ -27,6 +35,10 @@ export interface AppSettings {
   autoPunctuate: boolean;
   smartFormat: boolean;
   voiceCommandsEnabled: boolean;
+  /** Tray-resident hands-free mode: capture stays alive permanently and a
+   *  local voice-activity gate opens the cloud session only while speech is
+   *  present. The mic's hardware mute button becomes the only control. */
+  alwaysReadyMode: boolean;
 
   // Translation
   translationEnabled: boolean;
@@ -52,10 +64,39 @@ export interface AppSettings {
   // Privacy
   telemetryEnabled: boolean;
   saveTranscripts: boolean;
+  autoDocEnabled: boolean;
+  autoDocRootPath: string;
+  autoDocFilenamePattern: string;
+  reviewSharedFolderPath: string;
+  reviewDisplayName: string;
   privilegedMode: boolean;
   legalMode: boolean; // enables Latin phrase recognition + legal smart format
   jurisdiction: "uk" | "us" | "australia" | "canada" | "nz" | "global";
   billableRatePerHour: number;
+
+  // Billing
+  /** Time-unit rounding for billable entries, in hours. 0 = no rounding. */
+  billingRoundingIncrement: 0 | 0.1 | 0.25;
+  /** Minimum billable hours per entry. */
+  billingMinimumHours: number;
+  /** Auto-draft a time entry for review when a dictation session ends. */
+  autoTimeCapture: boolean;
+  // LEDES export metadata
+  ledesLawFirmId: string;
+  ledesTimekeeperId: string;
+  ledesTimekeeperName: string;
+  ledesClassification: string;
+
+  // Flywheel
+  /** Automatically include learned vocabulary (freq >= 2) in STT config. */
+  flywheelAutoVocab: boolean;
+  /** Pre-apply learned correction patterns locally to final transcripts. */
+  applyLearnedCorrections: boolean;
+
+  // Meeting capture consent (Rust start-gate reads these; fail-closed)
+  meetingJurisdiction: string;
+  meetingConsentAckVersion: string | null;
+  meetingConsentAckAt: string | null;
   voxlenApiKey: string;
   voxlenContext: string; // VoxlenContext value
   voxlenTenantId: string;
@@ -92,6 +133,7 @@ const defaultSettings: AppSettings = {
 
   sttEngine: "deepgram",
   sttApiKey: "",
+  whisperLocalModel: "base.en",
   sttLanguage: "en",
   autoDetectLanguage: true,
   customVocabulary: [],
@@ -100,6 +142,8 @@ const defaultSettings: AppSettings = {
   grammarEnabled: true,
   grammarApiKey: "",
   grammarProvider: "claude",
+  grammarEngine: "cloud",
+  grammarLocalModel: "qwen3-4b",
   writingStyle: "professional",
   autoCorrect: true,
   preserveTone: true,
@@ -107,16 +151,17 @@ const defaultSettings: AppSettings = {
   autoPunctuate: true,
   smartFormat: true,
   voiceCommandsEnabled: true,
+  alwaysReadyMode: false,
 
   translationEnabled: false,
   translationTargetLanguage: "en",
 
   injectionMode: "keyboard",
 
-  shortcutToggle: "CommandOrControl+Shift+D",
-  shortcutPushToTalk: "CommandOrControl+Shift+Space",
+  shortcutToggle: "Alt+D",
+  shortcutPushToTalk: "Alt+Space",
   shortcutCancel: "Escape",
-  shortcutCorrectGrammar: "CommandOrControl+Shift+G",
+  shortcutCorrectGrammar: "Alt+G",
 
   theme: "dark",
   showWaveform: true,
@@ -127,10 +172,30 @@ const defaultSettings: AppSettings = {
 
   telemetryEnabled: false,
   saveTranscripts: true,
+  autoDocEnabled: false,
+  autoDocRootPath: "",
+  autoDocFilenamePattern: "{date} {kind}",
+  reviewSharedFolderPath: "",
+  reviewDisplayName: "",
   privilegedMode: false,
   legalMode: false,
   jurisdiction: "global",
   billableRatePerHour: 0,
+
+  billingRoundingIncrement: 0.1,
+  billingMinimumHours: 0.1,
+  autoTimeCapture: true,
+  ledesLawFirmId: "",
+  ledesTimekeeperId: "",
+  ledesTimekeeperName: "",
+  ledesClassification: "PT",
+
+  flywheelAutoVocab: true,
+  applyLearnedCorrections: true,
+
+  meetingJurisdiction: "",
+  meetingConsentAckVersion: null,
+  meetingConsentAckAt: null,
   voxlenApiKey: "",
   voxlenContext: "legal_general",
   voxlenTenantId: "",
@@ -151,18 +216,22 @@ function schedulePersist() {
       inputGain: state.inputGain,
       noiseSuppression: state.noiseSuppression,
       sttEngine: state.sttEngine,
+      whisperLocalModel: state.whisperLocalModel,
       sttLanguage: state.sttLanguage,
       autoDetectLanguage: state.autoDetectLanguage,
       customVocabulary: state.customVocabulary,
       speakerDiarization: state.speakerDiarization,
       grammarEnabled: state.grammarEnabled,
       grammarProvider: state.grammarProvider,
+      grammarEngine: state.grammarEngine,
+      grammarLocalModel: state.grammarLocalModel,
       writingStyle: state.writingStyle,
       autoCorrect: state.autoCorrect,
       preserveTone: state.preserveTone,
       autoPunctuate: state.autoPunctuate,
       smartFormat: state.smartFormat,
       voiceCommandsEnabled: state.voiceCommandsEnabled,
+      alwaysReadyMode: state.alwaysReadyMode,
       translationEnabled: state.translationEnabled,
       translationTargetLanguage: state.translationTargetLanguage,
       injectionMode: state.injectionMode,
@@ -178,10 +247,27 @@ function schedulePersist() {
       launchAtLogin: state.launchAtLogin,
       telemetryEnabled: state.telemetryEnabled,
       saveTranscripts: state.saveTranscripts,
+      autoDocEnabled: state.autoDocEnabled,
+      autoDocRootPath: state.autoDocRootPath,
+      autoDocFilenamePattern: state.autoDocFilenamePattern,
+      reviewSharedFolderPath: state.reviewSharedFolderPath,
+      reviewDisplayName: state.reviewDisplayName,
       privilegedMode: state.privilegedMode,
       legalMode: state.legalMode,
       jurisdiction: state.jurisdiction,
       billableRatePerHour: state.billableRatePerHour,
+      billingRoundingIncrement: state.billingRoundingIncrement,
+      billingMinimumHours: state.billingMinimumHours,
+      autoTimeCapture: state.autoTimeCapture,
+      ledesLawFirmId: state.ledesLawFirmId,
+      ledesTimekeeperId: state.ledesTimekeeperId,
+      ledesTimekeeperName: state.ledesTimekeeperName,
+      ledesClassification: state.ledesClassification,
+      flywheelAutoVocab: state.flywheelAutoVocab,
+      applyLearnedCorrections: state.applyLearnedCorrections,
+      meetingJurisdiction: state.meetingJurisdiction,
+      meetingConsentAckVersion: state.meetingConsentAckVersion,
+      meetingConsentAckAt: state.meetingConsentAckAt,
       voxlenContext: state.voxlenContext,
       voxlenTenantId: state.voxlenTenantId,
       legalAcceptedVersion: state.legalAcceptedVersion,
@@ -237,18 +323,45 @@ function schedulePersist() {
 }
 
 export async function hydrateSecrets(): Promise<void> {
-  const [sttApiKey, grammarApiKey, voxlenApiKey] = await Promise.all([
+  // Cancel any in-flight persist timer so it can't fire with empty keys
+  // before we finish reading from the keychain.
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+
+  const results = await Promise.allSettled([
     getSecret("sttApiKey"),
     getSecret("grammarApiKey"),
     getSecret("voxlenApiKey"),
   ]);
+
+  const [sttResult, grammarResult, voxlenResult] = results;
   const updates: Partial<AppSettings> = {};
-  if (sttApiKey) updates.sttApiKey = sttApiKey;
-  if (grammarApiKey) updates.grammarApiKey = grammarApiKey;
-  if (voxlenApiKey) updates.voxlenApiKey = voxlenApiKey;
+  if (sttResult.status === "fulfilled" && sttResult.value) updates.sttApiKey = sttResult.value;
+  if (grammarResult.status === "fulfilled" && grammarResult.value) updates.grammarApiKey = grammarResult.value;
+  if (voxlenResult.status === "fulfilled" && voxlenResult.value) updates.voxlenApiKey = voxlenResult.value;
+
   if (Object.keys(updates).length > 0) {
     useSettingsStore.getState().hydrateSettings(updates);
   }
+
+  const anyFailed = results.some((r) => r.status === "rejected");
+  if (anyFailed) {
+    try {
+      const { toast } = await import("@/components/ui/Toast");
+      toast(
+        "Could not read saved API keys from system keychain — please re-enter them in Settings.",
+        "error",
+        8000
+      );
+    } catch {
+      // Toast not available (tests / non-Tauri).
+    }
+  }
+
+  // Now safe to resume persisting — keys are loaded.
+  schedulePersist();
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({

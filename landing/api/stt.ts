@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth.js";
 
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY!;
 
@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return applyHeaders(res, headers).status(503).json({ error: "STT service not configured" });
   }
 
-  // Read raw body for multipart — forward directly to Deepgram
+  // Read raw body for multipart â€” forward directly to Deepgram
   const contentType = req.headers["content-type"] ?? "audio/wav";
   const rawLang = (req.headers["x-language"] as string) || "en";
   const VALID_LANGS = new Set(["en","en-US","en-GB","en-AU","en-NZ","fr","de","es","it","pt","nl","ja","ko","zh","ar","hi","ru","pl","sv","da","no","fi","tr"]);
@@ -82,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
   if (res.headersSent) return;
   // @types/node's Buffer.concat signature wants Uint8Array<ArrayBuffer>[], but Buffer's
-  // own backing ArrayBufferLike is wider (includes SharedArrayBuffer) — a type-only
+  // own backing ArrayBufferLike is wider (includes SharedArrayBuffer) â€” a type-only
   // mismatch; Buffer.concat(Buffer[]) is Node's normal, always-safe usage at runtime.
   const body = Buffer.concat(chunks as unknown as Uint8Array<ArrayBuffer>[]);
 

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useClientsStore } from "@/stores/clients";
 
 export type DictationStatus =
   | "idle"
@@ -46,6 +47,8 @@ export interface BackendSessionSegment {
   language: string | null;
   timestamp_ms: number;
   grammar_applied: boolean;
+  /** Meeting sessions: "you" (mic) or "remote" (system audio). */
+  speaker?: string | null;
 }
 
 export interface BackendSessionRecord {
@@ -56,6 +59,11 @@ export interface BackendSessionRecord {
   word_count: number;
   language: string | null;
   segments: BackendSessionSegment[];
+  /** "dictation" (default) or "meeting". */
+  kind?: string;
+  client_id?: string | null;
+  client_name?: string | null;
+  matter_label?: string | null;
 }
 
 const DRAFT_KEY = "voxlen_draft";
@@ -109,13 +117,26 @@ interface DictationState {
   error: string | null;
   sessionStartedAtMs: number | null;
   capsLock: boolean;
+  /** Always-Ready gate phase (backend-driven). "off" when the mode is
+   *  disabled; "armed" = watching for speech locally, nothing streaming;
+   *  "streaming" = cloud session open. */
+  alwaysReadyPhase: "off" | "armed" | "streaming" | "error";
+  /** Id of the draft billing entry created when the last session ended —
+   *  drives the post-session review banner. */
+  lastDraftEntryId: string | null;
 
   // Actions
   setStatus: (status: DictationStatus) => void;
+  setLastDraftEntryId: (id: string | null) => void;
+  setAlwaysReadyPhase: (phase: "off" | "armed" | "streaming" | "error") => void;
   addSegment: (segment: TranscriptionSegment) => void;
   updateSegment: (id: string, updates: Partial<TranscriptionSegment>) => void;
   popLastSegment: () => void;
   removeSegment: (id: string) => void;
+  /** Replace the whole session with a single segment — used when a grammar
+   *  polish is applied to the full transcript, so the corrected text doesn't
+   *  get appended after the segments it already contains. */
+  replaceAllSegments: (segment: TranscriptionSegment) => void;
   appendToLastSegment: (text: string) => void;
   setCurrentTranscript: (text: string) => void;
   setCorrectedTranscript: (text: string) => void;
@@ -142,15 +163,22 @@ export const useDictationStore = create<DictationState>((set, get) => ({
   error: null,
   sessionStartedAtMs: null,
   capsLock: false,
+  alwaysReadyPhase: "off",
+  lastDraftEntryId: null,
+
+  setAlwaysReadyPhase: (phase) => set({ alwaysReadyPhase: phase }),
+  setLastDraftEntryId: (id) => set({ lastDraftEntryId: id }),
 
   setStatus: (status) =>
     set((state) => {
-      // When transitioning from idle -> listening, stamp the session start.
+      // Stamp session start on idle→listening and also error→listening (retry).
       const sessionStartedAtMs =
-        status === "listening" && state.status === "idle"
+        status === "listening" && (state.status === "idle" || state.status === "error")
           ? Date.now()
           : state.sessionStartedAtMs;
-      return { status, sessionStartedAtMs };
+      // Clear stale error when leaving error state.
+      const error = state.status === "error" && status !== "error" ? null : state.error;
+      return { status, sessionStartedAtMs, error };
     }),
 
   addSegment: (segment) =>
@@ -205,6 +233,16 @@ export const useDictationStore = create<DictationState>((set, get) => ({
       return { segments, wordCount };
     }),
 
+  replaceAllSegments: (segment) =>
+    set((state) => {
+      const segments = [segment];
+      const wordCount = (segment.correctedText || segment.text)
+        .split(/\s+/)
+        .filter(Boolean).length;
+      persistDraft({ segments, sessionStartedAtMs: state.sessionStartedAtMs });
+      return { segments, wordCount };
+    }),
+
   appendToLastSegment: (text) =>
     set((state) => {
       if (state.segments.length === 0) return {};
@@ -232,6 +270,19 @@ export const useDictationStore = create<DictationState>((set, get) => ({
 
   clearSession: () => {
     clearDraftRecord();
+    // If the backend is still capturing, stop it — otherwise the UI shows
+    // "idle" while the mic keeps streaming and new transcripts keep injecting.
+    const active = get().status === "listening" || get().status === "processing" || get().status === "paused";
+    if (active) {
+      void (async () => {
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          await invoke("stop_dictation");
+        } catch {
+          // Non-Tauri / already stopped.
+        }
+      })();
+    }
     set({
       segments: [],
       currentTranscript: "",
@@ -287,6 +338,8 @@ export function buildSessionRecord(): BackendSessionRecord | null {
 
   const started = state.sessionStartedAtMs ?? state.segments[0].timestamp.getTime();
   const ended = Date.now();
+  const { activeClientId, clients } = useClientsStore.getState();
+  const client = clients.find((c) => c.id === activeClientId);
 
   return {
     id: crypto.randomUUID(),
@@ -295,6 +348,9 @@ export function buildSessionRecord(): BackendSessionRecord | null {
     duration_ms: Math.max(0, ended - started),
     word_count: state.wordCount,
     language: state.segments.find((s) => s.language)?.language ?? null,
+    client_id: activeClientId,
+    client_name: client?.name ?? null,
+    matter_label: client?.matterNumber?.trim() || null,
     segments: state.segments.map((s) => ({
       id: s.id,
       text: s.text,

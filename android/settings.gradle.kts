@@ -11,5 +11,5 @@ dependencyResolution {
         mavenCentral()
     }
 }
-rootProject.name = "MarcoReidVoiceKeyboard"
+rootProject.name = "VoxlenKeyboard"
 include(":app")

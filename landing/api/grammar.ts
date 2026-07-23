@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth";
+import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth.js";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -97,7 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
     } catch {
-      // Plain text response — wrap it
+      // Plain text response â€” wrap it
     }
 
     return applyHeaders(res, headers).status(200).json({
@@ -137,7 +137,7 @@ function buildDynamicSuffix(
     ? `Preserve these domain-specific terms exactly as-is: ${sanitizedVocab.join(", ")}.`
     : "";
   const toneNote = preserveTone
-    ? "Preserve the author's voice and tone exactly — only fix errors, do not rephrase."
+    ? "Preserve the author's voice and tone exactly â€” only fix errors, do not rephrase."
     : "Improve clarity where appropriate while staying faithful to the meaning.";
 
   return [contextNote, vocabNote, `Writing style: ${style}.`, toneNote].filter(Boolean).join(" ");

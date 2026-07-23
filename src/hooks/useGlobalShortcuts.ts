@@ -3,6 +3,7 @@ import { useDictationStore } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { collectVocabulary } from "@/lib/vocab";
 import { toast } from "@/components/ui/Toast";
 
 /**
@@ -15,6 +16,12 @@ export function useGlobalShortcuts(enabled: boolean): void {
   const shortcutPushToTalk = useSettingsStore((s) => s.shortcutPushToTalk);
   const shortcutCancel = useSettingsStore((s) => s.shortcutCancel);
   const shortcutCorrectGrammar = useSettingsStore((s) => s.shortcutCorrectGrammar);
+  // Cancel defaults to bare "Escape". Registering that permanently would
+  // consume Esc system-wide (dialogs, games, IDEs) for as long as Voxlen
+  // runs — so it is only registered while a dictation is in progress.
+  const dictationActive = useDictationStore(
+    (s) => s.status === "listening" || s.status === "processing" || s.status === "paused"
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -43,11 +50,10 @@ export function useGlobalShortcuts(enabled: boolean): void {
       }
       registered = [];
 
-      // Each shortcut is registered independently — one failing (e.g. taken
-      // by the OS or another app) must not silently prevent the others from
-      // registering, and the user needs to know it happened instead of the
-      // shortcut just quietly doing nothing when pressed.
+      // Each shortcut is registered independently — one failing must not prevent
+      // the others. cancelled guard here covers all registrations.
       async function registerOne(shortcut: string, handler: Parameters<typeof register>[1]) {
+        if (cancelled) return;
         try {
           await register(shortcut, handler);
           registered.push(shortcut);
@@ -61,11 +67,26 @@ export function useGlobalShortcuts(enabled: boolean): void {
         }
       }
 
-      // Toggle — on Pressed, flip listening/idle.
+      // Toggle — on Pressed, flip listening/idle. In Always-Ready mode the
+      // supervisor owns start/stop, so the hotkey pauses/resumes instead.
       if (shortcutToggle) {
         await registerOne(shortcutToggle, (event) => {
           if (event.state !== "Pressed") return;
-          const status = useDictationStore.getState().status;
+          const dictation = useDictationStore.getState();
+          if (dictation.alwaysReadyPhase !== "off") {
+            const resuming = dictation.status === "paused";
+            dictation.setStatus(resuming ? "listening" : "paused");
+            (async () => {
+              try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                await invoke(resuming ? "resume_dictation" : "pause_dictation");
+              } catch {
+                // Non-Tauri / supervisor recovering.
+              }
+            })();
+            return;
+          }
+          const status = dictation.status;
           if (status === "idle" || status === "paused" || status === "error") {
             useDictationStore.getState().setStatus("listening");
             (async () => {
@@ -74,7 +95,6 @@ export function useGlobalShortcuts(enabled: boolean): void {
                 try {
                   await invoke("start_dictation");
                 } catch (err) {
-                  // Real backend error — reset UI and show the user why it failed.
                   useDictationStore.getState().setStatus("idle");
                   toast(
                     err instanceof Error ? err.message : String(err) || "Failed to start dictation",
@@ -138,23 +158,8 @@ export function useGlobalShortcuts(enabled: boolean): void {
         });
       }
 
-      // Cancel — stop dictation + clear current in-progress transcript.
-      if (shortcutCancel) {
-        await registerOne(shortcutCancel, (event) => {
-          if (event.state !== "Pressed") return;
-          const dictation = useDictationStore.getState();
-          dictation.setStatus("idle");
-          dictation.clearCurrentTranscript();
-          (async () => {
-            try {
-              const { invoke } = await import("@tauri-apps/api/core");
-              await invoke("stop_dictation");
-            } catch {
-              // Demo / non-Tauri.
-            }
-          })();
-        });
-      }
+      // Cancel is registered in its own effect below — only while dictation
+      // is active — so a bare "Escape" binding doesn't hijack Esc globally.
 
       // Correct grammar — invoke `correct_grammar` on the last-dictated text
       // and inject the corrected version.
@@ -178,14 +183,9 @@ export function useGlobalShortcuts(enabled: boolean): void {
               const textToCorrect = selection || lastSegment?.correctedText || lastSegment?.text || "";
               if (!textToCorrect.trim()) return;
 
-              const flyVocab = useFlywheelStore.getState().vocabulary
-                .filter((v) => v.frequency >= 2)
-                .map((v) => v.word);
               const { activeClientId, clients } = useClientsStore.getState();
               const activeClient = clients.find((c) => c.id === activeClientId);
-              const clientVocab = activeClient?.vocabulary ?? [];
-              const globalVocab = useSettingsStore.getState().customVocabulary;
-              const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocab, ...globalVocab]));
+              const mergedVocab = collectVocabulary();
               const matterContext = buildMatterContext(activeClient) || undefined;
 
               const result = await invoke<{
@@ -198,6 +198,7 @@ export function useGlobalShortcuts(enabled: boolean): void {
                   text: textToCorrect,
                   customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
                   matterContext,
+                  learnedPatterns: useFlywheelStore.getState().getTopCorrectionPatterns(50),
                 }
               );
 
@@ -267,5 +268,61 @@ export function useGlobalShortcuts(enabled: boolean): void {
         if (cancelled) registered = [];
       })();
     };
-  }, [enabled, shortcutToggle, shortcutPushToTalk, shortcutCancel, shortcutCorrectGrammar]);
+  }, [enabled, shortcutToggle, shortcutPushToTalk, shortcutCorrectGrammar]);
+
+  // Cancel — registered only while dictation is active (see note above).
+  useEffect(() => {
+    if (!enabled || !shortcutCancel || !dictationActive) return;
+
+    let registered = false;
+    let cancelled = false;
+
+    (async () => {
+      let register: typeof import("@tauri-apps/plugin-global-shortcut").register;
+      try {
+        ({ register } = await import("@tauri-apps/plugin-global-shortcut"));
+      } catch {
+        return; // Not running in Tauri.
+      }
+      if (cancelled) return;
+      try {
+        await register(shortcutCancel, (event) => {
+          if (event.state !== "Pressed") return;
+          const dictation = useDictationStore.getState();
+          dictation.setStatus("idle");
+          dictation.clearCurrentTranscript();
+          (async () => {
+            try {
+              const { invoke } = await import("@tauri-apps/api/core");
+              await invoke("stop_dictation");
+            } catch {
+              // Demo / non-Tauri.
+            }
+          })();
+        });
+        registered = true;
+        if (cancelled) {
+          // Effect cleanup ran while we were awaiting — undo immediately.
+          const { unregister } = await import("@tauri-apps/plugin-global-shortcut");
+          await unregister(shortcutCancel).catch(() => {});
+          registered = false;
+        }
+      } catch (err) {
+        console.error(`Failed to register cancel shortcut '${shortcutCancel}':`, err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (!registered) return;
+      (async () => {
+        try {
+          const { unregister } = await import("@tauri-apps/plugin-global-shortcut");
+          await unregister(shortcutCancel);
+        } catch {
+          // Not in Tauri / already unregistered.
+        }
+      })();
+    };
+  }, [enabled, shortcutCancel, dictationActive]);
 }

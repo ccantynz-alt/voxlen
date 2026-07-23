@@ -54,10 +54,18 @@ impl AudioProcessor {
 
                 match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
                     Ok(chunk) => {
-                        if *status.read() == DictationStatus::Paused {
+                        let current_status = *status.read();
+                        if current_status == DictationStatus::Paused || current_status == DictationStatus::Idle {
                             // Drain accumulated buffer so resume starts fresh.
                             accumulated_samples.clear();
                             accumulated_duration_ms = 0;
+                            // Tear down any streaming session while paused or stopped.
+                            // Without this, stop_dictation leaves the Deepgram WebSocket
+                            // open; it drains to silence, Deepgram closes it, and the
+                            // retry loop fires MAX_CONSECUTIVE_FAILURES error toasts.
+                            if let Some((_, session)) = streaming_relay.take() {
+                                session.stop();
+                            }
                             continue;
                         }
 
@@ -146,10 +154,12 @@ impl AudioProcessor {
                                 samples
                             };
 
-                            match super::transcribe_audio(&resampled, 16000, config).await {
+                            match super::transcribe_audio(&app_handle, &resampled, 16000, config).await {
                                 Ok(result) => {
                                     if !result.text.trim().is_empty() {
-                                        log::info!("Transcription: {}", result.text);
+                                        // Content-free log: transcripts must never
+                                        // hit logs (legal/accounting market).
+                                        log::info!("Transcription received ({} chars)", result.text.chars().count());
                                         let _ = app_handle.emit("transcription", &result);
                                     }
                                 }
@@ -164,7 +174,14 @@ impl AudioProcessor {
                     }
                     Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
                         if is_deepgram {
-                            continue; // Streaming handles timeouts internally
+                            // When the user stops dictation (Idle) while streaming,
+                            // proactively stop the session so it doesn't keep reconnecting.
+                            if *status.read() == DictationStatus::Idle {
+                                if let Some((_, session)) = streaming_relay.take() {
+                                    session.stop();
+                                }
+                            }
+                            continue;
                         }
                         // Batch mode: flush on silence
                         if !accumulated_samples.is_empty() && accumulated_duration_ms > 1000 {
@@ -187,7 +204,7 @@ impl AudioProcessor {
                                 };
 
                                 let config = stt_engine.read().get_config();
-                                match super::transcribe_audio(&resampled, 16000, config).await {
+                                match super::transcribe_audio(&app_handle, &resampled, 16000, config).await {
                                     Ok(result) => {
                                         if !result.text.trim().is_empty() {
                                             let _ = app_handle.emit("transcription", &result);
@@ -237,7 +254,7 @@ fn to_mono(samples: &[f32], channels: u16) -> Vec<f32> {
 }
 
 /// Simple linear resampling (for production, use rubato crate)
-fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
+pub(crate) fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     if from_rate == to_rate {
         return samples.to_vec();
     }

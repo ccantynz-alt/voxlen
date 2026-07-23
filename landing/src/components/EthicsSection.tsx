@@ -33,12 +33,9 @@ const voxlenGuarantees = [
 
 export default function EthicsSection() {
   return (
-    <section id="ethics" className="py-24 px-6 relative overflow-hidden">
-      {/* Subtle background accent */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-950/5 to-transparent pointer-events-none" />
-
-      <div className="max-w-5xl mx-auto relative">
-        {/* Header */}
+    <section id="ethics" className="py-24 px-6 bg-paper">
+      <div className="max-w-5xl mx-auto">
+        {/* Header — formal notice */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -46,18 +43,20 @@ export default function EthicsSection() {
           variants={fadeUp}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium mb-4">
-            <Scale className="h-3 w-3" />
-            ABA Rule 1.6(c) Compliance
+          <div className="inline-flex items-center gap-2 uppercase tracking-[0.18em] text-[11px] font-sans font-semibold text-brass mb-5">
+            <Scale className="h-3 w-3" aria-hidden="true" />
+            Professional Responsibility
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-5">
+          <h2 className="font-display text-4xl md:text-5xl tracking-tight text-ink mb-5">
             The only dictation tool lawyers
             <br />
-            <span className="text-amber-400">can use without calling ethics counsel.</span>
+            <span className="italic">can use without calling ethics counsel.</span>
           </h2>
 
-          <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
+          <div className="mx-auto w-16 border-t border-rule mb-5" aria-hidden="true" />
+
+          <p className="font-sans text-ink-soft text-lg max-w-2xl mx-auto leading-relaxed">
             Every other dictation product sends your words to a cloud server.
             Under ABA Model Rule 1.6(c), that may constitute an unauthorized disclosure
             of client confidences. Voxlen is architecturally different.
@@ -72,22 +71,22 @@ export default function EthicsSection() {
           variants={fadeUp}
           className="mb-12"
         >
-          <div className="rounded-2xl bg-[#111114] border border-white/10 overflow-hidden">
-            <div className="px-5 py-3 bg-red-950/30 border-b border-red-900/30 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-400" />
-              <span className="text-sm font-semibold text-red-300">Compliance risks with competitors</span>
+          <div className="rounded-md bg-white border border-rule overflow-hidden shadow-[0_1px_3px_rgba(29,26,21,0.06)]">
+            <div className="px-5 py-3 bg-paper-deep border-b border-rule flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-brass" aria-hidden="true" />
+              <span className="font-serif text-sm font-semibold text-ink">Compliance risks with competitors</span>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-rule">
               {risks.map((r) => (
                 <div key={r.product} className="flex items-start gap-4 px-5 py-4">
                   <div className="w-28 shrink-0">
-                    <span className="text-sm font-medium text-zinc-300">{r.product}</span>
+                    <span className="font-sans text-sm font-semibold text-ink">{r.product}</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-zinc-400 leading-relaxed">{r.risk}</p>
+                    <p className="font-sans text-sm text-ink-soft leading-relaxed">{r.risk}</p>
                   </div>
                   <div className="shrink-0">
-                    <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono whitespace-nowrap">
+                    <span className="px-2 py-0.5 rounded-sm bg-paper border border-rule text-ink-soft text-xs font-mono whitespace-nowrap">
                       {r.rule}
                     </span>
                   </div>
@@ -95,15 +94,15 @@ export default function EthicsSection() {
               ))}
             </div>
           </div>
-          <p className="text-xs text-zinc-600 mt-2 text-right">
+          <p className="text-xs font-sans text-ink-soft mt-2 text-right">
             Based on publicly available privacy policies and product documentation.{" "}
             <a
               href="https://www.americanbar.org/groups/professional_responsibility/publications/model_rules_of_professional_conduct/rule_1_6_confidentiality_of_information/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-500 hover:text-zinc-400 underline inline-flex items-center gap-1"
+              className="text-brass hover:text-brass-deep underline underline-offset-2 inline-flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-paper rounded-sm"
             >
-              ABA Rule 1.6 reference <ExternalLink className="h-3 w-3" />
+              ABA Rule 1.6 reference <ExternalLink className="h-3 w-3" aria-hidden="true" />
             </a>
           </p>
         </motion.div>
@@ -115,20 +114,20 @@ export default function EthicsSection() {
           viewport={{ once: true }}
           variants={fadeUp}
         >
-          <div className="rounded-2xl bg-[#111114] border border-emerald-500/20 overflow-hidden">
-            <div className="px-5 py-3 bg-emerald-950/30 border-b border-emerald-900/30 flex items-center gap-2">
-              <Shield className="h-4 w-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-300">How Voxlen protects client confidences</span>
+          <div className="rounded-md bg-white border border-rule overflow-hidden shadow-[0_1px_3px_rgba(29,26,21,0.06)]">
+            <div className="px-5 py-3 bg-paper-deep border-b border-rule flex items-center gap-2">
+              <Shield className="h-4 w-4 text-brass" aria-hidden="true" />
+              <span className="font-serif text-sm font-semibold text-ink">How Voxlen protects client confidences</span>
             </div>
-            <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
+            <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-rule">
               {voxlenGuarantees.map(({ icon: Icon, title, body }) => (
                 <div key={title} className="flex items-start gap-4 px-5 py-5">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon className="h-4 w-4 text-emerald-400" />
+                  <div className="w-9 h-9 rounded-md bg-paper border border-rule flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="h-4 w-4 text-brass" aria-hidden="true" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-white mb-1">{title}</div>
-                    <p className="text-sm text-zinc-400 leading-relaxed">{body}</p>
+                    <div className="font-serif text-sm font-semibold text-ink mb-1">{title}</div>
+                    <p className="font-sans text-sm text-ink-soft leading-relaxed">{body}</p>
                   </div>
                 </div>
               ))}
@@ -146,12 +145,12 @@ export default function EthicsSection() {
         >
           <a
             href="#download"
-            className="inline-flex items-center gap-2 h-12 px-8 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/25 hover:scale-[1.02]"
+            className="inline-flex items-center gap-2 h-12 px-8 rounded-md bg-brass text-paper font-sans font-semibold hover:bg-brass-deep transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
           >
-            <Shield className="h-4 w-4" />
+            <Shield className="h-4 w-4" aria-hidden="true" />
             Start your free trial — privacy guaranteed
           </a>
-          <p className="text-xs text-zinc-600 mt-3">
+          <p className="text-xs font-sans text-ink-soft mt-3">
             No credit card required. 14-day free trial. Works on macOS, Windows &amp; iOS.
           </p>
         </motion.div>

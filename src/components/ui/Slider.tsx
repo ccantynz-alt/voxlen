@@ -44,7 +44,7 @@ export function Slider({
       <div className="relative h-5 flex items-center">
         <div className="absolute h-1 w-full rounded-full bg-surface-200 shadow-inset-hairline">
           <div
-            className="absolute h-full rounded-full bg-gradient-to-r from-marcoreid-700 to-brass-500/70 transition-all"
+            className="absolute h-full rounded-full bg-gradient-to-r from-voxlen-700 to-brass-500/70 transition-all"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -61,7 +61,7 @@ export function Slider({
           )}
         />
         <div
-          className="absolute h-3.5 w-3.5 rounded-full bg-surface-50 shadow-elevation border border-marcoreid-800 pointer-events-none transition-all"
+          className="absolute h-3.5 w-3.5 rounded-full bg-surface-50 shadow-elevation border border-voxlen-800 pointer-events-none transition-all"
           style={{ left: `calc(${percentage}% - 7px)` }}
         />
       </div>

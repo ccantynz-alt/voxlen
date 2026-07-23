@@ -1,10 +1,10 @@
-MARCO REID VOICE — PROPRIETARY LICENSE AGREEMENT
+VOXLEN — PROPRIETARY LICENSE AGREEMENT
 
-Copyright © 2026 Marco Reid. All rights reserved.
+Copyright © 2026 Voxlen. All rights reserved.
 
-This Marco Reid Voice software, including all source code, binaries, assets,
+This Voxlen software, including all source code, binaries, assets,
 documentation, and related materials (the "Software"), is the proprietary and
-confidential property of Marco Reid. The Software is licensed, not sold.
+confidential property of Voxlen. The Software is licensed, not sold.
 
 By downloading, installing, copying, or otherwise using the Software, you
 ("Licensee") agree to be bound by this Licence Agreement and by the full End
@@ -17,7 +17,7 @@ do not install or use the Software.
 
 SUMMARY (non-binding — see the full Agreement for terms):
 
-1. GRANT. Marco Reid grants Licensee a personal, non-exclusive, non-transferable,
+1. GRANT. Voxlen grants Licensee a personal, non-exclusive, non-transferable,
    non-sublicensable, revocable licence to install and use the Software on
    devices Licensee owns or controls, strictly in accordance with the
    Agreement.
@@ -35,13 +35,13 @@ SUMMARY (non-binding — see the full Agreement for terms):
 
 3. OWNERSHIP. All right, title, and interest in and to the Software — including
    all intellectual property rights — are and remain the exclusive property of
-   Marco Reid. This Agreement conveys no ownership interest.
+   Voxlen. This Agreement conveys no ownership interest.
 
 4. THIRD-PARTY SERVICES. The Software may integrate with third-party services
    (including but not limited to Deepgram, OpenAI, and Anthropic) that you
    supply credentials for. Your use of those services is governed by their
    respective terms and privacy policies, and is strictly between you and
-   those providers. Marco Reid is not a party to those relationships and does
+   those providers. Voxlen is not a party to those relationships and does
    not resell, relay, or log the content you send to them.
 
 5. NO WARRANTY. THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT
@@ -51,11 +51,11 @@ SUMMARY (non-binding — see the full Agreement for terms):
    WARRANTIES ARE DISCLAIMED.
 
 6. LIMITATION OF LIABILITY. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO
-   EVENT SHALL MARCO REID BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+   EVENT SHALL VOXLEN BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
    CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR ANY LOST PROFITS,
    LOST DATA, BUSINESS INTERRUPTION, OR LOSS OF GOODWILL, ARISING OUT OF OR
    RELATED TO THE SOFTWARE OR THIS AGREEMENT, REGARDLESS OF THE LEGAL THEORY
-   AND EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. MARCO REID'S TOTAL
+   AND EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. VOXLEN'S TOTAL
    AGGREGATE LIABILITY SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT PAID BY
    LICENSEE FOR THE SOFTWARE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM OR
    (B) NZD $100.
@@ -84,4 +84,4 @@ their original licences; nothing in this Agreement modifies or overrides those
 licences.
 
 For the complete, binding terms, see the documents in the `legal/` directory.
-For questions: `legal@marcoreid.com`.
+For questions: `legal@voxlen.ai`.

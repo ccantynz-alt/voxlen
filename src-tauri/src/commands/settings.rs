@@ -6,7 +6,7 @@ use tauri_plugin_store::StoreExt;
 use crate::audio::AudioState;
 use crate::stt::{SttConfig, SttEngineType, SttState};
 use crate::commands::grammar::{
-    set_grammar_config_internal, GrammarConfig, GrammarProvider, WritingStyle,
+    set_grammar_config_internal, GrammarConfig, GrammarEngine, GrammarProvider, WritingStyle,
 };
 use crate::commands::translate::{set_translation_config_internal, TranslationConfig};
 
@@ -20,6 +20,9 @@ pub struct AppSettings {
     // STT
     pub stt_engine: String,
     pub stt_api_key: Option<String>,
+    /// Local Whisper model id (e.g. "base.en") used by the offline engine.
+    #[serde(default = "default_whisper_model")]
+    pub whisper_local_model: String,
     pub stt_language: String,
     pub auto_detect_language: bool,
     pub custom_vocabulary: Vec<String>,
@@ -30,6 +33,12 @@ pub struct AppSettings {
     pub grammar_enabled: bool,
     pub grammar_api_key: Option<String>,
     pub grammar_provider: String,
+    /// "cloud" | "local_rules" | "local_llm" — privileged mode forces local.
+    #[serde(default = "default_grammar_engine")]
+    pub grammar_engine: String,
+    /// Grammar LLM catalog id (e.g. "qwen3-4b") for the local_llm engine.
+    #[serde(default = "default_grammar_local_model")]
+    pub grammar_local_model: String,
     pub writing_style: String,
     pub auto_correct: bool,
     #[serde(default = "default_true")]
@@ -39,6 +48,10 @@ pub struct AppSettings {
     pub auto_punctuate: bool,
     pub smart_format: bool,
     pub voice_commands_enabled: bool,
+    /// Tray-resident hands-free mode: capture stays alive and a local
+    /// voice-activity gate opens the cloud session only during speech.
+    #[serde(default)]
+    pub always_ready_mode: bool,
 
     // Text injection
     pub injection_mode: String,
@@ -76,6 +89,15 @@ pub struct AppSettings {
     #[serde(default = "default_translation_language")]
     pub translation_target_language: String,
 
+    // Meeting capture consent — the Rust-side start gate refuses to record
+    // system audio until an acknowledgment is stored (fail-closed).
+    #[serde(default)]
+    pub meeting_jurisdiction: String,
+    #[serde(default)]
+    pub meeting_consent_ack_version: Option<String>,
+    #[serde(default)]
+    pub meeting_consent_ack_at: Option<String>,
+
     // Voxlen account — when set, all STT and grammar calls are proxied
     // through voxlen.ai/api so users never need their own API keys.
     #[serde(default)]
@@ -86,8 +108,8 @@ pub struct AppSettings {
     pub voxlen_context: Option<String>,
 
     // Frontend-only fields that Rust round-trips but does not act on.
-    // Keeping them here prevents persist_settings() from silently dropping
-    // them whenever update_settings is invoked from the frontend.
+    // Keeping them here prevents update_settings from silently dropping
+    // them when the frontend round-trips the settings object.
     #[serde(default)]
     pub billable_rate_per_hour: f64,
     #[serde(default)]
@@ -105,6 +127,7 @@ impl Default for AppSettings {
 
             stt_engine: "deepgram".to_string(),
             stt_api_key: None,
+            whisper_local_model: "base.en".to_string(),
             stt_language: "en".to_string(),
             auto_detect_language: true,
             custom_vocabulary: Vec::new(),
@@ -113,6 +136,8 @@ impl Default for AppSettings {
             grammar_enabled: true,
             grammar_api_key: None,
             grammar_provider: "claude".to_string(),
+            grammar_engine: "cloud".to_string(),
+            grammar_local_model: "qwen3-4b".to_string(),
             writing_style: "professional".to_string(),
             auto_correct: true,
             preserve_tone: true,
@@ -120,6 +145,7 @@ impl Default for AppSettings {
             auto_punctuate: true,
             smart_format: true,
             voice_commands_enabled: true,
+            always_ready_mode: false,
 
             injection_mode: "keyboard".to_string(),
 
@@ -145,6 +171,10 @@ impl Default for AppSettings {
             translation_enabled: false,
             translation_target_language: "en".to_string(),
 
+            meeting_jurisdiction: String::new(),
+            meeting_consent_ack_version: None,
+            meeting_consent_ack_at: None,
+
             voxlen_api_key: None,
             voxlen_tenant_id: None,
             voxlen_context: None,
@@ -157,6 +187,9 @@ impl Default for AppSettings {
 }
 
 fn default_true() -> bool { true }
+fn default_whisper_model() -> String { "base.en".to_string() }
+fn default_grammar_engine() -> String { "cloud".to_string() }
+fn default_grammar_local_model() -> String { "qwen3-4b".to_string() }
 fn default_shortcut_correct_grammar() -> String { "CommandOrControl+Shift+G".to_string() }
 
 fn default_translation_language() -> String {
@@ -164,28 +197,12 @@ fn default_translation_language() -> String {
 }
 
 const SETTINGS_STORE_FILE: &str = "settings.json";
-const SETTINGS_KEY: &str = "settings";
 
 static SETTINGS: std::sync::OnceLock<parking_lot::RwLock<AppSettings>> =
     std::sync::OnceLock::new();
 
 fn get_settings_store() -> &'static parking_lot::RwLock<AppSettings> {
     SETTINGS.get_or_init(|| parking_lot::RwLock::new(AppSettings::default()))
-}
-
-fn persist_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
-    // Never write API keys to plaintext disk storage; they live in the OS keychain.
-    let mut disk_settings = settings.clone();
-    disk_settings.stt_api_key = None;
-    disk_settings.grammar_api_key = None;
-
-    let store = app
-        .store(SETTINGS_STORE_FILE)
-        .map_err(|e| e.to_string())?;
-    let value = serde_json::to_value(&disk_settings).map_err(|e| e.to_string())?;
-    store.set(SETTINGS_KEY, value);
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
 }
 
 #[tauri::command]
@@ -200,6 +217,12 @@ pub fn update_settings(
     audio_state: State<'_, AudioState>,
     settings: AppSettings,
 ) -> Result<(), String> {
+    // Edge-detect the effective Always-Ready state (privileged mode forces
+    // it off — the gate must never open a cloud session for privileged work).
+    let was_armed = {
+        let prev = get_settings_store().read();
+        prev.always_ready_mode && !prev.privileged_mode
+    };
     *get_settings_store().write() = settings.clone();
     // The frontend (schedulePersist) owns the Tauri store and writes it in camelCase.
     // Writing snake_case from here would overwrite that and break frontend reads on
@@ -207,6 +230,16 @@ pub fn update_settings(
     apply_settings_to_engines(&stt_state.0, &audio_state, &settings);
     apply_autostart(&app, settings.launch_at_login);
     apply_injection_mode(&app, &settings.injection_mode);
+
+    // update_settings fires on every persist debounce, so arming must be
+    // strictly edge-triggered and idempotent. This also covers app boot:
+    // the frontend always pushes settings shortly after the webview loads.
+    let want_armed = settings.always_ready_mode && !settings.privileged_mode;
+    if want_armed && !was_armed {
+        crate::commands::dictation::arm_always_ready(&app);
+    } else if !want_armed && was_armed {
+        crate::commands::dictation::disarm_always_ready(&app);
+    }
     Ok(())
 }
 
@@ -220,6 +253,9 @@ pub fn reset_settings(
     *get_settings_store().write() = defaults.clone();
     apply_settings_to_engines(&stt_state.0, &audio_state, &defaults);
     apply_autostart(&app, defaults.launch_at_login);
+    apply_injection_mode(&app, &defaults.injection_mode);
+    // Defaults have Always-Ready off — tear it down if it was armed.
+    crate::commands::dictation::disarm_always_ready(&app);
     Ok(defaults)
 }
 
@@ -266,7 +302,7 @@ fn apply_settings_to_engines(
     let model = match stt_engine_type {
         SttEngineType::DeepgramCloud => "nova-3".to_string(),
         SttEngineType::WhisperCloud => "whisper-1".to_string(),
-        SttEngineType::WhisperLocal => "base".to_string(),
+        SttEngineType::WhisperLocal => s.whisper_local_model.clone(),
     };
 
     let voxlen_key = s.voxlen_api_key.clone().filter(|k| !k.is_empty());
@@ -309,6 +345,12 @@ fn apply_settings_to_engines(
     // (engine applies Voxlen-first precedence with BYOK fallback).
     let grammar_api_key = s.grammar_api_key.clone().filter(|k| !k.is_empty());
 
+    let grammar_engine = match s.grammar_engine.as_str() {
+        "local_rules" => GrammarEngine::LocalRules,
+        "local_llm" => GrammarEngine::LocalLlm,
+        _ => GrammarEngine::Cloud,
+    };
+
     let grammar_config = GrammarConfig {
         enabled: s.grammar_enabled,
         api_key: grammar_api_key,
@@ -319,6 +361,7 @@ fn apply_settings_to_engines(
         voxlen_api_key: voxlen_key,
         voxlen_context: s.voxlen_context.clone().filter(|k| !k.is_empty()),
         voxlen_tenant_id: s.voxlen_tenant_id.clone().filter(|k| !k.is_empty()),
+        engine: grammar_engine,
     };
     set_grammar_config_internal(grammar_config);
 

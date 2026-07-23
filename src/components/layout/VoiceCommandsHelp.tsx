@@ -152,7 +152,7 @@ export function VoiceCommandsHelp({ onClose }: Props) {
                 className={[
                   "flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors",
                   activeCategory === id
-                    ? "bg-marcoreid-900 text-brass-300"
+                    ? "bg-voxlen-900 text-brass-300"
                     : "bg-surface-200/70 text-surface-700 hover:bg-surface-300/60 hover:text-surface-900",
                 ].join(" ")}
               >

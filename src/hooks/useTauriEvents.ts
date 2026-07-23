@@ -9,8 +9,12 @@ import { useHistoryStore } from "@/stores/history";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
 import { applySmartFormat } from "@/lib/smartFormat";
 import { applyContextFormat } from "@/lib/contextFormat";
+import { computeBillableAmount, resolveRate, draftNarrative } from "@/lib/billing";
+import { collectVocabulary } from "@/lib/vocab";
+import { applyLearnedCorrections } from "@/lib/localCorrections";
 import type { VoxlenContext } from "@/lib/contextFormat";
 import { useClauseStore } from "@/stores/clauses";
+import { autoSaveSessionDocument, autoDocFailureMessage } from "@/lib/autoDoc";
 
 interface TranscriptionEvent {
   text: string;
@@ -32,6 +36,11 @@ interface StreamingPartialEvent {
   is_final: boolean;
   confidence: number;
 }
+
+// Serial queue for post-processing — ensures utterances are injected in the
+// order they were spoken, even when grammar/translation calls take different
+// amounts of time.
+let _postQueue = Promise.resolve();
 
 /**
  * Subscribes to all backend event streams (audio level, waveform, transcription,
@@ -74,6 +83,10 @@ export function useTauriEvents(): void {
           (event) => {
             const result = event.payload;
             if (!result.is_final) return;
+            // While paused, drop incoming transcripts entirely — the backend
+            // streaming path doesn't gate on pause yet, and appending/injecting
+            // text while the UI says "Paused" is a privacy failure.
+            if (useDictationStore.getState().status === "paused") return;
             const text = result.text.trim();
             if (!text) return;
 
@@ -127,27 +140,27 @@ export function useTauriEvents(): void {
                     "__LOG_TIME__": 30, // default
                   };
                   const minutes = minuteMap[output] ?? 30;
-                  const { logTime } = useFlywheelStore.getState();
-                  const { billableRatePerHour } = useSettingsStore.getState() as { billableRatePerHour?: number };
+                  const vcSettings = useSettingsStore.getState();
                   const note = parsed.remainingText || "";
-                  logTime(minutes, "", note, billableRatePerHour ?? 0);
-                  // Also log to active client so it appears in billing dashboard
                   const { activeClientId: vcClientId, clients: vcClients, addEntry: vcAddEntry } = useClientsStore.getState();
-                  if (vcClientId) {
-                    const vcClient = vcClients.find((c) => c.id === vcClientId);
-                    if (vcClient) {
-                      const rate = vcClient.billableRate > 0 ? vcClient.billableRate : (billableRatePerHour ?? 0);
-                      vcAddEntry({
-                        clientId: vcClientId,
-                        date: Date.now(),
-                        durationSeconds: minutes * 60,
-                        wordCount: 0,
-                        billableAmount: (minutes / 60) * rate,
-                        rateAtTime: rate,
-                        note,
-                      });
-                    }
-                  }
+                  const vcClient = vcClients.find((c) => c.id === vcClientId);
+                  const { rate } = resolveRate(vcClient, vcSettings.billableRatePerHour);
+                  const billing = computeBillableAmount(minutes * 60, rate, {
+                    incrementHours: vcSettings.billingRoundingIncrement,
+                    minimumHours: vcSettings.billingMinimumHours,
+                  });
+                  // Explicit voice command = attorney intent → approved, not draft.
+                  vcAddEntry({
+                    clientId: vcClient?.id ?? "",
+                    date: Date.now(),
+                    durationSeconds: minutes * 60,
+                    wordCount: 0,
+                    billableAmount: billing.amount,
+                    rateAtTime: rate,
+                    note: note.slice(0, 120) || undefined,
+                    status: "approved",
+                    source: "voice-command",
+                  });
                   dictation.setCurrentTranscript("");
                   return;
                 }
@@ -240,12 +253,23 @@ export function useTauriEvents(): void {
                   speakerLabel: speakerLabelForContext,
                 })
               : shaped;
-            const finalText = capsLock ? withContext.toUpperCase() : withContext;
+            // Pre-apply flywheel-learned correction patterns on-device —
+            // instant, free, and the only correction path in Privileged
+            // Mode where cloud grammar never runs.
+            const withLearned = settings.applyLearnedCorrections
+              ? applyLearnedCorrections(
+                  withContext,
+                  useFlywheelStore.getState().getTopCorrectionPatterns(50)
+                ).text
+              : withContext;
+            const finalText = capsLock ? withLearned.toUpperCase() : withLearned;
 
-            // Clause library voice triggers
+            // Clause library voice triggers — gated on the voice-commands
+            // setting: with it off, a sentence merely containing a trigger
+            // phrase must not be swallowed and replaced by a clause.
             const { findByTrigger, findTemplateByTrigger, markUsed } = useClauseStore.getState();
-            const matchedClause = findByTrigger(finalText);
-            const matchedTemplate = findTemplateByTrigger(finalText);
+            const matchedClause = settings.voiceCommandsEnabled ? findByTrigger(finalText) : undefined;
+            const matchedTemplate = settings.voiceCommandsEnabled ? findTemplateByTrigger(finalText) : undefined;
             if (matchedClause) {
               markUsed(matchedClause.id);
               dictation.addSegment({
@@ -315,47 +339,47 @@ export function useTauriEvents(): void {
             });
             dictation.setCurrentTranscript("");
 
-            // Post-processing pipeline (runs async so it doesn't block the UI):
-            // 1. Grammar correction (if enabled)
-            // 2. Translation (if enabled, runs on grammar-corrected text)
-            // 3. Auto-inject into the currently focused app (unless injectionMode is "buffer")
+            // Post-processing pipeline — appended to a serial queue so multiple
+            // rapid utterances are always injected in the order they were spoken,
+            // even when grammar/translation calls take different amounts of time.
             const grammarEnabled = settings.grammarEnabled;
             const translationEnabled =
               settings.translationEnabled &&
               settings.translationTargetLanguage &&
               settings.translationTargetLanguage !== (result.language ?? "");
 
-            (async () => {
+            // Capture values used inside the async closure before any state changes.
+            const capturedFinalText = finalText;
+            const capturedSegmentId = segmentId;
+            const capturedAutoInject = autoInject;
+
+            _postQueue = _postQueue.then(async () => {
               try {
                 const { invoke } = await import("@tauri-apps/api/core");
-                let processedText = finalText;
+                let processedText = capturedFinalText;
 
                 // Step 1: grammar correction
                 if (grammarEnabled) {
                   try {
-                    const flyVocab = useFlywheelStore.getState().vocabulary
-                      .filter((v) => v.frequency >= 2)
-                      .map((v) => v.word);
                     const { activeClientId: acid, clients: acls } = useClientsStore.getState();
                     const activeClientForAuto = acls.find((c) => c.id === acid);
-                    const clientVocabAuto = activeClientForAuto?.vocabulary ?? [];
-                    const mergedVocab = Array.from(new Set([...flyVocab, ...clientVocabAuto, ...settings.customVocabulary]));
+                    const mergedVocab = collectVocabulary();
                     const matterContextAuto = buildMatterContext(activeClientForAuto) || undefined;
                     const grammarResult = await invoke<{ corrected: string; changes: Array<{ original: string; corrected: string; reason: string; category: string }>; score: number }>(
                       "correct_grammar",
                       {
-                        text: finalText,
+                        text: capturedFinalText,
                         customVocabulary: mergedVocab.length > 0 ? mergedVocab : undefined,
                         matterContext: matterContextAuto,
+                        learnedPatterns: useFlywheelStore.getState().getTopCorrectionPatterns(50),
                       }
                     );
                     if (grammarResult?.corrected) {
                       processedText = grammarResult.corrected;
-                      useDictationStore.getState().updateSegment(segmentId, {
+                      useDictationStore.getState().updateSegment(capturedSegmentId, {
                         correctedText: grammarResult.corrected,
                         grammarApplied: true,
                       });
-                      // Feed corrections back into flywheel
                       if (grammarResult.changes?.length) {
                         const fw = useFlywheelStore.getState();
                         for (const c of grammarResult.changes) {
@@ -370,8 +394,15 @@ export function useTauriEvents(): void {
                         fw.recordCorrectionFeedback(true);
                       }
                     }
-                  } catch {
-                    // Grammar unavailable (no API key etc.) — continue with raw text.
+                  } catch (err) {
+                    // Surface actionable errors — rate limits and auth failures need user action.
+                    const msg = err instanceof Error ? err.message : String(err);
+                    if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) {
+                      toast("Grammar AI rate limited — transcript saved without corrections", "info", 4000);
+                    } else if (msg.includes("No grammar AI key") || msg.includes("401") || msg.includes("403")) {
+                      toast("Grammar AI not configured — add an API key in Settings › Account", "info", 5000);
+                    }
+                    // Other failures (network, timeout): silently continue with raw text.
                   }
                 }
 
@@ -387,7 +418,7 @@ export function useTauriEvents(): void {
                     );
                     if (translation?.translated) {
                       processedText = translation.translated;
-                      useDictationStore.getState().updateSegment(segmentId, {
+                      useDictationStore.getState().updateSegment(capturedSegmentId, {
                         translatedText: translation.translated,
                         translatedToLanguage: settings.translationTargetLanguage,
                       });
@@ -397,19 +428,20 @@ export function useTauriEvents(): void {
                   }
                 }
 
-                // Step 3: inject into the focused app
-                if (autoInject) {
+                // Step 3: inject into the focused app. A trailing space keeps
+                // consecutive utterances from running together ("…meeting.Then")
+                // — matching the voice-command and manual-insert paths.
+                if (capturedAutoInject) {
                   try {
-                    await invoke("inject_text", { text: processedText });
+                    await invoke("inject_text", { text: processedText + " " });
                   } catch {
                     // Injection failure (e.g. Accessibility permissions not granted on macOS).
-                    // Text is still visible in the Voxlen panel for manual copy.
                   }
                 }
               } catch {
                 // Non-Tauri environment — skip.
               }
-            })();
+            });
           }
         );
 
@@ -423,7 +455,11 @@ export function useTauriEvents(): void {
         );
 
         const unlistenSpeechStarted = await listen("speech-started", () => {
-          useDictationStore.getState().setStatus("listening");
+          // Deepgram VAD fires on any speech — it must not silently un-pause.
+          const status = useDictationStore.getState().status;
+          if (status !== "paused" && status !== "idle") {
+            useDictationStore.getState().setStatus("listening");
+          }
         });
 
         const unlistenUtteranceEnd = await listen("utterance-end", () => {
@@ -471,6 +507,44 @@ export function useTauriEvents(): void {
           );
         });
 
+        // When the backend streaming session gives up (retries exhausted or user
+        // stopped dictation and the WebSocket finally closed), reset UI to idle so
+        // the microphone button is re-enabled. Without this the UI can get stuck
+        // showing "Listening." with no audio being transcribed.
+        // EXCEPTION: in Always-Ready mode the gate closes a session after
+        // every silence hangover — that disconnect is routine, not terminal.
+        const unlistenDisconnected = await listen("streaming-disconnected", () => {
+          if (useDictationStore.getState().alwaysReadyPhase !== "off") return;
+          const s = useDictationStore.getState().status;
+          if (s === "listening" || s === "processing" || s === "paused") {
+            useDictationStore.getState().setStatus("idle");
+          }
+        });
+
+        // Always-Ready gate lifecycle. While armed/streaming the mic is
+        // conceptually hot, so keep status out of "idle" (which would
+        // re-enable the start button and fight the supervisor).
+        const unlistenAlwaysReadyState = await listen<string>("always-ready-state", (event) => {
+          const phase = event.payload as "off" | "armed" | "streaming" | "error";
+          const dictation = useDictationStore.getState();
+          dictation.setAlwaysReadyPhase(phase);
+          if (phase === "armed" || phase === "streaming") {
+            if (dictation.status === "idle" || dictation.status === "error") {
+              dictation.setStatus("listening");
+            }
+          } else if (phase === "off") {
+            if (dictation.status === "listening" || dictation.status === "processing") {
+              dictation.setStatus("idle");
+            }
+          }
+        });
+
+        // Tray checkbox toggled — route through the normal setting update so
+        // persistence and backend arming happen via the single path.
+        const unlistenAlwaysReadyToggle = await listen<boolean>("always-ready-toggle", (event) => {
+          useSettingsStore.getState().updateSetting("alwaysReadyMode", !!event.payload);
+        });
+
         unlisten = () => {
           unlistenLevel();
           unlistenWaveform();
@@ -483,7 +557,24 @@ export function useTauriEvents(): void {
           unlistenRecoveryAttempt();
           unlistenRecoveryResult();
           unlistenRecoveryGiveup();
+          unlistenDisconnected();
+          unlistenAlwaysReadyState();
+          unlistenAlwaysReadyToggle();
         };
+
+        // Hydrate the gate phase — the backend may have armed Always-Ready
+        // from the persisted setting before this webview finished loading.
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          const armed = await invoke<boolean>("get_always_ready_state");
+          if (armed) {
+            const dictation = useDictationStore.getState();
+            dictation.setAlwaysReadyPhase("armed");
+            if (dictation.status === "idle") dictation.setStatus("listening");
+          }
+        } catch {
+          // Command unavailable (tests / old backend).
+        }
       } catch {
         // Not running in Tauri.
       }
@@ -500,6 +591,10 @@ export function useTauriEvents(): void {
   // (and there are segments), persist a SessionRecord to the backend.
   useEffect(() => {
     let lastStatus = useDictationStore.getState().status;
+    // Dedupe by session identity, not by transcript text — text-equality
+    // dedupe silently dropped the history entry, flywheel session, AND the
+    // client billable entry whenever a later session dictated identical text.
+    let lastSavedSessionKey: string | null = null;
     const unsub = useDictationStore.subscribe((state) => {
       const current = state.status;
       const wasActive = lastStatus === "listening" || lastStatus === "processing";
@@ -514,10 +609,13 @@ export function useTauriEvents(): void {
           const fullText = segments.map((s) => s.correctedText || s.text).join(" ");
           const wc = fullText.split(/\s+/).filter(Boolean).length;
           const hasGrammar = segments.some((s) => s.grammarApplied);
-          const alreadyInHistory = useHistoryStore.getState().entries.some(
-            (e) => e.text === fullText
-          );
-          if (!alreadyInHistory) {
+          const sessionKey = dictState.sessionStartedAtMs !== null
+            ? String(dictState.sessionStartedAtMs)
+            : `text:${fullText}`;
+          const alreadySaved = sessionKey === lastSavedSessionKey;
+          if (!alreadySaved) {
+            lastSavedSessionKey = sessionKey;
+            const record = buildSessionRecord();
             useHistoryStore.getState().addEntry({
               id: crypto.randomUUID(),
               text: fullText,
@@ -532,40 +630,51 @@ export function useTauriEvents(): void {
             const engine = settings.sttEngine;
             useFlywheelStore.getState().recordSession(wc, dictState.sessionDuration, engine);
 
-            // Record billable entry for active client
-            const { activeClientId, clients, addEntry } = useClientsStore.getState();
-            if (activeClientId) {
-              const client = clients.find((c) => c.id === activeClientId);
-              if (client) {
-                const rate = client.billableRate > 0
-                  ? client.billableRate
-                  : (settings.billableRatePerHour ?? 350);
-                const billable = (dictState.sessionDuration / 3600) * rate;
-                addEntry({
-                  clientId: activeClientId,
-                  date: Date.now(),
-                  durationSeconds: dictState.sessionDuration,
-                  wordCount: wc,
-                  billableAmount: billable,
-                  rateAtTime: rate,
-                });
+            // Auto-draft a billable time entry for attorney review — never
+            // silently approved. Sessions under 30s are noise, not billable work.
+            if (settings.autoTimeCapture && dictState.sessionDuration >= 30) {
+              const { clients, addEntry, activeClientId } = useClientsStore.getState();
+              // record is non-null here (segments exist), but fall back to the
+              // active client so a null record can't silently drop the client rate.
+              const client = clients.find((c) => c.id === (record?.client_id ?? activeClientId));
+              const { rate } = resolveRate(client, settings.billableRatePerHour);
+              const billing = computeBillableAmount(dictState.sessionDuration, rate, {
+                incrementHours: settings.billingRoundingIncrement,
+                minimumHours: settings.billingMinimumHours,
+              });
+              const entryId = addEntry({
+                clientId: client?.id ?? "",
+                date: dictState.sessionStartedAtMs ?? Date.now(),
+                durationSeconds: dictState.sessionDuration,
+                wordCount: wc,
+                billableAmount: billing.amount,
+                rateAtTime: rate,
+                note: draftNarrative(fullText),
+                status: "draft",
+                source: "session",
+              });
+              if (entryId) {
+                useDictationStore.getState().setLastDraftEntryId(entryId);
               }
             }
-          }
-        }
 
-        if (settings.saveTranscripts) {
-          const record = buildSessionRecord();
-          if (record) {
-            // Fire and forget; graceful fallback for non-Tauri.
-            (async () => {
-              try {
-                const { invoke } = await import("@tauri-apps/api/core");
-                await invoke("save_session", { session: record });
-              } catch {
-                // Non-Tauri environment — skip.
-              }
-            })();
+            if (record && settings.saveTranscripts) {
+              void (async () => {
+                try {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  await invoke("save_session", { session: record });
+                } catch {
+                  // Non-Tauri environment — skip.
+                }
+              })();
+            }
+
+            if (record && settings.autoDocEnabled && settings.autoDocRootPath) {
+              void autoSaveSessionDocument(record).then(
+                (path) => toast(`Document saved — ${path}`, "success", 5000),
+                (error) => toast(autoDocFailureMessage(error), "error", 5000),
+              );
+            }
           }
         }
 

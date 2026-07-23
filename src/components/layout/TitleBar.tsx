@@ -57,7 +57,7 @@ export function TitleBar() {
     >
       {/* Left: App identity — editorial serif wordmark with brass inflection. */}
       <div className="flex items-center gap-3" data-tauri-drag-region>
-        <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 shadow-inset-hairline">
+        <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gradient-to-br from-voxlen-700 to-voxlen-900 shadow-inset-hairline">
           <Mic className="h-3.5 w-3.5 text-brass-300" strokeWidth={2} />
         </div>
         <div className="flex items-baseline leading-none">

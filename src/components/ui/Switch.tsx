@@ -51,7 +51,7 @@ export function Switch({
           {
             "h-5 w-9": size === "sm",
             "h-6 w-11": size === "md",
-            "bg-gradient-to-b from-marcoreid-700 to-marcoreid-900": checked,
+            "bg-gradient-to-b from-voxlen-700 to-voxlen-900": checked,
             "bg-surface-300": !checked,
           }
         )}

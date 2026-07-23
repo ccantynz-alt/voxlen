@@ -138,8 +138,8 @@ export function AdminPanel() {
             className={cn(
               "flex items-center justify-center w-10 h-10 rounded-md shadow-elevation shadow-inset-hairline",
               allGranted
-                ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900"
-                : "bg-gradient-to-br from-marcoreid-800 to-marcoreid-950"
+                ? "bg-gradient-to-br from-voxlen-700 to-voxlen-900"
+                : "bg-gradient-to-br from-voxlen-800 to-voxlen-950"
             )}
           >
             {allGranted ? (

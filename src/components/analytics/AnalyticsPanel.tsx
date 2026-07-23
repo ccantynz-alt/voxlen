@@ -12,20 +12,27 @@ import {
   Activity,
 } from "lucide-react";
 import { useFlywheelStore } from "@/stores/flywheel";
+import { useClientsStore } from "@/stores/clients";
 import { cn } from "@/lib/utils";
 
 export function AnalyticsPanel() {
   const metrics = useFlywheelStore((s) => s.metrics);
   const vocabulary = useFlywheelStore((s) => s.vocabulary);
   const corrections = useFlywheelStore((s) => s.corrections);
-  const timeEntries = useFlywheelStore((s) => s.timeEntries);
+  const allEntries = useClientsStore((s) => s.entries);
+  const clients = useClientsStore((s) => s.clients);
 
+  // Approved entries only — drafts are still pending attorney review.
+  const timeEntries = useMemo(
+    () => allEntries.filter((e) => e.status === "approved"),
+    [allEntries]
+  );
   const totalHours = useMemo(
-    () => timeEntries.reduce((s, e) => s + (e.minutes || 0) / 60, 0),
+    () => timeEntries.reduce((s, e) => s + (e.durationSeconds || 0) / 3600, 0),
     [timeEntries]
   );
   const totalBillable = useMemo(
-    () => timeEntries.reduce((s, e) => s + (e.amount || 0), 0),
+    () => timeEntries.reduce((s, e) => s + (e.billableAmount || 0), 0),
     [timeEntries]
   );
 
@@ -131,7 +138,7 @@ export function AnalyticsPanel() {
                   <div
                     className={cn(
                       "w-full rounded-sm transition-all",
-                      day.count > 0 ? "bg-marcoreid-700/70" : "bg-surface-200/60"
+                      day.count > 0 ? "bg-voxlen-700/70" : "bg-surface-200/60"
                     )}
                     style={{
                       height: day.count > 0
@@ -246,18 +253,24 @@ export function AnalyticsPanel() {
           </div>
           <div className="space-y-2">
             {[...timeEntries]
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .sort((a, b) => b.date - a.date)
               .slice(0, 6)
-              .map((e) => (
-                <div key={e.id} className="flex items-center gap-3 text-[12px]">
-                  <span className="text-surface-900 font-medium flex-1 truncate">{e.matter || "Unnamed matter"}</span>
-                  <span className="text-surface-600 shrink-0">{e.minutes}min</span>
-                  <span className="text-brass-500 font-mono shrink-0">${e.amount.toFixed(2)}</span>
-                  <span className="text-[10px] text-surface-500 shrink-0">
-                    {new Date(e.createdAt).toLocaleDateString("en", { month: "short", day: "numeric" })}
-                  </span>
-                </div>
-              ))}
+              .map((e) => {
+                const clientName =
+                  clients.find((c) => c.id === e.clientId)?.name ||
+                  e.matterLabel ||
+                  "Unassigned";
+                return (
+                  <div key={e.id} className="flex items-center gap-3 text-[12px]">
+                    <span className="text-surface-900 font-medium flex-1 truncate">{clientName}</span>
+                    <span className="text-surface-600 shrink-0">{Math.round(e.durationSeconds / 60)}min</span>
+                    <span className="text-brass-500 font-mono shrink-0">${e.billableAmount.toFixed(2)}</span>
+                    <span className="text-[10px] text-surface-500 shrink-0">
+                      {new Date(e.date).toLocaleDateString("en", { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

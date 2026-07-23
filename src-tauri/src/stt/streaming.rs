@@ -11,7 +11,7 @@ use super::SttConfig;
 /// Real-time streaming transcription via Deepgram WebSocket
 pub struct StreamingSession {
     stop_flag: Arc<AtomicBool>,
-    _handle: Option<tokio::task::JoinHandle<()>>,
+    _handle: Option<tauri::async_runtime::JoinHandle<()>>,
 }
 
 impl StreamingSession {
@@ -56,7 +56,9 @@ enum SessionOutcome {
 
 /// Exchange a Voxlen API key for a short-lived Deepgram temp key via the Voxlen proxy.
 async fn fetch_deepgram_temp_key(voxlen_key: &str) -> anyhow::Result<String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(8))
+        .build()?;
     let resp = client
         .post("https://voxlen.ai/api/deepgram-token")
         .header("Authorization", format!("Bearer {}", voxlen_key))
@@ -135,7 +137,11 @@ pub fn start_streaming(
     let tenant_id = config.voxlen_tenant_id.clone();
 
     let stop_on_exit = stop_flag.clone();
-    let handle = tokio::spawn(async move {
+    // Must be async_runtime::spawn, NOT tokio::spawn: this function is also
+    // reached from plain OS threads (capture watchdog → restart_capture →
+    // start_dictation_internal), where tokio::spawn would panic off-runtime —
+    // and the release profile aborts on panic.
+    let handle = tauri::async_runtime::spawn(async move {
         let session_task = async {
             // Acquire the initial Deepgram key using the Voxlen-first / direct
             // BYOK fallback precedence.
@@ -144,7 +150,12 @@ pub fn start_streaming(
                     .await
                 {
                     Some(k) => k,
-                    None => return, // error already emitted
+                    None => {
+                        // error already emitted by acquire_deepgram_key;
+                        // emit disconnect so the UI exits "listening" state.
+                        let _ = app_handle.emit("streaming-disconnected", true);
+                        return;
+                    }
                 };
 
             run_streaming_session(
@@ -322,9 +333,11 @@ async fn run_session_once(
     );
 
     if auto_detect {
-        url.push_str("&detect_language=true");
+        // `detect_language` is batch-only and rejected by the streaming
+        // endpoint; nova-3 streaming supports multilingual via `language=multi`.
+        url.push_str("&language=multi");
     } else {
-        url.push_str(&format!("&language={}", language));
+        url.push_str(&format!("&language={}", super::cloud::urlencoding(language)));
     }
 
     if diarization {
@@ -377,7 +390,13 @@ async fn run_session_once(
     // Spawn audio sender task
     let stop_sender = stop_flag.clone();
     let audio_receiver_clone = audio_receiver.clone();
-    let sender_handle = tokio::spawn(async move {
+    let sender_handle = tauri::async_runtime::spawn(async move {
+        // Deepgram closes the socket after ~10s without audio (NET-0001).
+        // While paused (or during long silences with the mic gated) no chunks
+        // arrive, so send a KeepAlive text frame if nothing has been sent for
+        // a while to hold the session open.
+        const KEEPALIVE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(7);
+        let mut last_sent = std::time::Instant::now();
         loop {
             if stop_sender.load(Ordering::Relaxed) {
                 // Send close frame
@@ -421,8 +440,22 @@ async fn run_session_once(
                         log::error!("Failed to send audio: {}", e);
                         break;
                     }
+                    last_sent = std::time::Instant::now();
                 }
-                Err(crossbeam_channel::RecvTimeoutError::Timeout) => continue,
+                Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
+                    if last_sent.elapsed() >= KEEPALIVE_INTERVAL {
+                        if let Err(e) = ws_sender.send(
+                            tokio_tungstenite::tungstenite::Message::Text(
+                                serde_json::json!({"type": "KeepAlive"}).to_string().into()
+                            )
+                        ).await {
+                            log::error!("Failed to send KeepAlive: {}", e);
+                            break;
+                        }
+                        last_sent = std::time::Instant::now();
+                    }
+                    continue;
+                }
                 Err(crossbeam_channel::RecvTimeoutError::Disconnected) => break,
             }
         }
@@ -516,8 +549,9 @@ async fn run_session_once(
                             let _ = app_handle.emit("speech-started", true);
                         }
                         "Error" | "Metadata" => {
-                            // Log but don't fail
-                            log::debug!("Deepgram message: {}", text);
+                            // Log but don't fail. Content-free: raw Deepgram JSON
+                            // can contain transcript text, which must never hit logs.
+                            log::debug!("Deepgram {} message ({} bytes)", msg_type, text.len());
                         }
                         _ => {}
                     }

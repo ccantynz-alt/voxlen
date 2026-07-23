@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { corsHeaders, extractBearer, verifyAccessToken, applyHeaders } from "./_auth";
+import { corsHeaders, extractBearer, verifyAccessToken, applyHeaders } from "./_auth.js";
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
 
@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // LRANGE voxlen:waitlist 0 -1 — get all entries
+    // LRANGE voxlen:waitlist 0 -1 â€” get all entries
     const r = await fetch(`${kvUrl}/lrange/voxlen:waitlist/0/-1`, {
       headers: { Authorization: `Bearer ${kvToken}` },
     });

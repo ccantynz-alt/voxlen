@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
   Mic,
@@ -17,23 +17,107 @@ import {
   Download,
   ShieldCheck,
   ShieldOff,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Waveform } from "./Waveform";
 import { TranscriptView } from "./TranscriptView";
+import { TimeEntryReviewBanner } from "./TimeEntryReviewBanner";
 import { useDictationStore, buildSessionRecord, loadDraftRecord } from "@/stores/dictation";
 import { useAudioStore } from "@/stores/audio";
 import { useSettingsStore } from "@/stores/settings";
 import { formatDuration } from "@/lib/utils";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore, buildMatterContext } from "@/stores/clients";
+import { useNavigationStore } from "@/stores/navigation";
 import { VoiceCommandsHelp } from "@/components/layout/VoiceCommandsHelp";
+import { suggestClient, suggestOverActive } from "@/lib/matterMatch";
+import { collectVocabulary, collectVocabularyOrUndefined } from "@/lib/vocab";
 import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
 import { downloadExport } from "@/lib/export";
 import type { ExportFormat } from "@/lib/export";
+import { sendSessionForReview } from "@/lib/sendReview";
+
+function DevicePicker({
+  activeDeviceName,
+  selectedDevice,
+}: {
+  activeDeviceName: string | null;
+  selectedDevice: { id: string; name: string; isExternal: boolean } | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const devices = useAudioStore((s) => s.devices);
+  const setSelectedDevice = useAudioStore((s) => s.setSelectedDevice);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const displayName = activeDeviceName || selectedDevice?.name;
+
+  if (!displayName && devices.length === 0) {
+    return (
+      <p className="text-[11px] text-brass-500 mt-2 tracking-tight">
+        No microphone selected — configure in Settings
+      </p>
+    );
+  }
+
+  return (
+    <div className="relative mt-2" ref={ref}>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 text-[11px] text-surface-600 hover:text-surface-800 transition-colors group"
+      >
+        <Mic className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
+        <span className="font-medium text-surface-700">{displayName ?? "Select mic"}</span>
+        {selectedDevice?.isExternal && (
+          <Badge variant="info" className="ml-1 text-[9px] py-0">External</Badge>
+        )}
+        {activeDeviceName && activeDeviceName !== selectedDevice?.name && (
+          <Badge variant="warning" className="ml-1 text-[9px] py-0">Fallback</Badge>
+        )}
+        <ChevronDown className="h-2.5 w-2.5 text-surface-500 group-hover:text-surface-700 transition-colors" strokeWidth={2} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 w-56 rounded-lg border border-surface-300/60 bg-surface-0 shadow-elevation-lg py-1 animate-fade-in">
+          {devices.length === 0 && (
+            <p className="px-3 py-2 text-[11px] text-surface-500">No devices found</p>
+          )}
+          {devices.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => {
+                setSelectedDevice(d.id);
+                updateSetting("preferredDeviceId", d.id);
+                setOpen(false);
+              }}
+              className={cn(
+                "w-full text-left px-3 py-2 text-[12px] flex items-center gap-2 hover:bg-surface-100 transition-colors",
+                d.id === selectedDevice?.id ? "text-surface-900 font-medium" : "text-surface-700"
+              )}
+            >
+              <span className="flex-1 truncate">{d.name}</span>
+              {d.isExternal && <Badge variant="info" className="text-[9px] py-0 shrink-0">External</Badge>}
+              {d.id === selectedDevice?.id && <span className="text-brass-500 text-[10px] shrink-0">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function DictationPanel() {
   const status = useDictationStore((s) => s.status);
@@ -52,12 +136,16 @@ export function DictationPanel() {
   const setActiveDeviceName = useAudioStore((s) => s.setActiveDeviceName);
   const shortcutToggle = useSettingsStore((s) => s.shortcutToggle);
   const showWaveform = useSettingsStore((s) => s.showWaveform);
+  const reviewSharedFolderPath = useSettingsStore((s) => s.reviewSharedFolderPath);
 
   const restoreDraft = useDictationStore((s) => s.restoreDraft);
   const discardDraft = useDictationStore((s) => s.discardDraft);
+  const alwaysReadyPhase = useDictationStore((s) => s.alwaysReadyPhase);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
+  const isStartingRef = useRef(false);
+  const isStoppingRef = useRef(false);
 
   const [pendingDraft, setPendingDraft] = useState<ReturnType<typeof loadDraftRecord>>(null);
 
@@ -95,24 +183,44 @@ export function DictationPanel() {
   }, [status, incrementDuration]);
 
   const handleToggleDictation = useCallback(async () => {
+    // In Always-Ready mode the supervisor owns start/stop (the watchdog
+    // would immediately re-arm a stop). The button pauses/resumes instead —
+    // pause hard-gates audio at the capture callback.
+    if (alwaysReadyPhase !== "off") {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        if (status === "paused") {
+          try {
+            await invoke("resume_dictation");
+          } catch {
+            // Backend wasn't paused (e.g. recovering) — supervisor handles it.
+          }
+          setStatus("listening");
+        } else {
+          await invoke("pause_dictation");
+          setStatus("paused");
+        }
+      } catch {
+        // Non-Tauri.
+      }
+      return;
+    }
     if (status === "idle" || status === "paused" || status === "error") {
+      if (isStartingRef.current) return; // prevent double-tap race
+      isStartingRef.current = true;
       sessionStartRef.current = new Date();
       try {
         const { invoke } = await import("@tauri-apps/api/core");
 
-        // Merge active client's matter vocabulary into STT config before starting
-        const { activeClientId: cid, clients: cls } = useClientsStore.getState();
-        const activeClientForSTT = cls.find((c) => c.id === cid);
-        const matterVocab = activeClientForSTT?.vocabulary ?? [];
-        const globalVocab = useSettingsStore.getState().customVocabulary;
-        const mergedVocab = [...new Set([...globalVocab, ...matterVocab])];
-        if (mergedVocab.length !== globalVocab.length) {
-          try {
-            const currentCfg = await invoke<Record<string, unknown>>("get_stt_config");
-            await invoke("set_stt_config", { config: { ...currentCfg, custom_vocabulary: mergedVocab } });
-          } catch {
-            // Non-fatal — proceed without updating vocabulary
-          }
+        // Always push the merged vocabulary (global + client + flywheel-
+        // learned) into STT config so a client switch mid-session doesn't
+        // leak the previous client's terms and learned words boost accuracy.
+        const mergedVocab = collectVocabulary();
+        try {
+          const currentCfg = await invoke<Record<string, unknown>>("get_stt_config");
+          await invoke("set_stt_config", { config: { ...currentCfg, custom_vocabulary: mergedVocab } });
+        } catch {
+          // Non-fatal — proceed without updating vocabulary
         }
 
         await invoke("start_dictation");
@@ -124,15 +232,17 @@ export function DictationPanel() {
           // Non-fatal — device status line just won't show.
         }
       } catch (e) {
-        // Real failure in the desktop app (mic permission, device missing,
-        // no account) — never pretend we're listening.
         const msg = typeof e === "string" ? e : e instanceof Error ? e.message : "Could not start dictation";
         useDictationStore.getState().setError(msg);
         setStatus("error");
         setActiveDeviceName(null);
         toast(msg.length > 100 ? msg.slice(0, 100) + "…" : msg, "error", 6000);
+      } finally {
+        isStartingRef.current = false;
       }
     } else if (status === "listening") {
+      if (isStoppingRef.current) return;
+      isStoppingRef.current = true;
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         await invoke("stop_dictation");
@@ -146,8 +256,9 @@ export function DictationPanel() {
       // updates correctedText between the two saves.
       setStatus("idle");
       setActiveDeviceName(null);
+      isStoppingRef.current = false;
     }
-  }, [status, setStatus, setActiveDeviceName]);
+  }, [status, alwaysReadyPhase, setStatus, setActiveDeviceName]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
@@ -161,11 +272,19 @@ export function DictationPanel() {
     } else if (status === "paused") {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
-        await invoke("start_dictation");
-      } catch {
-        // Demo mode
+        try {
+          // Capture is still running while paused — just lift the gate.
+          await invoke("resume_dictation");
+        } catch {
+          // Backend wasn't actually paused (e.g. capture died) — full restart.
+          await invoke("start_dictation");
+        }
+        setStatus("listening");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Failed to resume";
+        useDictationStore.getState().setError(msg);
+        setStatus("error");
       }
-      setStatus("listening");
     }
   }, [status, setStatus]);
 
@@ -204,13 +323,7 @@ export function DictationPanel() {
         const { activeClientId: cid, clients: cls } = useClientsStore.getState();
         const activeClientForGrammar = cls.find((c) => c.id === cid);
         const matterContext = buildMatterContext(activeClientForGrammar) || undefined;
-        const flywheelVocab = useFlywheelStore.getState().vocabulary
-          .filter((v) => v.frequency >= 2)
-          .map((v) => v.word);
-        const clientVocab = activeClientForGrammar?.vocabulary ?? [];
-        const globalVocabList = useSettingsStore.getState().customVocabulary;
-        const mergedVocab = Array.from(new Set([...flywheelVocab, ...clientVocab, ...globalVocabList]));
-        const customVocabulary = mergedVocab.length > 0 ? mergedVocab : undefined;
+        const customVocabulary = collectVocabularyOrUndefined();
 
         const result = await invoke<{
           corrected: string;
@@ -219,12 +332,32 @@ export function DictationPanel() {
             corrected: string;
             reason: string;
           }>;
-        }>("correct_grammar", { text, customVocabulary, matterContext });
+        }>("correct_grammar", {
+          text,
+          customVocabulary,
+          matterContext,
+          learnedPatterns: useFlywheelStore.getState().getTopCorrectionPatterns(50),
+        });
 
-        // Update the last segment with corrected text
-        if (segments.length > 0) {
-          const lastSegment = segments[segments.length - 1];
-          useDictationStore.getState().updateSegment(lastSegment.id, {
+        // Apply the corrected text. The polish button passes the FULL
+        // transcript — writing that into only the last segment would leave
+        // segments 1..n-1 in place and duplicate the whole transcript, so
+        // for multi-segment sessions collapse to a single corrected segment.
+        let targetSegmentId: string | null = null;
+        if (segments.length > 1) {
+          targetSegmentId = crypto.randomUUID();
+          useDictationStore.getState().replaceAllSegments({
+            id: targetSegmentId,
+            text,
+            correctedText: result.corrected,
+            timestamp: new Date(),
+            confidence: 1,
+            isFinal: true,
+            grammarApplied: true,
+          });
+        } else if (segments.length === 1) {
+          targetSegmentId = segments[0].id;
+          useDictationStore.getState().updateSegment(targetSegmentId, {
             correctedText: result.corrected,
             grammarApplied: true,
           });
@@ -239,9 +372,8 @@ export function DictationPanel() {
               "translate_text",
               { text: result.corrected, targetLanguage: translationTargetLanguage }
             );
-            if (translation?.translated && segments.length > 0) {
-              const lastSegment = segments[segments.length - 1];
-              useDictationStore.getState().updateSegment(lastSegment.id, {
+            if (translation?.translated && targetSegmentId) {
+              useDictationStore.getState().updateSegment(targetSegmentId, {
                 translatedText: translation.translated,
                 translatedToLanguage: translationTargetLanguage,
               });
@@ -271,6 +403,16 @@ export function DictationPanel() {
     clearSession();
   }, [clearSession]);
 
+  const handleSendForReview = useCallback(async () => {
+    const record = buildSessionRecord();
+    if (!record) return;
+    try { await sendSessionForReview(record); toast("Sent for review", "success"); }
+    catch (e) { toast(`Could not send for review: ${e instanceof Error ? e.message : String(e)}`, "error", 6000); }
+  }, [buildSessionRecord]);
+
+  const sttApiKey = useSettingsStore((s) => s.sttApiKey);
+  const voxlenApiKey = useSettingsStore((s) => s.voxlenApiKey);
+  const hasApiKey = !!(sttApiKey || voxlenApiKey);
   const voxlenContext = useSettingsStore((s) => s.voxlenContext);
   const privilegedMode = useSettingsStore((s) => s.privilegedMode);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
@@ -293,6 +435,23 @@ export function DictationPanel() {
   const allClients = useClientsStore(useShallow((s) => s.clients.filter((c) => !c.archived)));
   const activeClient = allClients.find((c) => c.id === activeClientId) ?? null;
   const setActiveClient = useClientsStore((s) => s.setActiveClient);
+
+  // Contextual matter matching — suggest the client this dictation belongs
+  // to from its content (names, matter numbers, matter vocabulary). Local
+  // string matching only; never silent auto-assignment.
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
+  const clientSuggestion = useMemo(() => {
+    if (segments.length === 0 || allClients.length === 0) return null;
+    const text = segments.map((s) => s.correctedText || s.text).join(" ");
+    const suggestion = activeClientId
+      ? suggestOverActive(text, allClients, activeClientId)
+      : suggestClient(text, allClients);
+    if (!suggestion || dismissedSuggestions.includes(suggestion.clientId)) return null;
+    return suggestion;
+  }, [segments, allClients, activeClientId, dismissedSuggestions]);
+  const suggestedClient = clientSuggestion
+    ? allClients.find((c) => c.id === clientSuggestion.clientId) ?? null
+    : null;
 
   const currentTranscript = useDictationStore((s) => s.currentTranscript);
   const isActive = status === "listening" || status === "processing";
@@ -335,6 +494,21 @@ export function DictationPanel() {
           </button>
         </div>
       )}
+      {/* No API key banner — stays visible even in error state */}
+      {!hasApiKey && (
+        <div className="flex items-center gap-2.5 px-5 py-2.5 bg-red-950/50 border-b border-red-500/20">
+          <Zap className="h-3.5 w-3.5 text-red-400 shrink-0" strokeWidth={1.75} />
+          <p className="text-[11px] text-red-300 font-medium flex-1">
+            No API key — add a Deepgram key or Voxlen account to start dictating.
+          </p>
+          <button
+            onClick={() => useNavigationStore.getState().requestView("settings")}
+            className="text-[11px] font-semibold text-red-300 hover:text-red-100 underline shrink-0 transition-colors"
+          >
+            Open Settings
+          </button>
+        </div>
+      )}
       {/* Draft recovery banner */}
       {pendingDraft && (
         <div className="flex items-center gap-2.5 px-5 py-2.5 bg-amber-950/60 border-b border-amber-500/20">
@@ -358,6 +532,8 @@ export function DictationPanel() {
           </div>
         </div>
       )}
+      {/* Post-session billing review */}
+      <TimeEntryReviewBanner />
       {/* Main dictation area */}
       <div className="flex-1 flex flex-col p-8 gap-7 overflow-hidden">
         {/* Mic control + waveform */}
@@ -369,10 +545,15 @@ export function DictationPanel() {
             )}
             <button
               onClick={handleToggleDictation}
+              aria-label={isActive ? "Stop dictation" : "Start dictation"}
+              aria-pressed={isActive}
+              disabled={!hasApiKey && !isActive}
               className={cn(
                 "relative z-10 flex items-center justify-center w-[84px] h-[84px] rounded-full transition-all duration-300 shadow-inset-hairline",
-                isActive
-                  ? "bg-gradient-to-br from-marcoreid-700 to-marcoreid-900 text-brass-300 shadow-elevation-lg scale-105"
+                !hasApiKey && !isActive
+                  ? "opacity-40 cursor-not-allowed bg-gradient-to-br from-surface-100 to-surface-200 text-surface-500"
+                  : isActive
+                  ? "bg-gradient-to-br from-voxlen-700 to-voxlen-900 text-brass-300 shadow-elevation-lg scale-105"
                   : "bg-gradient-to-br from-surface-100 to-surface-200 text-surface-700 hover:from-surface-200 hover:to-surface-300 hover:text-surface-900 shadow-elevation"
               )}
             >
@@ -388,7 +569,17 @@ export function DictationPanel() {
           <div className="text-center">
             <h2 className="font-display text-[22px] font-medium tracking-tight-display text-surface-950 leading-tight">
               {status === "idle" && "Press to begin dictation"}
-              {status === "listening" && (
+              {status === "listening" && alwaysReadyPhase === "armed" && (
+                <>
+                  Ready — speak anytime<span className="text-brass-400">.</span>
+                </>
+              )}
+              {status === "listening" && alwaysReadyPhase === "streaming" && (
+                <>
+                  Transcribing<span className="text-brass-400">.</span>
+                </>
+              )}
+              {status === "listening" && (alwaysReadyPhase === "off" || alwaysReadyPhase === "error") && (
                 <>
                   Listening<span className="text-brass-400">.</span>
                 </>
@@ -402,27 +593,10 @@ export function DictationPanel() {
                 {errorMessage} — press the microphone to retry.
               </p>
             )}
-            {(activeDeviceName || selectedDevice) && (
-              <div className="text-[11px] text-surface-600 mt-2 flex items-center justify-center gap-1.5 tracking-tight">
-                <Mic className="h-3 w-3 text-brass-500/80" strokeWidth={1.75} />
-                <span className="font-medium text-surface-700">{activeDeviceName || selectedDevice!.name}</span>
-                {selectedDevice?.isExternal && (
-                  <Badge variant="info" className="ml-1 text-[9px] py-0">
-                    External
-                  </Badge>
-                )}
-                {activeDeviceName && activeDeviceName !== selectedDevice?.name && (
-                  <Badge variant="warning" className="ml-1 text-[9px] py-0">
-                    Fallback
-                  </Badge>
-                )}
-              </div>
-            )}
-            {!activeDeviceName && !selectedDevice && (
-              <p className="text-[11px] text-brass-500 mt-2 tracking-tight">
-                No microphone selected — configure in Settings
-              </p>
-            )}
+            <DevicePicker
+              activeDeviceName={activeDeviceName}
+              selectedDevice={selectedDevice}
+            />
             {capsLock && (
               <Badge variant="warning" className="mt-2 text-[9px]">
                 CAPS ON
@@ -453,7 +627,7 @@ export function DictationPanel() {
                     onClick={() => { setActiveClient(null); setClientOpen(false); }}
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-[11px] transition-colors",
-                      !activeClientId ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                      !activeClientId ? "bg-voxlen-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
                     )}
                   >
                     No client
@@ -464,7 +638,7 @@ export function DictationPanel() {
                       onClick={() => { setActiveClient(c.id); setClientOpen(false); }}
                       className={cn(
                         "w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 transition-colors",
-                        c.id === activeClientId ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                        c.id === activeClientId ? "bg-voxlen-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
                       )}
                     >
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
@@ -477,16 +651,57 @@ export function DictationPanel() {
             </div>
           )}
 
-          {/* Live billing ticker — shown when recording with active client */}
+          {/* Matter-match suggestion — content mentioned a known client/matter */}
+          {suggestedClient && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-brass-400/40 bg-brass-500/10 text-[11px] font-medium text-surface-800">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: suggestedClient.color }}
+              />
+              <span className="text-brass-500/90 text-[9px] uppercase tracking-widest">
+                {activeClientId ? "Different matter?" : "Suggested client"}
+              </span>
+              <span className="truncate max-w-[160px]">{suggestedClient.name}</span>
+              <button
+                onClick={() => setActiveClient(suggestedClient.id)}
+                className="text-brass-500 hover:text-brass-300 font-semibold underline transition-colors"
+              >
+                Use
+              </button>
+              <button
+                onClick={() =>
+                  setDismissedSuggestions((d) => [...d, suggestedClient.id])
+                }
+                aria-label="Dismiss suggestion"
+                className="text-surface-500 hover:text-surface-300 leading-none transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Live billing ticker — shown when recording with active client.
+              When no rate resolves, show a warning instead of hiding: silent
+              $0 billing was exactly the failure this surfaces. */}
           {isActive && activeClient && (() => {
             const rate = activeClient.billableRate > 0 ? activeClient.billableRate : (useSettingsStore.getState().billableRatePerHour ?? 0);
-            if (rate <= 0) return null;
+            if (rate <= 0) {
+              return (
+                <button
+                  onClick={() => useNavigationStore.getState().requestView("clients")}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-400/40 text-[11px] font-medium text-amber-500 hover:text-amber-300 transition-colors"
+                >
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  No rate set — $0.00/hr
+                </button>
+              );
+            }
             const elapsed = sessionDuration; // seconds
             const amount = (elapsed / 3600) * rate;
             return (
               <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brass-500/10 border border-brass-400/30 text-[11px] font-mono text-brass-600 tabular-nums">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-brass-500 animate-pulse" />
-                £{amount.toFixed(2)}
+                ${amount.toFixed(2)}
               </div>
             );
           })()}
@@ -513,7 +728,7 @@ export function DictationPanel() {
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-[11px] transition-colors",
                       ctx.value === voxlenContext
-                        ? "bg-marcoreid-900/20 text-surface-950 font-semibold"
+                        ? "bg-voxlen-900/20 text-surface-950 font-semibold"
                         : "text-surface-700 hover:bg-surface-100"
                     )}
                   >
@@ -544,7 +759,7 @@ export function DictationPanel() {
                   }}
                   className={cn(
                     "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center gap-2",
-                    autoDetectLanguage ? "bg-marcoreid-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
+                    autoDetectLanguage ? "bg-voxlen-900/20 text-surface-950 font-semibold" : "text-surface-700 hover:bg-surface-100"
                   )}
                 >
                   <span>🌐</span> Auto-detect
@@ -560,7 +775,7 @@ export function DictationPanel() {
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center gap-2",
                       !autoDetectLanguage && lang.code === sttLanguage
-                        ? "bg-marcoreid-900/20 text-surface-950 font-semibold"
+                        ? "bg-voxlen-900/20 text-surface-950 font-semibold"
                         : "text-surface-700 hover:bg-surface-100"
                     )}
                   >
@@ -657,8 +872,33 @@ export function DictationPanel() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => updateSetting("privilegedMode", !privilegedMode)}
-            title={privilegedMode ? "Privileged mode ON — click to disable" : "Enable privileged mode (ABA 1.6 safe)"}
+            onClick={async () => {
+              if (!privilegedMode) {
+                // Privileged mode forces the local Whisper engine — only
+                // allow it when a model is actually downloaded, otherwise
+                // every dictation start would fail.
+                try {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  const has = await invoke<boolean>("has_whisper_model");
+                  if (!has) {
+                    toast(
+                      "Privileged mode needs a local Whisper model — download one in Settings › Speech Engine › Offline Models.",
+                      "info",
+                      6000
+                    );
+                    return;
+                  }
+                } catch {
+                  toast("Privileged mode requires the desktop app.", "info", 4000);
+                  return;
+                }
+                updateSetting("privilegedMode", true);
+                toast("Privileged mode on — dictation now runs fully on-device.", "success", 4000);
+                return;
+              }
+              updateSetting("privilegedMode", false);
+            }}
+            title={privilegedMode ? "Privileged mode ON — click to disable" : "Privileged offline mode (on-device Whisper, ABA 1.6 safe)"}
             className={cn(
               "flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
               privilegedMode
@@ -688,6 +928,9 @@ export function DictationPanel() {
                 <Trash2 className="h-3.5 w-3.5" />
                 Clear
               </Button>
+              {reviewSharedFolderPath && (
+                <Button variant="ghost" size="sm" onClick={handleSendForReview} title="Send for review"><ClipboardCheck className="h-3.5 w-3.5" />Send for review</Button>
+              )}
               <div className="relative">
                 <Button
                   variant="ghost"

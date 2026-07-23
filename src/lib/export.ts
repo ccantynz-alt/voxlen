@@ -256,14 +256,15 @@ export async function downloadExport(
 export async function downloadBillingExport(
   content: string,
   filename: string,
-  mimeType: string
+  mimeType: string,
+  filter: { name: string; extensions: string[] } = { name: "CSV", extensions: ["csv"] }
 ) {
   try {
     const { save } = await import("@tauri-apps/plugin-dialog");
     const { writeTextFile } = await import("@tauri-apps/plugin-fs");
     const path = await save({
       defaultPath: filename,
-      filters: [{ name: "CSV", extensions: ["csv"] }],
+      filters: [filter],
     });
     if (path) {
       await writeTextFile(path, content);

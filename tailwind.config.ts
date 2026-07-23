@@ -8,7 +8,7 @@ export default {
       colors: {
         // Primary brand — deep oxford navy with a slightly warm undertone.
         // Reads as "senior counsel", not "80s neon."
-        marcoreid: {
+        voxlen: {
           50: "#f4f6fb",
           100: "#e6ebf4",
           200: "#c5cfe3",

@@ -14,6 +14,7 @@ export interface BackendAppSettings {
   // STT
   stt_engine: string;
   stt_api_key: string;
+  whisper_local_model: string;
   stt_language: string;
   auto_detect_language: boolean;
   custom_vocabulary: string[];
@@ -23,6 +24,8 @@ export interface BackendAppSettings {
   grammar_enabled: boolean;
   grammar_api_key: string;
   grammar_provider: "claude" | "openai";
+  grammar_engine: "cloud" | "local_rules" | "local_llm";
+  grammar_local_model: string;
   writing_style: "professional" | "casual" | "academic" | "creative" | "technical";
   auto_correct: boolean;
   preserve_tone: boolean;
@@ -31,6 +34,7 @@ export interface BackendAppSettings {
   auto_punctuate: boolean;
   smart_format: boolean;
   voice_commands_enabled: boolean;
+  always_ready_mode: boolean;
 
   // Text injection
   injection_mode: "keyboard" | "clipboard" | "buffer";
@@ -62,6 +66,11 @@ export interface BackendAppSettings {
   translation_enabled: boolean;
   translation_target_language: string;
 
+  // Meeting capture consent
+  meeting_jurisdiction: string;
+  meeting_consent_ack_version: string | null;
+  meeting_consent_ack_at: string | null;
+
   // Voxlen account
   voxlen_api_key: string;
   voxlen_tenant_id: string;
@@ -84,6 +93,7 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
 
     stt_engine: s.sttEngine,
     stt_api_key: s.sttApiKey,
+    whisper_local_model: s.whisperLocalModel,
     stt_language: s.sttLanguage,
     auto_detect_language: s.autoDetectLanguage,
     custom_vocabulary: s.customVocabulary,
@@ -92,6 +102,8 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
     grammar_enabled: s.grammarEnabled,
     grammar_api_key: s.grammarApiKey,
     grammar_provider: s.grammarProvider,
+    grammar_engine: s.grammarEngine,
+    grammar_local_model: s.grammarLocalModel,
     writing_style: s.writingStyle,
     auto_correct: s.autoCorrect,
     preserve_tone: s.preserveTone,
@@ -99,6 +111,7 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
     auto_punctuate: s.autoPunctuate,
     smart_format: s.smartFormat,
     voice_commands_enabled: s.voiceCommandsEnabled,
+    always_ready_mode: s.alwaysReadyMode,
 
     injection_mode: s.injectionMode,
 
@@ -123,6 +136,10 @@ export function toBackendSettings(s: AppSettings): BackendAppSettings {
 
     translation_enabled: s.translationEnabled,
     translation_target_language: s.translationTargetLanguage,
+
+    meeting_jurisdiction: s.meetingJurisdiction,
+    meeting_consent_ack_version: s.meetingConsentAckVersion,
+    meeting_consent_ack_at: s.meetingConsentAckAt,
 
     voxlen_api_key: s.voxlenApiKey,
     voxlen_tenant_id: s.voxlenTenantId,
@@ -149,6 +166,7 @@ export function fromBackendSettings(
 
   if (s.stt_engine !== undefined) out.sttEngine = s.stt_engine;
   if (s.stt_api_key !== undefined) out.sttApiKey = s.stt_api_key;
+  if (s.whisper_local_model !== undefined) out.whisperLocalModel = s.whisper_local_model;
   if (s.stt_language !== undefined) out.sttLanguage = s.stt_language;
   if (s.auto_detect_language !== undefined) out.autoDetectLanguage = s.auto_detect_language;
   if (s.custom_vocabulary !== undefined) out.customVocabulary = s.custom_vocabulary;
@@ -157,6 +175,8 @@ export function fromBackendSettings(
   if (s.grammar_enabled !== undefined) out.grammarEnabled = s.grammar_enabled;
   if (s.grammar_api_key !== undefined) out.grammarApiKey = s.grammar_api_key;
   if (s.grammar_provider !== undefined) out.grammarProvider = s.grammar_provider;
+  if (s.grammar_engine !== undefined) out.grammarEngine = s.grammar_engine;
+  if (s.grammar_local_model !== undefined) out.grammarLocalModel = s.grammar_local_model;
   if (s.writing_style !== undefined) out.writingStyle = s.writing_style;
   if (s.auto_correct !== undefined) out.autoCorrect = s.auto_correct;
   if (s.preserve_tone !== undefined) out.preserveTone = s.preserve_tone;
@@ -164,6 +184,7 @@ export function fromBackendSettings(
   if (s.auto_punctuate !== undefined) out.autoPunctuate = s.auto_punctuate;
   if (s.smart_format !== undefined) out.smartFormat = s.smart_format;
   if (s.voice_commands_enabled !== undefined) out.voiceCommandsEnabled = s.voice_commands_enabled;
+  if (s.always_ready_mode !== undefined) out.alwaysReadyMode = s.always_ready_mode;
 
   if (s.injection_mode !== undefined) out.injectionMode = s.injection_mode;
 
@@ -188,6 +209,10 @@ export function fromBackendSettings(
 
   if (s.translation_enabled !== undefined) out.translationEnabled = s.translation_enabled;
   if (s.translation_target_language !== undefined) out.translationTargetLanguage = s.translation_target_language;
+
+  if (s.meeting_jurisdiction !== undefined) out.meetingJurisdiction = s.meeting_jurisdiction;
+  if (s.meeting_consent_ack_version !== undefined) out.meetingConsentAckVersion = s.meeting_consent_ack_version;
+  if (s.meeting_consent_ack_at !== undefined) out.meetingConsentAckAt = s.meeting_consent_ack_at;
 
   if (s.voxlen_api_key !== undefined) out.voxlenApiKey = s.voxlen_api_key;
   if (s.voxlen_tenant_id !== undefined) out.voxlenTenantId = s.voxlen_tenant_id;
