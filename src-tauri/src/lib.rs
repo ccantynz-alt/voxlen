@@ -198,6 +198,7 @@ pub fn run() {
             commands::dictation::resume_dictation,
             commands::dictation::get_dictation_status,
             commands::dictation::get_always_ready_state,
+            commands::dictation::get_mic_switch_state,
             commands::documents::save_document,
             commands::review::create_review_packet,
             commands::review::list_review_packets,

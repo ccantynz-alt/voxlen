@@ -350,6 +350,15 @@ function AudioSettings() {
           onChange={(v) => settings.updateSetting("noiseSuppression", v)}
         />
       </SettingRow>
+
+      <SettingRow>
+        <Switch
+          label="Hardware Mic Switch"
+          description="The physical mute/power switch on your mic (Razer, Yeti, Wave…) starts and stops dictation — no keyboard shortcut needed. Flip on to dictate, flip off to finish."
+          checked={settings.micSwitchMode}
+          onChange={(v) => settings.updateSetting("micSwitchMode", v)}
+        />
+      </SettingRow>
     </div>
   );
 }

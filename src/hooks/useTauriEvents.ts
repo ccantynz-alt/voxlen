@@ -515,6 +515,9 @@ export function useTauriEvents(): void {
         // every silence hangover — that disconnect is routine, not terminal.
         const unlistenDisconnected = await listen("streaming-disconnected", () => {
           if (useDictationStore.getState().alwaysReadyPhase !== "off") return;
+          // Same for mic-switch mode: sessions close every time the physical
+          // switch is flipped off — routine, not terminal.
+          if (useDictationStore.getState().micSwitchPhase !== "off") return;
           const s = useDictationStore.getState().status;
           if (s === "listening" || s === "processing" || s === "paused") {
             useDictationStore.getState().setStatus("idle");
@@ -545,6 +548,27 @@ export function useTauriEvents(): void {
           useSettingsStore.getState().updateSetting("alwaysReadyMode", !!event.payload);
         });
 
+        // Hardware mic-switch lifecycle. "live" = physical switch on and
+        // dictating; "muted" = switch flipped off, session finalized, waiting
+        // for the flip back on. Keep status coherent with the phase so the
+        // start button and status pill reflect the hardware state.
+        const unlistenMicSwitchState = await listen<string>("mic-switch-state", (event) => {
+          const phase = event.payload as "off" | "live" | "muted";
+          const dictation = useDictationStore.getState();
+          dictation.setMicSwitchPhase(phase);
+          if (phase === "live") {
+            if (dictation.status !== "listening") dictation.setStatus("listening");
+          } else if (phase === "muted") {
+            if (dictation.status === "listening" || dictation.status === "processing") {
+              dictation.setStatus("paused");
+            }
+          } else {
+            if (dictation.status === "listening" || dictation.status === "processing" || dictation.status === "paused") {
+              dictation.setStatus("idle");
+            }
+          }
+        });
+
         unlisten = () => {
           unlistenLevel();
           unlistenWaveform();
@@ -560,6 +584,7 @@ export function useTauriEvents(): void {
           unlistenDisconnected();
           unlistenAlwaysReadyState();
           unlistenAlwaysReadyToggle();
+          unlistenMicSwitchState();
         };
 
         // Hydrate the gate phase — the backend may have armed Always-Ready
@@ -570,6 +595,14 @@ export function useTauriEvents(): void {
           if (armed) {
             const dictation = useDictationStore.getState();
             dictation.setAlwaysReadyPhase("armed");
+            if (dictation.status === "idle") dictation.setStatus("listening");
+          }
+          // Same hydration for mic-switch mode — armed from the persisted
+          // setting before the webview loaded means the pipeline is already up.
+          const switchArmed = await invoke<boolean>("get_mic_switch_state");
+          if (switchArmed) {
+            const dictation = useDictationStore.getState();
+            dictation.setMicSwitchPhase("live");
             if (dictation.status === "idle") dictation.setStatus("listening");
           }
         } catch {

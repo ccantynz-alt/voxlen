@@ -141,6 +141,7 @@ export function DictationPanel() {
   const restoreDraft = useDictationStore((s) => s.restoreDraft);
   const discardDraft = useDictationStore((s) => s.discardDraft);
   const alwaysReadyPhase = useDictationStore((s) => s.alwaysReadyPhase);
+  const micSwitchPhase = useDictationStore((s) => s.micSwitchPhase);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
@@ -183,10 +184,16 @@ export function DictationPanel() {
   }, [status, incrementDuration]);
 
   const handleToggleDictation = useCallback(async () => {
-    // In Always-Ready mode the supervisor owns start/stop (the watchdog
-    // would immediately re-arm a stop). The button pauses/resumes instead —
-    // pause hard-gates audio at the capture callback.
-    if (alwaysReadyPhase !== "off") {
+    // In mic-switch mode the physical switch on the mic is the control.
+    // While it's off, the button can't start anything — tell the user.
+    if (micSwitchPhase === "muted") {
+      toast("Mic switch is off — flip the switch on your microphone to dictate.", "info", 4000);
+      return;
+    }
+    // In Always-Ready or mic-switch mode the supervisor owns start/stop
+    // (the watchdog would immediately re-arm a stop). The button
+    // pauses/resumes instead — pause hard-gates audio at the capture callback.
+    if (alwaysReadyPhase !== "off" || micSwitchPhase !== "off") {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
         if (status === "paused") {
@@ -258,7 +265,7 @@ export function DictationPanel() {
       setActiveDeviceName(null);
       isStoppingRef.current = false;
     }
-  }, [status, alwaysReadyPhase, setStatus, setActiveDeviceName]);
+  }, [status, alwaysReadyPhase, micSwitchPhase, setStatus, setActiveDeviceName]);
 
   const handlePause = useCallback(async () => {
     if (status === "listening") {
@@ -581,11 +588,15 @@ export function DictationPanel() {
               )}
               {status === "listening" && (alwaysReadyPhase === "off" || alwaysReadyPhase === "error") && (
                 <>
-                  Listening<span className="text-brass-400">.</span>
+                  {micSwitchPhase === "live" ? "Mic switch on — dictating" : "Listening"}
+                  <span className="text-brass-400">.</span>
                 </>
               )}
               {status === "processing" && "Processing speech"}
-              {status === "paused" && "Paused"}
+              {status === "paused" &&
+                (micSwitchPhase === "muted"
+                  ? "Mic switched off — flip to dictate"
+                  : "Paused")}
               {status === "error" && "Couldn't start dictation"}
             </h2>
             {status === "error" && errorMessage && (

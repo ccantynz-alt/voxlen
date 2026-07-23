@@ -2,6 +2,7 @@ pub mod cloud;
 pub mod gate;
 pub mod processor;
 pub mod streaming;
+pub mod switch;
 pub mod whisper_local;
 
 use std::sync::Arc;
@@ -164,11 +165,13 @@ impl SttState {
     }
 }
 
-/// The active STT session — either a direct streaming session (classic
-/// dictation) or the Always-Ready speech gate that manages sessions itself.
+/// The active STT session — a direct streaming session (classic dictation),
+/// the Always-Ready speech gate, or the hardware mic-switch controller —
+/// the latter two manage their own inner sessions.
 pub enum ActiveSession {
     Direct(streaming::StreamingSession),
     Gated(gate::GateHandle),
+    Switched(switch::SwitchHandle),
 }
 
 /// Holds the active real-time session so it can be stopped on demand.
@@ -187,11 +190,16 @@ impl SttSessionState {
         *self.0.write() = Some(ActiveSession::Gated(gate));
     }
 
+    pub fn set_switched(&self, s: switch::SwitchHandle) {
+        *self.0.write() = Some(ActiveSession::Switched(s));
+    }
+
     pub fn stop(&self) {
         if let Some(session) = self.0.write().take() {
             match session {
                 ActiveSession::Direct(s) => s.stop(),
                 ActiveSession::Gated(g) => g.stop(),
+                ActiveSession::Switched(s) => s.stop(),
             }
         }
     }

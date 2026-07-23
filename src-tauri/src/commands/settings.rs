@@ -52,6 +52,11 @@ pub struct AppSettings {
     /// voice-activity gate opens the cloud session only during speech.
     #[serde(default)]
     pub always_ready_mode: bool,
+    /// Hardware mic-switch mode: the physical mute/power switch on an
+    /// external mic (Razer, Yeti, …) starts and stops dictation. Works with
+    /// every STT engine, including privileged mode's forced-local engine.
+    #[serde(default)]
+    pub mic_switch_mode: bool,
 
     // Text injection
     pub injection_mode: String,
@@ -146,6 +151,7 @@ impl Default for AppSettings {
             smart_format: true,
             voice_commands_enabled: true,
             always_ready_mode: false,
+            mic_switch_mode: false,
 
             injection_mode: "keyboard".to_string(),
 
@@ -219,9 +225,12 @@ pub fn update_settings(
 ) -> Result<(), String> {
     // Edge-detect the effective Always-Ready state (privileged mode forces
     // it off — the gate must never open a cloud session for privileged work).
-    let was_armed = {
+    let (was_armed, was_switch_armed) = {
         let prev = get_settings_store().read();
-        prev.always_ready_mode && !prev.privileged_mode
+        (
+            prev.always_ready_mode && !prev.privileged_mode,
+            prev.mic_switch_mode,
+        )
     };
     *get_settings_store().write() = settings.clone();
     // The frontend (schedulePersist) owns the Tauri store and writes it in camelCase.
@@ -240,6 +249,16 @@ pub fn update_settings(
     } else if !want_armed && was_armed {
         crate::commands::dictation::disarm_always_ready(&app);
     }
+
+    // Mic-switch mode arms in every mode (privileged included — the switch
+    // task inherits whatever engine is configured, which privileged mode
+    // forces to fully-local Whisper).
+    let want_switch = settings.mic_switch_mode;
+    if want_switch && !was_switch_armed {
+        crate::commands::dictation::arm_mic_switch(&app);
+    } else if !want_switch && was_switch_armed {
+        crate::commands::dictation::disarm_mic_switch(&app);
+    }
     Ok(())
 }
 
@@ -254,8 +273,9 @@ pub fn reset_settings(
     apply_settings_to_engines(&stt_state.0, &audio_state, &defaults);
     apply_autostart(&app, defaults.launch_at_login);
     apply_injection_mode(&app, &defaults.injection_mode);
-    // Defaults have Always-Ready off — tear it down if it was armed.
+    // Defaults have both hands-free modes off — tear them down if armed.
     crate::commands::dictation::disarm_always_ready(&app);
+    crate::commands::dictation::disarm_mic_switch(&app);
     Ok(defaults)
 }
 
