@@ -1,14 +1,45 @@
 package com.voxlen.keyboard
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 
 class SettingsActivity : AppCompatActivity() {
+
+    private val micPermissionRequestCode = 1001
+    private var micButton: Button? = null
+
+    private fun hasMicPermission(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == micPermissionRequestCode) {
+            if (hasMicPermission()) {
+                micButton?.text = "Microphone Enabled ✓"
+                micButton?.isEnabled = false
+                Toast.makeText(this, "Microphone enabled — dictation is ready", Toast.LENGTH_SHORT).show()
+            } else if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO)) {
+                // Permanently denied — the only path left is system app settings
+                Toast.makeText(this, "Enable the microphone in system settings to dictate", Toast.LENGTH_LONG).show()
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +67,7 @@ class SettingsActivity : AppCompatActivity() {
         })
 
         layout.addView(TextView(this).apply {
-            text = "AI Voice Keyboard — v2.0.0"
+            text = "AI Voice Keyboard — v1.2.0"
             textSize = 14f
             setTextColor(0xFF6B7280.toInt())
             setPadding(0, 0, 0, 32)
@@ -57,8 +88,29 @@ class SettingsActivity : AppCompatActivity() {
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showInputMethodPicker()
             }
-            setPadding(0, 0, 0, 32)
+            setPadding(0, 0, 0, 16)
         })
+
+        // The keyboard extension can't show the mic permission prompt itself —
+        // it has to be granted here, in the companion activity.
+        micButton = Button(this).apply {
+            text = if (hasMicPermission()) "Microphone Enabled ✓" else "Enable Microphone for Dictation"
+            isEnabled = !hasMicPermission()
+            setOnClickListener {
+                ActivityCompat.requestPermissions(
+                    this@SettingsActivity,
+                    arrayOf(Manifest.permission.RECORD_AUDIO),
+                    micPermissionRequestCode
+                )
+            }
+            setPadding(0, 0, 0, 32)
+        }
+        layout.addView(micButton!!)
+        if (!hasMicPermission()) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.RECORD_AUDIO), micPermissionRequestCode
+            )
+        }
 
         // Divider
         layout.addView(divider())

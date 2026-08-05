@@ -320,14 +320,11 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
         serviceScope.launch {
             val ic = currentInputConnection ?: return@launch
 
-            // Delete previously inserted partial text
-            if (insertedCharCount > 0) {
-                ic.deleteSurroundingText(insertedCharCount, 0)
-            }
-
+            // Deepgram finals are per-segment, not cumulative: append each one
+            // and track the utterance's total inserted length for auto-polish.
             val toInsert = "$text "
             ic.commitText(toInsert, 1)
-            insertedCharCount = toInsert.length
+            insertedCharCount += toInsert.length
             currentUtterance.append(toInsert)
 
             partialLabel?.visibility = View.GONE
@@ -338,14 +335,13 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
         serviceScope.launch {
             val ic = currentInputConnection ?: return@launch
 
-            if (insertedCharCount > 0) {
-                ic.deleteSurroundingText(insertedCharCount, 0)
-            }
-
             val toInsert = "$text "
             ic.commitText(toInsert, 1)
-            insertedCharCount = 0
+            insertedCharCount += toInsert.length
+            currentUtterance.append(toInsert)
 
+            val insertedLength = insertedCharCount
+            insertedCharCount = 0
             val fullUtterance = currentUtterance.toString().trim()
             currentUtterance.clear()
 
@@ -354,7 +350,7 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
             // Auto-polish if enabled
             val autoCorrect = prefs.getBoolean("auto_correct", false)
             if (autoCorrect && fullUtterance.isNotBlank()) {
-                autoPolish(fullUtterance)
+                autoPolish(fullUtterance, insertedLength)
             }
         }
     }
@@ -411,7 +407,7 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
         }
     }
 
-    private fun autoPolish(text: String) {
+    private fun autoPolish(text: String, insertedLength: Int) {
         serviceScope.launch {
             try {
                 val provider = prefs.getString("ai_provider", "claude") ?: "claude"
@@ -423,7 +419,7 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
                 val corrected = grammarClient.correctGrammar(text, provider, apiKey, style)
 
                 val ic = currentInputConnection ?: return@launch
-                ic.deleteSurroundingText(text.length + 1, 0)
+                ic.deleteSurroundingText(insertedLength, 0)
                 ic.commitText("$corrected ", 1)
 
                 grammarLabel?.text = "Voxlen"

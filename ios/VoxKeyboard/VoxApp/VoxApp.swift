@@ -220,14 +220,14 @@ struct ContentView: View {
                         Text("2.0.0")
                             .foregroundColor(.secondary)
                     }
-                    Link(destination: URL(string: "https://voxlen.ai/privacy")!) {
+                    Link(destination: URL(string: "https://www.voxlen.ai/privacy")!) {
                         HStack {
                             Image(systemName: "hand.raised.fill")
                                 .foregroundColor(.purple)
                             Text("Privacy Policy")
                         }
                     }
-                    Link(destination: URL(string: "https://voxlen.ai/support")!) {
+                    Link(destination: URL(string: "https://www.voxlen.ai/support")!) {
                         HStack {
                             Image(systemName: "questionmark.circle.fill")
                                 .foregroundColor(.purple)
