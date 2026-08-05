@@ -126,6 +126,29 @@ describe("exportAllBillingCsv", () => {
     expect(content).toContain("M-001");
     expect(content).toContain("TOTAL");
   });
+
+  it("emits unassigned/unresolvable entries as rows so the TOTAL stays honest", () => {
+    const unassigned: MatterEntry = {
+      id: "e-un", clientId: "", date: new Date("2026-05-12").getTime(),
+      durationSeconds: 1200, wordCount: 250, billableAmount: 150, rateAtTime: 450,
+      ...entryDefaults,
+    };
+    const orphaned: MatterEntry = {
+      id: "e-orph", clientId: "deleted-client", date: new Date("2026-05-13").getTime(),
+      durationSeconds: 600, wordCount: 120, billableAmount: 50,
+      matterLabel: "Old matter", ...entryDefaults,
+    };
+    const { content } = exportAllBillingCsv([mockClient], [...mockEntries, unassigned, orphaned]);
+    const rows = content.split("\r\n");
+    // header + 2 client rows + 2 unassigned rows + TOTAL
+    expect(rows).toHaveLength(6);
+    expect(content).toContain('"Unassigned"');
+    expect(content).toContain('"Old matter"');
+    expect(content).toContain("150.00");
+    // TOTAL includes every entry: 400 + 200 + 150 + 50
+    expect(rows[rows.length - 1]).toContain("TOTAL");
+    expect(rows[rows.length - 1]).toContain("800.00");
+  });
 });
 
 describe("CSV formula injection", () => {

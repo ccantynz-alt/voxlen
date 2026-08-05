@@ -1620,133 +1620,164 @@ function VoxlenApiSettings() {
           )}
       </div>
 
-      {isConnected && (
-        <>
-          <SectionHeader title="Dictation Settings" description="" />
+      {/* Local dictation/billing settings — consumed on-device (billing.ts,
+          exportLedes.ts, smart format). No Voxlen account required. */}
+      <SectionHeader title="Dictation Settings" description="" />
 
-          <SettingRow>
-            <Select
-              label="Dictation Context"
-              value={settings.voxlenContext}
-              onChange={(v) => settings.updateSetting("voxlenContext", v)}
-              options={CONTEXT_OPTIONS}
-            />
-          </SettingRow>
+      <SettingRow>
+        <Select
+          label="Dictation Context"
+          value={settings.voxlenContext}
+          onChange={(v) => settings.updateSetting("voxlenContext", v)}
+          options={CONTEXT_OPTIONS}
+        />
+      </SettingRow>
 
-          <SettingRow>
-            <Switch
-              label="Privileged Mode"
-              description="Block all cloud processing — dictation runs fully on-device via Whisper Local. Requires a downloaded local model (Speech Engine tab)."
-              checked={settings.privilegedMode}
-              onChange={async (v) => {
-                if (v) {
-                  try {
-                    const { invoke } = await import("@tauri-apps/api/core");
-                    const has = await invoke<boolean>("has_whisper_model");
-                    if (!has) {
-                      toast(
-                        "Download a local Whisper model first — Settings › Speech Engine › Offline Models.",
-                        "error",
-                        6000
-                      );
-                      return;
-                    }
-                  } catch {
-                    // Non-Tauri dev — allow the toggle.
-                  }
+      <SettingRow>
+        <Switch
+          label="Privileged Mode"
+          description="Block all cloud processing — dictation runs fully on-device via Whisper Local. Requires a downloaded local model (Speech Engine tab)."
+          checked={settings.privilegedMode}
+          onChange={async (v) => {
+            if (v) {
+              try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                const has = await invoke<boolean>("has_whisper_model");
+                if (!has) {
+                  toast(
+                    "Download a local Whisper model first — Settings › Speech Engine › Offline Models.",
+                    "error",
+                    6000
+                  );
+                  return;
                 }
-                settings.updateSetting("privilegedMode", v);
-              }}
-            />
-          </SettingRow>
-
-          <SettingRow>
-            <Switch
-              label="Legal Mode"
-              description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
-              checked={settings.legalMode}
-              onChange={(v) => settings.updateSetting("legalMode", v)}
-            />
-          </SettingRow>
-
-          {settings.legalMode && (
-            <SettingRow>
-              <Select
-                label="Jurisdiction"
-                value={settings.jurisdiction}
-                onChange={(v) =>
-                  settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
-                }
-                options={[
-                  { value: "global", label: "Global", description: "International / neutral" },
-                  { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
-                  { value: "us", label: "United States", description: "Federal + state law" },
-                  { value: "australia", label: "Australia", description: "Commonwealth + state law" },
-                  { value: "nz", label: "New Zealand", description: "NZ common law" },
-                  { value: "canada", label: "Canada", description: "Federal + provincial law" },
-                ]}
-              />
-            </SettingRow>
-          )}
-
-          {/* Billing — always visible: time capture runs regardless of legal mode. */}
-          <SettingRow>
-            <Slider
-              label="Default Billable Rate"
-              value={settings.billableRatePerHour}
-              onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
-              min={0}
-              max={2000}
-              step={25}
-              formatValue={(v) => `$${v}/hr`}
-            />
-          </SettingRow>
-
-          <SettingRow>
-            <Select
-              label="Billing Time Rounding"
-              value={String(settings.billingRoundingIncrement)}
-              onChange={(v) =>
-                settings.updateSetting(
-                  "billingRoundingIncrement",
-                  Number(v) as 0 | 0.1 | 0.25
-                )
+              } catch {
+                // Non-Tauri dev — allow the toggle.
               }
-              options={[
-                { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney billing unit" },
-                { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour billing" },
-                { value: "0", label: "No rounding", description: "Bill exact duration" },
-              ]}
-            />
-          </SettingRow>
+            }
+            settings.updateSetting("privilegedMode", v);
+          }}
+        />
+      </SettingRow>
 
-          <SettingRow>
-            <Switch
-              label="Automatic Time Capture"
-              description="Draft a billable time entry for review whenever a dictation session ends."
-              checked={settings.autoTimeCapture}
-              onChange={(v) => settings.updateSetting("autoTimeCapture", v)}
-            />
-          </SettingRow>
+      <SettingRow>
+        <Switch
+          label="Legal Mode"
+          description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
+          checked={settings.legalMode}
+          onChange={(v) => settings.updateSetting("legalMode", v)}
+        />
+      </SettingRow>
 
-          <SettingRow>
-            <Input
-              label="LEDES Law Firm ID (optional)"
-              value={settings.ledesLawFirmId}
-              onChange={(e) => settings.updateSetting("ledesLawFirmId", e.target.value)}
-              placeholder="Firm tax / e-billing identifier for LEDES exports"
-            />
-          </SettingRow>
+      {settings.legalMode && (
+        <SettingRow>
+          <Select
+            label="Jurisdiction"
+            value={settings.jurisdiction}
+            onChange={(v) =>
+              settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
+            }
+            options={[
+              { value: "global", label: "Global", description: "International / neutral" },
+              { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
+              { value: "us", label: "United States", description: "Federal + state law" },
+              { value: "australia", label: "Australia", description: "Commonwealth + state law" },
+              { value: "nz", label: "New Zealand", description: "NZ common law" },
+              { value: "canada", label: "Canada", description: "Federal + provincial law" },
+            ]}
+          />
+        </SettingRow>
+      )}
 
-          <SettingRow>
-            <Input
-              label="Firm / Organisation ID (optional)"
-              value={settings.voxlenTenantId}
-              onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
-              placeholder="For team / SSO accounts"
-            />
-          </SettingRow>
-        </>
+      {/* Billing — always visible: time capture runs regardless of legal mode. */}
+      <SettingRow>
+        <Slider
+          label="Default Billable Rate"
+          value={settings.billableRatePerHour}
+          onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
+          min={0}
+          max={2000}
+          step={25}
+          formatValue={(v) => `$${v}/hr`}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="Billing Time Rounding"
+          value={String(settings.billingRoundingIncrement)}
+          onChange={(v) =>
+            settings.updateSetting(
+              "billingRoundingIncrement",
+              Number(v) as 0 | 0.1 | 0.25
+            )
+          }
+          options={[
+            { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney billing unit" },
+            { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour billing" },
+            { value: "0", label: "No rounding", description: "Bill exact duration" },
+          ]}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="Minimum Billable Time"
+          value={String(settings.billingMinimumHours)}
+          onChange={(v) => settings.updateSetting("billingMinimumHours", Number(v))}
+          options={[
+            { value: "0", label: "No minimum", description: "Bill only the time captured" },
+            { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney minimum unit" },
+            { value: "0.2", label: "12 minutes (0.2 hr)", description: "Two billing units" },
+            { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour minimum" },
+            { value: "0.5", label: "30 minutes (0.5 hr)", description: "Half-hour minimum" },
+          ]}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Switch
+          label="Automatic Time Capture"
+          description="Draft a billable time entry for review whenever a dictation session ends."
+          checked={settings.autoTimeCapture}
+          onChange={(v) => settings.updateSetting("autoTimeCapture", v)}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Input
+          label="LEDES Law Firm ID (optional)"
+          value={settings.ledesLawFirmId}
+          onChange={(e) => settings.updateSetting("ledesLawFirmId", e.target.value)}
+          placeholder="Firm tax / e-billing identifier for LEDES exports"
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="LEDES Timekeeper Classification"
+          value={settings.ledesClassification || "PT"}
+          onChange={(v) => settings.updateSetting("ledesClassification", v)}
+          options={[
+            { value: "PT", label: "Partner (PT)" },
+            { value: "AS", label: "Associate (AS)" },
+            { value: "OC", label: "Of Counsel (OC)" },
+            { value: "LA", label: "Legal Assistant / Paralegal (LA)" },
+            { value: "OT", label: "Other (OT)" },
+          ]}
+        />
+      </SettingRow>
+
+      {/* Account-dependent: tenant/SSO id only means something with a Voxlen account. */}
+      {isConnected && (
+        <SettingRow>
+          <Input
+            label="Firm / Organisation ID (optional)"
+            value={settings.voxlenTenantId}
+            onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
+            placeholder="For team / SSO accounts"
+          />
+        </SettingRow>
       )}
     </div>
   );
@@ -1822,14 +1853,10 @@ function PrivacySettings() {
         <p className="text-[11px] text-surface-600">Review sync is file-based through firm-controlled storage. No Voxlen servers are used.</p>
       </div>
 
-      <SettingRow>
-        <Switch
-          label="Usage Analytics"
-          description="Help us improve Voxlen with anonymous usage data"
-          checked={settings.telemetryEnabled}
-          onChange={(v) => settings.updateSetting("telemetryEnabled", v)}
-        />
-      </SettingRow>
+      {/* No telemetry toggle: Voxlen has no telemetry sender. Offering an
+          opt-in for data collection that doesn't exist would be misleading —
+          the settings field remains (persistence/Rust struct compatibility)
+          but nothing reads it. */}
 
       <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-4">
         <h4 className="label-caps mb-3 block">

@@ -116,7 +116,9 @@ describe("addEntry and getTotalBillable", () => {
     store.addEntry({ clientId, date: Date.now(), durationSeconds: 3600, wordCount: 100, billableAmount: 100, status: "draft", source: "session" });
     store.addEntry({ clientId, date: Date.now(), durationSeconds: 3600, wordCount: 100, billableAmount: 200, ...entryDefaults });
     expect(useClientsStore.getState().getTotalBillable(clientId)).toBe(200);
-    expect(useClientsStore.getState().getTotalHours(clientId)).toBeCloseTo(1);
+    // Billed hours (amount / rate = 200 / 100), matching the $ totals and
+    // LEDES/Clio exports — not raw duration.
+    expect(useClientsStore.getState().getTotalHours(clientId)).toBeCloseTo(2);
     expect(useClientsStore.getState().getDraftEntries()).toHaveLength(1);
   });
 

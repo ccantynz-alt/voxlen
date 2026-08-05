@@ -54,7 +54,6 @@ const EXTENDED_COMMANDS: Array<{
   { patterns: ["close quote", "end quote", "unquote"], action: "insert_close_quote" },
   { patterns: ["delete that", "scratch that", "remove that"], action: "delete_last" },
   { patterns: ["undo", "undo that"], action: "undo" },
-  { patterns: ["select all"], action: "select_all" },
   { patterns: ["copy that", "copy text"], action: "copy" },
   { patterns: ["stop listening", "stop dictation", "stop recording"], action: "stop" },
   { patterns: ["caps on", "all caps", "capitalize"], action: "caps_on" },
@@ -107,9 +106,9 @@ const EXTENDED_COMMANDS: Array<{
   { patterns: ["insert governing law ontario"], action: "insert_clause:insert governing law ontario" },
   { patterns: ["insert payment terms"], action: "insert_clause:insert payment terms" },
   { patterns: ["insert termination for cause"], action: "insert_clause:insert termination for cause" },
-  // Billable time — start/stop billing
-  { patterns: ["start billing", "start timer", "start billable time"], action: "billing_start" },
-  { patterns: ["stop billing", "stop timer", "stop billable time"], action: "billing_stop" },
+  // NOTE: "start billing" / "stop billing" / "select all" were removed —
+  // no handler exists for them, so matching those utterances silently
+  // swallowed the user's speech. Use "log time" commands for billing.
   // Navigation
   { patterns: ["review uncertain words", "check uncertain", "show uncertain"], action: "review_uncertain" },
 ];
@@ -173,8 +172,6 @@ export function executeVoiceCommand(action: string): string | null {
       if (last) store.removeSegment(last.id);
       return null;
     }
-    case "select_all":
-      return null; // Handled by keyboard shortcut
     case "copy": {
       const store = useDictationStore.getState();
       const fullText = store.segments
@@ -237,9 +234,6 @@ export function executeVoiceCommand(action: string): string | null {
         }
       })();
       return null;
-    case "billing_start":
-    case "billing_stop":
-      return null; // UI concern — handled by caller
     case "review_uncertain":
       return null; // UI concern
     default:

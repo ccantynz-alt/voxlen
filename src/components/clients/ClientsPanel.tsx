@@ -128,7 +128,17 @@ function LedesExportModal({ client, onClose }: { client: Client; onClose: () => 
   const [timekeeperId, setTimekeeperId] = useState(settings.ledesTimekeeperId);
   const [timekeeperName, setTimekeeperName] = useState(settings.ledesTimekeeperName);
 
+  // LEDES 1998B validators at e-billing platforms reject invoices without a
+  // law firm id and timekeeper identification — block the export up front
+  // instead of letting the user generate a file that will bounce.
+  const missingFields = [
+    !lawFirmId.trim() && "Law Firm ID",
+    !timekeeperId.trim() && "Timekeeper ID",
+    !timekeeperName.trim() && "Timekeeper Name",
+  ].filter(Boolean) as string[];
+
   const doExport = async () => {
+    if (missingFields.length > 0) return;
     // Remember firm/timekeeper details for next time.
     settings.updateSettings({
       ledesLawFirmId: lawFirmId,
@@ -163,22 +173,27 @@ function LedesExportModal({ client, onClose }: { client: Client; onClose: () => 
             <input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className={INPUT_CLS} />
           </div>
           <div>
-            <label className="label-caps mb-1.5 block">Law Firm ID (tax/firm identifier)</label>
+            <label className="label-caps mb-1.5 block">Law Firm ID (tax/firm identifier) *</label>
             <input value={lawFirmId} onChange={(e) => setLawFirmId(e.target.value)} className={INPUT_CLS} placeholder="e.g. 12-3456789" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label-caps mb-1.5 block">Timekeeper ID</label>
+              <label className="label-caps mb-1.5 block">Timekeeper ID *</label>
               <input value={timekeeperId} onChange={(e) => setTimekeeperId(e.target.value)} className={INPUT_CLS} placeholder="e.g. CC01" />
             </div>
             <div>
-              <label className="label-caps mb-1.5 block">Timekeeper Name</label>
+              <label className="label-caps mb-1.5 block">Timekeeper Name *</label>
               <input value={timekeeperName} onChange={(e) => setTimekeeperName(e.target.value)} className={INPUT_CLS} placeholder="e.g. C. Canty" />
             </div>
           </div>
+          {missingFields.length > 0 && (
+            <p className="text-[11px] text-amber-500">
+              {missingFields.join(", ")} required — e-billing platforms reject LEDES files without them.
+            </p>
+          )}
         </div>
         <div className="flex gap-3 mt-6">
-          <Button variant="primary" onClick={doExport} disabled={!invoiceNumber.trim() || entries.length === 0} className="flex-1">
+          <Button variant="primary" onClick={doExport} disabled={!invoiceNumber.trim() || entries.length === 0 || missingFields.length > 0} className="flex-1">
             Export LEDES
           </Button>
           <Button variant="ghost" onClick={onClose} className="flex-1">Cancel</Button>

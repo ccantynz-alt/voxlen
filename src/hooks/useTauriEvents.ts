@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useAudioStore } from "@/stores/audio";
-import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
+import { useDictationStore, buildSessionRecord, clearDraftRecord } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { toast } from "@/components/ui/Toast";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
@@ -681,6 +681,14 @@ export function useTauriEvents(): void {
                 (error) => toast(autoDocFailureMessage(error), "error", 5000),
               );
             }
+
+            // The session is now persisted (history/billing/flywheel above) —
+            // drop the crash-recovery draft so the next launch doesn't offer
+            // this already-saved session as an "Unsaved draft" (restoring +
+            // stopping it double-created history/flywheel/billing entries).
+            // A crash mid-dictation never reaches this line, so recovery for
+            // genuinely unsaved sessions is unaffected.
+            clearDraftRecord();
           }
         }
 

@@ -217,14 +217,17 @@ export function exportAllBillingCsv(
   ];
   for (const e of entries) {
     const c = clientMap.get(e.clientId);
-    if (!c) continue;
     const date = new Date(e.date).toLocaleDateString("en-GB");
     const mins = (e.durationSeconds / 60).toFixed(1);
-    const rate = (e.rateAtTime ?? c.billableRate).toFixed(2);
+    const rate = (e.rateAtTime ?? c?.billableRate ?? 0).toFixed(2);
     const amount = e.billableAmount.toFixed(2);
     const note = csvText(e.note ?? "");
-    const matter = csvText(c.matterNumber ?? "");
-    rows.push([csvText(c.name), matter, date, mins, e.wordCount, rate, amount, note].join(","));
+    // Entries with an empty/unresolvable clientId still count toward the
+    // TOTAL row — emit them as "Unassigned" rows so no billable time
+    // silently disappears from the export.
+    const clientName = c ? c.name : e.matterLabel || "Unassigned";
+    const matter = csvText(c?.matterNumber ?? "");
+    rows.push([csvText(clientName), matter, date, mins, e.wordCount, rate, amount, note].join(","));
   }
   const total = entries.reduce((s, e) => s + e.billableAmount, 0);
   rows.push(["TOTAL", "", "", "", "", "", total.toFixed(2), ""].join(","));
