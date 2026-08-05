@@ -1,5 +1,7 @@
 # Voxlen Product Audit Report
 
+> **SUPERSEDED — HISTORICAL SNAPSHOT.** This audit reflects the codebase as of **2026-04-14** and is preserved for reference only. Most findings below have since been resolved (Whisper Local, keychain key storage, local grammar, meeting capture, billing, review queue, auto-documents, and more shipped in v1.1.0–v1.2.0). For the current state and remaining gaps, see the gap list in [`CLAUDE.md`](./CLAUDE.md).
+
 **Date:** 2026-04-14
 **Scope:** Full end-to-end codebase audit, launch readiness, AlecRae.com Email Client integration, cross-device strategy
 

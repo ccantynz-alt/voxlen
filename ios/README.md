@@ -1,6 +1,8 @@
 # Voxlen iOS Keyboard Extension
 
-AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, supporting 20+ languages. Powered by Deepgram Nova-2 for real-time speech-to-text.
+AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, supporting 20+ languages. Powered by Deepgram Nova-3 for real-time speech-to-text.
+
+> **Status: source drop, no Xcode project committed.** This directory contains the Swift sources for the container app (`VoxApp/`) and the keyboard extension (`VoxKeyboardExtension/`), but no `.xcodeproj`/`.xcworkspace`. You must assemble the project in Xcode (steps below) before anything builds — the CI iOS job detects the missing project and skips.
 
 ## Setup in Xcode
 
@@ -14,14 +16,22 @@ AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, 
 
 ## Configuration
 
-To use voice dictation and grammar correction, users need to provide their own API keys in the app settings:
+The primary setup is a **Voxlen account key** (copied from the voxlen.ai dashboard) entered in the container app's settings. With an account key, the keyboard exchanges it for short-lived Deepgram tokens via `voxlen.ai/api/deepgram-token` for dictation — no provider keys needed.
 
-- **Deepgram API key** — Required for voice dictation. Get one at [console.deepgram.com](https://console.deepgram.com). Deepgram Nova-2 provides the real-time speech-to-text engine.
-- **Claude or OpenAI API key** — Required for grammar correction. Provide a Claude API key (Anthropic) or an OpenAI API key to power the "Polish" grammar correction feature.
+Alternatively (BYOK), users can supply their own keys:
 
-Keys are stored locally on-device via App Groups and are never sent to Voxlen servers.
+- **Deepgram API key** — for voice dictation (Nova-3 real-time streaming). Get one at [console.deepgram.com](https://console.deepgram.com).
+- **Claude or OpenAI API key** — for the "Polish" grammar correction feature (the code calls `claude-sonnet-4-6` for Anthropic, or `gpt-4o-mini` for OpenAI).
+
+Keys are stored locally on-device via App Groups and are never sent to Voxlen servers (the account-mode token exchange transits the zero-retention voxlen.ai endpoint).
+
+### Offline fallback: currently non-functional
+
+The settings UI offers an "Apple Speech" engine option, but the on-device `SFSpeechRecognizer` path is currently a stub — selecting it prompts the user to configure Deepgram instead. Restoring a real Apple Speech on-device path is an open task; do not advertise offline dictation on iOS.
 
 ## Building
+
+Once the Xcode project is assembled:
 
 ```bash
 # Build for simulator
@@ -40,10 +50,10 @@ xcodebuild -scheme VoxKeyboard -destination 'generic/platform=iOS' archive
 
 ## How It Works
 
-- The main app (`VoxApp`) provides settings management and API key configuration
+- The main app (`VoxApp`) provides settings management and key configuration (Voxlen account key or BYOK)
 - The keyboard extension (`VoxKeyboardExtension`) is a custom keyboard
 - Settings are shared via App Groups (`group.com.voxlen.app`)
-- Voice dictation uses Deepgram Nova-2 via WebSocket streaming for low-latency, real-time transcription in 20+ languages
+- Voice dictation streams microphone audio to Deepgram Nova-3 over WebSocket (with `mip_opt_out=true` to opt out of model training) for low-latency, real-time transcription in 20+ languages
 - The "Polish" button in the keyboard bar sends text to Claude/OpenAI for grammar correction
 - Corrected text replaces the original directly in any text field
 
@@ -51,15 +61,15 @@ xcodebuild -scheme VoxKeyboard -destination 'generic/platform=iOS' archive
 
 The keyboard extension works on both iPhone and iPad. The layout adapts automatically to the larger iPad screen, providing a comfortable dictation and editing experience on all iOS devices.
 
-## API Usage & Cost
+## API Usage & Cost (BYOK mode, rough estimates)
 
-Using Claude Haiku for grammar correction:
-- ~$0.25 per 1M input tokens, ~$1.25 per 1M output tokens
-- Average text correction: ~100 tokens = ~$0.00003 per correction
-- 1000 corrections per month = ~$0.03/month
-- This is **100x cheaper** than a Grammarly subscription ($12/month)
+Grammar correction uses Claude Sonnet 4.6 (roughly $3 per 1M input tokens / $15 per 1M output tokens at the time of writing — check current Anthropic pricing):
 
-Using Deepgram Nova-2 for voice dictation:
-- $0.0043 per minute (pay-as-you-go)
-- 10 minutes of dictation per day = ~$1.29/month
-- Combined with grammar correction, total cost stays well under $2/month for typical usage
+- Average text correction: ~100 tokens round-trip ≈ well under $0.001 per correction
+- 1000 corrections per month ≈ under $1/month
+
+Deepgram Nova-3 voice dictation is roughly $0.0043–0.0077 per minute pay-as-you-go (check current Deepgram pricing):
+
+- 10 minutes of dictation per day ≈ $1.50–2.50/month
+
+Combined typical usage stays in the low single dollars per month. With a Voxlen account, usage is covered by the plan instead.

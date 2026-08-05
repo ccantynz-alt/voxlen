@@ -1,5 +1,59 @@
 # Changelog
 
+## [Unreleased]
+
+### Planned
+- macOS meeting capture backend (ScreenCaptureKit)
+- iOS on-device STT fallback (restore an SFSpeechRecognizer path)
+- Android keyboard extension (skeleton exists, not shipped)
+- Clio API integration (matters pull + time entry push)
+- Code signing + auto-updater (builds are currently unsigned; no auto-update ships)
+
+## [1.2.0] - 2026-07-18
+
+### Added
+- **Whisper Local**: fully on-device transcription via whisper-rs, with an in-app model manager (tiny/base/small English + large-v3-turbo multilingual, downloaded on demand from Hugging Face)
+- **On-device grammar**: Tier-1 rules engine plus Tier-2 local LLM polish (Qwen3-4B via llama.cpp) — Privileged Mode now corrects instead of no-op, entirely offline
+- **Bot-free meeting capture** (Windows): WASAPI loopback + mic dual-channel recording with You/Remote diarization, Rust-side consent gate and indicator window, Whisper Local forced; task/deadline extraction from meeting transcripts
+- **Ambient billing**: session-end draft time entries with 0.1-hour round-up, per-client rates, LEDES 1998B and Clio CSV exports, contextual matter auto-match
+- **Secretary review queue**: file-based review packets over firm shared storage (`voxlen-review/`), statuses pending_review/in_review/finalized — no Voxlen servers involved
+- **Auto-documents**: opt-in pipeline writing each dictation to a per-client/per-matter `.docx` with atomic writes
+- **Always-Ready mode**: tray-resident hands-free dictation with a local voice-activity gate
+- **Dragon vocabulary import** (.txt/.voc) into custom vocabulary + flywheel
+- **Stripe checkout**: `/api/checkout`, signature-verified `/api/stripe-webhook`, and KV-backed plan entitlements on the landing site
+- Onboarding "Your practice" step (default rate, rounding, first client)
+
+### Changed
+- **API keys moved to the OS keychain** (keyring crate with Windows Credential Manager / macOS Keychain / Linux Secret Service backends) — no more plaintext keys
+- Completed the Marco Reid Voice → Voxlen rebrand across app, configs, and keyring entries
+- Landing page redesign (legal letterhead editorial identity) and honesty pass on all product claims
+
+### Fixed
+- Real pause/resume (audio gated at the capture callback, Deepgram KeepAlive)
+- Numerous reliability fixes: mic recovery, clipboard restore, session dedupe, settings-wipe on launch, hot-mic lifecycle, streaming disconnect handling
+
+## [1.1.0] - 2026-06-12
+
+### Added
+- **Voxlen account mode**: STT, grammar, and translation proxied through zero-retention `voxlen.ai/api` endpoints (Vercel functions) with token-based desktop auth — no BYOK required; BYOK retained as a fallback
+- **Real-time translation** of dictated text (Claude/OpenAI)
+- **Speaker diarization** toggle (Deepgram)
+- **Analytics dashboard**, **Flywheel panel** (local-only learned vocabulary, correction patterns, metrics), and per-client matter tracking with billable time
+- **Clause library** with custom clause CRUD, legal voice commands, Latin phrase recognition, and legal smart formatting
+- **Privileged Mode** enforcement and confidence highlighting
+- Noise suppression + gain normalization in the capture pipeline
+- 19 SEO landing pages, premium landing redesign, ROI calculator, Google OAuth sign-in, user/admin dashboards
+- iOS keyboard: Voxlen account key support and streaming dictation hardening
+- Vitest suite plus expanded store/lib coverage
+
+### Changed
+- Rebranded from Marco Reid Voice to Voxlen (app, landing, iOS, localStorage keys)
+- STT upgraded to Deepgram **Nova-3**; cloud grammar upgraded to **Claude Sonnet 4.6**; Deepgram model-training opt-out (`mip_opt_out=true`) on every request
+- Wired Deepgram WebSocket streaming as the default engine with reconnect/temp-key refresh
+
+### Fixed
+- Large reliability pass: React #185 crashes, settings propagation to the Rust engine layer, duplicate history/billing entries, prompt-injection hardening in grammar/translate, iOS force-unwrap crashes
+
 ## [1.0.5] - 2026-04-17
 
 ### Fixed
@@ -51,18 +105,10 @@
 ### Changed
 - Version bump for fresh release tag (no code changes beyond version strings; the 1.0.0 tag existed from earlier failed CI runs without any published installers).
 
-## [Unreleased]
-
-### Planned for v1.1
-- Fully offline Whisper Local engine (whisper-rs integration)
-- iOS keyboard extension App Store build
-- Webhook emitter for enterprise integrations
-- Batched grammar API calls for cost optimization
-
 ## [1.0.0] - 2026-04-09
 
 ### Added
-- Real-time voice dictation with Deepgram Nova-2 streaming (sub-300ms latency)
+- Real-time voice dictation with Deepgram streaming (sub-300ms latency)
 - OpenAI Whisper cloud transcription engine
 - AI grammar correction powered by Claude Haiku and GPT-4o-mini
 - Universal text injection into any application (keyboard simulation + clipboard paste)
@@ -91,3 +137,5 @@
 - Deepgram WebSocket streaming for real-time STT
 - Platform-specific text injection (osascript/SendInput/xdotool)
 - GitHub Actions CI/CD for multi-platform builds
+
+*Note: 1.0.0 never shipped installers (see 1.0.1/1.0.5), and no auto-updater has ever shipped in any version.*

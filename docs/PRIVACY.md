@@ -10,35 +10,43 @@ This page describes what leaves your machine, what stays on your machine, and wh
 
 ## What gets sent off your device
 
-Voxlen only talks to two categories of endpoints, and only when you ask it to:
+The desktop app only makes outbound requests in the following situations:
 
 | Outbound traffic | Destination                                 | When                                                                 |
 | ---------------- | ------------------------------------------- | -------------------------------------------------------------------- |
-| Audio frames     | Deepgram or OpenAI Whisper (your choice)    | Only while dictation is active, and only to the engine you selected  |
-| Text             | Anthropic (Claude) or OpenAI (your choice)  | Only when grammar correction is enabled **and** you trigger a pass   |
-| App update check | `https://releases.voxlen.ai/...` (placeholder — replace with real host) | When the updater plugin runs (configurable)          |
+| Audio frames     | Deepgram or OpenAI Whisper (your choice)    | Only while dictation is active, and only to the engine you selected (BYOK mode) |
+| Text             | Anthropic (Claude) or OpenAI (your choice)  | Only when grammar correction or translation is enabled **and** a pass runs (BYOK mode) |
+| Audio frames / text | `voxlen.ai/api` (`/stt`, `/grammar`, `/translate`, `/deepgram-token`) | Voxlen-account mode: requests are relayed transiently through zero-retention endpoints to the same providers, so you don't need your own provider keys |
+| Model downloads  | `huggingface.co` (whisper.cpp GGML models from `ggerganov/whisper.cpp`; grammar LLMs, e.g. Qwen3-4B GGUF) | Only when you explicitly download a Whisper Local or local-grammar model in Settings |
 
-No other outbound traffic originates from the desktop app.
+No other outbound traffic originates from the desktop app. There is no updater traffic — the app has no auto-updater; updates are downloaded manually from GitHub Releases.
+
+Whisper Local transcription and the local grammar engines (rules + on-device LLM) run entirely offline once a model is downloaded — Privileged Mode forces these paths and blocks all cloud calls.
 
 ## What is stored locally
 
-Everything Voxlen retains lives on your machine, under the Tauri app data directory:
+Everything Voxlen retains lives on your machine, under the Tauri app data directory (plus any folders you configure):
 
-| File              | Contents                                                          |
+| File / location   | Contents                                                          |
 | ----------------- | ----------------------------------------------------------------- |
-| `settings.json`   | All user preferences, including API keys (**plaintext**, see below) |
+| `settings.json`   | User preferences (API keys are **not** stored here — see below)   |
 | `history.json`    | Up to 500 most recent dictation sessions with transcripts         |
+| `models/`         | Downloaded Whisper / grammar-LLM model files                      |
+| Auto-documents    | Opt-in per-matter `.docx` files in your chosen documents folder   |
+| Review queue      | Review packet files under your configured `voxlen-review/` shared folder |
 
-### Plaintext API keys
+### API keys live in the OS keychain
 
-API keys are written to `settings.json` in plaintext. They are not encrypted at rest. Anyone with read access to your user profile can read them. Integrating a hardware-backed keystore is on the roadmap — see [SECURITY.md](./SECURITY.md).
+API keys (Deepgram, OpenAI, Anthropic, Voxlen account) are stored in the operating system's credential store via the `keyring` crate — Windows Credential Manager, macOS Keychain, or the Linux Secret Service — never in plaintext JSON. See `src-tauri/src/commands/keyring.rs`.
 
 ### Deleting your data
 
 - **Single session:** History panel → select session → delete.
 - **All history:** History panel → "Clear all".
-- **Settings and keys:** Settings → Reset to defaults (clears API keys in memory and on disk).
-- **Nuclear option:** Remove the Voxlen data directory while the app is closed.
+- **Settings and keys:** Settings → Reset to defaults (clears API keys in memory and in the OS keychain).
+- **Downloaded models:** Settings → model manager → delete.
+- **Auto-documents / review packets:** ordinary files — delete them from the folders you configured.
+- **Nuclear option:** Remove the Voxlen data directory while the app is closed (keychain entries are removed via Reset or your OS credential manager).
 
 ## Telemetry
 
@@ -46,16 +54,18 @@ There is a `telemetry_enabled` setting in `AppSettings`, but it is **off by defa
 
 ## Third-party privacy
 
-When you send audio to Deepgram or OpenAI, or text to Anthropic or OpenAI, the vendor's privacy policy applies. Review their terms:
+When you send audio to Deepgram or OpenAI, or text to Anthropic or OpenAI — directly (BYOK) or via the voxlen.ai relay (account mode) — the vendor's privacy policy applies. Review their terms:
 
 - Deepgram: https://deepgram.com/privacy
 - OpenAI: https://openai.com/policies/privacy-policy
 - Anthropic: https://www.anthropic.com/legal/privacy
 
+Every Deepgram request sets `mip_opt_out=true` to opt out of Deepgram's model-improvement program.
+
 ## iOS keyboard
 
-The iOS keyboard extension is a separate bundle (`ios/VoxKeyboard`). It only transmits text when the user taps the grammar action, and only to the provider configured in the main Voxlen iOS app. Extensions run in a sandbox with network access granted explicitly via `RequestsOpenAccess`.
+The iOS keyboard extension (`ios/VoxKeyboard`) transmits data in two cases: while dictation is active it streams microphone audio to Deepgram (Nova-3, over WebSocket — either with your own Deepgram key, or via a short-lived key fetched from `voxlen.ai/api/deepgram-token` in Voxlen-account mode), and when you tap the grammar action it sends the text to the configured provider (Claude or OpenAI). Extensions run in a sandbox with network access granted explicitly via `RequestsOpenAccess`.
 
 ## Questions
 
-Security-impacting privacy questions: `security@voxlen.ai` (placeholder).
+Security-impacting privacy questions: `security@voxlen.ai`.

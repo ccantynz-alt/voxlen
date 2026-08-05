@@ -58,14 +58,14 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 
 ## Known Remaining Gaps (Fix These When You Can)
 
-- [x] Whisper Local offline mode (whisper-rs + on-demand model manager) ✓ — build needs LLVM 18 + CMake (LIBCLANG_PATH/CMAKE user env vars are set on this machine)
+- [x] Whisper Local offline mode (whisper-rs + on-demand model manager) ✓ — build needs LLVM 18 + CMake; NOTE: this machine has no Rust toolchain at all (verified 2026-08-05) — Rust changes are verified by the CI test job only
 - [x] API key secure storage — keyring crate with windows-native/apple-native backends (Credential Manager / macOS Keychain) ✓
 - [x] Local grammar (Tier 1 rules + Tier 2 Qwen3-4B on-device) — privileged mode now corrects instead of no-op ✓
 - [x] Ambient billing — session-end draft time entries, 0.1hr rounding, LEDES/Clio export, matter auto-match ✓
 - [x] Bot-free meeting capture (Windows loopback, consent-gated) + task/deadline extraction ✓
 - [ ] macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
 - [ ] iOS local STT — the Apple Speech fallback is currently a stub (removed in commit `77d9e93` when Deepgram STT landed), so the `requiresOnDeviceRecognition` quick-win note no longer applies; the real task is restoring an `SFSpeechRecognizer` on-device path
-- [ ] Android keyboard extension
+- [ ] Android keyboard extension — `android/` implementation exists and compiles as of 2026-08-05 (launcher icon added, CI regenerates the gradle wrapper); still needs EncryptedSharedPreferences for keys + device testing before shipping
 - [ ] Stripe payment links — `/api/checkout`, `/api/stripe-webhook`, and KV plan entitlement shipped 2026-07-18; only real `STRIPE_*` env vars in Vercel remain
 - [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
 - [ ] Clio API integration (matters pull + time entry push) — export formats shipped as the base
@@ -77,7 +77,7 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - [x] Speaker diarization ✓
 - [x] Real-time translation ✓
 - [x] Analytics dashboard ✓
-- [x] Tests (250 TS + 37 Rust) ✓
+- [x] Tests (250 TS + 17 SDK + 37 Rust) ✓
 - [x] Flywheel UI panel ✓
 - [x] Per-client matter tracking + billable time ✓
 - [x] SEO landing pages (19 static pages, 40k+ searches/month targeted) ✓

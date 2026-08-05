@@ -1,7 +1,7 @@
 # Third-Party Notices
 
 **Voxlen**
-**Last updated: 16 April 2026**
+**Last updated: 5 August 2026**
 
 Voxlen incorporates open-source components listed below. Those
 components remain subject to their original licences. Nothing in the Voxlen licence terms modifies, overrides, or limits those licences. The
@@ -25,6 +25,7 @@ component is dual-licensed, Voxlen elects the most permissive option.
 | `tauri-plugin-shell`              | Apache-2.0 / MIT   | Shell / open-external-URL bridge         |
 | `tauri-plugin-dialog`             | Apache-2.0 / MIT   | Native file dialogs                     |
 | `tauri-plugin-fs`                 | Apache-2.0 / MIT   | File-system access                       |
+| `tauri-plugin-autostart`          | Apache-2.0 / MIT   | Launch-at-login support                  |
 | `serde`, `serde_json`             | Apache-2.0 / MIT   | Serialisation                            |
 | `tokio`                           | MIT                | Async runtime                            |
 | `cpal`                            | Apache-2.0 / MIT   | Cross-platform audio capture             |
@@ -40,6 +41,12 @@ component is dual-licensed, Voxlen elects the most permissive option.
 | `anyhow`                          | Apache-2.0 / MIT   | Error ergonomics                         |
 | `thiserror`                       | Apache-2.0 / MIT   | Error macros                             |
 | `parking_lot`                     | Apache-2.0 / MIT   | Synchronisation primitives               |
+| `keyring`                         | MIT / Apache-2.0   | OS credential-store (keychain) access    |
+| `whisper-rs` (bindings to `whisper.cpp` + GGML, both MIT) | Unlicense (bindings); MIT (whisper.cpp, GGML) | On-device speech-to-text |
+| `llama-cpp-2` (bindings to `llama.cpp`, MIT) | MIT / Apache-2.0 (bindings); MIT (llama.cpp) | On-device grammar LLM inference |
+| `regex`                           | MIT / Apache-2.0   | On-device grammar rules engine           |
+| `interim`                         | MIT                | Natural-language date parsing (meeting deadline extraction) |
+| `similar`                         | Apache-2.0         | Word-level diff for grammar change lists |
 | `crossbeam-channel`               | Apache-2.0 / MIT   | Channel primitives                       |
 | `bytemuck`                        | Apache-2.0 / MIT / Zlib | Safe transmutation                  |
 | `futures-util`                    | Apache-2.0 / MIT   | Futures utilities                        |
@@ -58,6 +65,7 @@ component is dual-licensed, Voxlen elects the most permissive option.
 | `framer-motion`                        | MIT              | Animation                        |
 | `lucide-react`                         | ISC              | Icons                            |
 | `zustand`                              | MIT              | State management                 |
+| `docx`                                 | MIT              | .docx generation for auto-documents |
 | `tailwindcss`, `autoprefixer`, `postcss` | MIT            | Styling                          |
 | `vite`, `@vitejs/plugin-react`, `typescript` | MIT        | Build tooling                    |
 

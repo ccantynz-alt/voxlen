@@ -83,7 +83,7 @@ measures include, without limitation:
 - regular review of sub-processors and service providers.
 
 Measures within the Service itself are documented in `docs/SECURITY.md` and
-in the Privacy Policy (see "Plaintext-at-rest notice"). Customer is
+in the Privacy Policy (see "At-rest storage notice"). Customer is
 responsible for configuring devices, operating systems, account controls,
 and third-party providers to meet any additional security requirements
 applicable to Customer.

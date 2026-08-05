@@ -1,7 +1,7 @@
 # Sub-processors
 
 **Voxlen**
-**Last updated: 12 June 2026**
+**Last updated: 5 August 2026**
 
 This page lists the service providers Voxlen engages to process
 personal information on Voxlen's behalf (**"Sub-processors"**), as
@@ -16,10 +16,11 @@ Sub-processor. This list covers only the ancillary services Voxlen uses to opera
 
 | Sub-processor     | Purpose                                                                            | Location of processing |
 | ----------------- | ---------------------------------------------------------------------------------- | ---------------------- |
-| GitHub, Inc.      | Source control, release hosting (installer downloads), auto-update manifest        | United States           |
+| GitHub, Inc.      | Source control, release hosting (installer downloads)                              | United States           |
 | Cloudflare, Inc.  | CDN, TLS termination, DDoS protection for `voxlen.ai` and release endpoints    | Global                  |
 | Stripe, Inc.      | Payment processing, subscription billing (if you purchase a paid tier)             | United States           |
-| Amazon Web Services | Email relay and secure file storage for support attachments                      | Sydney (ap-southeast-2) |
+| Resend, Inc.      | Transactional email delivery (waitlist confirmations and notifications)            | United States           |
+| Upstash, Inc. (via Vercel KV) | Key-value storage for waitlist entries and plan entitlements (no Customer content) | United States |
 | Google Workspace  | Support email, calendar, document collaboration for Voxlen staff               | United States / EU      |
 | Vercel, Inc.      | Hosting for `voxlen.ai` and the zero-retention API endpoints (transit only — no Customer content stored) | United States |
 | Deepgram, Inc.    | Speech-to-text processing when you use a Voxlen account (model-training opt-out enforced on every request) | United States |

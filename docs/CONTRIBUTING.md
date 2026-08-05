@@ -5,7 +5,7 @@ Thanks for your interest in contributing. This document covers the conventions w
 ## Dev setup
 
 ```bash
-git clone https://github.com/ccantynz-alt/voxlen.git   # placeholder URL
+git clone https://github.com/ccantynz-alt/voxlen.git
 cd voxlen
 npm install
 npm run tauri dev
@@ -56,13 +56,16 @@ Breaking changes: append `!` after the type/scope and include a `BREAKING CHANGE
 
 ## Testing
 
-Automated tests are in progress. For now:
+The repo ships real test suites — run them before pushing:
 
-- Run `npm run build` to verify the TypeScript frontend compiles cleanly.
-- Run `cargo check` and `cargo test` inside `src-tauri/` for Rust changes.
-- Exercise your change manually via `npm run tauri dev`.
+- `npm test` — frontend unit tests (vitest; 250 tests). `npm run test:watch` for watch mode.
+- `npx tsc --noEmit` — TypeScript type-check (also part of CI).
+- `npm run rust:check` — `cargo check` for the Rust backend.
+- `npm run rust:test` — `cargo test` for the Rust backend (37 tests). Building the Rust backend requires LLVM 18 (`LIBCLANG_PATH`) and CMake for whisper-rs / llama-cpp-2.
+- The SDK has its own suite: `cd sdk && npm test`.
+- Exercise UI changes manually via `npm run tauri dev`.
 
-Once the test suite lands we will document how to run it here.
+CI (`.github/workflows/build.yml`) runs the type-check plus both test suites on every push.
 
 ## Code style
 
@@ -70,9 +73,9 @@ Once the test suite lands we will document how to run it here.
 - **TypeScript/React:** match existing patterns. Components live under `src/components/<domain>/`. Zustand stores go under `src/stores/`.
 - Keep public Rust command signatures documented in [API.md](./API.md) when you add or change them.
 
-## Release & signing
+## Releases
 
-See [RELEASE.md](./RELEASE.md) for the release process, including auto-updater key generation.
+See [RELEASE.md](./RELEASE.md) for the release process (builds are currently unsigned and there is no auto-updater).
 
 ## Reporting bugs
 

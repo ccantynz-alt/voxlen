@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Voxlen**
-**Effective 16 April 2026**
+**Effective 16 April 2026 — last updated 5 August 2026**
 
 Voxlen ("**Voxlen**", "**we**", "**us**", "**our**") respects your
 privacy. This Privacy Policy explains what personal information we and the
@@ -22,24 +22,33 @@ the Software (see section 5).
 ## 1. The short version
 
 - Voxlen runs **on your own device**. Your audio, transcripts,
-  settings, and credentials stay on your device unless you explicitly send
-  them to a third-party provider that you have configured.
-- **We do not operate servers that receive, store, or process your audio or
-  your transcripts.**
+  settings, and credentials stay on your device unless you use a feature
+  that sends them to a third-party provider.
+- **We do not store your audio or your transcripts on any server.** If you
+  use your own API credentials ("BYOK mode"), your content goes directly
+  from your device to the provider you configured. If you use a Voxlen
+  account ("account mode"), requests pass transiently through
+  zero-retention Voxlen-operated relay endpoints (`voxlen.ai/api`) solely
+  to reach the AI providers; nothing is logged or retained.
 - **We do not use analytics, telemetry, crash reporting, advertising IDs, or
   third-party trackers** in the Software.
 - Third-party speech-to-text and language-model providers (Deepgram, OpenAI,
-  Anthropic) handle your content only when you enable them, and only under
-  your own API credentials. Their terms and privacy policies apply to that
-  content.
+  Anthropic) handle your content only when you enable them — under your own
+  API credentials in BYOK mode, or as Voxlen Sub-processors in account mode
+  (see section 5 and `legal/SUBPROCESSORS.md`). Their terms and privacy
+  policies apply to that content.
 - You can delete any or all data from the Software at any time.
 
 ## 2. Who the "controller" is
 
 For the desktop and iOS software, **you** are the data controller of Your
-Content (your audio, your transcripts, your settings). Voxlen is not a
-controller, joint controller, or processor of that content — it never leaves
-your device in a form that reaches us.
+Content (your audio, your transcripts, your settings). In BYOK mode,
+Voxlen is not a controller, joint controller, or processor of that content
+— it never leaves your device in a form that reaches us. In account mode,
+Voxlen acts as a processor only to the limited extent that Your Content
+passes transiently through our zero-retention relay endpoints to reach the
+AI providers; we do not store, log, or use it, and the providers engaged in
+that mode are listed in `legal/SUBPROCESSORS.md`.
 
 For information you submit to us directly (for example, by emailing support
 or purchasing a licence through the Site), Voxlen is the controller. Our
@@ -55,23 +64,23 @@ transmitted to Voxlen.
 | Application settings  | `settings.json` in the Tauri app-data directory       |
 | Dictation history     | `history.json` (up to 500 most recent sessions)       |
 | Custom vocabulary     | Within settings                                        |
-| Third-party API keys  | Within settings (**plaintext at rest** — see below)   |
+| API keys              | The operating-system credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service) — never plaintext JSON |
 | Matter / document context | Within settings and session records                 |
 
-### Plaintext-at-rest notice
+### At-rest storage notice
 
-API keys and transcripts are stored in plaintext on disk. They are protected
-only by the file-system permissions of your user account. Any process
-running as your user (or anyone with physical access to the unlocked device)
-can read them.
-
-We are actively working on OS-keychain integration (macOS Keychain, Windows
-Credential Manager, Linux Secret Service / libsecret). Until that ships, if
-you are handling material that requires stronger at-rest protection
-(privileged client communications, PHI, financial records subject to
-stricter regulation) you should consider supplementary controls such as
-full-disk encryption, device-management policies, and dedicated user
-profiles.
+API keys are stored in the operating system's credential store (macOS
+Keychain, Windows Credential Manager, Linux Secret Service / libsecret) and
+are not written to disk in plaintext. Transcripts, dictation history, and
+any documents the Software writes (for example opt-in per-matter documents
+and review-queue files) are stored in plaintext on disk, protected only by
+the file-system permissions of your user account. Any process running as
+your user (or anyone with physical access to the unlocked device) can read
+them. If you are handling material that requires stronger at-rest
+protection (privileged client communications, PHI, financial records
+subject to stricter regulation) you should consider supplementary controls
+such as full-disk encryption, device-management policies, and dedicated
+user profiles.
 
 ## 4. What leaves your device
 
@@ -80,30 +89,45 @@ situations, and only to the destinations listed:
 
 | Traffic                       | Destination                                        | Trigger                                                                                             |
 | ----------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Audio frames                  | Deepgram **or** OpenAI Whisper                     | While dictation is active, only to the speech-to-text engine you selected                           |
-| Transcript text               | Anthropic **or** OpenAI                            | Only when you enable grammar correction and trigger a polish pass                                   |
-| Update check                  | GitHub Releases / Voxlen update endpoint        | When the built-in updater runs (configurable; you can disable auto-update in Settings)              |
+| Audio frames                  | Deepgram **or** OpenAI Whisper (BYOK mode)         | While dictation is active, only to the speech-to-text engine you selected                           |
+| Transcript text               | Anthropic **or** OpenAI (BYOK mode)                | Only when you enable grammar correction or translation and a pass runs                              |
+| Audio frames / transcript text | Voxlen-operated relay endpoints (`voxlen.ai/api`) | Account mode only: requests transit these zero-retention endpoints to reach the providers above     |
+| Model files (inbound download) | Hugging Face (`huggingface.co`)                   | Only when you explicitly download an offline Whisper or grammar model in Settings                   |
 
 **No other outbound traffic originates from the Software.** The Software
-does not send anything to Voxlen-operated servers as part of normal
-operation.
+has no auto-updater and performs no update checks; new versions are
+downloaded manually. In BYOK mode the Software does not send anything to
+Voxlen-operated servers as part of normal operation; in account mode the
+relay endpoints do not store or log Your Content.
 
-## 5. Third-party providers you configure
+## 5. Third-party AI providers
 
-When you enter your own API key for a provider and use a feature that calls
-that provider, the Software connects directly from your device to the
-provider. Voxlen does not proxy, log, or intercept this traffic.
+The Software reaches its AI providers in one of two modes:
+
+**BYOK mode.** When you enter your own API key for a provider and use a
+feature that calls that provider, the Software connects directly from your
+device to the provider. Voxlen does not proxy, log, or intercept this
+traffic. In this mode those providers act as independent controllers or
+processors in respect of the content you send them; their privacy policies
+and data-processing terms apply, you are responsible for reviewing and
+accepting them, and Voxlen is not a party to the data relationship, does
+not act as your processor in respect of that content, and does not hold a
+data processing agreement with those providers on your behalf.
+
+**Account mode.** When you use a Voxlen account key, requests are relayed
+transiently through zero-retention Voxlen-operated endpoints
+(`voxlen.ai/api`) that hold the provider credentials, so you do not need
+your own keys. The relay does not store or log Your Content. In this mode
+Deepgram, Anthropic, and OpenAI act as Voxlen Sub-processors for the
+transient processing of your requests, as listed in
+`legal/SUBPROCESSORS.md` (Deepgram's model-training opt-out is enforced on
+every request).
+
+Provider privacy policies:
 
 - **Deepgram** — <https://deepgram.com/privacy>
 - **OpenAI (Whisper, GPT models)** — <https://openai.com/policies/privacy-policy>
 - **Anthropic (Claude)** — <https://www.anthropic.com/legal/privacy>
-
-Those providers act as independent controllers or processors in respect of
-the content you send them. Their privacy policies and data-processing terms
-apply. You are responsible for reviewing and accepting them. Voxlen is
-not a party to the data relationship between you and any of them, does not
-act as your processor in respect of that content, and does not hold a data
-processing agreement with those providers on your behalf.
 
 ## 6. Information we collect directly
 
@@ -258,4 +282,4 @@ representative.
 
 ---
 
-*Last updated: 16 April 2026.*
+*Last updated: 5 August 2026.*

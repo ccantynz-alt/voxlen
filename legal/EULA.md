@@ -1,12 +1,12 @@
 # End User Licence Agreement
 
 **Voxlen**
-**Version 1.0 — 16 April 2026**
+**Version 1.1 — 5 August 2026**
 
 THIS END USER LICENCE AGREEMENT (**"EULA"**) IS A LEGALLY BINDING CONTRACT
 BETWEEN YOU (**"YOU"**, **"YOUR"**, OR **"LICENSEE"**) AND **VOXLEN**
 (**"VOXLEN"**, **"WE"**, **"US"**, OR **"OUR"**) GOVERNING YOUR USE OF THE
-**VOXLEN VOICE** SOFTWARE AND ANY ACCOMPANYING DOCUMENTATION (THE
+**VOXLEN** SOFTWARE AND ANY ACCOMPANYING DOCUMENTATION (THE
 **"SOFTWARE"**). BY INSTALLING, COPYING, OR OTHERWISE USING THE SOFTWARE YOU
 AGREE TO BE BOUND BY THIS EULA. IF YOU DO NOT AGREE, DO NOT INSTALL OR USE THE
 SOFTWARE AND DELETE ALL COPIES IN YOUR POSSESSION.
@@ -138,19 +138,27 @@ court, or third party.
 
 5.4 **No training by Voxlen.** Voxlen does not use Your Content,
 Output, or telemetry to train, fine-tune, or evaluate any machine-learning
-model. Voxlen does not receive Your Content or Output; they are
-transmitted directly from Your device to the Third-Party Services You
-configure.
+model. Voxlen does not store Your Content or Output. Where You supply
+Your own Third-Party Service credentials, Your Content is transmitted
+directly from Your device to the Third-Party Services You configure. Where
+You use a Voxlen account, requests may pass transiently through
+zero-retention Voxlen endpoints solely to reach the Third-Party Services;
+nothing is logged or retained by Voxlen.
 
 ## 6. Third-Party Services
 
-6.1 **BYO credentials.** The Software requires You to supply Your own API
-credentials for Third-Party Services (a "bring-your-own-key" model). Your
-relationship with each Third-Party Service is directly between You and that
-provider, subject to that provider's own terms and privacy policy. Voxlen
-is not a party to that relationship, does not resell the services, and does
-not act as a data processor, reseller, or intermediary in respect of the
-content transmitted to those services.
+6.1 **Credential modes.** The Software interoperates with Third-Party
+Services in one of two modes: (a) a "bring-your-own-key" mode, in which You
+supply Your own API credentials for the Third-Party Services — in that mode
+Your relationship with each Third-Party Service is directly between You and
+that provider, subject to that provider's own terms and privacy policy, and
+Voxlen is not a party to that relationship, does not resell the services,
+and does not act as a data processor, reseller, or intermediary in respect
+of the content transmitted to those services; or (b) a Voxlen-account mode,
+in which requests are relayed transiently through zero-retention Voxlen
+endpoints to Third-Party Services engaged by Voxlen (see the Terms of
+Service and the Sub-processors list in `legal/SUBPROCESSORS.md`) — in that
+mode nothing is logged or retained by Voxlen.
 
 6.2 **Your warranties.** You represent and warrant that You have read,
 accepted, and will continuously comply with the terms of each Third-Party
@@ -172,10 +180,10 @@ other than taxes on Voxlen's net income.
 ## 8. Updates and versions
 
 Voxlen may issue updates, patches, and new versions of the Software at
-its discretion. Auto-update behaviour is configurable; by default the
-Software may check for and apply updates over the network. Updates are
-delivered under this EULA. Voxlen has no obligation to maintain, support,
-or continue any particular version or feature.
+its discretion. The Software does not currently update itself
+automatically; updates are made available for download and are installed
+by You. Updates are delivered under this EULA. Voxlen has no obligation
+to maintain, support, or continue any particular version or feature.
 
 ## 9. Term and termination
 
@@ -339,4 +347,4 @@ message, or on its website.
 
 ---
 
-*Last updated: 16 April 2026.*
+*Last updated: 5 August 2026.*
