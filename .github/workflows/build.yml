@@ -15,8 +15,42 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: '1'
+  # linuxdeploy's strip step chokes on some release binaries; skipping strip is the
+  # documented Tauri workaround and only costs AppImage size.
+  NO_STRIP: 'true'
 
 jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Frontend tests
+        run: npm test
+
+      - name: Rust tests
+        run: npm run rust:test
+
   build:
     strategy:
       fail-fast: false
@@ -53,7 +87,8 @@ jobs:
             pkg-config \
             xdotool \
             xclip \
-            libsecret-1-dev
+            libsecret-1-dev \
+            libfuse2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -102,7 +137,7 @@ jobs:
           retention-days: 7
 
   release:
-    needs: build
+    needs: [build, test]
     if: success()
     runs-on: ubuntu-22.04
     steps:
