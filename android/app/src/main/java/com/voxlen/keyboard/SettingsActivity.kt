@@ -121,10 +121,10 @@ class SettingsActivity : AppCompatActivity() {
         layout.addView(label("Deepgram API Key"))
         val deepgramInput = EditText(this).apply {
             hint = "Enter Deepgram API key"
-            setText(prefs.getString("deepgram_api_key", ""))
+            setText(SecurePrefs.getSecret(this@SettingsActivity, "deepgram_api_key"))
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             setOnFocusChangeListener { _, hasFocus ->
-                if (!hasFocus) prefs.edit().putString("deepgram_api_key", text.toString()).apply()
+                if (!hasFocus) SecurePrefs.setSecret(this@SettingsActivity, "deepgram_api_key", text.toString())
             }
         }
         layout.addView(deepgramInput)
@@ -181,10 +181,10 @@ class SettingsActivity : AppCompatActivity() {
         layout.addView(label("Grammar API Key"))
         val apiKeyInput = EditText(this).apply {
             hint = "Enter Claude or OpenAI API key"
-            setText(prefs.getString("api_key", ""))
+            setText(SecurePrefs.getSecret(this@SettingsActivity, "api_key"))
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             setOnFocusChangeListener { _, hasFocus ->
-                if (!hasFocus) prefs.edit().putString("api_key", text.toString()).apply()
+                if (!hasFocus) SecurePrefs.setSecret(this@SettingsActivity, "api_key", text.toString())
             }
         }
         layout.addView(apiKeyInput)
@@ -221,10 +221,8 @@ class SettingsActivity : AppCompatActivity() {
             setBackgroundColor(0xFF7345D1.toInt())
             setTextColor(0xFFFFFFFF.toInt())
             setOnClickListener {
-                prefs.edit()
-                    .putString("deepgram_api_key", deepgramInput.text.toString())
-                    .putString("api_key", apiKeyInput.text.toString())
-                    .apply()
+                SecurePrefs.setSecret(this@SettingsActivity, "deepgram_api_key", deepgramInput.text.toString())
+                SecurePrefs.setSecret(this@SettingsActivity, "api_key", apiKeyInput.text.toString())
                 Toast.makeText(this@SettingsActivity, "Settings saved!", Toast.LENGTH_SHORT).show()
             }
         })

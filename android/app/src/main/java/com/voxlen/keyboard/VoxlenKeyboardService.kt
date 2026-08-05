@@ -239,7 +239,7 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
     }
 
     private fun startDictation() {
-        val apiKey = prefs.getString("deepgram_api_key", "") ?: ""
+        val apiKey = SecurePrefs.getSecret(this, "deepgram_api_key")
         if (apiKey.isBlank()) {
             grammarLabel?.text = "Set Deepgram key in settings"
             return
@@ -387,7 +387,7 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
         serviceScope.launch {
             try {
                 val provider = prefs.getString("ai_provider", "claude") ?: "claude"
-                val apiKey = prefs.getString("api_key", "") ?: ""
+                val apiKey = SecurePrefs.getSecret(this@VoxlenKeyboardService, "api_key")
                 val style = prefs.getString("writing_style", "professional") ?: "professional"
 
                 val corrected = grammarClient.correctGrammar(textToPolish, provider, apiKey, style)
@@ -411,7 +411,7 @@ class VoxlenKeyboardService : InputMethodService(), DeepgramClient.DeepgramListe
         serviceScope.launch {
             try {
                 val provider = prefs.getString("ai_provider", "claude") ?: "claude"
-                val apiKey = prefs.getString("api_key", "") ?: ""
+                val apiKey = SecurePrefs.getSecret(this@VoxlenKeyboardService, "api_key")
                 val style = prefs.getString("writing_style", "professional") ?: "professional"
                 if (apiKey.isBlank()) return@launch
 
