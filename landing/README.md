@@ -49,10 +49,10 @@ The site is **not** fully static: alongside the Vite frontend it ships Vercel se
 
 | Endpoint              | Purpose                                                        |
 | --------------------- | -------------------------------------------------------------- |
-| `/api/stt`            | Speech-to-text proxy (Deepgram) for account-mode clients       |
-| `/api/grammar`        | Grammar-correction proxy (Anthropic Claude)                    |
-| `/api/translate`      | Translation proxy (Anthropic Claude)                           |
-| `/api/deepgram-token` | Issues short-lived Deepgram keys for streaming clients         |
+| `/api/stt`            | Speech-to-text proxy (Deepgram) for account-mode clients ¹     |
+| `/api/grammar`        | Grammar-correction proxy (Anthropic Claude) ¹                  |
+| `/api/translate`      | Translation proxy (Anthropic Claude) ¹                         |
+| `/api/deepgram-token` | Issues short-lived Deepgram keys for streaming clients ¹       |
 | `/api/vocabulary`     | Custom-vocabulary/keyterm support (Deepgram)                   |
 | `/api/desktop-token`  | Long-lived desktop account tokens                              |
 | `/api/generate-key`   | Key issuance                                                   |
@@ -63,13 +63,22 @@ The site is **not** fully static: alongside the Vite frontend it ships Vercel se
 | `/api/admin-waitlist` | Admin waitlist view                                            |
 | `/api/admin-health`   | Admin health/diagnostics                                       |
 
+¹ Metered endpoints are entitlement-gated (`_entitlement.ts`): paid plans
+(professional/privileged/firm with an active/trialing Stripe subscription, per
+the KV entitlement written by `/api/stripe-webhook`) and admin-issued token
+plans (`admin`/`pro`/`free_trial`) pass; everyone else gets a 14-day free trial
+measured from the earlier of the token's `iat` and a KV first-seen record
+(`trial:<email>`), then HTTP 402 `{error: "trial_expired", upgrade_url}`. The
+gate fails open — if KV is unconfigured or a KV read fails, requests are
+allowed so an infra outage never blocks paying customers.
+
 ### Required environment variables (set in Vercel — never commit values)
 
 - `VOXLEN_TOKEN_SECRET` — HS256 secret for signing/verifying Voxlen account JWTs
 - `DEEPGRAM_API_KEY` — provider key for the STT/vocabulary/token endpoints
 - `ANTHROPIC_API_KEY` — provider key for grammar and translation
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PROFESSIONAL`, `STRIPE_PRICE_PRIVILEGED`, `STRIPE_PRICE_FIRM` — Stripe billing
-- `KV_REST_API_URL`, `KV_REST_API_TOKEN` — Vercel KV (Upstash) for waitlist entries and plan entitlements
+- `KV_REST_API_URL`, `KV_REST_API_TOKEN` — Vercel KV (Upstash) for waitlist entries, plan entitlements, and free-trial start records
 - `RESEND_API_KEY`, `WAITLIST_NOTIFY_EMAIL` — waitlist email delivery via Resend
 
 ## Notes

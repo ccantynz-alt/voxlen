@@ -27,9 +27,22 @@ function kvConfig(): { url: string; token: string } | null {
   return url && token ? { url: url.replace(/\/$/, ""), token } : null;
 }
 
-export async function readPlanEntitlement(email: string): Promise<PlanEntitlement | null> {
+/** Whether the entitlement store exists at all. When false, gating must fail open. */
+export function kvConfigured(): boolean {
+  return kvConfig() !== null;
+}
+
+/**
+ * KV lookup outcome that keeps "no entry" distinct from "KV unavailable/errored",
+ * so entitlement gating can fail open on infrastructure problems instead of
+ * treating an outage as a free plan.
+ */
+export type KvLookup<T> = { ok: true; value: T | null } | { ok: false };
+
+export async function lookupPlanEntitlement(email: string): Promise<KvLookup<PlanEntitlement>> {
   const kv = kvConfig();
-  if (!kv || !email) return null;
+  if (!kv) return { ok: false };
+  if (!email) return { ok: true, value: null };
 
   try {
     const key = `plan:${email.trim().toLowerCase()}`;
@@ -38,15 +51,67 @@ export async function readPlanEntitlement(email: string): Promise<PlanEntitlemen
     });
     if (!response.ok) {
       console.error("PLAN_KV_READ_ERROR", response.status, await response.text());
-      return null;
+      return { ok: false };
     }
     const data = await response.json() as { result?: string | PlanEntitlement | null };
-    if (!data.result) return null;
+    if (!data.result) return { ok: true, value: null };
     const value = typeof data.result === "string" ? JSON.parse(data.result) as PlanEntitlement : data.result;
-    return value && typeof value.plan === "string" && KNOWN_PLANS.has(value.plan) ? value : null;
+    return { ok: true, value: value && typeof value.plan === "string" && KNOWN_PLANS.has(value.plan) ? value : null };
   } catch (error) {
     console.error("PLAN_KV_READ_ERROR", error);
-    return null;
+    return { ok: false };
+  }
+}
+
+export async function readPlanEntitlement(email: string): Promise<PlanEntitlement | null> {
+  const lookup = await lookupPlanEntitlement(email);
+  return lookup.ok ? lookup.value : null;
+}
+
+/**
+ * First time we saw this email use a metered endpoint without a paid plan
+ * (Unix seconds). Anchors the 14-day free trial so re-minting a fresh token
+ * (fresh `iat`) can't restart the clock.
+ */
+export async function readTrialStart(email: string): Promise<KvLookup<number>> {
+  const kv = kvConfig();
+  if (!kv || !email) return { ok: false };
+
+  try {
+    const key = `trial:${email.trim().toLowerCase()}`;
+    const response = await fetch(`${kv.url}/get/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${kv.token}` },
+    });
+    if (!response.ok) {
+      console.error("TRIAL_KV_READ_ERROR", response.status, await response.text());
+      return { ok: false };
+    }
+    const data = await response.json() as { result?: string | number | null };
+    if (data.result === null || data.result === undefined) return { ok: true, value: null };
+    const value = Number(data.result);
+    return { ok: true, value: Number.isFinite(value) && value > 0 ? value : null };
+  } catch (error) {
+    console.error("TRIAL_KV_READ_ERROR", error);
+    return { ok: false };
+  }
+}
+
+/** Best-effort — a failed write only delays the trial clock, never blocks a request. */
+export async function writeTrialStart(email: string, epochSeconds: number): Promise<void> {
+  const kv = kvConfig();
+  if (!kv || !email) return;
+
+  try {
+    const key = `trial:${email.trim().toLowerCase()}`;
+    const response = await fetch(
+      `${kv.url}/set/${encodeURIComponent(key)}/${Math.floor(epochSeconds)}`,
+      { method: "POST", headers: { Authorization: `Bearer ${kv.token}` } },
+    );
+    if (!response.ok) {
+      console.error("TRIAL_KV_WRITE_ERROR", response.status, await response.text());
+    }
+  } catch (error) {
+    console.error("TRIAL_KV_WRITE_ERROR", error);
   }
 }
 

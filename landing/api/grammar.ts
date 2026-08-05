@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth.js";
+import { checkEntitlement, entitlementDeniedBody } from "./_entitlement.js";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -18,10 +19,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
   }
 
+  let user;
   try {
-    await verifyAccessToken(token);
+    user = await verifyAccessToken(token);
   } catch {
     return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
+  }
+
+  const entitlement = await checkEntitlement(user);
+  if (!entitlement.allowed) {
+    return applyHeaders(res, headers).status(402).json(entitlementDeniedBody(entitlement));
   }
 
   if (!ANTHROPIC_API_KEY) {
