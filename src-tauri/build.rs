@@ -27,10 +27,27 @@ fn stage_llama_dlls() {
         let dest = dest_dir.join(name);
         if src.exists() {
             let _ = std::fs::copy(&src, &dest);
-        } else if !dest.exists() {
-            // Keep the resource path valid even if this profile's DLLs are
-            // not built yet; the release build refreshes them.
+        } else if !dest.exists() && profile != "release" {
+            // Dev/debug only: keep the resource path valid even if this
+            // profile's DLLs are not built yet (tauri_build hard-fails on
+            // missing resource paths). Never in release — a bundled 0-byte
+            // DLL would break app launch.
             let _ = std::fs::File::create(&dest);
+        }
+        if profile == "release" {
+            // Fail loudly rather than ship a bundle with a missing or 0-byte
+            // (stale dev placeholder) DLL.
+            let staged_len = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+            if staged_len == 0 {
+                panic!(
+                    "Release build: required DLL '{}' is missing or 0 bytes after staging \
+                     (searched {}). Build llama-cpp-sys-2 (dynamic-link) for the release \
+                     profile first, or clear stale placeholders from {}.",
+                    name,
+                    src_dir.display(),
+                    dest_dir.display()
+                );
+            }
         }
     }
 }

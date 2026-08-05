@@ -44,6 +44,17 @@ pub fn set_stt_engine(engine_id: String, state: State<'_, SttState>) -> Result<(
         _ => return Err(format!("Unknown engine: {}", engine_id)),
     };
 
+    // Privileged mode: block all cloud STT — mirror apply_settings_to_engines
+    // so this command cannot be used to bypass the local-only guarantee.
+    if crate::commands::settings::get_privileged_mode() {
+        log::warn!(
+            "Privileged mode active: forcing STT engine to Whisper Local (requested '{}')",
+            engine_id
+        );
+        config.engine = SttEngineType::WhisperLocal;
+        config.model = crate::commands::settings::get_current_settings().whisper_local_model;
+    }
+
     engine.set_config(config);
     Ok(())
 }
@@ -55,7 +66,18 @@ pub fn get_stt_config(state: State<'_, SttState>) -> Result<SttConfig, String> {
 }
 
 #[tauri::command]
-pub fn set_stt_config(config: SttConfig, state: State<'_, SttState>) -> Result<(), String> {
+pub fn set_stt_config(mut config: SttConfig, state: State<'_, SttState>) -> Result<(), String> {
+    // Privileged mode: block all cloud STT — mirror apply_settings_to_engines
+    // so this command (called on every dictation start) cannot be used to
+    // bypass the local-only guarantee.
+    if crate::commands::settings::get_privileged_mode()
+        && !matches!(config.engine, SttEngineType::WhisperLocal)
+    {
+        log::warn!("Privileged mode active: forcing STT config to Whisper Local");
+        config.engine = SttEngineType::WhisperLocal;
+        config.model = crate::commands::settings::get_current_settings().whisper_local_model;
+    }
+
     let engine = state.0.read();
     engine.set_config(config);
     Ok(())

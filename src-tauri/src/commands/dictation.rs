@@ -52,6 +52,20 @@ fn start_dictation_internal(
     let config = stt_state.0.read().get_config();
     let status_arc = audio_state.0.read().status.clone();
 
+    // Fail-closed privileged-mode gate: even if a stale or bypassed config
+    // still names a cloud engine, refuse to open a cloud session. Capture
+    // was already started above, so tear it down before erroring — the mic
+    // must not stay hot behind a failed start.
+    if crate::commands::settings::get_privileged_mode()
+        && !matches!(config.engine, SttEngineType::WhisperLocal)
+    {
+        let _ = audio_state.0.read().stop_capture();
+        return Err(
+            "Privileged mode requires the local engine. Cloud transcription is blocked."
+                .to_string(),
+        );
+    }
+
     match config.engine {
         SttEngineType::DeepgramCloud => {
             if s.always_ready_mode && !crate::commands::settings::get_privileged_mode() {

@@ -9,11 +9,9 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
-use crate::meeting::MeetingState;
-
-const INDICATOR_LABEL: &str = "meeting-indicator";
+use crate::meeting::{MeetingState, INDICATOR_LABEL};
 
 #[tauri::command]
 pub fn meeting_capture_supported() -> bool {
@@ -125,22 +123,9 @@ pub async fn start_meeting_capture(
 }
 
 #[tauri::command]
-pub async fn stop_meeting_capture(
-    app: AppHandle,
-    state: State<'_, MeetingState>,
-) -> Result<(), String> {
-    if let Some(flag) = state.stop_flag.lock().take() {
-        flag.store(true, Ordering::Relaxed);
-    }
-    if let Some(handle) = state.mic_handle.lock().take() {
-        handle.stop();
-    }
-    if let Some(handle) = state.loopback_handle.lock().take() {
-        handle.stop();
-    }
-    if let Some(win) = app.get_webview_window(INDICATOR_LABEL) {
-        let _ = win.close();
-    }
+pub async fn stop_meeting_capture(app: AppHandle) -> Result<(), String> {
+    // Shared with the meeting task's exit path — see meeting::teardown_capture.
+    crate::meeting::teardown_capture(&app);
     log::info!("Meeting capture stop requested");
     Ok(())
 }

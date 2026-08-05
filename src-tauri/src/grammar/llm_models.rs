@@ -110,7 +110,21 @@ pub async fn download_grammar_model(app: AppHandle, id: String) -> Result<(), St
     let spec = spec_for(&id).ok_or_else(|| format!("Unknown grammar model '{id}'"))?;
     let dest = model_path(&app, &id).map_err(|e| e.to_string())?;
     if dest.exists() {
-        return Ok(());
+        // Catalog sizes are rounded to the MB, so an exact match is
+        // impossible — but a file drastically smaller than the catalog size
+        // is a truncated artifact from before integrity checking existed.
+        // Remove it and re-download instead of locking it in forever.
+        let on_disk = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+        if on_disk >= spec.size_mb * 1024 * 1024 * 9 / 10 {
+            return Ok(());
+        }
+        log::warn!(
+            "Grammar model '{}' on disk is {} bytes but the catalog expects ~{} MB — re-downloading",
+            id,
+            on_disk,
+            spec.size_mb
+        );
+        std::fs::remove_file(&dest).map_err(|e| e.to_string())?;
     }
     if !downloading_guard(&id, true) {
         return Err(format!("Model '{id}' is already downloading"));
