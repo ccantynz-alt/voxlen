@@ -355,11 +355,18 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
         }
     }
 
+    /// Secrets live in the shared keychain (KeychainStore); fall back to the
+    /// legacy App Group UserDefaults value until the container app has run
+    /// once and migrated it.
+    private func secret(_ key: String) -> String {
+        KeychainStore.get(key) ?? defaults?.string(forKey: key) ?? ""
+    }
+
     private func startDictation() {
         guard !isListening else { return }
         let engine = defaults?.string(forKey: "sttEngine") ?? "deepgram"
-        let deepgramKey = defaults?.string(forKey: "deepgramApiKey") ?? ""
-        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
+        let deepgramKey = secret("deepgramApiKey")
+        let voxlenKey = secret("voxlenApiKey")
 
         if engine == "deepgram" && !deepgramKey.isEmpty {
             startDeepgramDictation(apiKey: deepgramKey)
@@ -702,7 +709,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
         let style = defaults?.string(forKey: "writingStyle") ?? "professional"
 
         // Prefer Voxlen account key (proxied), fall back to direct BYOK key
-        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
+        let voxlenKey = secret("voxlenApiKey")
         if !voxlenKey.isEmpty {
             return try await correctWithVoxlenProxy(text: text, voxlenKey: voxlenKey, style: style)
         }
@@ -710,8 +717,8 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
         let legacyKey = provider == "openai"
             ? (defaults?.string(forKey: "openaiApiKey") ?? defaults?.string(forKey: "grammarApiKey"))
             : defaults?.string(forKey: "grammarApiKey")
-        let apiKey = defaults?.string(forKey: "apiKey").flatMap { $0.isEmpty ? nil : $0 }
-            ?? legacyKey ?? ""
+        let keychainKey = secret("apiKey")
+        let apiKey = keychainKey.isEmpty ? (legacyKey ?? "") : keychainKey
 
         guard !apiKey.isEmpty else {
             throw GrammarError.noApiKey

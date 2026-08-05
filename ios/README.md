@@ -10,7 +10,7 @@ AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, 
 2. Choose **App** template, name it `VoxKeyboard`
 3. Add a new target: **File > New > Target > Custom Keyboard Extension**
 4. Name it `VoxKeyboardExtension`
-5. Copy the Swift files from this directory into the appropriate targets
+5. Copy the Swift files from this directory into the appropriate targets — `Shared/KeychainStore.swift` must be added to **both** targets
 6. Enable **App Groups** capability for both targets with group: `group.com.voxlen.app`
 7. Enable **RequestsOpenAccess** in the keyboard extension's Info.plist (already configured)
 
@@ -23,7 +23,7 @@ Alternatively (BYOK), users can supply their own keys:
 - **Deepgram API key** — for voice dictation (Nova-3 real-time streaming). Get one at [console.deepgram.com](https://console.deepgram.com).
 - **Claude or OpenAI API key** — for the "Polish" grammar correction feature (the code calls `claude-sonnet-4-6` for Anthropic, or `gpt-4o-mini` for OpenAI).
 
-Keys are stored locally on-device via App Groups and are never sent to Voxlen servers (the account-mode token exchange transits the zero-retention voxlen.ai endpoint).
+Keys are stored in the iOS **Keychain** (shared between app and extension via the app-group access group; `Shared/KeychainStore.swift`) and are never sent to Voxlen servers (the account-mode token exchange transits the zero-retention voxlen.ai endpoint). Legacy keys stored in App Group UserDefaults by earlier builds are migrated into the keychain on first launch of the container app.
 
 ### Offline fallback: currently non-functional
 

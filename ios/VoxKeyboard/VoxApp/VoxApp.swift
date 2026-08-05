@@ -303,7 +303,7 @@ class SettingsManager: ObservableObject {
         didSet { defaults.set(aiProvider.rawValue, forKey: "aiProvider") }
     }
     @Published var apiKey: String {
-        didSet { defaults.set(apiKey, forKey: "apiKey") }
+        didSet { KeychainStore.set(apiKey, for: "apiKey") }
     }
     @Published var autoPunctuation: Bool {
         didSet { defaults.set(autoPunctuation, forKey: "autoPunctuation") }
@@ -318,27 +318,34 @@ class SettingsManager: ObservableObject {
         didSet { defaults.set(sttEngine.rawValue, forKey: "sttEngine") }
     }
     @Published var deepgramApiKey: String {
-        didSet { defaults.set(deepgramApiKey, forKey: "deepgramApiKey") }
+        didSet { KeychainStore.set(deepgramApiKey, for: "deepgramApiKey") }
     }
     @Published var language: String {
         didSet { defaults.set(language, forKey: "language") }
     }
     @Published var voxlenApiKey: String {
-        didSet { defaults.set(voxlenApiKey, forKey: "voxlenApiKey") }
+        didSet { KeychainStore.set(voxlenApiKey, for: "voxlenApiKey") }
     }
 
     init() {
+        // Move any legacy plaintext UserDefaults secrets into the keychain
+        // (no-op once migrated).
+        let groupDefaults = UserDefaults(suiteName: "group.com.voxlen.app")
+        for key in ["apiKey", "deepgramApiKey", "voxlenApiKey"] {
+            KeychainStore.migrate(key, from: groupDefaults)
+        }
+
         self.autoCorrectEnabled = defaults.bool(forKey: "autoCorrect")
         self.writingStyle = WritingStyle(rawValue: defaults.string(forKey: "writingStyle") ?? "professional") ?? .professional
         self.preserveTone = defaults.object(forKey: "preserveTone") == nil ? true : defaults.bool(forKey: "preserveTone")
         self.aiProvider = AIProvider(rawValue: defaults.string(forKey: "aiProvider") ?? "claude") ?? .claude
-        self.apiKey = defaults.string(forKey: "apiKey") ?? ""
+        self.apiKey = KeychainStore.get("apiKey") ?? ""
         self.autoPunctuation = defaults.object(forKey: "autoPunctuation") == nil ? true : defaults.bool(forKey: "autoPunctuation")
         self.smartCapitalization = defaults.object(forKey: "smartCapitalization") == nil ? true : defaults.bool(forKey: "smartCapitalization")
         self.emojiSuggestions = defaults.bool(forKey: "emojiSuggestions")
         self.sttEngine = STTEngine(rawValue: defaults.string(forKey: "sttEngine") ?? "deepgram") ?? .deepgram
-        self.deepgramApiKey = defaults.string(forKey: "deepgramApiKey") ?? ""
+        self.deepgramApiKey = KeychainStore.get("deepgramApiKey") ?? ""
         self.language = defaults.string(forKey: "language") ?? "en"
-        self.voxlenApiKey = defaults.string(forKey: "voxlenApiKey") ?? ""
+        self.voxlenApiKey = KeychainStore.get("voxlenApiKey") ?? ""
     }
 }
