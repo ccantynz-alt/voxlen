@@ -15,10 +15,10 @@ import { ReviewQueuePanel } from "@/components/review/ReviewQueuePanel";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAudioStore } from "@/stores/audio";
-import { useSettingsStore } from "@/stores/settings";
+import { useSettingsStore, hydrateSecrets } from "@/stores/settings";
 import { loadHistory } from "@/stores/history";
 import { loadFlywheel } from "@/stores/flywheel";
-import { loadSettings, persistSettings } from "@/lib/settings";
+import { persistSettings } from "@/lib/settings";
 import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadCustomClauses } from "@/stores/clauses";
@@ -42,7 +42,6 @@ export default function App() {
   const [activeView, setActiveView] = useState<View>("dictation");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const setDevices = useAudioStore((s) => s.setDevices);
-  const hydrateSettingsStore = useSettingsStore((s) => s.hydrateSettings);
   const theme = useSettingsStore((s) => s.theme);
   const fontSize = useSettingsStore((s) => s.fontSize);
   const { pendingView, clearPendingView } = useNavigationStore();
@@ -127,63 +126,23 @@ export default function App() {
         }
       }
 
-      // Hydrate ONLY the API keys from the backend on boot. The backend's
-      // get_settings returns Rust defaults for everything except the keys it
-      // hydrates from the OS keychain — merging the full object would wipe
-      // the user's saved settings back to defaults on every launch (which it
-      // did, for months). The frontend settings.json is the source of truth
-      // for everything else; the persist subscriber below pushes the merged
-      // result back to the Rust engine.
+      // Hydrate ONLY the API keys from the OS keychain on boot. Merging the
+      // full backend get_settings object would wipe the user's saved settings
+      // back to Rust defaults on every launch (which it did, for months) —
+      // the frontend settings.json is the source of truth for everything
+      // else. hydrateSecrets() also opens the persistence gate: until it
+      // finishes, schedulePersist must not delete keychain secrets or push
+      // (still-empty) keys to the Rust engines, because early updateSetting
+      // calls (e.g. mic auto-select below) race this hydration. When it
+      // completes it schedules a persist that pushes the merged settings to
+      // the engine layer.
       try {
-        const backendSettings = await loadSettings();
-        if (backendSettings) {
-          const keysOnly: Record<string, unknown> = {};
-          if (backendSettings.sttApiKey) keysOnly.sttApiKey = backendSettings.sttApiKey;
-          if (backendSettings.grammarApiKey) keysOnly.grammarApiKey = backendSettings.grammarApiKey;
-          if (backendSettings.voxlenApiKey) keysOnly.voxlenApiKey = backendSettings.voxlenApiKey;
-          if (Object.keys(keysOnly).length > 0) {
-            hydrateSettingsStore(keysOnly);
-          }
-        }
+        await hydrateSecrets();
       } catch {
-        // Already handled inside loadSettings.
+        // Handled (toasted) inside hydrateSecrets.
       }
     }
     checkFirstLaunch();
-  }, [hydrateSettingsStore]);
-
-  // Persist settings on every change.
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let lastSerialized = "";
-
-    const unsub = useSettingsStore.subscribe((state) => {
-      // Strip transient UI-only fields.
-      const {
-        activeTab: _activeTab,
-        updateSetting: _us,
-        updateSettings: _uss,
-        hydrateSettings: _hs,
-        setActiveTab: _sat,
-        resetToDefaults: _rtd,
-        ...appSettings
-      } = state;
-      void _activeTab; void _us; void _uss; void _hs; void _sat; void _rtd;
-
-      const serialized = JSON.stringify(appSettings);
-      if (serialized === lastSerialized) return;
-      lastSerialized = serialized;
-
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        persistSettings(appSettings);
-      }, 300);
-    });
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      unsub();
-    };
   }, []);
 
   // Load history on startup

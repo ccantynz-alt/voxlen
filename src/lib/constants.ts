@@ -1,5 +1,9 @@
+import { version } from "../../package.json";
+
 export const APP_NAME = "Voxlen";
-export const APP_VERSION = "1.0.9";
+// Single source of truth: package.json (resolveJsonModule — Vite tree-shakes
+// the named import down to just the version string).
+export const APP_VERSION = version;
 export const APP_DESCRIPTION = "AI-powered voice dictation for professionals";
 
 export const SUPPORTED_LANGUAGES = [
@@ -66,13 +70,6 @@ export const VOICE_COMMANDS = [
   { command: "insert accountant liability cap", action: "insert_clause", description: "Insert accountant liability cap clause" },
   { command: "insert without prejudice", action: "insert_clause", description: "Insert without prejudice header" },
 ] as const;
-
-export const DEFAULT_SHORTCUTS = {
-  toggleDictation: "CommandOrControl+Shift+D",
-  pushToTalk: "CommandOrControl+Shift+Space",
-  cancel: "Escape",
-  correctGrammar: "CommandOrControl+Shift+G",
-} as const;
 
 export const STT_ENGINES = {
   whisper_cloud: {

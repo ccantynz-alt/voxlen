@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useClientsStore } from "@/stores/clients";
+import { useSettingsStore } from "@/stores/settings";
 
 export type DictationStatus =
   | "idle"
@@ -75,6 +76,13 @@ export interface DraftRecord {
 }
 
 function persistDraft(state: { segments: TranscriptionSegment[]; sessionStartedAtMs: number | null }) {
+  // Honour the saveTranscripts privacy setting: when it's off, no transcript
+  // text may touch disk — including the crash-recovery draft. Clear any
+  // draft left over from before the setting was disabled.
+  if (!useSettingsStore.getState().saveTranscripts) {
+    clearDraftRecord();
+    return;
+  }
   if (state.segments.length === 0) return;
   const draft: DraftRecord = {
     savedAt: Date.now(),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { exportTranscript, exportBillingCsv, exportAllBillingCsv } from "./export";
+import { exportTranscript, exportBillingCsv, exportAllBillingCsv, neutralizeCsvField } from "./export";
 import type { TranscriptionSegment } from "@/stores/dictation";
 import type { Client, MatterEntry } from "@/stores/clients";
 
@@ -125,5 +125,45 @@ describe("exportAllBillingCsv", () => {
     expect(content).toContain("Smith & Co");
     expect(content).toContain("M-001");
     expect(content).toContain("TOTAL");
+  });
+});
+
+describe("CSV formula injection", () => {
+  it.each(["=CMD()", "+SUM(A1)", "-2+3", "@evil", "\tX", "\rX"])(
+    "neutralizeCsvField prefixes %j with a quote",
+    (payload) => {
+      expect(neutralizeCsvField(payload)).toBe("'" + payload);
+    }
+  );
+
+  it("leaves benign values untouched", () => {
+    expect(neutralizeCsvField("Contract draft")).toBe("Contract draft");
+    expect(neutralizeCsvField("")).toBe("");
+    expect(neutralizeCsvField("400.00")).toBe("400.00");
+  });
+
+  it("exportBillingCsv neutralizes hostile notes", () => {
+    const e: MatterEntry = {
+      id: "e4", clientId: "c1", date: Date.now(), durationSeconds: 600,
+      wordCount: 100, billableAmount: 66.67,
+      note: '=HYPERLINK("http://evil","click")', ...entryDefaults,
+    };
+    const { content } = exportBillingCsv(mockClient, [e]);
+    expect(content).toContain("'=HYPERLINK");
+    expect(content).not.toContain('"=HYPERLINK');
+  });
+
+  it("exportAllBillingCsv neutralizes hostile client names, matters and notes", () => {
+    const hostileClient: Client = {
+      ...mockClient, id: "c9", name: "=cmd|' /C calc'!A0", matterNumber: "+M-666",
+    };
+    const e: MatterEntry = {
+      id: "e5", clientId: "c9", date: Date.now(), durationSeconds: 600,
+      wordCount: 100, billableAmount: 50, note: "@import", ...entryDefaults,
+    };
+    const { content } = exportAllBillingCsv([hostileClient], [e]);
+    expect(content).toContain("\"'=cmd");
+    expect(content).toContain("\"'+M-666\"");
+    expect(content).toContain("\"'@import\"");
   });
 });

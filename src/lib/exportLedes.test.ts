@@ -87,14 +87,33 @@ describe("exportLedes1998B", () => {
 });
 
 describe("exportClioCsv", () => {
-  it("emits Clio import columns with hours quantity at 1dp", () => {
+  it("emits Clio import columns with hours quantity at 2dp", () => {
     const { content } = exportClioCsv(client, [entry()]);
     const [header, row] = content.split("\r\n");
     expect(header).toBe("Date,Matter,Description,Rate,Quantity,Activity Category,Type,Non-billable");
     expect(row).toContain("2026-06-15");
     expect(row).toContain('"M-001"');
-    expect(row).toContain("0.2");
+    expect(row).toContain("0.20");
     expect(row).toContain("TimeEntry");
+  });
+
+  it("exports 0.25h as 0.25, not rounded to 0.3", () => {
+    // 0.25h @ 400 = 100
+    const { content } = exportClioCsv(client, [
+      entry({ durationSeconds: 900, billableAmount: 100 }),
+    ]);
+    const row = content.split("\r\n")[1];
+    expect(row).toContain("0.25");
+    expect(row).not.toContain("0.3");
+  });
+
+  it("neutralizes formula-injection payloads in text fields", () => {
+    const { content } = exportClioCsv(client, [
+      entry({ note: "=HYPERLINK(\"http://evil\",\"x\")" }),
+    ]);
+    const row = content.split("\r\n")[1];
+    expect(row).toContain("'=HYPERLINK");
+    expect(row).not.toContain(',"=HYPERLINK');
   });
 
   it("quotes descriptions containing commas", () => {

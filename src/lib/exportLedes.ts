@@ -7,6 +7,7 @@
  */
 
 import type { Client, MatterEntry } from "@/stores/clients";
+import { neutralizeCsvField } from "./export";
 
 export interface LedesMeta {
   invoiceNumber: string;
@@ -124,7 +125,9 @@ export function exportClioCsv(
   entries: MatterEntry[]
 ): { content: string; filename: string; mimeType: string } {
   const approved = entries.filter((e) => e.status === "approved");
-  const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
+  // Quote + neutralize: dictated narrative content must never execute as a
+  // spreadsheet formula when the CSV is opened in Excel before Clio import.
+  const q = (s: string) => `"${neutralizeCsvField(s).replace(/"/g, '""')}"`;
   const rows: string[] = [
     ["Date", "Matter", "Description", "Rate", "Quantity", "Activity Category", "Type", "Non-billable"].join(","),
   ];
@@ -139,7 +142,8 @@ export function exportClioCsv(
         q(client.matterNumber || client.name),
         q(e.note || "Dictation session"),
         rate.toFixed(2),
-        hours.toFixed(1),
+        // 2dp: 0.25h entries must export as "0.25", not round to "0.3".
+        hours.toFixed(2),
         q(e.activityCode ?? ""),
         "TimeEntry",
         "FALSE",

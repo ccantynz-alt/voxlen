@@ -5,7 +5,7 @@ import { useClientsStore, type Client, type MatterEntry } from "../../stores/cli
 import { useSettingsStore } from "../../stores/settings";
 import { exportBillingCsv, exportAllBillingCsv, downloadBillingExport } from "../../lib/export";
 import { exportLedes1998B, exportClioCsv } from "../../lib/exportLedes";
-import { formatBillableHours } from "../../lib/billing";
+import { computeBillableAmount, formatBillableHours, resolveRate, roundBillableSeconds } from "../../lib/billing";
 import { Button } from "../ui/Button";
 
 const CLIENT_COLORS = [
@@ -346,7 +346,22 @@ function ClientCard({ client }: { client: Client }) {
               <button onClick={() => archiveClient(client.id)} className="p-1.5 text-surface-500 hover:text-surface-800 hover:bg-surface-200 rounded transition-colors" title="Archive">
                 <Archive className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => deleteClient(client.id)} className="p-1.5 text-surface-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors" title="Delete">
+              <button
+                onClick={() => {
+                  // Deleting a client permanently destroys its time entries —
+                  // never do that silently (same pattern as Reset All Settings).
+                  const n = entries.length;
+                  const ok = window.confirm(
+                    `Delete ${client.name}?` +
+                      (n > 0
+                        ? `\n\nThis permanently deletes ${n} time entr${n === 1 ? "y" : "ies"} (including approved billable time). This cannot be undone.`
+                        : "\n\nThis cannot be undone.")
+                  );
+                  if (ok) deleteClient(client.id);
+                }}
+                className="p-1.5 text-surface-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                title="Delete"
+              >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </>
@@ -452,9 +467,18 @@ function DraftEntryRow({ entry }: { entry: MatterEntry }) {
   const updateEntry = useClientsStore((s) => s.updateEntry);
   const approveEntry = useClientsStore((s) => s.approveEntry);
   const deleteEntry = useClientsStore((s) => s.deleteEntry);
+  const defaultRate = useSettingsStore((s) => s.billableRatePerHour);
+  const billingRoundingIncrement = useSettingsStore((s) => s.billingRoundingIncrement);
+  const billingMinimumHours = useSettingsStore((s) => s.billingMinimumHours);
 
   const rate = entry.rateAtTime ?? 0;
-  const hours = rate > 0 ? entry.billableAmount / rate : entry.durationSeconds / 3600;
+  // With a rate, billableAmount/rate reconstructs the rounded hours the entry
+  // was drafted with; without one, apply the canonical round-UP rules instead
+  // of showing a raw durationSeconds/3600 fraction.
+  const hours =
+    rate > 0
+      ? entry.billableAmount / rate
+      : roundBillableSeconds(entry.durationSeconds, billingRoundingIncrement, billingMinimumHours);
 
   return (
     <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-100/60 border border-surface-300/40 text-xs">
@@ -464,12 +488,19 @@ function DraftEntryRow({ entry }: { entry: MatterEntry }) {
       <select
         value={entry.clientId}
         onChange={(e) => {
+          // Reassignment re-derives rate + amount through the canonical
+          // billing rules: target client's rate (falling back to the default
+          // rate) and 0.1h round-UP + minimum on the entry's duration.
           const next = clients.find((c) => c.id === e.target.value);
-          const nextRate = next && next.billableRate > 0 ? next.billableRate : rate;
+          const { rate: nextRate } = resolveRate(next, defaultRate);
+          const billing = computeBillableAmount(entry.durationSeconds, nextRate, {
+            incrementHours: billingRoundingIncrement,
+            minimumHours: billingMinimumHours,
+          });
           updateEntry(entry.id, {
             clientId: e.target.value,
             rateAtTime: nextRate,
-            billableAmount: Math.round(hours * nextRate * 100) / 100,
+            billableAmount: billing.amount,
           });
         }}
         className="bg-surface-50 border border-surface-300/60 rounded px-1.5 py-0.5 text-xs text-surface-800 shrink-0 max-w-[140px]"

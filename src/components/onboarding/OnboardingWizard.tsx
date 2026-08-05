@@ -86,6 +86,7 @@ interface OnboardingWizardProps {
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
   const [micTestLevel, setMicTestLevel] = useState(0);
+  const [micTestFailed, setMicTestFailed] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [voxlenKeyValid, setVoxlenKeyValid] = useState<boolean | "unverified" | null>(null);
   const [legalAccepted, setLegalAccepted] = useState(false);
@@ -199,8 +200,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const handleTestMic = useCallback(async () => {
     setIsTesting(true);
     setMicTestLevel(0);
+    setMicTestFailed(false);
 
-    // Simulate mic test (in Tauri, this would actually capture audio)
+    // Real capture only — a fabricated level bar would tell the user their
+    // mic works when it doesn't.
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("start_dictation");
@@ -218,15 +221,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       await invoke("stop_dictation");
       setMicTestLevel(maxLevel);
     } catch {
-      // Demo mode - simulate levels
-      let level = 0;
-      const interval = setInterval(() => {
-        level = Math.random() * 0.6 + 0.1;
-        setMicTestLevel(level);
-      }, 100);
-      await new Promise((r) => setTimeout(r, 3000));
-      clearInterval(interval);
-      setMicTestLevel(0.4);
+      // Capture unavailable (mic busy/missing, or running outside Tauri).
+      setMicTestLevel(0);
+      setMicTestFailed(true);
     }
     setIsTesting(false);
   }, []);
@@ -421,7 +418,20 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 {isTesting ? "Listening — speak now" : "Test microphone"}
               </Button>
 
-              {(isTesting || micTestLevel > 0) && (
+              {micTestFailed && !isTesting && (
+                <div className="flex items-start gap-2 p-3 rounded-md bg-red-500/8 border border-red-500/25 shadow-inset-hairline">
+                  <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" strokeWidth={1.75} />
+                  <div>
+                    <p className="text-[11px] font-medium text-red-500">Microphone unavailable</p>
+                    <p className="text-[10px] text-surface-600 mt-0.5 leading-snug">
+                      Couldn't start audio capture. Check that the microphone is
+                      connected and not in use by another app, then try again.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!micTestFailed && (isTesting || micTestLevel > 0) && (
                 <div className="space-y-1.5">
                   <div className="h-1.5 rounded-full bg-surface-200 overflow-hidden shadow-inset-hairline">
                     <div
@@ -707,7 +717,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   <span className="text-[13px] text-surface-900">Toggle Dictation</span>
                 </div>
                 <kbd className="px-2 py-1 rounded bg-surface-100 border border-surface-300/70 text-[10px] font-mono text-surface-800">
-                  Ctrl/Cmd+Shift+D
+                  {settings.shortcutToggle || "Alt+D"}
                 </kbd>
               </div>
               <div className="flex items-center justify-between p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
@@ -716,7 +726,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   <span className="text-[13px] text-surface-900">Push to Talk</span>
                 </div>
                 <kbd className="px-2 py-1 rounded bg-surface-100 border border-surface-300/70 text-[10px] font-mono text-surface-800">
-                  Ctrl/Cmd+Shift+Space
+                  {settings.shortcutPushToTalk || "Alt+Space"}
                 </kbd>
               </div>
               <div className="flex items-center justify-between p-3 rounded-md bg-surface-50 border border-surface-300/60 shadow-inset-hairline">
@@ -725,7 +735,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   <span className="text-[13px] text-surface-900">Polish Grammar</span>
                 </div>
                 <kbd className="px-2 py-1 rounded bg-surface-100 border border-surface-300/70 text-[10px] font-mono text-surface-800">
-                  Ctrl/Cmd+Shift+G
+                  {settings.shortcutCorrectGrammar || "Alt+G"}
                 </kbd>
               </div>
             </div>

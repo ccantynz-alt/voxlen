@@ -616,15 +616,21 @@ export function useTauriEvents(): void {
           if (!alreadySaved) {
             lastSavedSessionKey = sessionKey;
             const record = buildSessionRecord();
-            useHistoryStore.getState().addEntry({
-              id: crypto.randomUUID(),
-              text: fullText,
-              duration: dictState.sessionDuration * 1000,
-              wordCount: wc,
-              language: segments[0].language || "en",
-              timestamp: new Date().toISOString(),
-              grammarCorrected: hasGrammar,
-            });
+            // History entries carry the full transcript text and the history
+            // store persists to disk — honour the saveTranscripts privacy
+            // setting. Billing + flywheel below don't store transcript text
+            // and run regardless.
+            if (settings.saveTranscripts) {
+              useHistoryStore.getState().addEntry({
+                id: crypto.randomUUID(),
+                text: fullText,
+                duration: dictState.sessionDuration * 1000,
+                wordCount: wc,
+                language: segments[0].language || "en",
+                timestamp: new Date().toISOString(),
+                grammarCorrected: hasGrammar,
+              });
+            }
 
             // Record flywheel session
             const engine = settings.sttEngine;

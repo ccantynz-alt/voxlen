@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useDictationStore, loadDraftRecord, clearDraftRecord } from "./dictation";
 import type { TranscriptionSegment } from "./dictation";
+import { useSettingsStore } from "./settings";
 
 function makeSeg(overrides: Partial<TranscriptionSegment> = {}): TranscriptionSegment {
   return {
@@ -121,6 +122,28 @@ describe("draft persistence", () => {
     useDictationStore.getState().addSegment(makeSeg());
     clearDraftRecord();
     expect(loadDraftRecord()).toBeNull();
+  });
+
+  it("does not persist a draft when saveTranscripts is off", () => {
+    useSettingsStore.setState({ saveTranscripts: false });
+    try {
+      useDictationStore.getState().addSegment(makeSeg({ text: "private" }));
+      expect(loadDraftRecord()).toBeNull();
+    } finally {
+      useSettingsStore.setState({ saveTranscripts: true });
+    }
+  });
+
+  it("clears a pre-existing draft when saveTranscripts is turned off", () => {
+    useDictationStore.getState().addSegment(makeSeg({ text: "before" }));
+    expect(loadDraftRecord()).not.toBeNull();
+    useSettingsStore.setState({ saveTranscripts: false });
+    try {
+      useDictationStore.getState().addSegment(makeSeg({ text: "after" }));
+      expect(loadDraftRecord()).toBeNull();
+    } finally {
+      useSettingsStore.setState({ saveTranscripts: true });
+    }
   });
 });
 
