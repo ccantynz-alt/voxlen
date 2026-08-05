@@ -69,6 +69,13 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - [ ] Stripe payment links — `/api/checkout`, `/api/stripe-webhook`, and KV plan entitlement shipped 2026-07-18; only real `STRIPE_*` env vars in Vercel remain
 - [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
 - [ ] Clio API integration (matters pull + time entry push) — export formats shipped as the base
+- [ ] Plan-gate the voxlen.ai AI proxy endpoints (`/api/stt`, `/grammar`, `/translate`, `/deepgram-token` do zero entitlement checks — any signed-in free user gets unlimited paid AI; cost exposure)
+- [ ] Remaining 2026-08-05 audit mediums (desktop): bundle Google Fonts locally (app phones Google on launch, breaks offline); un-gate billing settings from Voxlen account (BYOK users can't set rate/rounding); remove or wire the inert telemetry toggle; dead "start/stop billing" + "select all" voice commands swallow speech; meeting save failures are silent; autosaved sessions resurrect as "unsaved draft" (double-counts billing on restore)
+- [ ] Remaining audit mediums (Rust): loopback/mic fault events for meetings (one-sided transcript is currently silent); capture-thread startup failures leave "Listening" UI stuck; consent gate ignores CONSENT_VERSION bumps
+- [ ] Legal pack human review — EULA/Privacy Policy amended 2026-08-05 to match account-proxy reality; processor characterization + effective dates need a lawyer's sign-off
+- [ ] Unpublish the stale GitHub Pages duplicate site (Settings → Pages; workflow already removed)
+- [ ] iOS: no Xcode project committed (source drop); Keychain instead of App Group UserDefaults for keys; mic permission flow in container app
+- [ ] Android: EncryptedSharedPreferences for keys; device testing
 - [x] Noise suppression — high-pass filter + noise gate in capture pipeline ✓
 - [x] Payment system — Stripe integration on landing page ✓
 - [x] React error boundaries ✓
