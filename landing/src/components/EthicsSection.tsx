@@ -8,24 +8,24 @@ const fadeUp = {
 
 const risks = [
   {
-    product: "Wispr Flow",
-    risk: "Transmits screenshots of your screen to cloud servers — including privileged documents visible on your display.",
+    product: "Cloud-only tools",
+    risk: "Most dictation products can only work by sending your audio to their servers — there is no offline mode to fall back on when a matter demands it.",
     rule: "ABA Rule 1.6(c)",
   },
   {
-    product: "Otter.ai",
-    risk: "Stores full meeting transcripts on Otter's servers. Your client communications become Otter's data.",
+    product: "Meeting bots",
+    risk: "Bot-based transcription services typically store full meeting transcripts on their own servers under their own retention policies. Read the vendor's policy before client calls.",
     rule: "ABA Rule 1.6(c)",
   },
   {
-    product: "Dragon (Nuance)",
-    risk: "Cloud sync and analytics features transmit usage data. Microsoft ownership raises data jurisdiction concerns.",
+    product: "Vendor oversight",
+    risk: "When a nonlawyer service processes client confidences, you carry the supervision duty. Ask every vendor: where does audio go, who stores transcripts, is content used for training?",
     rule: "ABA Rule 5.3",
   },
 ];
 
 const voxlenGuarantees = [
-  { icon: Shield, title: "Zero transmission", body: "Audio never leaves your device. Transcription happens via encrypted API — we never see your words." },
+  { icon: Shield, title: "On-device by default option", body: "Privileged Mode transcribes and corrects entirely on your machine — audio and text never leave your device. In cloud mode, audio streams encrypted to the transcription engine and Voxlen never stores it." },
   { icon: FileText, title: "No transcript storage", body: "We do not store, log, or train on any dictation content. Your client matter stays yours." },
   { icon: Scale, title: "Privilege-mode flag", body: "Mark sessions as privileged. Voxlen adds a visible on-screen indicator and disables cloud features automatically." },
   { icon: Check, title: "Verifiable architecture", body: "The desktop app is open for audit. No hidden cloud calls, no telemetry on content. Privacy you can prove to your bar association." },
@@ -57,9 +57,10 @@ export default function EthicsSection() {
           <div className="mx-auto w-16 border-t border-rule mb-5" aria-hidden="true" />
 
           <p className="font-sans text-ink-soft text-lg max-w-2xl mx-auto leading-relaxed">
-            Every other dictation product sends your words to a cloud server.
-            Under ABA Model Rule 1.6(c), that may constitute an unauthorized disclosure
-            of client confidences. Voxlen is architecturally different.
+            Most dictation products can only process your words on someone else's
+            server. Under ABA Model Rule 1.6(c), lawyers must make reasonable efforts
+            to prevent unauthorized disclosure of client confidences. Voxlen is built
+            so you can keep everything on your own machine.
           </p>
         </motion.div>
 
@@ -74,7 +75,7 @@ export default function EthicsSection() {
           <div className="rounded-md bg-white border border-rule overflow-hidden shadow-[0_1px_3px_rgba(29,26,21,0.06)]">
             <div className="px-5 py-3 bg-paper-deep border-b border-rule flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-brass" aria-hidden="true" />
-              <span className="font-serif text-sm font-semibold text-ink">Compliance risks with competitors</span>
+              <span className="font-serif text-sm font-semibold text-ink">Compliance questions to ask any dictation vendor</span>
             </div>
             <div className="divide-y divide-rule">
               {risks.map((r) => (
@@ -151,7 +152,7 @@ export default function EthicsSection() {
             Start your free trial — privacy guaranteed
           </a>
           <p className="text-xs font-sans text-ink-soft mt-3">
-            No credit card required. 14-day free trial. Works on macOS, Windows &amp; iOS.
+            14-day free trial. Works on macOS, Windows &amp; Linux.
           </p>
         </motion.div>
       </div>

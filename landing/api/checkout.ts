@@ -40,6 +40,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   form.set("metadata[email]", user.email);
   form.set("subscription_data[metadata][plan]", typedPlan);
   form.set("subscription_data[metadata][email]", user.email);
+  // The site promises a 14-day free trial with no credit card required.
+  form.set("subscription_data[trial_period_days]", "14");
+  form.set("payment_method_collection", "if_required");
 
   try {
     const stripe = await fetch("https://api.stripe.com/v1/checkout/sessions", {
