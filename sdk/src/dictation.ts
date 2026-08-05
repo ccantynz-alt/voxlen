@@ -72,12 +72,6 @@ export class VoxlenDictation {
       this.stopVoxlenStream = null;
     }
 
-    const recorder = (this as any)._recorder as MediaRecorder | undefined;
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-      (this as any)._recorder = null;
-    }
-
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach((t) => t.stop());
       this.mediaStream = null;
@@ -227,6 +221,17 @@ export class VoxlenDictation {
       // processor) and clear isListening so SDK state matches reality.
       this.stop();
       this.config.onError?.(new Error("Deepgram WebSocket connection failed"));
+    };
+
+    this.deepgramWs.onclose = () => {
+      // Server-side close (inactivity, quota, token expiry) while we still
+      // think we're listening: without this the mic stream and AudioContext
+      // keep running with no transcription. stop() nulls deepgramWs before
+      // closing, so a close we initiated never reaches this branch.
+      if (this.isListening) {
+        this.stop();
+        this.config.onError?.(new Error("Deepgram connection closed"));
+      }
     };
   }
 
