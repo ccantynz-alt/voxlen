@@ -65,17 +65,18 @@ GateTest is a separate product (testing loop) that will be integrated later. It 
 - [x] Bot-free meeting capture (Windows loopback, consent-gated) + task/deadline extraction ✓
 - [ ] macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
 - [ ] iOS local STT — the Apple Speech fallback is currently a stub (removed in commit `77d9e93` when Deepgram STT landed), so the `requiresOnDeviceRecognition` quick-win note no longer applies; the real task is restoring an `SFSpeechRecognizer` on-device path
-- [ ] Android keyboard extension — `android/` implementation exists and compiles as of 2026-08-05 (launcher icon added, CI regenerates the gradle wrapper); still needs EncryptedSharedPreferences for keys + device testing before shipping
+- [ ] Android keyboard extension — builds in CI as of 2026-08-05 (debug + release APK artifacts; launcher icon, gradle fixes, EncryptedSharedPreferences keys, runtime mic permission, nova-3 + training opt-out all done); remaining: real-device testing + release signing before shipping
 - [ ] Stripe payment links — `/api/checkout`, `/api/stripe-webhook`, and KV plan entitlement shipped 2026-07-18; only real `STRIPE_*` env vars in Vercel remain
 - [ ] api.voxlen.com backend (proxy server to hold provider keys + metering)
 - [ ] Clio API integration (matters pull + time entry push) — export formats shipped as the base
-- [ ] Plan-gate the voxlen.ai AI proxy endpoints (`/api/stt`, `/grammar`, `/translate`, `/deepgram-token` do zero entitlement checks — any signed-in free user gets unlimited paid AI; cost exposure)
-- [ ] Remaining 2026-08-05 audit mediums (desktop): bundle Google Fonts locally (app phones Google on launch, breaks offline); un-gate billing settings from Voxlen account (BYOK users can't set rate/rounding); remove or wire the inert telemetry toggle; dead "start/stop billing" + "select all" voice commands swallow speech; meeting save failures are silent; autosaved sessions resurrect as "unsaved draft" (double-counts billing on restore)
-- [ ] Remaining audit mediums (Rust): loopback/mic fault events for meetings (one-sided transcript is currently silent); capture-thread startup failures leave "Listening" UI stuck; consent gate ignores CONSENT_VERSION bumps
+- [x] Plan-gate the voxlen.ai AI proxy endpoints — 14-day trial + KV entitlements, fail-open on infra errors ✓ (2026-08-05)
+- [x] 2026-08-05 audit mediums (desktop + Rust) — local fonts, un-gated billing settings, meeting fault events, consent versioning, honest error states ✓
+- [x] iOS/Android key storage — Keychain / EncryptedSharedPreferences with legacy migration ✓
+- [x] Hardware mic-switch mode + jurisdiction legal vocabulary — merged from lawyer-product-intelligence branch ✓
 - [ ] Legal pack human review — EULA/Privacy Policy amended 2026-08-05 to match account-proxy reality; processor characterization + effective dates need a lawyer's sign-off
 - [ ] Unpublish the stale GitHub Pages duplicate site (Settings → Pages; workflow already removed)
-- [ ] iOS: no Xcode project committed (source drop); Keychain instead of App Group UserDefaults for keys; mic permission flow in container app
-- [ ] Android: EncryptedSharedPreferences for keys; device testing
+- [ ] iOS: no Xcode project committed (source drop needing assembly); real SFSpeechRecognizer offline path; container-app mic permission flow
+- [ ] ~40 stale merged claude/* remote branches — bulk delete pending Craig's OK
 - [x] Noise suppression — high-pass filter + noise gate in capture pipeline ✓
 - [x] Payment system — Stripe integration on landing page ✓
 - [x] React error boundaries ✓
