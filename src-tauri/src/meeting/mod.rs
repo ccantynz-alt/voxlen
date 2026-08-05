@@ -66,6 +66,15 @@ pub struct MeetingSegment {
     pub timestamp_ms: u64,
 }
 
+/// Payload of the `meeting-audio-fault` event — emitted (once per channel)
+/// when the mic or system-audio stream dies mid-meeting, so the frontend can
+/// warn that the transcript has gone one-sided instead of failing silently.
+#[derive(Serialize, Clone)]
+pub struct MeetingAudioFault {
+    pub source: String, // "mic" | "loopback"
+    pub message: String,
+}
+
 /// Per-channel accumulator: buffers native-rate mono audio and decides when
 /// a flush is due (enough speech followed by a quiet tail, or a hard cap).
 /// Time-driven, never callback-driven — WASAPI loopback goes silent (no
@@ -174,21 +183,56 @@ fn meeting_stt_config() -> SttConfig {
 
 /// Drive the meeting transcription loop until `stop_flag` is set. Consumes
 /// both channel receivers; emits `meeting-transcript-segment` events.
+///
+/// `mic_fault` / `loopback_fault` are set by the capture threads when their
+/// stream dies (device unplugged, WASAPI error, stream failed to start).
+/// This loop polls them and emits a `meeting-audio-fault` event so the UI
+/// can warn the user — otherwise the transcript silently goes one-sided.
 pub fn spawn_meeting_task(
     app: AppHandle,
     mic_rx: Receiver<AudioChunk>,
     loop_rx: Receiver<AudioChunk>,
     stop_flag: Arc<AtomicBool>,
     active: Arc<AtomicBool>,
+    mic_fault: Arc<AtomicBool>,
+    loopback_fault: Arc<AtomicBool>,
 ) {
     tauri::async_runtime::spawn(async move {
         let mut mic = ChannelAccumulator::new("you");
         let mut remote = ChannelAccumulator::new("remote");
         let config = meeting_stt_config();
         let mut consecutive_errors: u32 = 0;
+        let mut mic_fault_reported = false;
+        let mut loopback_fault_reported = false;
 
         loop {
             let stopping = stop_flag.load(Ordering::Relaxed);
+
+            // Surface capture-stream faults once per channel.
+            if !mic_fault_reported && mic_fault.load(Ordering::Relaxed) {
+                mic_fault_reported = true;
+                log::error!("Meeting mic stream faulted — transcript is now one-sided");
+                let _ = app.emit(
+                    "meeting-audio-fault",
+                    MeetingAudioFault {
+                        source: "mic".to_string(),
+                        message: "The microphone stream stopped working — your side of the meeting is no longer being transcribed."
+                            .to_string(),
+                    },
+                );
+            }
+            if !loopback_fault_reported && loopback_fault.load(Ordering::Relaxed) {
+                loopback_fault_reported = true;
+                log::error!("Meeting loopback stream faulted — transcript is now one-sided");
+                let _ = app.emit(
+                    "meeting-audio-fault",
+                    MeetingAudioFault {
+                        source: "loopback".to_string(),
+                        message: "System-audio capture stopped working — the remote side of the meeting is no longer being transcribed."
+                            .to_string(),
+                    },
+                );
+            }
 
             // Drain whatever has arrived on both channels.
             while let Ok(chunk) = mic_rx.try_recv() {

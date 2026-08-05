@@ -191,8 +191,16 @@ pub fn start_capture_with_options(
                 err_fn,
                 None,
             ),
-            _ => {
-                log::error!("Unsupported sample format");
+            other => {
+                // start_capture_with_options has already returned Ok by the
+                // time this thread runs — without the fault flag + event the
+                // UI would stay on "Listening" forever.
+                log::error!("Unsupported sample format: {other:?}");
+                device_fault.store(true, Ordering::Relaxed);
+                let _ = app_handle.emit(
+                    "audio-stream-error",
+                    format!("Unsupported audio sample format: {other:?}"),
+                );
                 return;
             }
         };
@@ -201,6 +209,11 @@ pub fn start_capture_with_options(
             Ok(stream) => {
                 if let Err(e) = stream.play() {
                     log::error!("Failed to play stream: {}", e);
+                    device_fault.store(true, Ordering::Relaxed);
+                    let _ = app_handle.emit(
+                        "audio-stream-error",
+                        format!("Failed to start the audio stream: {e}"),
+                    );
                     return;
                 }
 
@@ -226,6 +239,11 @@ pub fn start_capture_with_options(
             }
             Err(e) => {
                 log::error!("Failed to build input stream: {}", e);
+                device_fault.store(true, Ordering::Relaxed);
+                let _ = app_handle.emit(
+                    "audio-stream-error",
+                    format!("Failed to open the audio input stream: {e}"),
+                );
             }
         }
     });
