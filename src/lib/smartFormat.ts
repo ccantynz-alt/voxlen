@@ -16,6 +16,8 @@
  * the whole pass via the `smartFormat` setting.
  */
 
+import { formatCitations, type Jurisdiction } from "./citations";
+
 const DIGIT_WORDS: Record<string, string> = {
   zero: "0",
   one: "1",
@@ -129,7 +131,10 @@ const LATIN_PHRASES: Record<string, string> = {
   "res ipsa loquitur": "res ipsa loquitur",
   "stare decisis": "stare decisis",
   "ultra vires": "ultra vires",
-  "versus": "v.",
+  // NOTE: "versus" is deliberately NOT mapped here. Blanket-rewriting it to
+  // "v." mangled ordinary prose and forced Bluebook style on OSCOLA/AGLC
+  // users; case-name handling now lives in formatCitations (citations.ts),
+  // which is jurisdiction-aware and only rewrites clear case-name patterns.
   "and others": "et al.",
   "and the following": "et seq.",
   "that is": "i.e.",
@@ -365,6 +370,9 @@ export interface SmartFormatOptions {
   digitRuns?: boolean;
   legalPhrases?: boolean; // opt-in — only when legal mode active
   legalCurrency?: boolean;
+  legalCitations?: boolean; // opt-in — only when legal mode active
+  /** Citation style for legalCitations (Bluebook vs OSCOLA/AGLC/…). */
+  jurisdiction?: Jurisdiction;
 }
 
 const defaultOptions: Required<SmartFormatOptions> = {
@@ -375,6 +383,8 @@ const defaultOptions: Required<SmartFormatOptions> = {
   digitRuns: true,
   legalPhrases: false,
   legalCurrency: false,
+  legalCitations: false,
+  jurisdiction: "global",
 };
 
 export function applySmartFormat(
@@ -389,6 +399,11 @@ export function applySmartFormat(
   if (o.emails) out = formatEmails(out);
   if (o.urls) out = formatUrls(out);
   if (o.social) out = formatSocial(out);
+  // Citations run before phrase/currency passes: they consume their own
+  // numbers ("542 U.S. 241") and case-name connectors before the broader
+  // legal transforms can touch them; currency never matches a bare number
+  // without a currency word, so the passes cannot collide.
+  if (o.legalCitations) out = formatCitations(out, o.jurisdiction);
   if (o.legalPhrases) out = formatLegalPhrases(out);
   if (o.legalCurrency) out = formatLegalCurrency(out);
   return out;

@@ -239,6 +239,8 @@ export function useTauriEvents(): void {
               ? applySmartFormat(text, {
                   legalPhrases: settings.legalMode,
                   legalCurrency: settings.legalMode,
+                  legalCitations: settings.legalMode,
+                  jurisdiction: settings.jurisdiction,
                 })
               : text;
             const capsLock = useDictationStore.getState().capsLock;
