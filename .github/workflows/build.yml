@@ -7,6 +7,12 @@ on:
     branches:
       - main
       - 'release-**'
+    # Last match wins: skip docs-only pushes, but legal/*.md is bundled into the
+    # app so it must still trigger a build. Path filters never apply to tag pushes.
+    paths:
+      - '**'
+      - '!**.md'
+      - 'legal/**'
   workflow_dispatch:
 
 permissions:
