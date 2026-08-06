@@ -17,7 +17,7 @@ use crate::meeting::{MeetingState, INDICATOR_LABEL};
 /// `CONSENT_VERSION` in `src/components/meeting/MeetingPanel.tsx` — when the
 /// consent copy changes, bump both so previously stored acknowledgments go
 /// stale and every user is re-prompted before the next capture.
-const MEETING_CONSENT_VERSION: &str = "2026-07";
+pub(crate) const MEETING_CONSENT_VERSION: &str = "2026-07";
 
 #[tauri::command]
 pub fn meeting_capture_supported() -> bool {

@@ -23,7 +23,7 @@ import { useTauriEvents } from "@/hooks/useTauriEvents";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { loadCustomClauses } from "@/stores/clauses";
 import { useNavigationStore } from "@/stores/navigation";
-import { ToastContainer } from "@/components/ui/Toast";
+import { ToastContainer, toast } from "@/components/ui/Toast";
 
 type View =
   | "dictation"
@@ -141,6 +141,27 @@ export default function App() {
       } catch {
         // Handled (toasted) inside hydrateSecrets.
       }
+
+      // Post-startup health sweep — fire-and-forget, never blocks boot, and
+      // only toasts on hard failures (never on ok/warn). Skipped outside the
+      // Tauri shell where the doctor command doesn't exist.
+      void (async () => {
+        try {
+          const { isTauri, runDoctor } = await import("@/lib/doctor");
+          if (!isTauri()) return;
+          const checks = await runDoctor();
+          const failures = checks.filter((c) => c.status === "fail").length;
+          if (failures > 0) {
+            toast(
+              `Health check found ${failures} issue${failures === 1 ? "" : "s"} — see Settings → Advanced`,
+              "error",
+              8000
+            );
+          }
+        } catch {
+          // The doctor must never break startup.
+        }
+      })();
     }
     checkFirstLaunch();
   }, []);

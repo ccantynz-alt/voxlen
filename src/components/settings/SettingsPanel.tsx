@@ -22,6 +22,13 @@ import { useFlywheelStore } from "@/stores/flywheel";
 import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
 import { mergeVocabulary, parseVocabularyFile } from "@/lib/vocabImport";
 import { toast } from "@/components/ui/Toast";
+import {
+  runDoctor,
+  isTauri as isTauriEnv,
+  summaryLine,
+  worstStatus,
+  type DoctorCheck,
+} from "@/lib/doctor";
 
 const tabs = [
   { id: "voxlen-api", label: "Account", icon: Globe },
@@ -1282,6 +1289,8 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
         />
       </SettingRow>
 
+      <SystemHealthCard />
+
       <div className="pt-4 flex items-center gap-3 flex-wrap">
         {onReopenSetup && (
           <Button
@@ -1307,6 +1316,113 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
           Reset All Settings
         </Button>
       </div>
+    </div>
+  );
+}
+
+const DOCTOR_DOT_COLORS: Record<DoctorCheck["status"], string> = {
+  ok: "bg-emerald-400",
+  warn: "bg-amber-400",
+  fail: "bg-red-400",
+};
+
+const DOCTOR_SUMMARY_COLORS: Record<DoctorCheck["status"], string> = {
+  ok: "text-emerald-400",
+  warn: "text-amber-400",
+  fail: "text-red-400",
+};
+
+function SystemHealthCard() {
+  const [checks, setChecks] = useState<DoctorCheck[] | null>(null);
+  const [running, setRunning] = useState(false);
+  const [lastRun, setLastRun] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inTauri = isTauriEnv();
+
+  const run = useCallback(async () => {
+    setRunning(true);
+    setError(null);
+    try {
+      const results = await runDoctor();
+      setChecks(results);
+      setLastRun(new Date());
+    } catch {
+      setError("Diagnostics could not run — restart Voxlen and try again.");
+    } finally {
+      setRunning(false);
+    }
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
+            System Health
+          </span>
+          <p className="text-[11px] text-surface-600 mt-0.5">
+            Checks your microphone, engines, key storage, disk, and network. No
+            audio or document content is touched.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={run} disabled={running || !inTauri}>
+          {running ? "Running…" : "Run diagnostics"}
+        </Button>
+      </div>
+
+      {!inTauri && (
+        <p className="text-[11px] text-surface-500">
+          Diagnostics require the Voxlen desktop app.
+        </p>
+      )}
+
+      {error && <p className="text-[12px] text-red-400">{error}</p>}
+
+      {checks && !error && (
+        <>
+          <div className="flex items-center justify-between">
+            <span
+              className={cn(
+                "text-[12px] font-semibold",
+                DOCTOR_SUMMARY_COLORS[worstStatus(checks)]
+              )}
+            >
+              {summaryLine(checks)}
+            </span>
+            {lastRun && (
+              <span className="text-[11px] text-surface-500">
+                Last run {lastRun.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+
+          <div className="divide-y divide-surface-300/30">
+            {checks.map((check) => (
+              <div key={check.id} className="py-2 flex items-start gap-2.5">
+                <span
+                  className={cn(
+                    "mt-1.5 w-2 h-2 rounded-full shrink-0",
+                    DOCTOR_DOT_COLORS[check.status]
+                  )}
+                />
+                <div className="min-w-0">
+                  <div className="text-[13px] font-medium text-surface-900">
+                    {check.name}
+                  </div>
+                  <div className="text-[11px] text-surface-600 leading-snug">
+                    {check.detail}
+                  </div>
+                  {check.status !== "ok" && check.fixHint && (
+                    <div className="text-[11px] text-amber-400/90 leading-snug mt-0.5">
+                      → {check.fixHint}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

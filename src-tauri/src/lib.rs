@@ -243,6 +243,8 @@ pub fn run() {
             // Permission commands
             commands::permissions::check_permissions,
             commands::permissions::request_admin_permissions,
+            // Self-diagnostics
+            commands::doctor::run_doctor,
             // Secure keyring commands
             commands::keyring::keyring_get,
             commands::keyring::keyring_set,
