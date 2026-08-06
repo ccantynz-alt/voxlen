@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 
 /// llama-cpp-sys-2 (dynamic-link) produces ggml/llama DLLs during its own
-/// build. Depending on cache state they may sit in `target/{profile}/` or only
-/// in the sys crate's cmake out dir (`target/{profile}/build/llama-cpp-sys-2-*/out/**`).
-/// Copy them to a stable `dlls/` folder so the Windows bundle-resource paths in
-/// `tauri.windows.conf.json` always exist. tauri_build also copies these
-/// resources next to dev/test binaries, so a 0-byte placeholder here makes any
-/// test exe that links llama.dll die with STATUS_INVALID_FILE_FOR_SECTION —
-/// placeholders are a last resort and never allowed in release.
+/// build. Cargo runs THIS build script in parallel with dependency
+/// compilation, so on a cold build those DLLs may not exist anywhere yet —
+/// this script therefore only best-effort stages what it can find and
+/// otherwise creates 0-byte placeholders so tauri_build's resource-path
+/// validation passes. The REAL enforcement happens after compilation in
+/// `scripts/stage-dlls.mjs` (beforeBundleCommand), which re-stages the built
+/// DLLs and hard-fails the bundle if any are missing or empty.
 #[cfg(target_os = "windows")]
 fn stage_llama_dlls() {
     use std::path::Path;
@@ -88,24 +88,10 @@ fn stage_llama_dlls() {
         if is_nonempty(&dest) {
             continue;
         }
-        if profile == "release" {
-            // Fail loudly rather than ship an installer whose bundled DLL is
-            // missing or a 0-byte stale placeholder — that breaks app launch.
-            panic!(
-                "Release build: required DLL '{}' was not found (searched {} and \
-                 {}\\build\\llama-cpp-sys-2-*\\out). Build llama-cpp-sys-2 \
-                 (dynamic-link) first, or clear stale placeholders from {}.",
-                name,
-                src_dir.display(),
-                src_dir.display(),
-                dest_dir.display()
-            );
-        }
-        // Dev/debug only: keep the resource path valid so tauri_build doesn't
-        // hard-fail; note that running tests that load llama with a placeholder
-        // staged will fail until the real DLLs are built.
+        // Placeholder keeps tauri_build's resource validation happy; the
+        // bundle-time script replaces it with the real DLL or fails loudly.
         println!(
-            "cargo:warning=Staging 0-byte placeholder for {name} (real DLL not built yet)"
+            "cargo:warning=Staging 0-byte placeholder for {name} (not built yet; bundle step re-stages)"
         );
         let _ = std::fs::File::create(&dest);
     }
