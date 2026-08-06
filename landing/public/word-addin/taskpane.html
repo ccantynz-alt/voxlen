@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voxlen Dictation</title>
+  <link rel="icon" href="/word-addin/icon-32.png">
+  <link rel="stylesheet" href="/word-addin/taskpane.css">
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="/word-addin/taskpane.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <img src="/word-addin/icon-32.png" alt="" width="28" height="28">
+    <div>
+      <h1>Voxlen</h1>
+      <p class="tagline">Dictation for legal professionals</p>
+    </div>
+  </header>
+
+  <!-- Key setup -->
+  <section id="key-section" class="card">
+    <h2>Account key</h2>
+    <p class="hint">Paste your key from the <a href="https://www.voxlen.ai/dashboard" target="_blank" rel="noopener">voxlen.ai dashboard</a>.</p>
+    <div class="key-row">
+      <input id="key-input" type="password" autocomplete="off" spellcheck="false" placeholder="Voxlen account key">
+      <button id="key-save" class="btn btn-brass" type="button">Save</button>
+    </div>
+    <p id="key-status" class="status" role="status"></p>
+  </section>
+
+  <!-- Signed-in bar -->
+  <section id="account-bar" class="account-bar" hidden>
+    <span id="account-label"></span>
+    <button id="key-change" class="btn-link" type="button">Change key</button>
+  </section>
+
+  <!-- Dictation -->
+  <section id="dictate-section" class="card" hidden>
+    <h2>Dictate</h2>
+    <button id="mic-button" class="mic-btn" type="button" aria-pressed="false">
+      <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true" fill="none">
+        <path d="M16 6a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0v-6a4 4 0 0 0-4-4Z" fill="currentColor"/>
+        <path d="M22 14v2a6 6 0 0 1-12 0v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="16" y1="22" x2="16" y2="26" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="13" y1="26" x2="19" y2="26" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span id="mic-label">Start dictation</span>
+    </button>
+    <p class="hint">Final phrases are inserted at your cursor in the document.</p>
+    <div id="interim" class="interim" aria-live="polite" hidden></div>
+  </section>
+
+  <!-- Polish -->
+  <section id="polish-section" class="card" hidden>
+    <h2>Polish selection</h2>
+    <p class="hint">Select text in the document, then polish grammar and punctuation.</p>
+    <button id="polish-button" class="btn btn-brass btn-block" type="button">Polish selected text</button>
+    <div id="polish-result" hidden>
+      <h3>Before</h3>
+      <blockquote id="polish-before"></blockquote>
+      <h3>After</h3>
+      <blockquote id="polish-after"></blockquote>
+      <p class="hint">Replaced in the document. Word&rsquo;s Undo (Ctrl+Z) restores the original.</p>
+    </div>
+  </section>
+
+  <p id="status-line" class="status" role="status"></p>
+
+  <footer class="privacy">
+    Your dictation audio streams only to Deepgram, and text you polish passes only
+    through the Voxlen zero-retention relay. Nothing is stored on Voxlen servers.
+  </footer>
+</body>
+</html>
