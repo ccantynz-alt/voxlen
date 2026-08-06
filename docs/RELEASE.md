@@ -1,6 +1,6 @@
 # Release Process
 
-This document describes how Voxlen releases are actually cut today. There is **no code signing and no auto-updater** in the current pipeline — see the "Future" section at the bottom.
+This document describes how Voxlen releases are actually cut today. Update packages are **signed and auto-delivered** (since 1.3.0); installers themselves carry **no OS code signing** yet — see the "Future" section at the bottom.
 
 ## How releases work today
 
@@ -27,9 +27,12 @@ The published installers are **unsigned**. The release body tells users to expec
 - **Missing installers in the release:** check the per-platform build job artifacts — the release job copies only recognised installer extensions.
 - **Version mismatch:** the release tag comes from `package.json`; if it disagrees with `tauri.conf.json`/`Cargo.toml` the bundles will carry a different version than the tag.
 
-## Future: signing + auto-update (NOT implemented)
+## Auto-update (since 1.3.0)
 
-None of the following exists in the current pipeline; it is a roadmap sketch only:
+- `tauri-plugin-updater` is enabled with a minisign keypair. The public key is embedded in `src-tauri/tauri.conf.json`; the private key lives ONLY in the `TAURI_SIGNING_PRIVATE_KEY` GitHub Actions secret (and offline backup — losing it means future updates cannot be signed).
+- CI signs updater artifacts during the platform builds (`createUpdaterArtifacts: true`) and the release job assembles `latest.json` (Windows x64 + macOS aarch64) pointing at the release assets. The app polls `releases/latest/download/latest.json`.
+- The app checks on startup and from Settings → Advanced → Software Updates; packages are signature-verified before install. Linux users update via deb/rpm through their package manager (Tauri's Linux updater requires AppImage, which we do not ship).
 
-- **Code signing:** Windows Authenticode certificate and Apple Developer ID signing + notarization (would require `APPLE_*` secrets in CI).
-- **Tauri updater:** enabling `tauri-plugin-updater` with a generated signing keypair (`npm run tauri signer generate`), an embedded public key in `tauri.conf.json`, and a manifest endpoint. The `@tauri-apps/plugin-updater` npm package is present in `package.json`, but the Rust-side plugin is not registered and no updater configuration or endpoint exists, so nothing auto-updates today.
+## Future: OS code signing (NOT implemented)
+
+- **Code signing:** Windows Authenticode certificate and Apple Developer ID signing + notarization (would require `APPLE_*` secrets in CI). Until then installers show the SmartScreen/Gatekeeper unknown-publisher warning; the auto-update channel above is signed regardless.

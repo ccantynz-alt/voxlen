@@ -1060,7 +1060,7 @@ function FAQ() {
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
 const GH_RELEASES_PAGE = "https://github.com/ccantynz-alt/voxlen/releases/latest";
 const GH_API_LATEST = "https://api.github.com/repos/ccantynz-alt/voxlen/releases/latest";
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 
 interface ReleaseAsset {
   name: string;

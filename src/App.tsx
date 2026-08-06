@@ -162,6 +162,26 @@ export default function App() {
           // The doctor must never break startup.
         }
       })();
+
+      // Silent update check — signed manifest, verified before install.
+      // Only notifies; install happens from Settings → Advanced.
+      void (async () => {
+        try {
+          const { isTauri } = await import("@/lib/doctor");
+          if (!isTauri()) return;
+          const { checkForUpdate } = await import("@/lib/updater");
+          const update = await checkForUpdate();
+          if (update) {
+            toast(
+              `Voxlen ${update.version} is available — install from Settings → Advanced`,
+              "info",
+              8000
+            );
+          }
+        } catch {
+          // No network / no manifest yet — never bother the user.
+        }
+      })();
     }
     checkFirstLaunch();
   }, []);

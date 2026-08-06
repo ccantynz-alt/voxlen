@@ -22,6 +22,8 @@
     "shell:default",
     "dialog:default",
     "fs:default",
-    "autostart:default"
+    "autostart:default",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

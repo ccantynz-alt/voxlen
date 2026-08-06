@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/Input";
 import { useSettingsStore } from "@/stores/settings";
 import { useAudioStore } from "@/stores/audio";
 import { useFlywheelStore } from "@/stores/flywheel";
-import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
+import { SUPPORTED_LANGUAGES, STT_ENGINES, APP_VERSION } from "@/lib/constants";
+import { formatBytes } from "@/lib/updater";
 import { mergeVocabulary, parseVocabularyFile } from "@/lib/vocabImport";
 import { toast } from "@/components/ui/Toast";
 import {
@@ -1290,6 +1291,7 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
       </SettingRow>
 
       <SystemHealthCard />
+      <SoftwareUpdateCard />
 
       <div className="pt-4 flex items-center gap-3 flex-wrap">
         {onReopenSetup && (
@@ -1331,6 +1333,130 @@ const DOCTOR_SUMMARY_COLORS: Record<DoctorCheck["status"], string> = {
   warn: "text-amber-400",
   fail: "text-red-400",
 };
+
+function SoftwareUpdateCard() {
+  const [state, setState] = useState<
+    | { phase: "idle" }
+    | { phase: "checking" }
+    | { phase: "current" }
+    | { phase: "available"; version: string; notes?: string }
+    | { phase: "installing"; downloaded: number; total?: number }
+    | { phase: "error"; message: string }
+  >({ phase: "idle" });
+  const updateRef = useRef<import("@tauri-apps/plugin-updater").Update | null>(null);
+  const inTauri = isTauriEnv();
+
+  const checkNow = useCallback(async () => {
+    setState({ phase: "checking" });
+    try {
+      const { checkForUpdate } = await import("@/lib/updater");
+      const update = await checkForUpdate();
+      if (update) {
+        updateRef.current = update;
+        setState({
+          phase: "available",
+          version: update.version,
+          notes: update.body ?? undefined,
+        });
+      } else {
+        setState({ phase: "current" });
+      }
+    } catch {
+      setState({
+        phase: "error",
+        message: "Could not reach the update server — check your connection.",
+      });
+    }
+  }, []);
+
+  const installNow = useCallback(async () => {
+    const update = updateRef.current;
+    if (!update) return;
+    setState({ phase: "installing", downloaded: 0 });
+    try {
+      const { installUpdate } = await import("@/lib/updater");
+      await installUpdate(update, ({ downloaded, total }) =>
+        setState({ phase: "installing", downloaded, total })
+      );
+      // installUpdate relaunches the app; nothing to do here.
+    } catch {
+      setState({
+        phase: "error",
+        message:
+          "Update failed to install — the download may have been interrupted. Try again.",
+      });
+    }
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
+            Software Updates
+          </span>
+          <p className="text-[11px] text-surface-600 mt-0.5">
+            Current version v{APP_VERSION}. Updates are cryptographically
+            verified before install.
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={checkNow}
+          disabled={!inTauri || state.phase === "checking" || state.phase === "installing"}
+        >
+          {state.phase === "checking" ? "Checking…" : "Check for updates"}
+        </Button>
+      </div>
+
+      {!inTauri && (
+        <p className="text-[11px] text-surface-500">
+          Updates require the Voxlen desktop app.
+        </p>
+      )}
+
+      {state.phase === "current" && (
+        <p className="text-[12px] text-emerald-400 font-medium">
+          You're on the latest version.
+        </p>
+      )}
+
+      {state.phase === "error" && (
+        <p className="text-[12px] text-red-400">{state.message}</p>
+      )}
+
+      {state.phase === "available" && (
+        <div className="space-y-2">
+          <p className="text-[12px] text-surface-900 font-medium">
+            Voxlen {state.version} is available.
+          </p>
+          {state.notes && (
+            <p className="text-[11px] text-surface-600 whitespace-pre-wrap leading-snug max-h-32 overflow-y-auto">
+              {state.notes}
+            </p>
+          )}
+          <Button size="sm" onClick={installNow}>
+            Install &amp; restart
+          </Button>
+        </div>
+      )}
+
+      {state.phase === "installing" && (
+        <p className="text-[12px] text-surface-700">
+          Downloading…{" "}
+          {state.total
+            ? `${Math.min(
+                100,
+                Math.round((state.downloaded / state.total) * 100)
+              )}%`
+            : formatBytes(state.downloaded)}{" "}
+          — Voxlen will restart when done.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function SystemHealthCard() {
   const [checks, setChecks] = useState<DoctorCheck[] | null>(null);

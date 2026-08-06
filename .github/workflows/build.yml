@@ -18,6 +18,10 @@ env:
   # linuxdeploy's strip step chokes on some release binaries; skipping strip is the
   # documented Tauri workaround and only costs AppImage size.
   NO_STRIP: 'true'
+  # Updater artifact signing (minisign keypair; NOT OS code signing). The key
+  # was generated without a password, so the password env is the empty string.
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
 
 jobs:
   test:
@@ -165,9 +169,42 @@ jobs:
             -name '*.exe' -o \
             -name '*.AppImage' -o \
             -name '*.deb' -o \
-            -name '*.rpm' \
+            -name '*.rpm' -o \
+            -name '*.sig' \
           \) -exec cp -v {} dist-release/ \;
           ls -la dist-release/
+
+      - name: Build updater manifest (latest.json)
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BASE="https://github.com/${{ github.repository }}/releases/download/v${VERSION}"
+          cd dist-release
+          PLATFORMS='{}'
+          # Windows: prefer the NSIS setup exe updater artifact, fall back to MSI
+          win_sig=$(ls *-setup.exe.sig 2>/dev/null | head -1 || true)
+          [ -z "$win_sig" ] && win_sig=$(ls *.msi.sig 2>/dev/null | head -1 || true)
+          if [ -n "$win_sig" ]; then
+            win_pkg="${win_sig%.sig}"
+            PLATFORMS=$(jq --arg url "$BASE/$win_pkg" --arg sig "$(cat "$win_sig")" \
+              '. + {"windows-x86_64": {url: $url, signature: $sig}}' <<<"$PLATFORMS")
+          fi
+          # macOS (Apple Silicon): app.tar.gz updater artifact
+          mac_sig=$(ls *.app.tar.gz.sig 2>/dev/null | head -1 || true)
+          if [ -n "$mac_sig" ]; then
+            mac_pkg="${mac_sig%.sig}"
+            PLATFORMS=$(jq --arg url "$BASE/$mac_pkg" --arg sig "$(cat "$mac_sig")" \
+              '. + {"darwin-aarch64": {url: $url, signature: $sig}}' <<<"$PLATFORMS")
+          fi
+          if [ "$PLATFORMS" = "{}" ]; then
+            echo "::warning::No signed updater artifacts found — latest.json not generated"
+          else
+            jq -n --arg version "$VERSION" \
+                  --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                  --argjson platforms "$PLATFORMS" \
+                  '{version: $version, notes: ("Voxlen v" + $version), pub_date: $pub_date, platforms: $platforms}' \
+                  > latest.json
+            cat latest.json
+          fi
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

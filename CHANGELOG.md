@@ -5,9 +5,33 @@
 ### Planned
 - macOS meeting capture backend (ScreenCaptureKit)
 - iOS on-device STT fallback (restore an SFSpeechRecognizer path)
-- Android keyboard extension (skeleton exists, not shipped)
 - Clio API integration (matters pull + time entry push)
-- Code signing + auto-updater (builds are currently unsigned; no auto-update ships)
+- OS code signing (EV certificate / Apple notarization — updates are signed, installers are not yet)
+
+## [1.3.0] - 2026-08-06
+
+### Added
+- **Signed auto-updater**: releases now ship cryptographically signed update packages (minisign) with a `latest.json` manifest; the app checks on startup, and Settings → Advanced gets a Software Updates card with verified install-and-restart (Windows + macOS; Linux updates via deb/rpm)
+- **Doctor**: in-app diagnostic spine sweeping audio devices, STT/grammar engine readiness, OS keychain, storage paths, cloud reachability (skipped in Privileged Mode), meeting-capture consent state, and local-model integrity — System Health card in Settings plus a silent startup sweep that flags failures
+- **Citation-aware Legal Mode**: dictated case citations, reporters, statutes, and neutral citations are formatted per jurisdiction (Bluebook for US, OSCOLA/AGLC style for UK/AU/NZ), with spoken "section symbol"/"paragraph symbol" support
+- **Microsoft Word add-in (MVP)**: sideloadable taskpane served from voxlen.ai — dictate at the cursor and AI-polish selected text using a Voxlen account key
+- **Hardware mic-switch mode**: the physical mute/power switch on external mics drives dictation start/stop
+- **Jurisdiction-aware legal vocabulary boost** for Legal Mode
+- **Plan entitlements**: the voxlen.ai AI endpoints now enforce a 14-day free trial with paid plans beyond it (fail-open on infrastructure errors so paying customers are never blocked)
+
+### Fixed
+- Meeting capture: audio faults (mic or system-audio loss) are surfaced in the panel instead of silently producing one-sided transcripts; a transcription hiccup no longer ends the meeting; error stops fully release the microphone and close the recording indicator
+- Privileged Mode is enforced fail-closed at every backend entry point
+- Model downloads verify received length and can no longer lock in truncated files
+- "Save Transcripts: off" is honored everywhere (history, crash drafts)
+- API keys can no longer be deleted from the OS keychain by a startup race
+- Legal-mode currency formatting no longer corrupts dictated amounts
+- Billing: reassignment preserves round-up convention; Clio CSV exports 2-decimal hours; CSV formula injection neutralized; export totals reconcile
+- iOS/Android keyboards no longer drop earlier words of multi-segment utterances; keys stored in Keychain / EncryptedSharedPreferences
+- Desktop app no longer contacts Google Fonts (fonts bundled; works fully offline)
+
+### Changed
+- Release pipeline: tests (tsc, vitest, cargo test) now gate releases; Linux ships deb/rpm (AppImage dropped); Android keyboard builds debug/release APKs in CI
 
 ## [1.2.0] - 2026-07-18
 

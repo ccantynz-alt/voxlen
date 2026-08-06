@@ -22,7 +22,7 @@ We will acknowledge receipt within 3 business days and aim to provide an initial
 | 1.2.x    | Yes                |
 | < 1.2    | No                 |
 
-Security fixes are shipped in the next 1.2.x patch release. Because there is currently no auto-updater (see below), users must download the fixed installer from the GitHub Releases page.
+Security fixes are shipped in the next patch release and delivered through the signed auto-update channel (Windows/macOS); Linux users and anyone declining the update download the fixed installer from the GitHub Releases page.
 
 ## Scope
 
@@ -55,4 +55,4 @@ Please read these before reporting — they are documented trade-offs, not undis
 
 ## Release signing and updates
 
-Release binaries are currently **unsigned**. Windows SmartScreen and macOS Gatekeeper will warn about an unknown publisher on first launch — this is noted in the GitHub release notes for every version. There is **no auto-updater**: the Tauri updater plugin is not enabled in `src-tauri/tauri.conf.json` and no update endpoint exists, so updates are delivered only as new installers on the Releases page. Code signing and a signed auto-update channel are planned; see `docs/RELEASE.md`.
+Release installers are currently **unsigned at the OS level** — Windows SmartScreen and macOS Gatekeeper will warn about an unknown publisher on first launch (noted in the release notes for every version); Authenticode/notarization is planned. Since 1.3.0 there **is a signed auto-update channel**: update packages are minisign-signed in CI and verified against the public key embedded in `src-tauri/tauri.conf.json` before install (`tauri-plugin-updater`, manifest at the release asset `latest.json`). See `docs/RELEASE.md`.
