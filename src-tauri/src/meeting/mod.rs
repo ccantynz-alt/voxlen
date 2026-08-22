@@ -28,6 +28,31 @@ pub struct MeetingState {
     pub stop_flag: parking_lot::Mutex<Option<Arc<AtomicBool>>>,
     pub mic_handle: parking_lot::Mutex<Option<crate::audio::capture::CaptureHandle>>,
     pub loopback_handle: parking_lot::Mutex<Option<crate::audio::loopback::LoopbackHandle>>,
+    /// Latch for a stop that arrives while a start is still opening devices.
+    /// Starting is not atomic (indicator window, mic stream, loopback stream)
+    /// and the handles only land in this state at the very end, so a stop in
+    /// that window has nothing to take and would otherwise be swallowed —
+    /// leaving mic + system audio recording with no indicator on screen.
+    stop_requested: AtomicBool,
+}
+
+impl MeetingState {
+    /// Opens the start window: drops any stop request left over from an
+    /// earlier (possibly failed) start so it cannot abort this one.
+    pub fn begin_start(&self) {
+        self.stop_requested.store(false, Ordering::SeqCst);
+    }
+
+    /// Records that a stop was asked for, whether or not handles exist yet.
+    pub fn request_stop(&self) {
+        self.stop_requested.store(true, Ordering::SeqCst);
+    }
+
+    /// Closes the start window: true if a stop landed while it was open.
+    /// Clears the latch so the next start begins fresh.
+    pub fn take_stop_requested(&self) -> bool {
+        self.stop_requested.swap(false, Ordering::SeqCst)
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -205,4 +230,60 @@ pub fn spawn_meeting_task(
         let _ = app.emit("meeting-stopped", ());
         log::info!("Meeting transcription task ended");
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Reproduces the start/stop race: the user clicks Stop after the
+    /// indicator window appears but before `start_meeting_capture` publishes
+    /// its handles. The stop must still take effect once the start finishes.
+    #[test]
+    fn stop_during_an_in_flight_start_is_not_swallowed() {
+        let state = MeetingState::default();
+
+        // start_meeting_capture: opening devices, nothing published yet.
+        state.begin_start();
+
+        // stop_meeting_capture runs here: every take() sees None.
+        assert!(state.stop_flag.lock().take().is_none());
+        state.request_stop();
+
+        // start_meeting_capture finishes and publishes its live handles.
+        let capture_stop_flag = Arc::new(AtomicBool::new(false));
+        *state.stop_flag.lock() = Some(capture_stop_flag.clone());
+        state.active.store(true, Ordering::Relaxed);
+
+        // Handshake at the end of start.
+        if state.take_stop_requested() {
+            if let Some(flag) = state.stop_flag.lock().take() {
+                flag.store(true, Ordering::Relaxed);
+            }
+            state.active.store(false, Ordering::Relaxed);
+        }
+
+        assert!(
+            capture_stop_flag.load(Ordering::Relaxed),
+            "capture kept running after the user asked it to stop"
+        );
+        assert!(!state.active.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn a_start_that_is_never_stopped_keeps_running() {
+        let state = MeetingState::default();
+        state.begin_start();
+        assert!(!state.take_stop_requested());
+    }
+
+    #[test]
+    fn a_stale_stop_request_does_not_abort_the_next_start() {
+        let state = MeetingState::default();
+        // Stop arrives against a start that failed before publishing anything.
+        state.request_stop();
+        // The next start opens a fresh window.
+        state.begin_start();
+        assert!(!state.take_stop_requested());
+    }
 }

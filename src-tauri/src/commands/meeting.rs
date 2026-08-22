@@ -55,6 +55,11 @@ pub async fn start_meeting_capture(
         );
     }
 
+    // From here on the start has side effects (indicator window, live audio
+    // streams) but the handles are not published until the very end, so a
+    // stop arriving in this window has nothing to take. Latch it instead.
+    state.begin_start();
+
     // Visible recording indicator — if it cannot be shown, do not record.
     let indicator = tauri::WebviewWindowBuilder::new(
         &app,
@@ -111,6 +116,19 @@ pub async fn start_meeting_capture(
     *state.mic_handle.lock() = Some(mic_handle);
     *state.loopback_handle.lock() = Some(loopback_handle);
 
+    // Close the start window. If the user hit Stop while devices were
+    // opening, that click found nothing to stop — honour it now rather than
+    // recording on with no indicator on screen.
+    if state.take_stop_requested() {
+        teardown_capture(&app, &state);
+        state.active.store(false, Ordering::Relaxed);
+        log::info!("Meeting capture stopped during startup (stop requested mid-start)");
+        // Reported as an error, not Ok: the caller sets its "recording" UI
+        // state on a successful start, and no meeting task exists to emit
+        // `meeting-stopped` and clear it again.
+        return Err("Meeting capture was stopped before it finished starting.".to_string());
+    }
+
     crate::meeting::spawn_meeting_task(
         app.clone(),
         mic_rx,
@@ -124,11 +142,9 @@ pub async fn start_meeting_capture(
     Ok(())
 }
 
-#[tauri::command]
-pub async fn stop_meeting_capture(
-    app: AppHandle,
-    state: State<'_, MeetingState>,
-) -> Result<(), String> {
+/// Signals the capture task, stops both audio streams and closes the
+/// indicator. Safe to call when nothing has been published yet.
+fn teardown_capture(app: &AppHandle, state: &MeetingState) {
     if let Some(flag) = state.stop_flag.lock().take() {
         flag.store(true, Ordering::Relaxed);
     }
@@ -141,6 +157,17 @@ pub async fn stop_meeting_capture(
     if let Some(win) = app.get_webview_window(INDICATOR_LABEL) {
         let _ = win.close();
     }
+}
+
+#[tauri::command]
+pub async fn stop_meeting_capture(
+    app: AppHandle,
+    state: State<'_, MeetingState>,
+) -> Result<(), String> {
+    // Latch first, unconditionally: if a start is still opening devices the
+    // handles below are all None and this click would otherwise be lost.
+    state.request_stop();
+    teardown_capture(&app, &state);
     log::info!("Meeting capture stop requested");
     Ok(())
 }
