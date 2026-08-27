@@ -13,11 +13,18 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 
 use super::AudioChunk;
+
+/// How long the caller waits for the capture thread to confirm the loopback
+/// stream is actually running. Opening a WASAPI loopback client is fast
+/// (well under a second); anything slower is treated as a failed start
+/// rather than reported as a recording that captures both sides.
+const STREAM_START_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub fn is_supported() -> bool {
     cfg!(target_os = "windows")
@@ -68,6 +75,11 @@ pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<Loop
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_clone = stop_flag.clone();
 
+    // The stream itself must be built on the capture thread (cpal streams are
+    // not Send), so the thread reports the outcome back here and the caller
+    // only sees Ok once audio is genuinely flowing.
+    let (ready_tx, ready_rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+
     let thread = std::thread::spawn(move || {
         let err_fn = |err: cpal::StreamError| {
             log::error!("Loopback stream error: {err}");
@@ -113,6 +125,7 @@ pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<Loop
             ),
             other => {
                 log::error!("Unsupported loopback sample format: {other:?}");
+                let _ = ready_tx.send(Err(format!("Unsupported sample format: {other:?}")));
                 return;
             }
         };
@@ -121,20 +134,88 @@ pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<Loop
             Ok(stream) => {
                 if let Err(e) = stream.play() {
                     log::error!("Failed to start loopback stream: {e}");
+                    let _ = ready_tx.send(Err(format!("Could not start the stream: {e}")));
                     return;
                 }
+                let _ = ready_tx.send(Ok(()));
                 while !stop_clone.load(Ordering::Relaxed) {
                     std::thread::sleep(std::time::Duration::from_millis(50));
                 }
                 drop(stream);
                 log::info!("Loopback capture stopped");
             }
-            Err(e) => log::error!("Failed to build loopback stream: {e}"),
+            Err(e) => {
+                log::error!("Failed to build loopback stream: {e}");
+                let _ = ready_tx.send(Err(format!("Could not open the stream: {e}")));
+            }
         }
     });
+
+    if let Err(e) = await_stream_start(&ready_rx, STREAM_START_TIMEOUT) {
+        // Wind the thread down if it is still trying, and surface a real
+        // error: a meeting that would only ever have recorded the local mic
+        // must not be reported to the caller as a successful start.
+        stop_flag.store(true, Ordering::Relaxed);
+        return Err(e);
+    }
 
     Ok(LoopbackHandle {
         stop_flag,
         _thread: Some(thread),
     })
+}
+
+/// Waits for the capture thread's start outcome. A dropped sender means the
+/// thread died without reporting, which is a failure too — never a success.
+fn await_stream_start(
+    ready: &Receiver<Result<(), String>>,
+    timeout: Duration,
+) -> anyhow::Result<()> {
+    match ready.recv_timeout(timeout) {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => anyhow::bail!("System-audio (loopback) capture failed to start: {e}"),
+        Err(RecvTimeoutError::Timeout) => anyhow::bail!(
+            "System-audio (loopback) capture did not start within {}s",
+            timeout.as_secs()
+        ),
+        Err(RecvTimeoutError::Disconnected) => {
+            anyhow::bail!("System-audio (loopback) capture thread exited before the stream started")
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reports_success_only_when_the_thread_confirms_the_stream() {
+        let (tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        tx.send(Ok(())).unwrap();
+        assert!(await_stream_start(&rx, Duration::from_millis(50)).is_ok());
+    }
+
+    #[test]
+    fn propagates_a_stream_build_failure() {
+        let (tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        tx.send(Err("Could not open the stream: device in use".into()))
+            .unwrap();
+        let err = await_stream_start(&rx, Duration::from_millis(50)).unwrap_err();
+        assert!(err.to_string().contains("device in use"), "{err}");
+    }
+
+    #[test]
+    fn a_thread_that_dies_without_reporting_is_a_failure() {
+        let (tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        drop(tx);
+        let err = await_stream_start(&rx, Duration::from_millis(50)).unwrap_err();
+        assert!(err.to_string().contains("exited before"), "{err}");
+    }
+
+    #[test]
+    fn a_stream_that_never_opens_times_out_instead_of_reporting_success() {
+        let (_tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        let err = await_stream_start(&rx, Duration::from_millis(50)).unwrap_err();
+        assert!(err.to_string().contains("did not start"), "{err}");
+    }
 }
