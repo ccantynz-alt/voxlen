@@ -12,7 +12,7 @@ export default defineConfig({
     // (which lacks act()) whenever the ambient shell sets NODE_ENV=production.
     env: { NODE_ENV: "test" },
     environment: "jsdom",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "landing/api/**/*.test.ts"],
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
     reporters: "default",

@@ -39,10 +39,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const targetName = body.targetName ?? caller.name;
 
   // Plan: admin can specify any plan. Self-service always gets the caller's existing plan.
+  const isSelfIssued = targetEmail === caller.email;
   let plan: VoxlenPlan;
   if (isAdmin && body.plan) {
     plan = body.plan;
-  } else if (caller.isAdmin || caller.email === ADMIN_EMAIL) {
+  } else if (isAdmin && !isSelfIssued) {
+    // Admin issuing for someone else without naming a plan must NOT hand out
+    // their own "admin" plan: verifyDesktopToken treats plan === "admin" as
+    // isAdmin, so the target could then mint admin keys for anyone else.
+    // Fall back to whatever the target is actually entitled to.
+    plan = await lookupPlan(targetEmail) ?? "free";
+  } else if (isAdmin) {
     plan = "admin";
   } else {
     // Non-admin: targetEmail === caller.email (enforced above), but look up by
