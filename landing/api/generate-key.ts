@@ -40,6 +40,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Plan: admin can specify any plan. Self-service always gets the caller's existing plan.
   const isSelfIssued = targetEmail === caller.email;
+  // isAdmin is true for ANY token carrying plan === "admin", not just the real
+  // admin's. Granting "admin" to a third party therefore has to be restricted to
+  // the literal ADMIN_EMAIL — otherwise a delegated admin key can mint another
+  // admin key for anyone, and the chain perpetuates itself indefinitely.
+  const isRootAdmin = caller.email === ADMIN_EMAIL;
+  if (body.plan === "admin" && !isSelfIssued && !isRootAdmin) {
+    return applyHeaders(res, headers).status(403).json({ error: "Only the account owner can grant the admin plan to another user" });
+  }
   let plan: VoxlenPlan;
   if (isAdmin && body.plan) {
     plan = body.plan;

@@ -77,6 +77,33 @@ describe("generate-key plan selection", () => {
     expect(planOf(state.body.token)).toBe("professional");
   });
 
+  it("refuses to grant the admin plan to a third party for a delegated admin", async () => {
+    // The real admin deliberately hands Alice an admin key.
+    const alice = await post(await adminBearer(), { targetEmail: "alice@example.com", plan: "admin" });
+    expect(alice.statusCode).toBe(200);
+    expect(planOf(alice.body.token)).toBe("admin");
+
+    // Alice's key counts as isAdmin, but must not be able to mint more admins.
+    const mallory = await post(alice.body.token, { targetEmail: "mallory@evil.com", plan: "admin" });
+    expect(mallory.statusCode).toBe(403);
+  });
+
+  it("lets a delegated admin issue a non-admin plan for a third party", async () => {
+    const alice = await post(await adminBearer(), { targetEmail: "alice@example.com", plan: "admin" });
+    const issued = await post(alice.body.token, { targetEmail: "bob@example.com", plan: "professional" });
+
+    expect(issued.statusCode).toBe(200);
+    expect(planOf(issued.body.token)).toBe("professional");
+  });
+
+  it("still lets the account owner grant the admin plan to another user", async () => {
+    const state = await post(await adminBearer(), { targetEmail: "alice@example.com", plan: "admin" });
+
+    expect(state.statusCode).toBe(200);
+    expect(state.body.plan).toBe("admin");
+    expect(planOf(state.body.token)).toBe("admin");
+  });
+
   it("still gives the admin an admin key when issuing for themselves", async () => {
     const state = await post(await adminBearer(), {});
 
