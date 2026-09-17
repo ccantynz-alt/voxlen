@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use cpal::traits::{DeviceTrait, StreamTrait};
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use parking_lot::{Mutex, RwLock};
 use tauri::{AppHandle, Emitter};
 
@@ -10,6 +10,12 @@ use super::{AudioChunk, devices};
 
 const WAVEFORM_BARS: usize = 64;
 const WAVEFORM_EMIT_INTERVAL: Duration = Duration::from_millis(33); // ~30fps
+
+/// How long the caller waits for the capture thread to confirm the microphone
+/// stream is actually running. Opening an input stream is fast (well under a
+/// second); anything slower is treated as a failed start rather than reported
+/// as a recording that is capturing audio.
+const STREAM_START_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub struct CaptureHandle {
     stop_flag: Arc<AtomicBool>,
@@ -93,6 +99,11 @@ pub fn start_capture_with_options(
     let stop_flag = Arc::new(AtomicBool::new(false));
     let stop_flag_clone = stop_flag.clone();
     let poll_device_id = resolved_id.clone();
+
+    // The stream itself must be built on the capture thread (cpal streams are
+    // not Send), so the thread reports the outcome back here and the caller
+    // only sees Ok once audio is genuinely flowing.
+    let (ready_tx, ready_rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
 
     let thread = std::thread::spawn(move || {
         let device_fault_for_err = device_fault.clone();
@@ -193,6 +204,10 @@ pub fn start_capture_with_options(
             ),
             _ => {
                 log::error!("Unsupported sample format");
+                let _ = ready_tx.send(Err(format!(
+                    "Unsupported sample format: {:?}",
+                    config.sample_format()
+                )));
                 return;
             }
         };
@@ -201,8 +216,10 @@ pub fn start_capture_with_options(
             Ok(stream) => {
                 if let Err(e) = stream.play() {
                     log::error!("Failed to play stream: {}", e);
+                    let _ = ready_tx.send(Err(format!("Could not start the stream: {}", e)));
                     return;
                 }
+                let _ = ready_tx.send(Ok(()));
 
                 // Keep the stream alive until stop flag is set. Every ~1s, also
                 // confirm the device is still enumerable — cpal's error callback
@@ -226,9 +243,18 @@ pub fn start_capture_with_options(
             }
             Err(e) => {
                 log::error!("Failed to build input stream: {}", e);
+                let _ = ready_tx.send(Err(format!("Could not open the stream: {}", e)));
             }
         }
     });
+
+    if let Err(e) = await_stream_start(&ready_rx, STREAM_START_TIMEOUT) {
+        // Wind the thread down if it is still trying, and surface a real
+        // error: a dictation or meeting that would never capture the mic must
+        // not be reported to the caller as a successful start.
+        stop_flag.store(true, Ordering::Relaxed);
+        return Err(e);
+    }
 
     Ok((
         CaptureHandle {
@@ -237,6 +263,25 @@ pub fn start_capture_with_options(
         },
         Some(resolved_id),
     ))
+}
+
+/// Waits for the capture thread's start outcome. A dropped sender means the
+/// thread died without reporting, which is a failure too — never a success.
+fn await_stream_start(
+    ready: &Receiver<Result<(), String>>,
+    timeout: Duration,
+) -> anyhow::Result<()> {
+    match ready.recv_timeout(timeout) {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => anyhow::bail!("Microphone capture failed to start: {e}"),
+        Err(RecvTimeoutError::Timeout) => anyhow::bail!(
+            "Microphone capture did not start within {}s",
+            timeout.as_secs()
+        ),
+        Err(RecvTimeoutError::Disconnected) => {
+            anyhow::bail!("Microphone capture thread exited before the stream started")
+        }
+    }
 }
 
 fn process_audio_data(
@@ -448,4 +493,40 @@ fn compute_waveform_bars(samples: &[f32], n_bars: usize) -> Vec<f32> {
     }
 
     bars
+}
+
+#[cfg(test)]
+mod stream_start_tests {
+    use super::*;
+
+    #[test]
+    fn reports_success_only_when_the_thread_confirms_the_stream() {
+        let (tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        tx.send(Ok(())).unwrap();
+        assert!(await_stream_start(&rx, Duration::from_millis(50)).is_ok());
+    }
+
+    #[test]
+    fn propagates_a_stream_build_failure() {
+        let (tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        tx.send(Err("Could not open the stream: device in use".into()))
+            .unwrap();
+        let err = await_stream_start(&rx, Duration::from_millis(50)).unwrap_err();
+        assert!(err.to_string().contains("device in use"), "{err}");
+    }
+
+    #[test]
+    fn a_thread_that_dies_without_reporting_is_a_failure() {
+        let (tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        drop(tx);
+        let err = await_stream_start(&rx, Duration::from_millis(50)).unwrap_err();
+        assert!(err.to_string().contains("exited before"), "{err}");
+    }
+
+    #[test]
+    fn a_stream_that_never_opens_times_out_instead_of_reporting_success() {
+        let (_tx, rx) = crossbeam_channel::bounded::<Result<(), String>>(1);
+        let err = await_stream_start(&rx, Duration::from_millis(50)).unwrap_err();
+        assert!(err.to_string().contains("did not start"), "{err}");
+    }
 }
