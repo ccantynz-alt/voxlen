@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifyAccessToken, extractBearer, corsHeaders, applyHeaders } from "./_auth.js";
+import { verifyAccessToken, extractBearer, resolvePlan, isPaidPlan, corsHeaders, applyHeaders } from "./_auth.js";
+import type { VoxlenUser } from "./_auth.js";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -18,10 +19,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return applyHeaders(res, headers).status(401).json({ error: "Missing Authorization header" });
   }
 
+  let user: VoxlenUser;
   try {
-    await verifyAccessToken(token);
+    user = await verifyAccessToken(token);
   } catch {
     return applyHeaders(res, headers).status(401).json({ error: "Invalid token" });
+  }
+
+  // Authentication is not entitlement. verifyAccessToken() accepts any Google
+  // access token, so without this check anyone with a Google account could bill
+  // unlimited Anthropic calls to Voxlen's own key.
+  if (!isPaidPlan(await resolvePlan(user))) {
+    return applyHeaders(res, headers).status(403).json({ error: "Grammar AI requires a paid Voxlen plan \u2014 upgrade at voxlen.ai/#pricing" });
   }
 
   if (!ANTHROPIC_API_KEY) {

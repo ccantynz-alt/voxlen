@@ -137,6 +137,30 @@ export async function verifyIdToken(idToken: string): Promise<VoxlenUser> {
   };
 }
 
+/**
+ * Plans that entitle the caller to Voxlen-funded cloud AI (Anthropic/Deepgram
+ * spend on our keys). `free` is deliberately absent.
+ */
+const PAID_PLANS = new Set<VoxlenPlan>(["admin", "pro", "professional", "privileged", "firm", "free_trial"]);
+
+/**
+ * The plan a verified caller is entitled to *right now*.
+ *
+ * Desktop tokens carry a `plan` claim but live for 180–365 days, so a plan that
+ * has since been cancelled would keep working until the token expires. Live KV
+ * wins; the claim is only a fallback for tokens whose plan KV never stores
+ * (`free_trial`) and for KV outages, which must not lock out paying customers.
+ */
+export async function resolvePlan(user: VoxlenUser): Promise<VoxlenPlan> {
+  if (user.isAdmin) return "admin";
+  return (await lookupPlan(user.email)) ?? (user.plan as VoxlenPlan | undefined) ?? "free";
+}
+
+/** Whether a plan may spend Voxlen's provider credits. */
+export function isPaidPlan(plan: VoxlenPlan | string | undefined): boolean {
+  return PAID_PLANS.has(plan as VoxlenPlan);
+}
+
 /** Extract Bearer token from Authorization header. Returns null if missing. */
 export function extractBearer(authHeader: string | null | undefined): string | null {
   if (!authHeader?.startsWith("Bearer ")) return null;
