@@ -1,0 +1,101 @@
+{
+  "description": "Canonical cases for validating grammar-fix edits. The TypeScript server (landing/api/_grammar-fix.ts) and the Swift client (ios/VoxlenKit, EditValidator) must both produce exactly these results. `accepted` lists the originals that survive, in text order; `rejected` maps each dropped original to its reason.",
+  "cases": [
+    {
+      "name": "single fix applies",
+      "text": "She go to court on Monday.",
+      "edits": [{ "original": "She go", "replacement": "She goes" }],
+      "protectedTerms": [],
+      "accepted": ["She go"],
+      "rejected": {},
+      "corrected": "She goes to court on Monday."
+    },
+    {
+      "name": "two fixes apply in text order whatever order they arrive in",
+      "text": "Their going to file it tomorow.",
+      "edits": [
+        { "original": "tomorow", "replacement": "tomorrow" },
+        { "original": "Their going", "replacement": "They're going" }
+      ],
+      "protectedTerms": [],
+      "accepted": ["Their going", "tomorow"],
+      "rejected": {},
+      "corrected": "They're going to file it tomorrow."
+    },
+    {
+      "name": "an original that is not in the text is dropped",
+      "text": "The client signed the deed.",
+      "edits": [{ "original": "the contract", "replacement": "the agreement" }],
+      "protectedTerms": [],
+      "accepted": [],
+      "rejected": { "the contract": "not_found" },
+      "corrected": "The client signed the deed."
+    },
+    {
+      "name": "an original that occurs twice is ambiguous and dropped",
+      "text": "the the court the",
+      "edits": [{ "original": "the", "replacement": "The" }],
+      "protectedTerms": [],
+      "accepted": [],
+      "rejected": { "the": "ambiguous" },
+      "corrected": "the the court the"
+    },
+    {
+      "name": "changing a number is never allowed",
+      "text": "The fee is $1,200 per hour.",
+      "edits": [{ "original": "$1,200 per hour", "replacement": "$1,250 per hour" }],
+      "protectedTerms": [],
+      "accepted": [],
+      "rejected": { "$1,200 per hour": "changes_number" },
+      "corrected": "The fee is $1,200 per hour."
+    },
+    {
+      "name": "an edit touching a protected term is dropped",
+      "text": "See Smith v Jonse for the test.",
+      "edits": [{ "original": "Smith v Jonse", "replacement": "Smith v. Jones" }],
+      "protectedTerms": ["Jonse"],
+      "accepted": [],
+      "rejected": { "Smith v Jonse": "touches_protected_term" },
+      "corrected": "See Smith v Jonse for the test."
+    },
+    {
+      "name": "overlapping edits: the first in text order wins",
+      "text": "He dont know nothing.",
+      "edits": [
+        { "original": "He dont", "replacement": "He doesn't" },
+        { "original": "dont know nothing", "replacement": "doesn't know anything" }
+      ],
+      "protectedTerms": [],
+      "accepted": ["He dont"],
+      "rejected": { "dont know nothing": "overlaps" },
+      "corrected": "He doesn't know nothing."
+    },
+    {
+      "name": "a no-op edit is dropped",
+      "text": "All good here.",
+      "edits": [{ "original": "good", "replacement": "good" }],
+      "protectedTerms": [],
+      "accepted": [],
+      "rejected": { "good": "no_change" },
+      "corrected": "All good here."
+    },
+    {
+      "name": "an empty original is dropped",
+      "text": "Fine.",
+      "edits": [{ "original": "", "replacement": "Very fine" }],
+      "protectedTerms": [],
+      "accepted": [],
+      "rejected": { "": "empty" },
+      "corrected": "Fine."
+    },
+    {
+      "name": "unicode text keeps its characters",
+      "text": "Café owner’s claim was denyed — appeal pending.",
+      "edits": [{ "original": "denyed", "replacement": "denied" }],
+      "protectedTerms": [],
+      "accepted": ["denyed"],
+      "rejected": {},
+      "corrected": "Café owner’s claim was denied — appeal pending."
+    }
+  ]
+}

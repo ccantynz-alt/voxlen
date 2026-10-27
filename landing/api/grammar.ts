@@ -41,9 +41,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     writingStyle?: string;
     style?: string;
     preserveTone?: boolean;
+    // The desktop app and iOS keyboard send snake_case; the Web SDK sends camelCase.
+    preserve_tone?: boolean;
     custom_vocabulary?: string[];
   };
-  const { text, context, preserveTone } = body;
+  const { text, context } = body;
+  const preserveTone = body.preserveTone ?? body.preserve_tone;
   const writingStyle = body.writingStyle ?? body.style;
   const customVocabulary = body.custom_vocabulary ?? [];
 

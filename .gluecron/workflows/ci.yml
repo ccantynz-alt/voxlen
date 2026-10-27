@@ -55,6 +55,10 @@ jobs:
         working-directory: landing
         run: npm ci
 
+      - name: Landing + API — tests
+        working-directory: landing
+        run: npm test
+
       # tsc for the site, tsc for the Vercel functions in api/, then vite build.
       - name: Landing + API — type-check and build
         working-directory: landing
