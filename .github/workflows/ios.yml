@@ -1,0 +1,40 @@
+name: iOS
+
+# Builds and tests the iOS app, keyboard and VoxlenKit on GitHub's hosted
+# macOS runners. Gluecron runs this repo's merge gate, but has no macOS
+# runner yet (Gluecron.com #16478), and these jobs need Xcode.
+
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'shared/**'
+      - '.github/workflows/ios.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'shared/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  voxlenkit:
+    name: VoxlenKit tests
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      # Includes the tests that pin the edit rules and prompt to shared/grammar-fix/.
+      - name: swift test
+        run: swift test --package-path ios/VoxlenKit
