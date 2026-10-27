@@ -10,6 +10,7 @@ AI voice dictation for professionals (lawyers, accountants). Tauri v2 + React/TS
 4. **Commit frequently** with descriptive messages; push to the working branch.
 5. **Privacy is sacred.** Never send user content (audio, transcripts, documents) to Voxlen-operated servers. All flywheel/learning data stays on-device (`src/stores/flywheel.ts` — word-level patterns only, never document content, always on).
 6. **Verify before pushing.** `tsc --noEmit` after TS changes; `cargo check` after Rust changes — but this machine has NO Rust toolchain (verified 2026-08-05): Rust is verified by the CI test job only.
+7. **Gluecron is the merge gate.** Push every branch to both `origin` (GitHub) and `gluecron` (`https://gluecron.com/ccantynz/voxlen`) and open the PR on Gluecron too: `.gluecron/workflows/ci.yml` gates it there. Gluecron only reads `.gluecron/workflows/`; GitHub Actions still runs the Rust tests and release builds, and Vercel still deploys from GitHub `main`.
 
 ## Architecture Map
 
@@ -23,12 +24,14 @@ AI voice dictation for professionals (lawyers, accountants). Tauri v2 + React/TS
 - **Text injection:** OS keyboard simulation (osascript / SendInput / xdotool)
 - **Mobile:** iOS Swift keyboard `ios/VoxKeyboard/`; Android keyboard builds in CI (debug+release APKs)
 - **Web SDK / Landing:** `sdk/` (embeddable JS); `landing/` (Vite + React + Tailwind, Vercel auto-deploys from main)
+- **CI:** Gluecron gate `.gluecron/workflows/ci.yml` (shared runner: Node 22, no Rust/Java); `.gluecron/workflows/ios.yml` targets the Xcode Mac runner (`[self-hosted, macos, xcode]`); GitHub `.github/workflows/` for Rust tests, Tauri releases, Android APKs
 - **Future:** GateTest (auto-test/fix loop) integrates later — keep architecture open, do not implement yet.
 
 ## Open Gaps (fix when you can)
 
 - macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
 - iOS: no committed Xcode project; restore real `SFSpeechRecognizer` on-device STT (stub removed in `77d9e93`); container-app mic permission flow
+- Register the Xcode Mac as a Gluecron runner (labels `macos` + `xcode`), then dispatch `ios.yml` to verify it
 - Android keyboard: real-device testing + release signing before shipping
 - Stripe: endpoints + KV entitlement shipped; only real `STRIPE_*` env vars in Vercel remain
 - api.voxlen.com backend (proxy to hold provider keys + metering)
