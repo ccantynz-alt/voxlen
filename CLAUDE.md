@@ -31,7 +31,7 @@ AI voice dictation for professionals (lawyers, accountants). Tauri v2 + React/TS
 
 - macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
 - iOS: no committed Xcode project; restore real `SFSpeechRecognizer` on-device STT (stub removed in `77d9e93`); container-app mic permission flow
-- Register the Xcode Mac as a Gluecron runner (labels `macos` + `xcode`), then dispatch `ios.yml` to verify it
+- Xcode Mac as a Gluecron runner: blocked on Gluecron.com #16478 (label-only runners). Do NOT register it as a `ccantynz` account runner before that lands: an account runner takes every `runs-on: self` job across all of the account's repos and switches off the shared lane. Once it lands: register with label `xcode`, dispatch `ios.yml`
 - Android keyboard: real-device testing + release signing before shipping
 - Stripe: endpoints + KV entitlement shipped; only real `STRIPE_*` env vars in Vercel remain
 - api.voxlen.com backend (proxy to hold provider keys + metering)

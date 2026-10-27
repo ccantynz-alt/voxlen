@@ -1,8 +1,10 @@
 name: iOS
 
-# Runs on the Xcode Mac registered as this account's Gluecron runner. The
-# runner agent adds the `macos` label itself; `xcode` comes from the
-# registration token, so a Mac without Xcode can never take this job.
+# Runs on the Xcode Mac once it is a Gluecron runner. The runner agent adds
+# the `macos` label itself; `xcode` comes from the registration token, so a
+# Mac without Xcode can never take this job. The Mac waits on Gluecron.com
+# #16478 (label-only runners): registered as a plain account runner, it would
+# take every `runs-on: self` job in the account.
 #
 # Dispatch-only until that runner is online: a `[self-hosted, ...]` job that
 # no runner matches fails at once, which would turn every PR red. Add
