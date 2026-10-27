@@ -201,6 +201,9 @@ async function startDictation() {
     // 3. Deepgram streaming WebSocket — same parameters as the Voxlen SDK.
     const url = new URL("wss://api.deepgram.com/v1/listen");
     url.searchParams.set("model", "nova-3");
+    // Opt out of Deepgram's Model Improvement Program — never let customer
+    // audio be retained for training.
+    url.searchParams.set("mip_opt_out", "true");
     url.searchParams.set("language", "en-US");
     url.searchParams.set("punctuate", "true");
     url.searchParams.set("smart_format", "true");
