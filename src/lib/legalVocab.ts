@@ -15,10 +15,19 @@
 
 import type { AppSettings } from "@/stores/settings";
 
-/** Deepgram Nova-3 accepts a bounded number of keyterms per request —
- *  beyond this the extra terms are ignored (and very large lists degrade
- *  boosting quality). User terms always win the budget over pack terms. */
+/** Most keyterms sent per request: very large lists degrade boosting
+ *  quality. User terms always win the budget over pack terms. */
 export const KEYTERM_CAP = 100;
+
+/** Deepgram limits keyterm prompting by tokens (500 per request), and a
+ *  request over the limit fails rather than dropping terms — so a long list
+ *  of multi-word legal phrases would break dictation outright. Stay under it
+ *  with headroom, using a deliberately high estimate of ~3 chars per token. */
+export const KEYTERM_TOKEN_BUDGET = 450;
+
+export function estimateKeytermTokens(term: string): number {
+  return Math.max(1, Math.ceil(term.length / 3));
+}
 
 /** Latin and common-law terms of art shared across all jurisdictions. */
 const CORE_LEGAL_TERMS: string[] = [
@@ -181,10 +190,12 @@ export function legalTermsForJurisdiction(
  */
 export function mergeVocabulary(
   sources: string[][],
-  cap: number = KEYTERM_CAP
+  cap: number = KEYTERM_CAP,
+  tokenBudget: number = KEYTERM_TOKEN_BUDGET
 ): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
+  let tokens = 0;
   for (const source of sources) {
     for (const term of source) {
       const trimmed = term.trim();
@@ -192,8 +203,13 @@ export function mergeVocabulary(
       const key = trimmed.toLowerCase();
       if (seen.has(key)) continue;
       if (out.length >= cap) return out;
+      // A term too long for what is left is skipped, not the rest of the
+      // list: a shorter lower-priority term may still fit.
+      const cost = estimateKeytermTokens(trimmed);
+      if (tokens + cost > tokenBudget) continue;
       seen.add(key);
       out.push(trimmed);
+      tokens += cost;
     }
   }
   return out;

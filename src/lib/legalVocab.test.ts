@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   legalTermsForJurisdiction,
   mergeVocabulary,
+  estimateKeytermTokens,
   KEYTERM_CAP,
+  KEYTERM_TOKEN_BUDGET,
 } from "./legalVocab";
 
 describe("legalTermsForJurisdiction", () => {
@@ -73,5 +75,21 @@ describe("mergeVocabulary", () => {
   it("defaults to the keyterm cap", () => {
     const many = Array.from({ length: 300 }, (_, i) => `term${i}`);
     expect(mergeVocabulary([many])).toHaveLength(KEYTERM_CAP);
+  });
+
+  it("keeps long multi-word phrases inside the token budget", () => {
+    const phrases = Array.from(
+      { length: 100 },
+      (_, i) => `the doctrine of promissory estoppel in equity ${i}`
+    );
+    const out = mergeVocabulary([phrases]);
+    const spent = out.reduce((n, t) => n + estimateKeytermTokens(t), 0);
+    expect(out.length).toBeLessThan(phrases.length);
+    expect(spent).toBeLessThanOrEqual(KEYTERM_TOKEN_BUDGET);
+  });
+
+  it("skips a term that does not fit but keeps shorter ones after it", () => {
+    const out = mergeVocabulary([["a".repeat(30), "b".repeat(300), "estoppel"]], 100, 20);
+    expect(out).toEqual(["a".repeat(30), "estoppel"]);
   });
 });
