@@ -1,0 +1,50 @@
+name: iOS
+
+# Runs on the Xcode Mac registered as this account's Gluecron runner. The
+# runner agent adds the `macos` label itself; `xcode` comes from the
+# registration token, so a Mac without Xcode can never take this job.
+#
+# Dispatch-only until that runner is online: a `[self-hosted, ...]` job that
+# no runner matches fails at once, which would turn every PR red. Add
+# `pull_request` with `paths: [ios/**]` once the runner reports online.
+#
+# Steps run under macOS's /bin/bash 3.2: no associative arrays, no ${x,,}.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  toolchain:
+    runs-on: [self-hosted, macos, xcode]
+    timeout-minutes: 15
+    steps:
+      - name: Xcode toolchain
+        run: |
+          sw_vers
+          dev_dir=$(xcode-select -p)
+          echo "developer dir: $dev_dir"
+          case "$dev_dir" in
+            *CommandLineTools*)
+              echo "ERROR: xcode-select points at the Command Line Tools, not Xcode." >&2
+              echo "Fix on the Mac: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer" >&2
+              exit 1 ;;
+          esac
+          xcodebuild -version
+          swift --version
+          xcodebuild -checkFirstLaunchStatus || {
+            echo "ERROR: Xcode first-launch setup is incomplete. Fix on the Mac: sudo xcodebuild -runFirstLaunch" >&2
+            exit 1
+          }
+
+      - name: iOS SDK and simulator runtime
+        run: |
+          xcodebuild -showsdks | grep -E "iphoneos|iphonesimulator"
+          if ! xcrun simctl list runtimes available | grep -q "iOS"; then
+            echo "ERROR: no iOS simulator runtime installed. Fix on the Mac: xcodebuild -downloadPlatform iOS" >&2
+            exit 1
+          fi
+          xcrun simctl list runtimes available | grep "iOS"

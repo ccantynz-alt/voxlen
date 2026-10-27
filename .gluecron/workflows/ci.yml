@@ -1,0 +1,89 @@
+name: CI
+
+# Voxlen's merge gate on Gluecron. Gluecron only discovers workflows in
+# .gluecron/workflows/, so .github/workflows/ never runs here; GitHub Actions
+# keeps the release builds (Tauri on Windows/macOS/Linux, Android APKs).
+#
+# The shared runner image has Node 22 but no Rust or Java, so this gate runs
+# everything the GitHub `test` job runs except `cargo test`. The runner
+# provides the checkout at the pushed SHA; steps are plain bash.
+#
+# `pull_request` gates the PR's merge preview onto the base tip;
+# `workflow_dispatch` gates exactly the commit it is given.
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+  workflow_dispatch: {}
+
+# One live run per ref: a newly queued run retires older queued runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: self
+    timeout-minutes: 30
+    env:
+      CI: "1"
+      TZ: UTC
+      npm_config_audit: "false"
+      npm_config_fund: "false"
+    steps:
+      # GitHub CI pins Node 22; a gate on another major is not a verdict about it.
+      - name: Toolchain
+        run: |
+          echo "node $(node --version), npm $(npm --version)"
+          major=$(node -p 'process.versions.node.split(".")[0]')
+          if [ "$major" != "22" ]; then
+            echo "ERROR: this runner has Node $(node --version); the repo builds on Node 22" >&2
+            exit 1
+          fi
+
+      - name: Desktop frontend — install
+        run: npm ci
+
+      - name: Desktop frontend — type-check
+        run: npx tsc --noEmit
+
+      - name: Desktop frontend — tests
+        run: npm test
+
+      - name: Landing + API — install
+        working-directory: landing
+        run: npm ci
+
+      # tsc for the site, tsc for the Vercel functions in api/, then vite build.
+      - name: Landing + API — type-check and build
+        working-directory: landing
+        run: npm run build
+
+      - name: SDK — install
+        working-directory: sdk
+        run: npm ci
+
+      - name: SDK — tests
+        working-directory: sdk
+        run: npm test
+
+      - name: SDK — build
+        working-directory: sdk
+        run: npm run build
+
+      # A step that writes a tracked or unignored file fails here by name.
+      - name: No residue in the working tree
+        if: always()
+        run: |
+          if [ "$(git rev-parse --is-inside-work-tree 2>/dev/null || true)" != "true" ]; then
+            echo "not inside a git work tree: refusing a vacuous pass" >&2
+            exit 1
+          fi
+          residue=$(git status --porcelain=v1 --untracked-files=all)
+          if [ -n "$residue" ]; then
+            echo "the gate changed or created these paths:" >&2
+            echo "$residue" >&2
+            exit 1
+          fi
+          echo "clean"
