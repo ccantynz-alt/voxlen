@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FixOutputSchema,
+  PROMPT_VERSION,
   SYSTEM_PROMPT,
   buildUserMessage,
   checkEdits,
@@ -112,5 +113,22 @@ describe("FixOutputSchema", () => {
     expect(() =>
       FixOutputSchema.parse({ edits: [{ original: "a", replacement: "b", category: "style", reason: "" }] }),
     ).toThrow();
+  });
+});
+
+describe("shared/grammar-fix/prompt.json", () => {
+  const shared = JSON.parse(
+    readFileSync(new URL("../../shared/grammar-fix/prompt.json", import.meta.url), "utf8"),
+  ) as {
+    version: string;
+    system: string[];
+    userMessageExample: { text: string; locale: "en-NZ"; protectedTerms: string[]; expected: string };
+  };
+
+  it("matches the server prompt, so the iOS BYOK client sends the same one", () => {
+    expect(shared.version).toBe(PROMPT_VERSION);
+    expect(shared.system.join("\n")).toBe(SYSTEM_PROMPT);
+    const ex = shared.userMessageExample;
+    expect(buildUserMessage(ex.text, ex.locale, ex.protectedTerms)).toBe(ex.expected);
   });
 });

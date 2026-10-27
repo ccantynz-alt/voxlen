@@ -12,6 +12,22 @@ AI voice dictation for professionals (lawyers, accountants). Tauri v2 + React/TS
 6. **Verify before pushing.** `tsc --noEmit` after TS changes; `cargo check` after Rust changes — but this machine has NO Rust toolchain (verified 2026-08-05): Rust is verified by the CI test job only.
 7. **Gluecron is the merge gate.** Push every branch to both `origin` (GitHub) and `gluecron` (`https://gluecron.com/ccantynz/voxlen`) and open the PR on Gluecron too: `.gluecron/workflows/ci.yml` gates it there. Gluecron only reads `.gluecron/workflows/`; GitHub Actions still runs the Rust tests and release builds, and Vercel still deploys from GitHub `main`.
 
+## Market Bar (2026-10 market crawl; full scorecard: reports/AI dictation keyboard market 2026.md, local only)
+
+Voxlen restarted 2026-10 after months on hold: build to this bar, and replace older code rather than patching it when it falls short.
+
+**Position:** the obvious Dragon successor (cloud Dragon Professional/Legal Anywhere reportedly stop selling 2026-12-31, switch off 2027-12-31; no Nuance product on Mac/iPhone) that is also good enough for everyday consumers. Win on verifiable privacy + legal-safe output + professional workflow on every device, not on out-spending Wispr Flow ($2B, cloud-only, trust incidents).
+
+**Headline targets (pass/fail):**
+- Accuracy: default cloud streaming engine ≤ 3.6% AA-WER Streaming (Nova-3 is ~6.7–7.4%: replace it as default); Parakeet-class on-device default on Mac/Windows (whisper-rs is ~10× slower).
+- Integrity: 0 altered citations, case names, amounts or dates; grammar fix returns validated edits only (`/api/grammar-fix`, `shared/grammar-fix/`).
+- Latency: end-of-speech → inserted text p50 ≤ 400 ms, p95 ≤ 700 ms with cleanup; first dictation after idle ≤ 1.5 s; 0 silent failures.
+- Reliability: 0 lost dictations (local encrypted recovery buffer); ≥ 99.8% crash-free sessions; 0 target-app freezes; desktop idle RAM ≤ 250 MB.
+- Privacy: private by default on every tier; offline Privileged Mode with full features, enforceable by a firm admin; SOC 2 Type II from an established auditor within 12 months of launch; meeting capture with all-party consent and no stored voiceprints.
+- Mobile: iOS keyboard types and fixes grammar without Full Access; on-device STT via SpeechAnalyzer (not SFSpeechRecognizer); no private APIs (iOS 26.4 removed auto-return to the host app). Android records directly in the IME and commits via InputConnection, never the clipboard.
+- Wedge: Dragon migration kit before 2026-12-31; Clio App Directory listing within 6 months of launch; validate the accounting wedge (20 interviews, 5 pilots) before marketing it.
+- Pricing: free unlimited on-device dictation; Pro $12/mo annual ($15 monthly); Professional $25–29/user/mo.
+
 ## Architecture Map
 
 - **Desktop:** Tauri v2 — Rust in `src-tauri/`, React/TS in `src/`, Zustand stores in `src/stores/`
