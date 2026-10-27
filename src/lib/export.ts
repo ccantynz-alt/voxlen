@@ -164,6 +164,21 @@ function formatSrtTimestamp(ms: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(cs).padStart(3, "0")}`;
 }
 
+/**
+ * Neutralize spreadsheet formula injection: Excel/Sheets execute cell values
+ * starting with = + - @ (or tab/CR) as formulas. Dictated narrative content
+ * lands in these cells, so prefix a single quote — the standard mitigation,
+ * rendered as plain text by spreadsheet apps.
+ */
+export function neutralizeCsvField(s: string): string {
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
+
+/** Quote a CSV text cell (doubling quotes) after formula neutralization. */
+function csvText(s: string): string {
+  return `"${neutralizeCsvField(s).replace(/"/g, '""')}"`;
+}
+
 export function exportBillingCsv(
   client: Client,
   entries: MatterEntry[]
@@ -176,7 +191,7 @@ export function exportBillingCsv(
     const mins = (e.durationSeconds / 60).toFixed(1);
     const rate = (e.rateAtTime ?? client.billableRate).toFixed(2);
     const amount = e.billableAmount.toFixed(2);
-    const note = `"${(e.note ?? "").replace(/"/g, '""')}"`;
+    const note = csvText(e.note ?? "");
     rows.push([date, mins, e.wordCount, rate, amount, note].join(","));
   }
   const totalAmount = entries.reduce((s, e) => s + e.billableAmount, 0);
@@ -202,14 +217,17 @@ export function exportAllBillingCsv(
   ];
   for (const e of entries) {
     const c = clientMap.get(e.clientId);
-    if (!c) continue;
     const date = new Date(e.date).toLocaleDateString("en-GB");
     const mins = (e.durationSeconds / 60).toFixed(1);
-    const rate = (e.rateAtTime ?? c.billableRate).toFixed(2);
+    const rate = (e.rateAtTime ?? c?.billableRate ?? 0).toFixed(2);
     const amount = e.billableAmount.toFixed(2);
-    const note = `"${(e.note ?? "").replace(/"/g, '""')}"`;
-    const matter = `"${(c.matterNumber ?? "").replace(/"/g, '""')}"`;
-    rows.push([`"${c.name}"`, matter, date, mins, e.wordCount, rate, amount, note].join(","));
+    const note = csvText(e.note ?? "");
+    // Entries with an empty/unresolvable clientId still count toward the
+    // TOTAL row — emit them as "Unassigned" rows so no billable time
+    // silently disappears from the export.
+    const clientName = c ? c.name : e.matterLabel || "Unassigned";
+    const matter = csvText(c?.matterNumber ?? "");
+    rows.push([csvText(clientName), matter, date, mins, e.wordCount, rate, amount, note].join(","));
   }
   const total = entries.reduce((s, e) => s + e.billableAmount, 0);
   rows.push(["TOTAL", "", "", "", "", "", total.toFixed(2), ""].join(","));

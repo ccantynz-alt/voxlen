@@ -68,6 +68,11 @@ export class VoxlenSDK {
    * Adds a floating mic button and wires up dictation + grammar.
    */
   attachTo(element: HTMLElement): void {
+    // Re-attaching must not leave an orphaned mic button on the old element
+    if (this.micButton) {
+      this.micButton.remove();
+      this.micButton = null;
+    }
     this.targetElement = element;
     this.createMicButton(element);
   }
@@ -313,7 +318,12 @@ export class VoxlenSDK {
       if (this.isListening) {
         this.stop();
       } else {
-        this.startDictation();
+        // A rejected start (denied mic, failed token exchange) must reach
+        // onError, not die as an unhandled rejection. this.config.onError is
+        // the constructor wrapper, which also emits the "error" event.
+        this.startDictation().catch((err) => {
+          this.config.onError?.(err instanceof Error ? err : new Error(String(err)));
+        });
       }
     });
 

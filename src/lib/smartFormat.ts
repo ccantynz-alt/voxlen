@@ -16,6 +16,8 @@
  * the whole pass via the `smartFormat` setting.
  */
 
+import { formatCitations, type Jurisdiction } from "./citations";
+
 const DIGIT_WORDS: Record<string, string> = {
   zero: "0",
   one: "1",
@@ -129,7 +131,10 @@ const LATIN_PHRASES: Record<string, string> = {
   "res ipsa loquitur": "res ipsa loquitur",
   "stare decisis": "stare decisis",
   "ultra vires": "ultra vires",
-  "versus": "v.",
+  // NOTE: "versus" is deliberately NOT mapped here. Blanket-rewriting it to
+  // "v." mangled ordinary prose and forced Bluebook style on OSCOLA/AGLC
+  // users; case-name handling now lives in formatCitations (citations.ts),
+  // which is jurisdiction-aware and only rewrites clear case-name patterns.
   "and others": "et al.",
   "and the following": "et seq.",
   "that is": "i.e.",
@@ -208,28 +213,114 @@ function formatLegalPhrases(input: string): string {
   return out;
 }
 
-const CURRENCY_SPOKEN: Record<string, string> = {
-  "pounds sterling": "GBP",
-  "australian dollars": "AUD",
-  "us dollars": "USD",
-  "euro": "EUR",
-  "euros": "EUR",
-  "new zealand dollars": "NZD",
-  "canadian dollars": "CAD",
-};
-// Keep reference to satisfy lint
-void CURRENCY_SPOKEN;
+/** Spoken currency names → symbol, longest phrases first so e.g.
+ *  "pounds sterling" wins over bare "pounds". */
+const CURRENCY_SYMBOLS: Array<[phrase: string, symbol: string]> = [
+  ["pounds sterling", "£"],
+  ["australian dollars", "A$"],
+  ["new zealand dollars", "NZ$"],
+  ["canadian dollars", "C$"],
+  ["us dollars", "$"],
+  ["dollars", "$"],
+  ["dollar", "$"],
+  ["pounds", "£"],
+  ["pound", "£"],
+  ["euros", "€"],
+  ["euro", "€"],
+];
 
+const NUMBER_WORD_VALUES: Record<string, number> = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
+  fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+  seventy: 70, eighty: 80, ninety: 90,
+};
+
+const NUMBER_SCALES: Record<string, number> = {
+  hundred: 100,
+  thousand: 1_000,
+  million: 1_000_000,
+  billion: 1_000_000_000,
+};
+
+/**
+ * Parse a spoken/dictated amount ("fifty thousand", "3.5 million", "50,000",
+ * "one hundred and twenty five") into a number. Returns null when the token
+ * run doesn't form a coherent amount — callers must then leave the original
+ * text untouched.
+ */
+function parseSpokenAmount(raw: string): number | null {
+  const tokens = raw
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .filter((t) => t.length > 0 && t !== "and");
+  if (tokens.length === 0) return null;
+
+  let total = 0;
+  let current = 0;
+  let sawValue = false;
+
+  for (const token of tokens) {
+    if (/^\d[\d,]*(?:\.\d+)?$/.test(token)) {
+      const value = Number(token.replace(/,/g, ""));
+      if (!Number.isFinite(value)) return null;
+      current += value;
+      sawValue = true;
+    } else if (token in NUMBER_WORD_VALUES) {
+      current += NUMBER_WORD_VALUES[token];
+      sawValue = true;
+    } else if (token === "hundred") {
+      current = (current || 1) * 100;
+      sawValue = true;
+    } else if (token in NUMBER_SCALES) {
+      total += (current || 1) * NUMBER_SCALES[token];
+      current = 0;
+      sawValue = true;
+    } else {
+      return null; // Unknown token — refuse rather than mangle.
+    }
+  }
+
+  return sawValue ? total + current : null;
+}
+
+function formatAmount(value: number): string {
+  return Number.isInteger(value)
+    ? value.toLocaleString("en-US")
+    : value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+// "<amount> <currency>" matcher: the amount is a run of number-only tokens
+// (digits or number words; "and" allowed as a connector between them), so it
+// can never swallow surrounding prose the way a \w[\w\s]*? wildcard did.
+const CURRENCY_ALTERNATION = CURRENCY_SYMBOLS.map(([p]) => p).join("|");
+const NUMBER_WORD_ALTERNATION = [
+  ...Object.keys(NUMBER_WORD_VALUES),
+  ...Object.keys(NUMBER_SCALES),
+].join("|");
+const AMOUNT_TOKEN = `(?:\\d[\\d,]*(?:\\.\\d+)?|${NUMBER_WORD_ALTERNATION})`;
+const AMOUNT_RE = new RegExp(
+  `\\b(${AMOUNT_TOKEN}(?:[\\s-]+(?:and[\\s-]+)?${AMOUNT_TOKEN})*)\\s+(${CURRENCY_ALTERNATION})\\b`,
+  "gi"
+);
+
+/**
+ * Convert spoken currency amounts into symbol + digits:
+ *   "fifty thousand pounds sterling" → "£50,000"
+ *   "50,000 dollars"                 → "$50,000"
+ *   "3.5 million euros"              → "€3,500,000"
+ * Anything that doesn't parse as a clean amount is left unchanged.
+ */
 function formatLegalCurrency(input: string): string {
-  let out = input;
-  // "fifty thousand pounds sterling" → "£50,000"
-  // Simple spoken amount patterns
-  const amountRe = /\b(\w[\w\s]*?)\s+(pounds sterling|australian dollars|us dollars|euros?|new zealand dollars|canadian dollars)\b/gi;
-  out = out.replace(amountRe, (_, amount, currency) => {
-    const symbol = ({ "pounds sterling": "£", "australian dollars": "A$", "us dollars": "$", "euro": "€", "euros": "€", "new zealand dollars": "NZ$", "canadian dollars": "C$" } as Record<string, string>)[currency.toLowerCase()] ?? currency;
-    return symbol + amount.trim();
+  return input.replace(AMOUNT_RE, (match, amount: string, currency: string) => {
+    const value = parseSpokenAmount(amount);
+    if (value === null) return match;
+    const symbol =
+      CURRENCY_SYMBOLS.find(([p]) => p === currency.toLowerCase())?.[1];
+    if (!symbol) return match;
+    return symbol + formatAmount(value);
   });
-  return out;
 }
 
 /** Markdown-ish dictation commands. Triggered only at the start of a segment. */
@@ -279,6 +370,9 @@ export interface SmartFormatOptions {
   digitRuns?: boolean;
   legalPhrases?: boolean; // opt-in — only when legal mode active
   legalCurrency?: boolean;
+  legalCitations?: boolean; // opt-in — only when legal mode active
+  /** Citation style for legalCitations (Bluebook vs OSCOLA/AGLC/…). */
+  jurisdiction?: Jurisdiction;
 }
 
 const defaultOptions: Required<SmartFormatOptions> = {
@@ -289,6 +383,8 @@ const defaultOptions: Required<SmartFormatOptions> = {
   digitRuns: true,
   legalPhrases: false,
   legalCurrency: false,
+  legalCitations: false,
+  jurisdiction: "global",
 };
 
 export function applySmartFormat(
@@ -303,6 +399,11 @@ export function applySmartFormat(
   if (o.emails) out = formatEmails(out);
   if (o.urls) out = formatUrls(out);
   if (o.social) out = formatSocial(out);
+  // Citations run before phrase/currency passes: they consume their own
+  // numbers ("542 U.S. 241") and case-name connectors before the broader
+  // legal transforms can touch them; currency never matches a bare number
+  // without a currency word, so the passes cannot collide.
+  if (o.legalCitations) out = formatCitations(out, o.jurisdiction);
   if (o.legalPhrases) out = formatLegalPhrases(out);
   if (o.legalCurrency) out = formatLegalCurrency(out);
   return out;

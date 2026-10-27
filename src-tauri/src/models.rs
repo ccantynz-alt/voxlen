@@ -51,7 +51,8 @@ pub async fn download_with_progress(
         if !resp.status().is_success() {
             anyhow::bail!("Model download failed: HTTP {}", resp.status());
         }
-        let total = resp.content_length().unwrap_or(expected_total);
+        let content_length = resp.content_length();
+        let total = content_length.unwrap_or(expected_total);
 
         let part = dest.with_extension("part");
         let mut file = std::fs::File::create(&part)?;
@@ -71,6 +72,17 @@ pub async fn download_with_progress(
         }
         file.flush()?;
         drop(file);
+        // A stream can end cleanly before the full body arrived (dropped
+        // connection without a transport error). Never rename a short file
+        // into place — the exists() fast path would then make the corrupt
+        // model permanent.
+        if let Some(expected) = content_length {
+            if received != expected {
+                anyhow::bail!(
+                    "Model download incomplete: received {received} of {expected} bytes"
+                );
+            }
+        }
         std::fs::rename(&part, dest)?;
         emit(received, total, true, None);
         Ok(())

@@ -1,7 +1,7 @@
 {
   "name": "voxlen",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Voxlen - AI-powered voice dictation for legal and accounting professionals across desktop, mobile, and web.",
   "type": "module",
   "scripts": {
@@ -28,6 +28,7 @@
     "@tauri-apps/plugin-fs": "^2.2.0",
     "@tauri-apps/plugin-global-shortcut": "^2.2.0",
     "@tauri-apps/plugin-notification": "^2.2.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-store": "^2.2.0",
     "@tauri-apps/plugin-updater": "^2.2.0",
     "clsx": "^2.1.1",

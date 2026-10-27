@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useAudioStore } from "@/stores/audio";
-import { useDictationStore, buildSessionRecord } from "@/stores/dictation";
+import { useDictationStore, buildSessionRecord, clearDraftRecord } from "@/stores/dictation";
 import { useSettingsStore } from "@/stores/settings";
 import { toast } from "@/components/ui/Toast";
 import { processVoiceCommands, executeVoiceCommand, applyTextCommand } from "@/lib/voiceCommands";
@@ -239,6 +239,8 @@ export function useTauriEvents(): void {
               ? applySmartFormat(text, {
                   legalPhrases: settings.legalMode,
                   legalCurrency: settings.legalMode,
+                  legalCitations: settings.legalMode,
+                  jurisdiction: settings.jurisdiction,
                 })
               : text;
             const capsLock = useDictationStore.getState().capsLock;
@@ -649,15 +651,21 @@ export function useTauriEvents(): void {
           if (!alreadySaved) {
             lastSavedSessionKey = sessionKey;
             const record = buildSessionRecord();
-            useHistoryStore.getState().addEntry({
-              id: crypto.randomUUID(),
-              text: fullText,
-              duration: dictState.sessionDuration * 1000,
-              wordCount: wc,
-              language: segments[0].language || "en",
-              timestamp: new Date().toISOString(),
-              grammarCorrected: hasGrammar,
-            });
+            // History entries carry the full transcript text and the history
+            // store persists to disk — honour the saveTranscripts privacy
+            // setting. Billing + flywheel below don't store transcript text
+            // and run regardless.
+            if (settings.saveTranscripts) {
+              useHistoryStore.getState().addEntry({
+                id: crypto.randomUUID(),
+                text: fullText,
+                duration: dictState.sessionDuration * 1000,
+                wordCount: wc,
+                language: segments[0].language || "en",
+                timestamp: new Date().toISOString(),
+                grammarCorrected: hasGrammar,
+              });
+            }
 
             // Record flywheel session
             const engine = settings.sttEngine;
@@ -708,6 +716,14 @@ export function useTauriEvents(): void {
                 (error) => toast(autoDocFailureMessage(error), "error", 5000),
               );
             }
+
+            // The session is now persisted (history/billing/flywheel above) —
+            // drop the crash-recovery draft so the next launch doesn't offer
+            // this already-saved session as an "Unsaved draft" (restoring +
+            // stopping it double-created history/flywheel/billing entries).
+            // A crash mid-dictation never reaches this line, so recovery for
+            // genuinely unsaved sessions is unaffected.
+            clearDraftRecord();
           }
         }
 

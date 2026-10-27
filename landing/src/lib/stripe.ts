@@ -1,42 +1,25 @@
-// Stripe integration — replace placeholder keys with real ones from the Stripe dashboard.
-// Price IDs are created per product in Stripe → Products.
+// Stripe checkout — the /api/checkout Vercel function creates the Checkout
+// Session server-side (it holds the secret key and price IDs in env vars).
 import { getStoredToken } from "./auth";
 
-export const STRIPE_PUBLISHABLE_KEY = "pk_live_REPLACE_ME";
-
+// Plan identifiers passed to /api/checkout, which maps them to Stripe price
+// IDs via STRIPE_PRICE_* env vars.
+//
 // Schedule of fees:
 //   Professional — $29/mo   (cloud dictation + grammar, costs included)
 //   Privileged   — $59/mo   (adds on-device offline mode, matter billing, clause library)
 //   Firm         — $49/seat/mo, 5-seat minimum
-export const PRICE_PROFESSIONAL_MONTHLY = "price_professional_monthly_REPLACE_ME";
-export const PRICE_PRIVILEGED_MONTHLY = "price_privileged_monthly_REPLACE_ME";
-export const PRICE_FIRM_SEAT_MONTHLY = "price_firm_seat_monthly_REPLACE_ME";
+export const PRICE_PROFESSIONAL_MONTHLY = "professional";
+export const PRICE_PRIVILEGED_MONTHLY = "privileged";
+export const PRICE_FIRM_SEAT_MONTHLY = "firm";
 
 /**
  * Redirects to Stripe Checkout when configured.
  * @returns true if a redirect was started; false if Stripe is not yet
- *          configured (placeholder links) — in that case the page is
+ *          configured (or the user is signed out) — in that case the page is
  *          scrolled to the waitlist and the caller should show a notice.
  */
-export async function redirectToCheckout(priceId: string, email?: string): Promise<boolean> {
-  // When the Voxlen API is live, replace this with:
-  //   const res = await fetch("https://api.voxlen.com/v1/checkout", { method: "POST", body: JSON.stringify({ priceId, email }) });
-  //   const { url } = await res.json();
-  //   window.location.href = url;
-  //
-  // For now, open the Stripe payment link directly (create these in Stripe dashboard).
-  const paymentLinks: Record<string, string> = {
-    [PRICE_PROFESSIONAL_MONTHLY]: "https://buy.stripe.com/REPLACE_PROFESSIONAL",
-    [PRICE_PRIVILEGED_MONTHLY]: "https://buy.stripe.com/REPLACE_PRIVILEGED",
-    [PRICE_FIRM_SEAT_MONTHLY]: "https://buy.stripe.com/REPLACE_FIRM",
-  };
-
-  const url = paymentLinks[priceId];
-  if (url && !url.includes("REPLACE")) {
-    window.location.href = email ? `${url}?prefilled_email=${encodeURIComponent(email)}` : url;
-    return true;
-  }
-
+export async function redirectToCheckout(priceId: string, _email?: string): Promise<boolean> {
   const plans: Record<string, "professional" | "privileged" | "firm"> = {
     [PRICE_PROFESSIONAL_MONTHLY]: "professional",
     [PRICE_PRIVILEGED_MONTHLY]: "privileged",
@@ -56,6 +39,8 @@ export async function redirectToCheckout(priceId: string, email?: string): Promi
         window.location.href = data.url;
         return true;
       }
+      // A 503 stripe_not_configured (or any other failure) falls through to
+      // the waitlist below so the caller shows the "launching soon" notice.
     } catch {
       // Preserve the existing waitlist fallback on network or API failures.
     }

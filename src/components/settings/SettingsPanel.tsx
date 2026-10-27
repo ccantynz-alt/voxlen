@@ -19,9 +19,17 @@ import { Input } from "@/components/ui/Input";
 import { useSettingsStore } from "@/stores/settings";
 import { useAudioStore } from "@/stores/audio";
 import { useFlywheelStore } from "@/stores/flywheel";
-import { SUPPORTED_LANGUAGES, STT_ENGINES } from "@/lib/constants";
+import { SUPPORTED_LANGUAGES, STT_ENGINES, APP_VERSION } from "@/lib/constants";
+import { formatBytes } from "@/lib/updater";
 import { mergeVocabulary, parseVocabularyFile } from "@/lib/vocabImport";
 import { toast } from "@/components/ui/Toast";
+import {
+  runDoctor,
+  isTauri as isTauriEnv,
+  summaryLine,
+  worstStatus,
+  type DoctorCheck,
+} from "@/lib/doctor";
 
 const tabs = [
   { id: "voxlen-api", label: "Account", icon: Globe },
@@ -1282,6 +1290,9 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
         />
       </SettingRow>
 
+      <SystemHealthCard />
+      <SoftwareUpdateCard />
+
       <div className="pt-4 flex items-center gap-3 flex-wrap">
         {onReopenSetup && (
           <Button
@@ -1307,6 +1318,237 @@ function AdvancedSettings({ onReopenSetup }: { onReopenSetup?: () => void }) {
           Reset All Settings
         </Button>
       </div>
+    </div>
+  );
+}
+
+const DOCTOR_DOT_COLORS: Record<DoctorCheck["status"], string> = {
+  ok: "bg-emerald-400",
+  warn: "bg-amber-400",
+  fail: "bg-red-400",
+};
+
+const DOCTOR_SUMMARY_COLORS: Record<DoctorCheck["status"], string> = {
+  ok: "text-emerald-400",
+  warn: "text-amber-400",
+  fail: "text-red-400",
+};
+
+function SoftwareUpdateCard() {
+  const [state, setState] = useState<
+    | { phase: "idle" }
+    | { phase: "checking" }
+    | { phase: "current" }
+    | { phase: "available"; version: string; notes?: string }
+    | { phase: "installing"; downloaded: number; total?: number }
+    | { phase: "error"; message: string }
+  >({ phase: "idle" });
+  const updateRef = useRef<import("@tauri-apps/plugin-updater").Update | null>(null);
+  const inTauri = isTauriEnv();
+
+  const checkNow = useCallback(async () => {
+    setState({ phase: "checking" });
+    try {
+      const { checkForUpdate } = await import("@/lib/updater");
+      const update = await checkForUpdate();
+      if (update) {
+        updateRef.current = update;
+        setState({
+          phase: "available",
+          version: update.version,
+          notes: update.body ?? undefined,
+        });
+      } else {
+        setState({ phase: "current" });
+      }
+    } catch {
+      setState({
+        phase: "error",
+        message: "Could not reach the update server — check your connection.",
+      });
+    }
+  }, []);
+
+  const installNow = useCallback(async () => {
+    const update = updateRef.current;
+    if (!update) return;
+    setState({ phase: "installing", downloaded: 0 });
+    try {
+      const { installUpdate } = await import("@/lib/updater");
+      await installUpdate(update, ({ downloaded, total }) =>
+        setState({ phase: "installing", downloaded, total })
+      );
+      // installUpdate relaunches the app; nothing to do here.
+    } catch {
+      setState({
+        phase: "error",
+        message:
+          "Update failed to install — the download may have been interrupted. Try again.",
+      });
+    }
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
+            Software Updates
+          </span>
+          <p className="text-[11px] text-surface-600 mt-0.5">
+            Current version v{APP_VERSION}. Updates are cryptographically
+            verified before install.
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={checkNow}
+          disabled={!inTauri || state.phase === "checking" || state.phase === "installing"}
+        >
+          {state.phase === "checking" ? "Checking…" : "Check for updates"}
+        </Button>
+      </div>
+
+      {!inTauri && (
+        <p className="text-[11px] text-surface-500">
+          Updates require the Voxlen desktop app.
+        </p>
+      )}
+
+      {state.phase === "current" && (
+        <p className="text-[12px] text-emerald-400 font-medium">
+          You're on the latest version.
+        </p>
+      )}
+
+      {state.phase === "error" && (
+        <p className="text-[12px] text-red-400">{state.message}</p>
+      )}
+
+      {state.phase === "available" && (
+        <div className="space-y-2">
+          <p className="text-[12px] text-surface-900 font-medium">
+            Voxlen {state.version} is available.
+          </p>
+          {state.notes && (
+            <p className="text-[11px] text-surface-600 whitespace-pre-wrap leading-snug max-h-32 overflow-y-auto">
+              {state.notes}
+            </p>
+          )}
+          <Button size="sm" onClick={installNow}>
+            Install &amp; restart
+          </Button>
+        </div>
+      )}
+
+      {state.phase === "installing" && (
+        <p className="text-[12px] text-surface-700">
+          Downloading…{" "}
+          {state.total
+            ? `${Math.min(
+                100,
+                Math.round((state.downloaded / state.total) * 100)
+              )}%`
+            : formatBytes(state.downloaded)}{" "}
+          — Voxlen will restart when done.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SystemHealthCard() {
+  const [checks, setChecks] = useState<DoctorCheck[] | null>(null);
+  const [running, setRunning] = useState(false);
+  const [lastRun, setLastRun] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inTauri = isTauriEnv();
+
+  const run = useCallback(async () => {
+    setRunning(true);
+    setError(null);
+    try {
+      const results = await runDoctor();
+      setChecks(results);
+      setLastRun(new Date());
+    } catch {
+      setError("Diagnostics could not run — restart Voxlen and try again.");
+    } finally {
+      setRunning(false);
+    }
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-surface-300/50 bg-surface-50/30 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <span className="text-xs font-semibold text-surface-800 uppercase tracking-wider">
+            System Health
+          </span>
+          <p className="text-[11px] text-surface-600 mt-0.5">
+            Checks your microphone, engines, key storage, disk, and network. No
+            audio or document content is touched.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={run} disabled={running || !inTauri}>
+          {running ? "Running…" : "Run diagnostics"}
+        </Button>
+      </div>
+
+      {!inTauri && (
+        <p className="text-[11px] text-surface-500">
+          Diagnostics require the Voxlen desktop app.
+        </p>
+      )}
+
+      {error && <p className="text-[12px] text-red-400">{error}</p>}
+
+      {checks && !error && (
+        <>
+          <div className="flex items-center justify-between">
+            <span
+              className={cn(
+                "text-[12px] font-semibold",
+                DOCTOR_SUMMARY_COLORS[worstStatus(checks)]
+              )}
+            >
+              {summaryLine(checks)}
+            </span>
+            {lastRun && (
+              <span className="text-[11px] text-surface-500">
+                Last run {lastRun.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+
+          <div className="divide-y divide-surface-300/30">
+            {checks.map((check) => (
+              <div key={check.id} className="py-2 flex items-start gap-2.5">
+                <span
+                  className={cn(
+                    "mt-1.5 w-2 h-2 rounded-full shrink-0",
+                    DOCTOR_DOT_COLORS[check.status]
+                  )}
+                />
+                <div className="min-w-0">
+                  <div className="text-[13px] font-medium text-surface-900">
+                    {check.name}
+                  </div>
+                  <div className="text-[11px] text-surface-600 leading-snug">
+                    {check.detail}
+                  </div>
+                  {check.status !== "ok" && check.fixHint && (
+                    <div className="text-[11px] text-amber-400/90 leading-snug mt-0.5">
+                      → {check.fixHint}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1629,133 +1871,164 @@ function VoxlenApiSettings() {
           )}
       </div>
 
-      {isConnected && (
-        <>
-          <SectionHeader title="Dictation Settings" description="" />
+      {/* Local dictation/billing settings — consumed on-device (billing.ts,
+          exportLedes.ts, smart format). No Voxlen account required. */}
+      <SectionHeader title="Dictation Settings" description="" />
 
-          <SettingRow>
-            <Select
-              label="Dictation Context"
-              value={settings.voxlenContext}
-              onChange={(v) => settings.updateSetting("voxlenContext", v)}
-              options={CONTEXT_OPTIONS}
-            />
-          </SettingRow>
+      <SettingRow>
+        <Select
+          label="Dictation Context"
+          value={settings.voxlenContext}
+          onChange={(v) => settings.updateSetting("voxlenContext", v)}
+          options={CONTEXT_OPTIONS}
+        />
+      </SettingRow>
 
-          <SettingRow>
-            <Switch
-              label="Privileged Mode"
-              description="Block all cloud processing — dictation runs fully on-device via Whisper Local. Requires a downloaded local model (Speech Engine tab)."
-              checked={settings.privilegedMode}
-              onChange={async (v) => {
-                if (v) {
-                  try {
-                    const { invoke } = await import("@tauri-apps/api/core");
-                    const has = await invoke<boolean>("has_whisper_model");
-                    if (!has) {
-                      toast(
-                        "Download a local Whisper model first — Settings › Speech Engine › Offline Models.",
-                        "error",
-                        6000
-                      );
-                      return;
-                    }
-                  } catch {
-                    // Non-Tauri dev — allow the toggle.
-                  }
+      <SettingRow>
+        <Switch
+          label="Privileged Mode"
+          description="Block all cloud processing — dictation runs fully on-device via Whisper Local. Requires a downloaded local model (Speech Engine tab)."
+          checked={settings.privilegedMode}
+          onChange={async (v) => {
+            if (v) {
+              try {
+                const { invoke } = await import("@tauri-apps/api/core");
+                const has = await invoke<boolean>("has_whisper_model");
+                if (!has) {
+                  toast(
+                    "Download a local Whisper model first — Settings › Speech Engine › Offline Models.",
+                    "error",
+                    6000
+                  );
+                  return;
                 }
-                settings.updateSetting("privilegedMode", v);
-              }}
-            />
-          </SettingRow>
-
-          <SettingRow>
-            <Switch
-              label="Legal Mode"
-              description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
-              checked={settings.legalMode}
-              onChange={(v) => settings.updateSetting("legalMode", v)}
-            />
-          </SettingRow>
-
-          {settings.legalMode && (
-            <SettingRow>
-              <Select
-                label="Jurisdiction"
-                value={settings.jurisdiction}
-                onChange={(v) =>
-                  settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
-                }
-                options={[
-                  { value: "global", label: "Global", description: "International / neutral" },
-                  { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
-                  { value: "us", label: "United States", description: "Federal + state law" },
-                  { value: "australia", label: "Australia", description: "Commonwealth + state law" },
-                  { value: "nz", label: "New Zealand", description: "NZ common law" },
-                  { value: "canada", label: "Canada", description: "Federal + provincial law" },
-                ]}
-              />
-            </SettingRow>
-          )}
-
-          {/* Billing — always visible: time capture runs regardless of legal mode. */}
-          <SettingRow>
-            <Slider
-              label="Default Billable Rate"
-              value={settings.billableRatePerHour}
-              onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
-              min={0}
-              max={2000}
-              step={25}
-              formatValue={(v) => `$${v}/hr`}
-            />
-          </SettingRow>
-
-          <SettingRow>
-            <Select
-              label="Billing Time Rounding"
-              value={String(settings.billingRoundingIncrement)}
-              onChange={(v) =>
-                settings.updateSetting(
-                  "billingRoundingIncrement",
-                  Number(v) as 0 | 0.1 | 0.25
-                )
+              } catch {
+                // Non-Tauri dev — allow the toggle.
               }
-              options={[
-                { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney billing unit" },
-                { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour billing" },
-                { value: "0", label: "No rounding", description: "Bill exact duration" },
-              ]}
-            />
-          </SettingRow>
+            }
+            settings.updateSetting("privilegedMode", v);
+          }}
+        />
+      </SettingRow>
 
-          <SettingRow>
-            <Switch
-              label="Automatic Time Capture"
-              description="Draft a billable time entry for review whenever a dictation session ends."
-              checked={settings.autoTimeCapture}
-              onChange={(v) => settings.updateSetting("autoTimeCapture", v)}
-            />
-          </SettingRow>
+      <SettingRow>
+        <Switch
+          label="Legal Mode"
+          description="Enable Latin phrase recognition, legal currency formatting, and jurisdiction-specific smart format."
+          checked={settings.legalMode}
+          onChange={(v) => settings.updateSetting("legalMode", v)}
+        />
+      </SettingRow>
 
-          <SettingRow>
-            <Input
-              label="LEDES Law Firm ID (optional)"
-              value={settings.ledesLawFirmId}
-              onChange={(e) => settings.updateSetting("ledesLawFirmId", e.target.value)}
-              placeholder="Firm tax / e-billing identifier for LEDES exports"
-            />
-          </SettingRow>
+      {settings.legalMode && (
+        <SettingRow>
+          <Select
+            label="Jurisdiction"
+            value={settings.jurisdiction}
+            onChange={(v) =>
+              settings.updateSetting("jurisdiction", v as typeof settings.jurisdiction)
+            }
+            options={[
+              { value: "global", label: "Global", description: "International / neutral" },
+              { value: "uk", label: "United Kingdom", description: "England & Wales, Scotland" },
+              { value: "us", label: "United States", description: "Federal + state law" },
+              { value: "australia", label: "Australia", description: "Commonwealth + state law" },
+              { value: "nz", label: "New Zealand", description: "NZ common law" },
+              { value: "canada", label: "Canada", description: "Federal + provincial law" },
+            ]}
+          />
+        </SettingRow>
+      )}
 
-          <SettingRow>
-            <Input
-              label="Firm / Organisation ID (optional)"
-              value={settings.voxlenTenantId}
-              onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
-              placeholder="For team / SSO accounts"
-            />
-          </SettingRow>
-        </>
+      {/* Billing — always visible: time capture runs regardless of legal mode. */}
+      <SettingRow>
+        <Slider
+          label="Default Billable Rate"
+          value={settings.billableRatePerHour}
+          onChange={(v) => settings.updateSetting("billableRatePerHour", v)}
+          min={0}
+          max={2000}
+          step={25}
+          formatValue={(v) => `$${v}/hr`}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="Billing Time Rounding"
+          value={String(settings.billingRoundingIncrement)}
+          onChange={(v) =>
+            settings.updateSetting(
+              "billingRoundingIncrement",
+              Number(v) as 0 | 0.1 | 0.25
+            )
+          }
+          options={[
+            { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney billing unit" },
+            { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour billing" },
+            { value: "0", label: "No rounding", description: "Bill exact duration" },
+          ]}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="Minimum Billable Time"
+          value={String(settings.billingMinimumHours)}
+          onChange={(v) => settings.updateSetting("billingMinimumHours", Number(v))}
+          options={[
+            { value: "0", label: "No minimum", description: "Bill only the time captured" },
+            { value: "0.1", label: "6 minutes (0.1 hr)", description: "Standard attorney minimum unit" },
+            { value: "0.2", label: "12 minutes (0.2 hr)", description: "Two billing units" },
+            { value: "0.25", label: "15 minutes (0.25 hr)", description: "Quarter-hour minimum" },
+            { value: "0.5", label: "30 minutes (0.5 hr)", description: "Half-hour minimum" },
+          ]}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Switch
+          label="Automatic Time Capture"
+          description="Draft a billable time entry for review whenever a dictation session ends."
+          checked={settings.autoTimeCapture}
+          onChange={(v) => settings.updateSetting("autoTimeCapture", v)}
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Input
+          label="LEDES Law Firm ID (optional)"
+          value={settings.ledesLawFirmId}
+          onChange={(e) => settings.updateSetting("ledesLawFirmId", e.target.value)}
+          placeholder="Firm tax / e-billing identifier for LEDES exports"
+        />
+      </SettingRow>
+
+      <SettingRow>
+        <Select
+          label="LEDES Timekeeper Classification"
+          value={settings.ledesClassification || "PT"}
+          onChange={(v) => settings.updateSetting("ledesClassification", v)}
+          options={[
+            { value: "PT", label: "Partner (PT)" },
+            { value: "AS", label: "Associate (AS)" },
+            { value: "OC", label: "Of Counsel (OC)" },
+            { value: "LA", label: "Legal Assistant / Paralegal (LA)" },
+            { value: "OT", label: "Other (OT)" },
+          ]}
+        />
+      </SettingRow>
+
+      {/* Account-dependent: tenant/SSO id only means something with a Voxlen account. */}
+      {isConnected && (
+        <SettingRow>
+          <Input
+            label="Firm / Organisation ID (optional)"
+            value={settings.voxlenTenantId}
+            onChange={(e) => settings.updateSetting("voxlenTenantId", e.target.value)}
+            placeholder="For team / SSO accounts"
+          />
+        </SettingRow>
       )}
     </div>
   );
@@ -1831,14 +2104,10 @@ function PrivacySettings() {
         <p className="text-[11px] text-surface-600">Review sync is file-based through firm-controlled storage. No Voxlen servers are used.</p>
       </div>
 
-      <SettingRow>
-        <Switch
-          label="Usage Analytics"
-          description="Help us improve Voxlen with anonymous usage data"
-          checked={settings.telemetryEnabled}
-          onChange={(v) => settings.updateSetting("telemetryEnabled", v)}
-        />
-      </SettingRow>
+      {/* No telemetry toggle: Voxlen has no telemetry sender. Offering an
+          opt-in for data collection that doesn't exist would be misleading —
+          the settings field remains (persistence/Rust struct compatibility)
+          but nothing reads it. */}
 
       <div className="rounded-md bg-surface-50/60 border border-surface-300/50 shadow-inset-hairline p-4 mt-4">
         <h4 className="label-caps mb-3 block">

@@ -53,6 +53,11 @@ interface ExtractedItem {
   source: string;
 }
 
+interface AudioFaultEvent {
+  source: string; // "mic" | "loopback"
+  message: string;
+}
+
 export function MeetingPanel() {
   const settings = useSettingsStore();
   const [supported, setSupported] = useState<boolean | null>(null);
@@ -63,6 +68,9 @@ export function MeetingPanel() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [allPartyConfirmed, setAllPartyConfirmed] = useState(false);
   const [jurisdictionDraft, setJurisdictionDraft] = useState(settings.meetingJurisdiction);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savingRetry, setSavingRetry] = useState(false);
+  const [audioFault, setAudioFault] = useState<AudioFaultEvent | null>(null);
   const startedAtRef = useRef<number>(0);
   const segmentsRef = useRef<MeetingSegment[]>([]);
   segmentsRef.current = segments;
@@ -88,20 +96,21 @@ export function MeetingPanel() {
     };
   }, []);
 
-  // Persist the finished meeting and run task/deadline extraction.
-  const finishMeeting = useCallback(async () => {
-    setActive(false);
-    setAllPartyConfirmed(false);
+  // Persist the meeting transcript. On failure the segments are kept in
+  // state and a visible error banner (with Retry) is shown — the transcript
+  // must never silently vanish. History mirror + task extraction run only
+  // after the save succeeds so a retry can't double-create them.
+  const persistMeeting = useCallback(async () => {
     const segs = segmentsRef.current;
     if (segs.length === 0) return;
+    const { invoke } = await import("@tauri-apps/api/core");
+    const wordCount = segs.reduce(
+      (n, s) => n + s.text.split(/\s+/).filter(Boolean).length,
+      0
+    );
+    const started = startedAtRef.current || segs[0].timestamp_ms;
+    const ended = Date.now();
     try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const wordCount = segs.reduce(
-        (n, s) => n + s.text.split(/\s+/).filter(Boolean).length,
-        0
-      );
-      const started = startedAtRef.current || segs[0].timestamp_ms;
-      const ended = Date.now();
       await invoke("save_session", {
         session: {
           id: crypto.randomUUID(),
@@ -123,8 +132,16 @@ export function MeetingPanel() {
           })),
         },
       });
-      // Mirror into the in-memory history list so the History panel shows it
-      // immediately, labelled with speakers.
+    } catch (e) {
+      console.error("Failed to save meeting session:", e);
+      setSaveError(e instanceof Error ? e.message : String(e));
+      return;
+    }
+    setSaveError(null);
+
+    // Success only from here: mirror into the in-memory history list so the
+    // History panel shows it immediately, labelled with speakers.
+    try {
       const { useHistoryStore } = await import("@/stores/history");
       useHistoryStore.getState().addEntry({
         id: crypto.randomUUID(),
@@ -148,13 +165,39 @@ export function MeetingPanel() {
         toast(`${items.length} action item${items.length !== 1 ? "s" : ""} detected`, "info", 4000);
       }
     } catch (e) {
-      console.error("Failed to finish meeting:", e);
+      // Session is safely on disk — extraction/mirror problems are non-fatal.
+      console.error("Meeting post-processing failed:", e);
     }
   }, []);
+
+  // Finish the meeting: reset the live-capture UI state, then persist.
+  const finishMeeting = useCallback(async () => {
+    setActive(false);
+    setAllPartyConfirmed(false);
+    setAudioFault(null);
+    try {
+      await persistMeeting();
+    } catch (e) {
+      // Non-Tauri environment (import failed) — nothing to persist to.
+      console.error("Failed to finish meeting:", e);
+    }
+  }, [persistMeeting]);
+
+  const retrySave = useCallback(async () => {
+    setSavingRetry(true);
+    try {
+      await persistMeeting();
+    } catch (e) {
+      console.error("Retry save failed:", e);
+    } finally {
+      setSavingRetry(false);
+    }
+  }, [persistMeeting]);
 
   useEffect(() => {
     let unlistenSeg: (() => void) | undefined;
     let unlistenErr: (() => void) | undefined;
+    let unlistenFault: (() => void) | undefined;
     let unlistenStop: (() => void) | undefined;
     (async () => {
       try {
@@ -167,6 +210,12 @@ export function MeetingPanel() {
         unlistenErr = await listen<string>("meeting-error", (e) => {
           toast(`Meeting transcription error: ${e.payload}`, "error", 8000);
         });
+        // One capture channel (mic or system loopback) died mid-meeting —
+        // keep a persistent banner up so the user knows the transcript is
+        // now one-sided instead of finding out after the call.
+        unlistenFault = await listen<AudioFaultEvent>("meeting-audio-fault", (e) => {
+          setAudioFault(e.payload);
+        });
         unlistenStop = await listen("meeting-stopped", () => {
           void finishMeeting();
         });
@@ -177,6 +226,7 @@ export function MeetingPanel() {
     return () => {
       unlistenSeg?.();
       unlistenErr?.();
+      unlistenFault?.();
       unlistenStop?.();
     };
   }, [finishMeeting]);
@@ -195,6 +245,8 @@ export function MeetingPanel() {
     setSegments([]);
     setExtracted([]);
     setDismissedItems([]);
+    setSaveError(null);
+    setAudioFault(null);
     startedAtRef.current = Date.now();
     try {
       const { invoke } = await import("@tauri-apps/api/core");
@@ -329,6 +381,39 @@ export function MeetingPanel() {
               begins) consent from every participant in this meeting.
             </span>
           </label>
+        )}
+
+        {/* Audio channel fault — persistent while the meeting is running */}
+        {active && audioFault && (
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+            <div className="text-[12px] text-surface-800 leading-relaxed">
+              <p className="font-semibold">
+                {audioFault.source === "loopback"
+                  ? "Remote audio lost — transcript may be one-sided"
+                  : "Microphone audio lost — transcript may be one-sided"}
+              </p>
+              {audioFault.message && (
+                <p className="text-surface-600 mt-0.5">{audioFault.message}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Save failure — transcript preserved above; offer a retry */}
+        {saveError && (
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+            <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+            <div className="flex-1 text-[12px] text-surface-800 leading-relaxed">
+              <p className="font-semibold">Meeting transcript could not be saved</p>
+              <p className="text-surface-600 mt-0.5 break-words">
+                {saveError} — the transcript is still shown below and will not be lost while this window stays open.
+              </p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={retrySave} disabled={savingRetry} className="shrink-0">
+              {savingRetry ? "Saving…" : "Retry save"}
+            </Button>
+          </div>
         )}
 
         {/* Live transcript */}

@@ -16,11 +16,13 @@ use std::sync::Arc;
 
 use crossbeam_channel::Receiver;
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::audio::AudioChunk;
 use crate::stt::processor::resample;
 use crate::stt::{SttConfig, SttEngineType};
+
+pub const INDICATOR_LABEL: &str = "meeting-indicator";
 
 #[derive(Default)]
 pub struct MeetingState {
@@ -30,11 +32,47 @@ pub struct MeetingState {
     pub loopback_handle: parking_lot::Mutex<Option<crate::audio::loopback::LoopbackHandle>>,
 }
 
+/// Tear down everything a meeting capture holds open: signal stop, release
+/// the mic and loopback streams, and close the recording indicator window.
+/// Called by both the `stop_meeting_capture` command and the transcription
+/// task's exit path, so an error-driven stop can never leave the OS mic hot
+/// or the "Recording" indicator on screen.
+///
+/// Idempotent and deadlock-free: each handle is `take()`n under its own
+/// short-lived lock (locks are never nested, so ordering cannot deadlock),
+/// and both `stop()` calls are plain atomic stores.
+pub fn teardown_capture(app: &AppHandle) {
+    let Some(state) = app.try_state::<MeetingState>() else {
+        return;
+    };
+    if let Some(flag) = state.stop_flag.lock().take() {
+        flag.store(true, Ordering::Relaxed);
+    }
+    if let Some(handle) = state.mic_handle.lock().take() {
+        handle.stop();
+    }
+    if let Some(handle) = state.loopback_handle.lock().take() {
+        handle.stop();
+    }
+    if let Some(win) = app.get_webview_window(INDICATOR_LABEL) {
+        let _ = win.close();
+    }
+}
+
 #[derive(Serialize, Clone)]
 pub struct MeetingSegment {
     pub speaker: String, // "you" | "remote"
     pub text: String,
     pub timestamp_ms: u64,
+}
+
+/// Payload of the `meeting-audio-fault` event — emitted (once per channel)
+/// when the mic or system-audio stream dies mid-meeting, so the frontend can
+/// warn that the transcript has gone one-sided instead of failing silently.
+#[derive(Serialize, Clone)]
+pub struct MeetingAudioFault {
+    pub source: String, // "mic" | "loopback"
+    pub message: String,
 }
 
 /// Per-channel accumulator: buffers native-rate mono audio and decides when
@@ -53,6 +91,9 @@ struct ChannelAccumulator {
 const MIN_FLUSH_SECS: f32 = 1.5;
 const MAX_FLUSH_SECS: f32 = 12.0;
 const QUIET_TAIL_RMS: f32 = 0.008;
+/// Consecutive transcription failures tolerated before the meeting is
+/// aborted — a single transient error skips that segment and keeps going.
+const MAX_CONSECUTIVE_TRANSCRIBE_ERRORS: u32 = 3;
 
 impl ChannelAccumulator {
     fn new(speaker: &'static str) -> Self {
@@ -142,20 +183,56 @@ fn meeting_stt_config() -> SttConfig {
 
 /// Drive the meeting transcription loop until `stop_flag` is set. Consumes
 /// both channel receivers; emits `meeting-transcript-segment` events.
+///
+/// `mic_fault` / `loopback_fault` are set by the capture threads when their
+/// stream dies (device unplugged, WASAPI error, stream failed to start).
+/// This loop polls them and emits a `meeting-audio-fault` event so the UI
+/// can warn the user — otherwise the transcript silently goes one-sided.
 pub fn spawn_meeting_task(
     app: AppHandle,
     mic_rx: Receiver<AudioChunk>,
     loop_rx: Receiver<AudioChunk>,
     stop_flag: Arc<AtomicBool>,
     active: Arc<AtomicBool>,
+    mic_fault: Arc<AtomicBool>,
+    loopback_fault: Arc<AtomicBool>,
 ) {
     tauri::async_runtime::spawn(async move {
         let mut mic = ChannelAccumulator::new("you");
         let mut remote = ChannelAccumulator::new("remote");
         let config = meeting_stt_config();
+        let mut consecutive_errors: u32 = 0;
+        let mut mic_fault_reported = false;
+        let mut loopback_fault_reported = false;
 
         loop {
             let stopping = stop_flag.load(Ordering::Relaxed);
+
+            // Surface capture-stream faults once per channel.
+            if !mic_fault_reported && mic_fault.load(Ordering::Relaxed) {
+                mic_fault_reported = true;
+                log::error!("Meeting mic stream faulted — transcript is now one-sided");
+                let _ = app.emit(
+                    "meeting-audio-fault",
+                    MeetingAudioFault {
+                        source: "mic".to_string(),
+                        message: "The microphone stream stopped working — your side of the meeting is no longer being transcribed."
+                            .to_string(),
+                    },
+                );
+            }
+            if !loopback_fault_reported && loopback_fault.load(Ordering::Relaxed) {
+                loopback_fault_reported = true;
+                log::error!("Meeting loopback stream faulted — transcript is now one-sided");
+                let _ = app.emit(
+                    "meeting-audio-fault",
+                    MeetingAudioFault {
+                        source: "loopback".to_string(),
+                        message: "System-audio capture stopped working — the remote side of the meeting is no longer being transcribed."
+                            .to_string(),
+                    },
+                );
+            }
 
             // Drain whatever has arrived on both channels.
             while let Ok(chunk) = mic_rx.try_recv() {
@@ -172,6 +249,7 @@ pub fn spawn_meeting_task(
                         match crate::stt::whisper_local::transcribe(&app, &samples, &config).await
                         {
                             Ok(result) => {
+                                consecutive_errors = 0;
                                 let text = result.text.trim().to_string();
                                 if !text.is_empty() {
                                     let _ = app.emit(
@@ -185,10 +263,20 @@ pub fn spawn_meeting_task(
                                 }
                             }
                             Err(e) => {
-                                log::error!("Meeting transcription failed: {e}");
-                                let _ = app.emit("meeting-error", e.to_string());
-                                // Model missing etc. — stop rather than loop errors.
-                                stop_flag.store(true, Ordering::Relaxed);
+                                let msg = e.to_string();
+                                log::error!("Meeting transcription failed: {msg}");
+                                let _ = app.emit("meeting-error", msg.clone());
+                                consecutive_errors += 1;
+                                // Clearly fatal (no model downloaded / model
+                                // failed to load — both mention the model) or
+                                // persistently failing: stop the meeting. A
+                                // transient failure just drops this segment.
+                                let fatal = msg.contains("Whisper model");
+                                if fatal
+                                    || consecutive_errors >= MAX_CONSECUTIVE_TRANSCRIBE_ERRORS
+                                {
+                                    stop_flag.store(true, Ordering::Relaxed);
+                                }
                             }
                         }
                     }
@@ -201,6 +289,12 @@ pub fn spawn_meeting_task(
             tokio::time::sleep(std::time::Duration::from_millis(150)).await;
         }
 
+        // Release the mic/loopback streams and close the indicator even when
+        // the stop came from an error inside this task — the frontend never
+        // calls stop_meeting_capture on meeting-stopped, and a hot mic after
+        // an error would be unacceptable. No-op if the stop command already
+        // tore everything down.
+        teardown_capture(&app);
         active.store(false, Ordering::Relaxed);
         let _ = app.emit("meeting-stopped", ());
         log::info!("Meeting transcription task ended");

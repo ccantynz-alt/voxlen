@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { exportTranscript, exportBillingCsv, exportAllBillingCsv } from "./export";
+import { exportTranscript, exportBillingCsv, exportAllBillingCsv, neutralizeCsvField } from "./export";
 import type { TranscriptionSegment } from "@/stores/dictation";
 import type { Client, MatterEntry } from "@/stores/clients";
 
@@ -125,5 +125,68 @@ describe("exportAllBillingCsv", () => {
     expect(content).toContain("Smith & Co");
     expect(content).toContain("M-001");
     expect(content).toContain("TOTAL");
+  });
+
+  it("emits unassigned/unresolvable entries as rows so the TOTAL stays honest", () => {
+    const unassigned: MatterEntry = {
+      id: "e-un", clientId: "", date: new Date("2026-05-12").getTime(),
+      durationSeconds: 1200, wordCount: 250, billableAmount: 150, rateAtTime: 450,
+      ...entryDefaults,
+    };
+    const orphaned: MatterEntry = {
+      id: "e-orph", clientId: "deleted-client", date: new Date("2026-05-13").getTime(),
+      durationSeconds: 600, wordCount: 120, billableAmount: 50,
+      matterLabel: "Old matter", ...entryDefaults,
+    };
+    const { content } = exportAllBillingCsv([mockClient], [...mockEntries, unassigned, orphaned]);
+    const rows = content.split("\r\n");
+    // header + 2 client rows + 2 unassigned rows + TOTAL
+    expect(rows).toHaveLength(6);
+    expect(content).toContain('"Unassigned"');
+    expect(content).toContain('"Old matter"');
+    expect(content).toContain("150.00");
+    // TOTAL includes every entry: 400 + 200 + 150 + 50
+    expect(rows[rows.length - 1]).toContain("TOTAL");
+    expect(rows[rows.length - 1]).toContain("800.00");
+  });
+});
+
+describe("CSV formula injection", () => {
+  it.each(["=CMD()", "+SUM(A1)", "-2+3", "@evil", "\tX", "\rX"])(
+    "neutralizeCsvField prefixes %j with a quote",
+    (payload) => {
+      expect(neutralizeCsvField(payload)).toBe("'" + payload);
+    }
+  );
+
+  it("leaves benign values untouched", () => {
+    expect(neutralizeCsvField("Contract draft")).toBe("Contract draft");
+    expect(neutralizeCsvField("")).toBe("");
+    expect(neutralizeCsvField("400.00")).toBe("400.00");
+  });
+
+  it("exportBillingCsv neutralizes hostile notes", () => {
+    const e: MatterEntry = {
+      id: "e4", clientId: "c1", date: Date.now(), durationSeconds: 600,
+      wordCount: 100, billableAmount: 66.67,
+      note: '=HYPERLINK("http://evil","click")', ...entryDefaults,
+    };
+    const { content } = exportBillingCsv(mockClient, [e]);
+    expect(content).toContain("'=HYPERLINK");
+    expect(content).not.toContain('"=HYPERLINK');
+  });
+
+  it("exportAllBillingCsv neutralizes hostile client names, matters and notes", () => {
+    const hostileClient: Client = {
+      ...mockClient, id: "c9", name: "=cmd|' /C calc'!A0", matterNumber: "+M-666",
+    };
+    const e: MatterEntry = {
+      id: "e5", clientId: "c9", date: Date.now(), durationSeconds: 600,
+      wordCount: 100, billableAmount: 50, note: "@import", ...entryDefaults,
+    };
+    const { content } = exportAllBillingCsv([hostileClient], [e]);
+    expect(content).toContain("\"'=cmd");
+    expect(content).toContain("\"'+M-666\"");
+    expect(content).toContain("\"'@import\"");
   });
 });

@@ -1,0 +1,175 @@
+/* Voxlen Word add-in taskpane — paper/brass palette from the landing site */
+:root {
+  --paper: #faf7f0;
+  --paper-deep: #f0e7d2;
+  --paper-line: #e4dcc9;
+  --ink: #1d1a15;
+  --ink-soft: #5b554a;
+  --ink-faint: #8a8375;
+  --brass: #a0762c;
+  --brass-dark: #7e5c20;
+  --red: #96382b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  padding: 14px 14px 18px;
+  min-width: 220px;
+}
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--paper-line);
+  margin-bottom: 14px;
+}
+.masthead img { border-radius: 7px; }
+.masthead h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.tagline { font-size: 11.5px; color: var(--ink-faint); }
+
+.card {
+  background: #fff;
+  border: 1px solid var(--paper-line);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.card h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.card h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  margin: 10px 0 4px;
+}
+
+.hint { font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; }
+.hint a { color: var(--brass-dark); }
+
+.key-row { display: flex; gap: 6px; }
+.key-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 7px 9px;
+  border: 1px solid var(--paper-line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.key-row input:focus { outline: 2px solid var(--brass); outline-offset: -1px; }
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-brass { background: var(--brass); color: var(--paper); }
+.btn-brass:hover:not(:disabled) { background: var(--brass-dark); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn-block { width: 100%; }
+
+.btn-link {
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--brass-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.account-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+
+.mic-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  font: inherit;
+  font-weight: 600;
+  padding: 10px;
+  border: 1px solid var(--brass);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--brass-dark);
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.mic-btn:hover:not(:disabled) { background: var(--paper-deep); }
+.mic-btn:disabled { opacity: 0.55; cursor: default; }
+.mic-btn.recording {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--paper);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(150, 56, 43, 0.35); }
+  50% { box-shadow: 0 0 0 7px rgba(150, 56, 43, 0); }
+}
+
+.interim {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-soft);
+  background: var(--paper-deep);
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-height: 34px;
+}
+
+blockquote {
+  font-size: 12.5px;
+  background: var(--paper);
+  border-left: 3px solid var(--paper-line);
+  border-radius: 0 6px 6px 0;
+  padding: 7px 9px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 130px;
+  overflow-y: auto;
+}
+#polish-after { border-left-color: var(--brass); }
+
+.status { font-size: 12.5px; min-height: 18px; margin: 4px 0; color: var(--ink-soft); }
+.status.error { color: var(--red); }
+.status.ok { color: var(--brass-dark); }
+
+.privacy {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--paper-line);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}

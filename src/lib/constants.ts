@@ -1,5 +1,9 @@
+import { version } from "../../package.json";
+
 export const APP_NAME = "Voxlen";
-export const APP_VERSION = "1.0.9";
+// Single source of truth: package.json (resolveJsonModule — Vite tree-shakes
+// the named import down to just the version string).
+export const APP_VERSION = version;
 export const APP_DESCRIPTION = "AI-powered voice dictation for professionals";
 
 export const SUPPORTED_LANGUAGES = [
@@ -34,7 +38,6 @@ export const VOICE_COMMANDS = [
   { command: "exclamation mark", action: "insert_exclamation", description: "Insert an exclamation mark" },
   { command: "delete that", action: "delete_last", description: "Delete the last dictated text" },
   { command: "undo", action: "undo", description: "Undo the last action" },
-  { command: "select all", action: "select_all", description: "Select all text" },
   { command: "copy that", action: "copy", description: "Copy selected text" },
   { command: "stop listening", action: "stop", description: "Stop dictation" },
   { command: "stop dictation", action: "stop", description: "Stop dictation" },
@@ -48,8 +51,6 @@ export const VOICE_COMMANDS = [
   { command: "number three", action: "legal_item_3", description: "Insert numbered list item 3." },
   { command: "number four", action: "legal_item_4", description: "Insert numbered list item 4." },
   { command: "number five", action: "legal_item_5", description: "Insert numbered list item 5." },
-  { command: "start billing", action: "billing_start", description: "Start billable time timer" },
-  { command: "stop billing", action: "billing_stop", description: "Stop billable time timer" },
   { command: "insert indemnity clause", action: "insert_clause", description: "Insert standard indemnity clause" },
   { command: "insert confidentiality clause", action: "insert_clause", description: "Insert confidentiality clause" },
   { command: "insert force majeure", action: "insert_clause", description: "Insert force majeure clause" },
@@ -66,13 +67,6 @@ export const VOICE_COMMANDS = [
   { command: "insert accountant liability cap", action: "insert_clause", description: "Insert accountant liability cap clause" },
   { command: "insert without prejudice", action: "insert_clause", description: "Insert without prejudice header" },
 ] as const;
-
-export const DEFAULT_SHORTCUTS = {
-  toggleDictation: "CommandOrControl+Shift+D",
-  pushToTalk: "CommandOrControl+Shift+Space",
-  cancel: "Escape",
-  correctGrammar: "CommandOrControl+Shift+G",
-} as const;
 
 export const STT_ENGINES = {
   whisper_cloud: {

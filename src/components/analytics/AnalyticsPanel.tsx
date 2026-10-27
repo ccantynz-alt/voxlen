@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useFlywheelStore } from "@/stores/flywheel";
 import { useClientsStore } from "@/stores/clients";
-import { cn } from "@/lib/utils";
+import { cn, localDateKey } from "@/lib/utils";
 
 export function AnalyticsPanel() {
   const metrics = useFlywheelStore((s) => s.metrics);
@@ -47,7 +47,7 @@ export function AnalyticsPanel() {
     for (let i = 13; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const key = d.toISOString().split("T")[0];
+      const key = localDateKey(d);
       days.push({
         date: key,
         label: d.toLocaleDateString("en", { weekday: "short" }).slice(0, 1),
@@ -166,7 +166,7 @@ export function AnalyticsPanel() {
             icon={<Zap className="h-4 w-4 text-brass-400" />}
             label="Correction patterns"
             value={corrections.length}
-            sub={corrections.length > 0 ? `Top: "${corrections.sort((a, b) => b.occurrences - a.occurrences)[0]?.original}"` : "None yet"}
+            sub={corrections.length > 0 ? `Top: "${[...corrections].sort((a, b) => b.occurrences - a.occurrences)[0]?.original}"` : "None yet"}
           />
           <StatCard
             icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
@@ -345,7 +345,7 @@ function computeStreak(sessionsPerDay: Record<string, number>): number {
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().split("T")[0];
+    const key = localDateKey(d);
     if ((sessionsPerDay[key] ?? 0) > 0) {
       streak++;
     } else if (i > 0) {

@@ -62,9 +62,11 @@ export function GrammarPanel() {
       setChanges(result.changes);
       setScore(result.score);
     } catch {
-      setCorrectedText(inputText);
+      // Do NOT present the unpolished input as a "Polished" 100% result —
+      // that would misrepresent failed output as corrected text.
+      setCorrectedText("");
       setChanges([]);
-      setScore(1.0);
+      setScore(null);
       setError("Grammar correction unavailable. Check your API key in Settings.");
     }
     setIsProcessing(false);

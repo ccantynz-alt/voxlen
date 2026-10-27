@@ -127,7 +127,12 @@ describe("executeVoiceCommand", () => {
   it("returns null for state-only actions", () => {
     expect(executeVoiceCommand("caps_on")).toBe(null);
     expect(executeVoiceCommand("caps_off")).toBe(null);
-    expect(executeVoiceCommand("select_all")).toBe(null);
+  });
+
+  it("does not match removed handler-less commands (speech must pass through)", () => {
+    expect(processVoiceCommands("select all").matched).toBe(false);
+    expect(processVoiceCommands("start billing").matched).toBe(false);
+    expect(processVoiceCommands("stop billing").matched).toBe(false);
   });
 
   it("stop action sets idle status", () => {

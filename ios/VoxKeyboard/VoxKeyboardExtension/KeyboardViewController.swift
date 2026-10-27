@@ -355,11 +355,18 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
         }
     }
 
+    /// Secrets live in the shared keychain (KeychainStore); fall back to the
+    /// legacy App Group UserDefaults value until the container app has run
+    /// once and migrated it.
+    private func secret(_ key: String) -> String {
+        KeychainStore.get(key) ?? defaults?.string(forKey: key) ?? ""
+    }
+
     private func startDictation() {
         guard !isListening else { return }
         let engine = defaults?.string(forKey: "sttEngine") ?? "deepgram"
-        let deepgramKey = defaults?.string(forKey: "deepgramApiKey") ?? ""
-        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
+        let deepgramKey = secret("deepgramApiKey")
+        let voxlenKey = secret("voxlenApiKey")
 
         if engine == "deepgram" && !deepgramKey.isEmpty {
             startDeepgramDictation(apiKey: deepgramKey)
@@ -383,7 +390,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     }
 
     private func fetchVoxlenDeepgramToken(voxlenKey: String) async throws -> String {
-        var request = URLRequest(url: URL(string: "https://voxlen.ai/api/deepgram-token")!)
+        var request = URLRequest(url: URL(string: "https://www.voxlen.ai/api/deepgram-token")!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(voxlenKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -523,14 +530,11 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
             guard let self = self else { return }
 
             if isFinal {
-                // Delete any previously inserted partial text for this utterance
-                for _ in 0..<self.insertedCharCount {
-                    self.textDocumentProxy.deleteBackward()
-                }
-
+                // Deepgram finals are per-segment, not cumulative: append each one
+                // and track the utterance's total inserted length for auto-polish.
                 let textToInsert = transcript + " "
                 self.textDocumentProxy.insertText(textToInsert)
-                self.insertedCharCount = textToInsert.count
+                self.insertedCharCount += textToInsert.count
                 self.currentUtterance += transcript + " "
 
                 // Hide partial label
@@ -541,11 +545,12 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
                 if speechFinal {
                     // Auto-polish the complete utterance
                     let fullUtterance = self.currentUtterance.trimmingCharacters(in: .whitespaces)
+                    let insertedLength = self.insertedCharCount
                     self.insertedCharCount = 0
                     self.currentUtterance = ""
 
                     if self.defaults?.bool(forKey: "autoCorrect") == true && !fullUtterance.isEmpty {
-                        self.autoPolishUtterance(fullUtterance)
+                        self.autoPolishUtterance(fullUtterance, insertedLength: insertedLength)
                     }
                 }
             } else {
@@ -558,13 +563,13 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
         }
     }
 
-    private func autoPolishUtterance(_ text: String) {
+    private func autoPolishUtterance(_ text: String, insertedLength: Int) {
         grammarLabel.text = "Polishing..."
         Task {
             do {
                 let corrected = try await correctGrammar(text)
                 await MainActor.run {
-                    for _ in 0..<(text.count + 1) {
+                    for _ in 0..<insertedLength {
                         self.textDocumentProxy.deleteBackward()
                     }
                     self.textDocumentProxy.insertText(corrected + " ")
@@ -581,26 +586,12 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     // MARK: - Apple Speech Fallback
 
     private func startAppleDictation() {
-        // Minimal fallback using Apple Speech framework
-        // Requires: import Speech (add at top if using this path)
-        grammarLabel.text = "Set Deepgram key for best results"
-
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            grammarLabel.text = "Audio session error"
-            return
-        }
-
-        isListening = true
-        setMicListeningState(true)
-
-        // For Apple fallback, prompt user to configure Deepgram
+        // On-device speech recognition is not implemented yet (SFSpeechRecognizer
+        // path removed in 77d9e93). Fail honestly instead of pretending to listen:
+        // no audio session, no listening state, just a clear message.
+        grammarLabel.text = "Offline dictation unavailable — add a key in the Voxlen app"
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            self?.grammarLabel.text = "Tap Polish to correct grammar"
-            self?.stopDictation()
+            self?.grammarLabel.text = "Voxlen"
         }
     }
 
@@ -711,18 +702,23 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     // MARK: - AI Grammar Correction
 
     private func correctGrammar(_ text: String) async throws -> String {
-        let provider = defaults?.string(forKey: "grammarProvider") ?? "claude"
+        // The settings app (VoxApp.swift) writes "aiProvider"/"apiKey"; older builds
+        // used "grammarProvider"/"grammarApiKey"/"openaiApiKey" — accept both.
+        let provider = defaults?.string(forKey: "aiProvider")
+            ?? defaults?.string(forKey: "grammarProvider") ?? "claude"
         let style = defaults?.string(forKey: "writingStyle") ?? "professional"
 
         // Prefer Voxlen account key (proxied), fall back to direct BYOK key
-        let voxlenKey = defaults?.string(forKey: "voxlenApiKey") ?? ""
+        let voxlenKey = secret("voxlenApiKey")
         if !voxlenKey.isEmpty {
             return try await correctWithVoxlenProxy(text: text, voxlenKey: voxlenKey, style: style)
         }
 
-        let apiKey = provider == "openai"
-            ? (defaults?.string(forKey: "openaiApiKey") ?? defaults?.string(forKey: "grammarApiKey") ?? "")
-            : (defaults?.string(forKey: "grammarApiKey") ?? "")
+        let legacyKey = provider == "openai"
+            ? (defaults?.string(forKey: "openaiApiKey") ?? defaults?.string(forKey: "grammarApiKey"))
+            : defaults?.string(forKey: "grammarApiKey")
+        let keychainKey = secret("apiKey")
+        let apiKey = keychainKey.isEmpty ? (legacyKey ?? "") : keychainKey
 
         guard !apiKey.isEmpty else {
             throw GrammarError.noApiKey
@@ -736,7 +732,7 @@ class KeyboardViewController: UIInputViewController, URLSessionWebSocketDelegate
     }
 
     private func correctWithVoxlenProxy(text: String, voxlenKey: String, style: String) async throws -> String {
-        let url = URL(string: "https://voxlen.ai/api/grammar")!
+        let url = URL(string: "https://www.voxlen.ai/api/grammar")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(voxlenKey)", forHTTPHeaderField: "Authorization")

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { localDateKey } from "@/lib/utils";
 
 /**
  * Privacy-safe flywheel / learning system.
@@ -157,14 +158,16 @@ export const useFlywheelStore = create<FlywheelState>((set, get) => ({
       const newTotal = m.totalSessions + 1;
       const newWords = m.totalWords + wordCount;
       const newDuration = m.totalDuration + durationSec;
-      const today = new Date().toISOString().slice(0, 10);
+      // Local calendar day — must match the local-date keys the analytics
+      // panel compares against (UTC keys put evening sessions on the wrong day).
+      const today = localDateKey();
       const sessionsPerDay = { ...m.sessionsPerDay };
       sessionsPerDay[today] = (sessionsPerDay[today] || 0) + 1;
 
       // Keep only last 90 days of daily counts
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 90);
-      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const cutoffStr = localDateKey(cutoff);
       for (const day of Object.keys(sessionsPerDay)) {
         if (day < cutoffStr) delete sessionsPerDay[day];
       }

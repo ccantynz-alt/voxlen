@@ -24,6 +24,19 @@ export function formatTimestamp(date: Date): string {
   });
 }
 
+/**
+ * Local-date key ("YYYY-MM-DD") for bucketing per-day stats.
+ * Uses the machine's local calendar day — NOT toISOString(), which is UTC
+ * and shifts sessions dictated in the evening (or morning, depending on
+ * timezone) into the wrong day, breaking "today"/streak comparisons.
+ */
+export function localDateKey(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
   return str.slice(0, length) + "...";

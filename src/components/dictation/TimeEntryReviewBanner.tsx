@@ -3,7 +3,8 @@ import { Clock, AlertTriangle } from "lucide-react";
 import { useClientsStore } from "@/stores/clients";
 import { useDictationStore } from "@/stores/dictation";
 import { useNavigationStore } from "@/stores/navigation";
-import { formatBillableHours } from "@/lib/billing";
+import { useSettingsStore } from "@/stores/settings";
+import { computeBillableAmount, formatBillableHours, resolveRate, roundBillableSeconds } from "@/lib/billing";
 import { ACTIVITY_CODES } from "@/lib/utbms";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,9 @@ export function TimeEntryReviewBanner() {
   const updateEntry = useClientsStore((s) => s.updateEntry);
   const approveEntry = useClientsStore((s) => s.approveEntry);
   const deleteEntry = useClientsStore((s) => s.deleteEntry);
+  const defaultRate = useSettingsStore((s) => s.billableRatePerHour);
+  const billingRoundingIncrement = useSettingsStore((s) => s.billingRoundingIncrement);
+  const billingMinimumHours = useSettingsStore((s) => s.billingMinimumHours);
 
   const [editing, setEditing] = useState(false);
 
@@ -28,7 +32,13 @@ export function TimeEntryReviewBanner() {
 
   const client = clients.find((c) => c.id === entry.clientId);
   const rate = entry.rateAtTime ?? 0;
-  const hours = rate > 0 ? entry.billableAmount / rate : entry.durationSeconds / 3600;
+  // With a rate, billableAmount/rate reconstructs the rounded hours the
+  // entry was drafted with; without one, apply the canonical round-UP rules
+  // instead of showing raw (unbillable-looking) fractions.
+  const hours =
+    rate > 0
+      ? entry.billableAmount / rate
+      : roundBillableSeconds(entry.durationSeconds, billingRoundingIncrement, billingMinimumHours);
   const noRate = rate <= 0;
 
   const close = () => {
@@ -37,13 +47,20 @@ export function TimeEntryReviewBanner() {
   };
 
   const handleClientChange = (clientId: string) => {
-    // Re-derive amount when assignment changes the effective rate.
+    // Re-derive rate and amount through the canonical billing rules: the
+    // target client's rate (falling back to the default rate) and 0.1h
+    // round-UP + minimum applied to the entry's duration — not the stale
+    // rate or a raw durationSeconds/3600 division.
     const next = clients.find((c) => c.id === clientId);
-    const nextRate = next && next.billableRate > 0 ? next.billableRate : rate;
+    const { rate: nextRate } = resolveRate(next, defaultRate);
+    const billing = computeBillableAmount(entry.durationSeconds, nextRate, {
+      incrementHours: billingRoundingIncrement,
+      minimumHours: billingMinimumHours,
+    });
     updateEntry(entry.id, {
       clientId,
       rateAtTime: nextRate,
-      billableAmount: Math.round(hours * nextRate * 100) / 100,
+      billableAmount: billing.amount,
     });
   };
 

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <Id>797bc79b-853e-4d0a-b8d7-7dd50fe93aac</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Voxlen</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Voxlen Dictation"/>
+  <Description DefaultValue="AI voice dictation and grammar polish for legal professionals. Dictate directly into your Word document and polish selected text with AI."/>
+  <IconUrl DefaultValue="https://www.voxlen.ai/word-addin/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://www.voxlen.ai/word-addin/icon-80.png"/>
+  <SupportUrl DefaultValue="https://www.voxlen.ai"/>
+
+  <AppDomains>
+    <AppDomain>https://www.voxlen.ai</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://www.voxlen.ai/word-addin/taskpane.html"/>
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="Voxlen.GetStarted.Title"/>
+            <Description resid="Voxlen.GetStarted.Description"/>
+            <LearnMoreUrl resid="Voxlen.Url.Home"/>
+          </GetStarted>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="Voxlen.Group1">
+                <Label resid="Voxlen.Group1.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Voxlen.Icon.16"/>
+                  <bt:Image size="32" resid="Voxlen.Icon.32"/>
+                  <bt:Image size="80" resid="Voxlen.Icon.80"/>
+                </Icon>
+                <Control xsi:type="Button" id="Voxlen.TaskpaneButton">
+                  <Label resid="Voxlen.TaskpaneButton.Label"/>
+                  <Supertip>
+                    <Title resid="Voxlen.TaskpaneButton.Label"/>
+                    <Description resid="Voxlen.TaskpaneButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Voxlen.Icon.16"/>
+                    <bt:Image size="32" resid="Voxlen.Icon.32"/>
+                    <bt:Image size="80" resid="Voxlen.Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>Voxlen.Taskpane</TaskpaneId>
+                    <SourceLocation resid="Voxlen.Url.Taskpane"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Voxlen.Icon.16" DefaultValue="https://www.voxlen.ai/word-addin/icon-16.png"/>
+        <bt:Image id="Voxlen.Icon.32" DefaultValue="https://www.voxlen.ai/word-addin/icon-32.png"/>
+        <bt:Image id="Voxlen.Icon.80" DefaultValue="https://www.voxlen.ai/word-addin/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Voxlen.Url.Home" DefaultValue="https://www.voxlen.ai"/>
+        <bt:Url id="Voxlen.Url.Taskpane" DefaultValue="https://www.voxlen.ai/word-addin/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="Voxlen.GetStarted.Title" DefaultValue="Voxlen Dictation is ready"/>
+        <bt:String id="Voxlen.Group1.Label" DefaultValue="Voxlen"/>
+        <bt:String id="Voxlen.TaskpaneButton.Label" DefaultValue="Voxlen Dictation"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="Voxlen.GetStarted.Description" DefaultValue="Open the Voxlen pane from the Home tab to dictate into your document or polish selected text with AI grammar."/>
+        <bt:String id="Voxlen.TaskpaneButton.Tooltip" DefaultValue="Dictate into your document and polish selected text with AI"/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

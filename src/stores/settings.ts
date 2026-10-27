@@ -209,6 +209,14 @@ const defaultSettings: AppSettings = {
   legalAcceptedAt: null,
 };
 
+// Secrets-hydration gate. Until `hydrateSecrets()` finishes reading the API
+// keys from the OS keychain into the store, the store legitimately holds ""
+// for every key field — so any persistence that runs in that window must
+// never (a) delete keychain secrets or (b) push settings (with empty keys)
+// to the Rust engine layer. Both would destroy the user's working keys on
+// every launch.
+let secretsHydrated = false;
+
 // Debounced persistence — saves settings after changes settle.
 // API keys go to OS keychain; everything else to tauri-plugin-store.
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -293,16 +301,19 @@ function schedulePersist() {
     }
 
     // Persist API keys to OS keychain (delete when cleared).
+    // The delete branch is gated on secret hydration: before hydrateSecrets()
+    // completes, an empty key field means "not loaded yet", not "cleared by
+    // the user" — deleting then would wipe the user's saved keys on launch.
     // If keychain_set throws inside the Tauri app (isTauri() is true), we
     // surface the error so the user knows — silently losing a key causes
     // confusing auth failures on next startup.
     const keychainOps: Array<Promise<void>> = [];
     if (state.sttApiKey) keychainOps.push(setSecret("sttApiKey", state.sttApiKey));
-    else keychainOps.push(deleteSecret("sttApiKey").catch(() => {}));
+    else if (secretsHydrated) keychainOps.push(deleteSecret("sttApiKey").catch(() => {}));
     if (state.grammarApiKey) keychainOps.push(setSecret("grammarApiKey", state.grammarApiKey));
-    else keychainOps.push(deleteSecret("grammarApiKey").catch(() => {}));
+    else if (secretsHydrated) keychainOps.push(deleteSecret("grammarApiKey").catch(() => {}));
     if (state.voxlenApiKey) keychainOps.push(setSecret("voxlenApiKey", state.voxlenApiKey));
-    else keychainOps.push(deleteSecret("voxlenApiKey").catch(() => {}));
+    else if (secretsHydrated) keychainOps.push(deleteSecret("voxlenApiKey").catch(() => {}));
     try {
       await Promise.all(keychainOps);
     } catch (err) {
@@ -318,16 +329,31 @@ function schedulePersist() {
 
     // Push settings to the Rust engine layer so changes take effect immediately
     // (without this, API key / grammar / STT changes only apply after restart).
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const { toBackendSettings } = await import("@/lib/settings");
-      await invoke("update_settings", { settings: toBackendSettings(state) });
-    } catch {
-      // Non-Tauri environment — skip.
+    // Gated on hydration: an early push carries empty key fields and would
+    // blank the keys the backend loaded from the keychain at boot.
+    // hydrateSecrets() schedules a persist when it finishes, so the merged
+    // state always reaches the engines shortly after startup.
+    if (secretsHydrated) {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const { toBackendSettings } = await import("@/lib/settings");
+        await invoke("update_settings", { settings: toBackendSettings(state) });
+      } catch {
+        // Non-Tauri environment — skip.
+      }
     }
   }, 500);
 }
 
+/**
+ * Startup hydration of API keys from the OS keychain into the store.
+ * MUST be awaited once during app boot: until it completes, schedulePersist
+ * refuses to delete keychain secrets or push settings to the Rust engines —
+ * otherwise the 500ms persist debounce (kicked off by e.g. mic auto-select)
+ * fires with still-empty key fields and deletes the user's saved API keys.
+ * Once done it opens the gate and schedules a persist so the merged settings
+ * (keys included) reach the engine layer.
+ */
 export async function hydrateSecrets(): Promise<void> {
   // Cancel any in-flight persist timer so it can't fire with empty keys
   // before we finish reading from the keychain.
@@ -336,34 +362,41 @@ export async function hydrateSecrets(): Promise<void> {
     saveTimer = null;
   }
 
-  const results = await Promise.allSettled([
-    getSecret("sttApiKey"),
-    getSecret("grammarApiKey"),
-    getSecret("voxlenApiKey"),
-  ]);
+  try {
+    const results = await Promise.allSettled([
+      getSecret("sttApiKey"),
+      getSecret("grammarApiKey"),
+      getSecret("voxlenApiKey"),
+    ]);
 
-  const [sttResult, grammarResult, voxlenResult] = results;
-  const updates: Partial<AppSettings> = {};
-  if (sttResult.status === "fulfilled" && sttResult.value) updates.sttApiKey = sttResult.value;
-  if (grammarResult.status === "fulfilled" && grammarResult.value) updates.grammarApiKey = grammarResult.value;
-  if (voxlenResult.status === "fulfilled" && voxlenResult.value) updates.voxlenApiKey = voxlenResult.value;
+    const [sttResult, grammarResult, voxlenResult] = results;
+    const updates: Partial<AppSettings> = {};
+    if (sttResult.status === "fulfilled" && sttResult.value) updates.sttApiKey = sttResult.value;
+    if (grammarResult.status === "fulfilled" && grammarResult.value) updates.grammarApiKey = grammarResult.value;
+    if (voxlenResult.status === "fulfilled" && voxlenResult.value) updates.voxlenApiKey = voxlenResult.value;
 
-  if (Object.keys(updates).length > 0) {
-    useSettingsStore.getState().hydrateSettings(updates);
-  }
-
-  const anyFailed = results.some((r) => r.status === "rejected");
-  if (anyFailed) {
-    try {
-      const { toast } = await import("@/components/ui/Toast");
-      toast(
-        "Could not read saved API keys from system keychain — please re-enter them in Settings.",
-        "error",
-        8000
-      );
-    } catch {
-      // Toast not available (tests / non-Tauri).
+    if (Object.keys(updates).length > 0) {
+      useSettingsStore.getState().hydrateSettings(updates);
     }
+
+    const anyFailed = results.some((r) => r.status === "rejected");
+    if (anyFailed) {
+      try {
+        const { toast } = await import("@/components/ui/Toast");
+        toast(
+          "Could not read saved API keys from system keychain — please re-enter them in Settings.",
+          "error",
+          8000
+        );
+      } catch {
+        // Toast not available (tests / non-Tauri).
+      }
+    }
+  } finally {
+    // Open the gate even if reads failed — a broken keychain also rejects
+    // deletes (caught downstream), so persistence stays safe, and blocking
+    // forever would stop settings from ever reaching the engine layer.
+    secretsHydrated = true;
   }
 
   // Now safe to resume persisting — keys are loaded.

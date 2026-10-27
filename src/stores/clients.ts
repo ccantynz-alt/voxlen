@@ -200,11 +200,17 @@ export const useClientsStore = create<ClientsState>()(
       },
 
       getTotalHours: (clientId) => {
-        return (
-          get()
-            .entries.filter((e) => e.clientId === clientId && e.status === "approved")
-            .reduce((sum, e) => sum + e.durationSeconds, 0) / 3600
-        );
+        // Billed hours, not raw duration: derive hours from the billed amount
+        // and locked rate — the same reconstruction the LEDES/Clio exports
+        // use — so the client-card Hours stat agrees with the $ totals
+        // (raw seconds ignored the round-up/minimum billing rules).
+        const client = get().clients.find((c) => c.id === clientId);
+        return get()
+          .entries.filter((e) => e.clientId === clientId && e.status === "approved")
+          .reduce((sum, e) => {
+            const rate = e.rateAtTime ?? client?.billableRate ?? 0;
+            return sum + (rate > 0 ? e.billableAmount / rate : e.durationSeconds / 3600);
+          }, 0);
       },
     }),
     {

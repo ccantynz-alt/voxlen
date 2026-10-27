@@ -9,11 +9,15 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
-use crate::meeting::MeetingState;
+use crate::meeting::{MeetingState, INDICATOR_LABEL};
 
-const INDICATOR_LABEL: &str = "meeting-indicator";
+/// Current version of the recording-consent notice. MUST match
+/// `CONSENT_VERSION` in `src/components/meeting/MeetingPanel.tsx` — when the
+/// consent copy changes, bump both so previously stored acknowledgments go
+/// stale and every user is re-prompted before the next capture.
+pub(crate) const MEETING_CONSENT_VERSION: &str = "2026-07";
 
 #[tauri::command]
 pub fn meeting_capture_supported() -> bool {
@@ -37,13 +41,24 @@ pub async fn start_meeting_capture(
         return Err("A meeting capture is already running.".to_string());
     }
 
-    // Fail-closed consent gate — frontend dialogs are not enough.
+    // Fail-closed consent gate — frontend dialogs are not enough. The stored
+    // acknowledgment must be for the CURRENT consent notice; an ack of an
+    // older version means the user has never seen the current copy.
     let settings = crate::commands::settings::get_current_settings();
-    if settings.meeting_consent_ack_version.is_none() {
-        return Err(
-            "Recording consent has not been acknowledged. Open the Meeting panel to review the consent notice first."
-                .to_string(),
-        );
+    match settings.meeting_consent_ack_version.as_deref() {
+        Some(v) if v == MEETING_CONSENT_VERSION => {}
+        Some(_) => {
+            return Err(
+                "The recording consent notice has been updated since it was last acknowledged. Open the Meeting panel to review and re-acknowledge the consent notice."
+                    .to_string(),
+            );
+        }
+        None => {
+            return Err(
+                "Recording consent has not been acknowledged. Open the Meeting panel to review the consent notice first."
+                    .to_string(),
+            );
+        }
     }
 
     // Whisper Local is mandatory for meetings; verify a model exists before
@@ -74,6 +89,11 @@ pub async fn start_meeting_capture(
 
     let stop_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
 
+    // Fault flags: set by the capture threads when a stream dies, polled by
+    // the meeting task, surfaced to the UI as `meeting-audio-fault` events.
+    let mic_fault = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let loopback_fault = Arc::new(std::sync::atomic::AtomicBool::new(false));
+
     // Mic channel — reuse the standard capture path (gain, noise suppression,
     // level events for the UI).
     let (mic_tx, mic_rx) = crossbeam_channel::bounded(64);
@@ -84,7 +104,7 @@ pub async fn start_meeting_capture(
         app.clone(),
         settings.input_gain as f32,
         settings.noise_suppression,
-        Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        mic_fault.clone(),
         Arc::new(std::sync::atomic::AtomicBool::new(false)),
     );
     let (mic_handle, _) = match mic_result {
@@ -97,7 +117,7 @@ pub async fn start_meeting_capture(
 
     // Loopback channel — the remote side of the call.
     let (loop_tx, loop_rx) = crossbeam_channel::bounded(64);
-    let loopback_handle = match crate::audio::loopback::start_loopback_capture(loop_tx) {
+    let loopback_handle = match crate::audio::loopback::start_loopback_capture(loop_tx, loopback_fault.clone()) {
         Ok(h) => h,
         Err(e) => {
             mic_handle.stop();
@@ -117,6 +137,8 @@ pub async fn start_meeting_capture(
         loop_rx,
         stop_flag,
         state.active.clone(),
+        mic_fault,
+        loopback_fault,
     );
 
     let _ = app.emit("meeting-started", ());
@@ -125,22 +147,9 @@ pub async fn start_meeting_capture(
 }
 
 #[tauri::command]
-pub async fn stop_meeting_capture(
-    app: AppHandle,
-    state: State<'_, MeetingState>,
-) -> Result<(), String> {
-    if let Some(flag) = state.stop_flag.lock().take() {
-        flag.store(true, Ordering::Relaxed);
-    }
-    if let Some(handle) = state.mic_handle.lock().take() {
-        handle.stop();
-    }
-    if let Some(handle) = state.loopback_handle.lock().take() {
-        handle.stop();
-    }
-    if let Some(win) = app.get_webview_window(INDICATOR_LABEL) {
-        let _ = win.close();
-    }
+pub async fn stop_meeting_capture(app: AppHandle) -> Result<(), String> {
+    // Shared with the meeting task's exit path — see meeting::teardown_capture.
+    crate::meeting::teardown_capture(&app);
     log::info!("Meeting capture stop requested");
     Ok(())
 }

@@ -97,12 +97,14 @@ export function TranscriptView({
   }, [segments]);
 
   const commitParaEdit = useCallback(() => {
-    // Replace all segments with a single merged segment
-    const { clearSession, addSegment } = useDictationStore.getState();
-    clearSession();
+    // Replace all segments with a single merged segment. Must NOT use
+    // clearSession() here — that stops live dictation (backend included),
+    // resets the timer and wipes the crash-recovery draft. replaceAllSegments
+    // swaps the transcript content while leaving the session running.
+    const store = useDictationStore.getState();
     const trimmed = paraValue.trim();
     if (trimmed) {
-      addSegment({
+      store.replaceAllSegments({
         id: crypto.randomUUID(),
         text: trimmed,
         timestamp: new Date(),
@@ -110,6 +112,9 @@ export function TranscriptView({
         isFinal: true,
         grammarApplied: false,
       });
+    } else {
+      // Text emptied: remove the segments but keep the session alive.
+      for (const s of [...store.segments]) store.removeSegment(s.id);
     }
     setParaEditing(false);
   }, [paraValue]);

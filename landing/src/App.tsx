@@ -421,10 +421,10 @@ function Hero({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Googl
 
 function TrustBar() {
   const stats = [
-    { value: "99.2%", label: "Accuracy" },
+    { value: "95%+", label: "Accuracy" },
     { value: "<300ms", label: "Latency" },
     { value: "0 bytes", label: "Retained by Voxlen" },
-    { value: "20+", label: "Languages" },
+    { value: "20", label: "Languages" },
   ];
   return (
     <section className="py-6">
@@ -698,7 +698,7 @@ function Features() {
 
 function HowItWorks() {
   const steps = [
-    { num: "01", title: "Speak naturally", desc: "Hit Ctrl+Shift+D or click the mic. Talk normally into your external mic. No special syntax needed." },
+    { num: "01", title: "Speak naturally", desc: "Hit Alt+D (Option+D on Mac), hold Alt+Space to push-to-talk, or click the mic. Talk normally into your external mic. No special syntax needed." },
     { num: "02", title: "AI transcribes in real-time", desc: "Words appear on screen as you speak. Deepgram Nova-3 delivers 95%+ accuracy with sub-300ms latency." },
     { num: "03", title: "Grammar gets polished", desc: "Claude AI automatically corrects grammar, adds punctuation, and matches your chosen writing style." },
     { num: "04", title: "Text appears in your app", desc: "Click 'Insert Text' and your polished words type directly into whatever application you're working in." },
@@ -830,7 +830,7 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
       period: "/month",
       features: [
         "Unlimited real-time dictation",
-        "AI grammar (Claude / GPT-4o) — all AI costs included",
+        "AI grammar (Claude Sonnet 4.6) — all AI costs included",
         "Types into any application",
         "Voice commands & smart formatting",
         "20+ languages, live translation",
@@ -977,8 +977,9 @@ function Pricing({ user, onSignIn }: { user: GoogleUser | null; onSignIn: (u: Go
         <p className="text-center text-xs text-ink-faint mt-4 max-w-2xl mx-auto leading-relaxed">
           Professional and Privileged include a 14-day free trial. No credit card required; cancel
           anytime. Prefer your own API keys from Deepgram, OpenAI, or Anthropic? Bring-your-own-keys
-          is fully supported. Your audio streams from your device to the AI providers — or, in
-          offline mode, never leaves it at all.
+          is fully supported — BYOK requests go directly from your device to the provider. Included
+          cloud AI is relayed through Voxlen's API under zero-content-retention controls, and in
+          offline mode your audio never leaves your device at all.
         </p>
       </div>
     </section>
@@ -997,7 +998,7 @@ function FAQ() {
     },
     {
       q: "Do I need to set up API keys or separate accounts?",
-      a: "No. Paid subscriptions include all AI costs — speech-to-text and grammar correction — so there are no API keys to manage. If you prefer to use your own keys from Deepgram, Anthropic, or OpenAI, that's fully supported as an optional alternative in Settings. Either way, your audio and text go directly from your device to the AI provider, never touching our servers.",
+      a: "No. Paid subscriptions include all AI costs — speech-to-text and grammar correction — so there are no API keys to manage. Included AI is relayed through Voxlen's API, which authenticates your request and passes it to the provider under zero-content-retention controls — we never store or log your audio or text. If you prefer to use your own keys from Deepgram, Anthropic, or OpenAI, that's fully supported as an optional alternative in Settings — those requests go directly from your device to the provider. And in Privileged Mode, transcription and grammar run entirely on-device, so nothing leaves your machine at all.",
     },
     {
       q: "What platforms does it run on?",
@@ -1013,7 +1014,7 @@ function FAQ() {
     },
     {
       q: "Is my audio private? I handle privileged information.",
-      a: "Yes. Your audio and transcripts are never stored on Voxlen-operated servers. Streaming dictation goes from your device to the speech provider on zero-retention endpoints and is discarded after transcription. And on the Privileged plan, offline mode means nothing leaves your device at all — transcription runs on your own hardware. For privileged work, that is the strongest guarantee any dictation product can make.",
+      a: "Yes. Your audio and transcripts are never stored on Voxlen-operated servers. Streaming dictation reaches the speech provider on zero-retention endpoints — directly from your device with your own keys, or relayed without storage or logging through Voxlen's API — and is discarded after transcription. And on the Privileged plan, offline mode means nothing leaves your device at all — transcription runs on your own hardware. For privileged work, that is the strongest guarantee any dictation product can make.",
     },
     {
       q: "Can my law firm or accounting practice get a team plan?",
@@ -1059,7 +1060,7 @@ function FAQ() {
 const GH_RELEASES = "https://github.com/ccantynz-alt/voxlen/releases/latest/download";
 const GH_RELEASES_PAGE = "https://github.com/ccantynz-alt/voxlen/releases/latest";
 const GH_API_LATEST = "https://api.github.com/repos/ccantynz-alt/voxlen/releases/latest";
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.3.0";
 
 interface ReleaseAsset {
   name: string;
@@ -1983,7 +1984,7 @@ const SEO_PAGES: Record<string, SEOPageData> = {
     ],
     faq: [
       { q: "How does Voxlen compare to Dragon Legal?", a: "Voxlen is faster to set up (no voice training), works on any app without plugins, costs less, and has AI grammar correction Dragon doesn't offer. Like Dragon, Voxlen dictates fully offline — on-device Whisper is included in the Privileged plan." },
-      { q: "Does it support multiple languages?", a: "Yes. Voxlen auto-detects your spoken language and supports transcription in 30+ languages via Deepgram Nova-3." },
+      { q: "Does it support multiple languages?", a: "Yes. Voxlen supports transcription in 20 languages via Deepgram Nova-3 — including English, Spanish, French, German, Japanese, and Chinese." },
       { q: "Is there a free trial?", a: "Download is free. Sign in with Google at voxlen.ai to get your account token — no credit card required to get started." },
     ],
   },
@@ -2040,7 +2041,7 @@ const SEO_PAGES: Record<string, SEOPageData> = {
       "Works in every app via macOS keyboard simulation",
       "AI grammar correction Apple Dictation doesn't have",
       "Custom vocabulary, voice commands, translation",
-      "Cmd+Shift+D to toggle, Cmd+Shift+Space for push-to-talk",
+      "Option+D to toggle, Option+Space for push-to-talk",
       "Light and dark mode",
     ],
     faq: [
@@ -2060,7 +2061,7 @@ const SEO_PAGES: Record<string, SEOPageData> = {
       "Injects text at cursor in any Windows application",
       "AI grammar correction Windows Speech Recognition lacks",
       "Custom vocabulary and voice commands",
-      "Ctrl+Shift+D to toggle, Ctrl+Shift+Space for push-to-talk",
+      "Alt+D to toggle, Alt+Space for push-to-talk",
       "Runs minimized to system tray",
       "No voice training required",
     ],
@@ -2209,7 +2210,7 @@ const SEO_PAGES: Record<string, SEOPageData> = {
       "Custom vocabulary for case names and client-specific terms",
       "Windows meeting capture with speaker diarization",
       "iPhone and iPad keyboard coming soon — join the waitlist",
-      "Real-time translation into 50+ languages",
+      "Real-time translation across 20 languages",
       "Voxlen is cheaper for professional teams",
     ],
     faq: [
@@ -2253,7 +2254,7 @@ const SEO_PAGES: Record<string, SEOPageData> = {
     ],
     faq: [
       { q: "Will I lose accuracy switching from Dragon?", a: "Most users find Deepgram Nova-3 matches or exceeds Dragon's accuracy — especially for legal terminology — without any training period." },
-      { q: "Can I import my Dragon vocabulary?", a: "Voxlen does not currently provide a Dragon vocabulary import tool. You can maintain per-client custom vocabulary for important names and terms." },
+      { q: "Can I import my Dragon vocabulary?", a: "Yes. Export your custom vocabulary from Dragon (.txt or .voc file) and import it in Voxlen via Settings → Dragon Vocabulary. Your case names, client names, and specialised terms carry straight over — and you can also maintain per-client custom vocabulary on top." },
     ],
   },
   "/best-voice-to-text-software": {

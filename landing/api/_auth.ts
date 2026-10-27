@@ -10,6 +10,8 @@ export interface VoxlenUser {
   picture: string;
   isAdmin: boolean;
   plan?: string;
+  /** Unix seconds the token was issued (Voxlen desktop tokens only) — used for trial-window gating. */
+  iat?: number;
 }
 
 const ADMIN_EMAIL = "ccantynz@gmail.com";
@@ -71,7 +73,7 @@ export async function mintDesktopToken(
 function verifyDesktopToken(token: string): VoxlenUser | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
-  let payload: { iss?: string; sub?: string; email?: string; name?: string; plan?: string; exp?: number };
+  let payload: { iss?: string; sub?: string; email?: string; name?: string; plan?: string; iat?: number; exp?: number };
   try {
     payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
   } catch {
@@ -97,6 +99,7 @@ function verifyDesktopToken(token: string): VoxlenUser | null {
     name: payload.name ?? "",
     picture: "",
     plan,
+    iat: typeof payload.iat === "number" ? payload.iat : undefined,
     isAdmin: payload.email === ADMIN_EMAIL || plan === "admin",
   };
 }

@@ -27,9 +27,10 @@ class DeepgramClient(
 
     fun connect() {
         val url = "wss://api.deepgram.com/v1/listen?" +
-            "model=nova-2&punctuate=true&smart_format=true" +
+            "model=nova-3&punctuate=true&smart_format=true" +
             "&interim_results=true&endpointing=300" +
             "&encoding=linear16&sample_rate=16000&channels=1" +
+            "&mip_opt_out=true" +
             "&language=$language"
 
         val request = Request.Builder()

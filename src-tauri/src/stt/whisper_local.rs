@@ -133,7 +133,21 @@ pub async fn download_model(app: AppHandle, id: String) -> anyhow::Result<()> {
     let spec = spec_for(&id).ok_or_else(|| anyhow::anyhow!("Unknown model '{id}'"))?;
     let dest = model_path(&app, &id)?;
     if dest.exists() {
-        return Ok(());
+        // Catalog sizes are rounded to the MB, so an exact match is
+        // impossible — but a file drastically smaller than the catalog size
+        // is a truncated artifact from before integrity checking existed.
+        // Remove it and re-download instead of locking it in forever.
+        let on_disk = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
+        if on_disk >= spec.size_mb * 1024 * 1024 * 9 / 10 {
+            return Ok(());
+        }
+        log::warn!(
+            "Whisper model '{}' on disk is {} bytes but the catalog expects ~{} MB — re-downloading",
+            id,
+            on_disk,
+            spec.size_mb
+        );
+        std::fs::remove_file(&dest)?;
     }
     if !downloading_guard(&id, true) {
         anyhow::bail!("Model '{id}' is already downloading");
@@ -148,7 +162,8 @@ pub async fn download_model(app: AppHandle, id: String) -> anyhow::Result<()> {
         if !resp.status().is_success() {
             anyhow::bail!("Model download failed: HTTP {}", resp.status());
         }
-        let total = resp.content_length().unwrap_or(spec.size_mb * 1024 * 1024);
+        let content_length = resp.content_length();
+        let total = content_length.unwrap_or(spec.size_mb * 1024 * 1024);
 
         let part = dest.with_extension("bin.part");
         let mut file = std::fs::File::create(&part)?;
@@ -172,6 +187,17 @@ pub async fn download_model(app: AppHandle, id: String) -> anyhow::Result<()> {
         }
         file.flush()?;
         drop(file);
+        // A stream can end cleanly before the full body arrived (dropped
+        // connection without a transport error). Never rename a short file
+        // into place — the exists() fast path would then make the corrupt
+        // model permanent.
+        if let Some(expected) = content_length {
+            if received != expected {
+                anyhow::bail!(
+                    "Model download incomplete: received {received} of {expected} bytes"
+                );
+            }
+        }
         std::fs::rename(&part, &dest)?;
         emit_progress(
             &app,

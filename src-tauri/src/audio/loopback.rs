@@ -42,7 +42,16 @@ impl Drop for LoopbackHandle {
 
 /// Start capturing what the machine is playing (the remote side of a call).
 /// Chunks are 100ms of f32 samples at the device's native rate/channels.
-pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<LoopbackHandle> {
+///
+/// `fault_flag` is set when the stream errors or fails to start after this
+/// function has already returned Ok (the stream is built on the capture
+/// thread). The meeting task polls it and surfaces the fault to the UI —
+/// without this, a dead loopback stream silently produces a one-sided
+/// transcript.
+pub fn start_loopback_capture(
+    sender: Sender<AudioChunk>,
+    fault_flag: Arc<AtomicBool>,
+) -> anyhow::Result<LoopbackHandle> {
     if !is_supported() {
         anyhow::bail!("System-audio capture is not supported on this platform yet");
     }
@@ -69,8 +78,10 @@ pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<Loop
     let stop_clone = stop_flag.clone();
 
     let thread = std::thread::spawn(move || {
-        let err_fn = |err: cpal::StreamError| {
+        let fault_for_err = fault_flag.clone();
+        let err_fn = move |err: cpal::StreamError| {
             log::error!("Loopback stream error: {err}");
+            fault_for_err.store(true, Ordering::Relaxed);
         };
 
         let chunk_size = ((sample_rate as u64 * channels as u64 * 100) / 1000) as usize;
@@ -113,6 +124,7 @@ pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<Loop
             ),
             other => {
                 log::error!("Unsupported loopback sample format: {other:?}");
+                fault_flag.store(true, Ordering::Relaxed);
                 return;
             }
         };
@@ -121,6 +133,7 @@ pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<Loop
             Ok(stream) => {
                 if let Err(e) = stream.play() {
                     log::error!("Failed to start loopback stream: {e}");
+                    fault_flag.store(true, Ordering::Relaxed);
                     return;
                 }
                 while !stop_clone.load(Ordering::Relaxed) {
@@ -129,7 +142,10 @@ pub fn start_loopback_capture(sender: Sender<AudioChunk>) -> anyhow::Result<Loop
                 drop(stream);
                 log::info!("Loopback capture stopped");
             }
-            Err(e) => log::error!("Failed to build loopback stream: {e}"),
+            Err(e) => {
+                log::error!("Failed to build loopback stream: {e}");
+                fault_flag.store(true, Ordering::Relaxed);
+            }
         }
     });
 

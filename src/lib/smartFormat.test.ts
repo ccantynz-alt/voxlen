@@ -164,6 +164,88 @@ describe("applySmartFormat", () => {
     });
   });
 
+  describe("legal currency", () => {
+    it("converts spoken number words with a currency phrase (audit failure case 1)", () => {
+      expect(
+        applySmartFormat("the sum of fifty thousand pounds sterling shall be paid", {
+          legalCurrency: true,
+        })
+      ).toBe("the sum of £50,000 shall be paid");
+    });
+
+    it("converts digit amounts with commas (audit failure case 2)", () => {
+      expect(
+        applySmartFormat("pay 50,000 pounds sterling now", { legalCurrency: true })
+      ).toBe("pay £50,000 now");
+    });
+
+    it("converts plain dollars", () => {
+      expect(applySmartFormat("50,000 dollars", { legalCurrency: true })).toBe(
+        "$50,000"
+      );
+    });
+
+    it("converts bare pounds and euros", () => {
+      expect(applySmartFormat("owes two hundred pounds", { legalCurrency: true })).toBe(
+        "owes £200"
+      );
+      expect(applySmartFormat("a fee of ninety euros", { legalCurrency: true })).toBe(
+        "a fee of €90"
+      );
+    });
+
+    it("handles hundred/thousand/million combos with 'and' connectors", () => {
+      expect(
+        applySmartFormat("one hundred and twenty five dollars", { legalCurrency: true })
+      ).toBe("$125");
+      expect(
+        applySmartFormat("damages of 3.5 million euros", { legalCurrency: true })
+      ).toBe("damages of €3,500,000");
+      expect(
+        applySmartFormat("two hundred and fifty thousand dollars", { legalCurrency: true })
+      ).toBe("$250,000");
+    });
+
+    it("maps regional dollar variants to their symbols", () => {
+      expect(
+        applySmartFormat("ten thousand australian dollars", { legalCurrency: true })
+      ).toBe("A$10,000");
+      expect(
+        applySmartFormat("five hundred new zealand dollars", { legalCurrency: true })
+      ).toBe("NZ$500");
+      expect(applySmartFormat("sixty canadian dollars", { legalCurrency: true })).toBe(
+        "C$60"
+      );
+    });
+
+    it("preserves decimal digit amounts", () => {
+      expect(applySmartFormat("1,234.56 dollars", { legalCurrency: true })).toBe(
+        "$1,234.56"
+      );
+    });
+
+    it("leaves currency mentions without an amount unchanged", () => {
+      expect(
+        applySmartFormat("we discussed pounds sterling at length", { legalCurrency: true })
+      ).toBe("we discussed pounds sterling at length");
+      expect(
+        applySmartFormat("the dollars were counted", { legalCurrency: true })
+      ).toBe("the dollars were counted");
+    });
+
+    it("never swallows surrounding prose into the amount", () => {
+      expect(
+        applySmartFormat("the amount payable in euros is unknown", { legalCurrency: true })
+      ).toBe("the amount payable in euros is unknown");
+    });
+
+    it("is off by default", () => {
+      expect(applySmartFormat("fifty thousand pounds sterling")).toBe(
+        "fifty thousand pounds sterling"
+      );
+    });
+  });
+
   describe("edge cases", () => {
     it("returns empty string unchanged", () => {
       expect(applySmartFormat("")).toBe("");

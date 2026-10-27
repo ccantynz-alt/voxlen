@@ -28,10 +28,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Make gradlew executable
+      - name: Ensure Gradle wrapper
         working-directory: android
         run: |
-          if [ ! -f gradlew ]; then
+          # gradle-wrapper.jar is not committed; regenerate the wrapper when the jar is absent
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
             gradle wrapper --gradle-version 8.5
           fi
           chmod +x gradlew
