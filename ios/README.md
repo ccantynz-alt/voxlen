@@ -1,75 +1,40 @@
-# Voxlen iOS Keyboard Extension
+# Voxlen for iOS
 
-AI-powered voice dictation and grammar correction keyboard for iPhone and iPad, supporting 20+ languages. Powered by Deepgram Nova-3 for real-time speech-to-text.
+The Voxlen app and the Voxlen keyboard. Phase 1 is a keyboard that types like the system keyboard and has a **Fix** button: it proofreads the selection, or the sentence before the cursor, and applies only validated edits, with Undo. Dictation (the mic key) is Phase 2.
 
-> **Status: source drop, no Xcode project committed.** This directory contains the Swift sources for the container app (`VoxApp/`) and the keyboard extension (`VoxKeyboardExtension/`), but no `.xcodeproj`/`.xcworkspace`. You must assemble the project in Xcode (steps below) before anything builds — the CI iOS job detects the missing project and skips.
+## Layout
 
-## Setup in Xcode
+| Path | What |
+|---|---|
+| `project.yml` | XcodeGen spec. The Xcode project is generated from it and not committed. |
+| `App/` | SwiftUI container app: keyboard setup with live status, account or API key, locale, protected terms. |
+| `Keyboard/` | UIKit keyboard extension: typing, the Fix bar, Undo. |
+| `VoxlenKit/` | Swift package shared by both. `VoxlenCore` is Foundation-only and extension-safe; `VoxlenSecrets` is the shared keychain. |
 
-1. Open Xcode and create a new project: **File > New > Project**
-2. Choose **App** template, name it `VoxKeyboard`
-3. Add a new target: **File > New > Target > Custom Keyboard Extension**
-4. Name it `VoxKeyboardExtension`
-5. Copy the Swift files from this directory into the appropriate targets — `Shared/KeychainStore.swift` must be added to **both** targets
-6. Enable **App Groups** capability for both targets with group: `group.com.voxlen.app`
-7. Enable **RequestsOpenAccess** in the keyboard extension's Info.plist (already configured)
-
-## Configuration
-
-The primary setup is a **Voxlen account key** (copied from the voxlen.ai dashboard) entered in the container app's settings. With an account key, the keyboard exchanges it for short-lived Deepgram tokens via `voxlen.ai/api/deepgram-token` for dictation — no provider keys needed.
-
-Alternatively (BYOK), users can supply their own keys:
-
-- **Deepgram API key** — for voice dictation (Nova-3 real-time streaming). Get one at [console.deepgram.com](https://console.deepgram.com).
-- **Claude or OpenAI API key** — for the "Polish" grammar correction feature (the code calls `claude-sonnet-4-6` for Anthropic, or `gpt-4o-mini` for OpenAI).
-
-Keys are stored in the iOS **Keychain** (shared between app and extension via the app-group access group; `Shared/KeychainStore.swift`) and are never sent to Voxlen servers (the account-mode token exchange transits the zero-retention voxlen.ai endpoint). Legacy keys stored in App Group UserDefaults by earlier builds are migrated into the keychain on first launch of the container app.
-
-### Offline fallback: currently non-functional
-
-The settings UI offers an "Apple Speech" engine option, but the on-device `SFSpeechRecognizer` path is currently a stub — selecting it prompts the user to configure Deepgram instead. Restoring a real Apple Speech on-device path is an open task; do not advertise offline dictation on iOS.
-
-## Building
-
-Once the Xcode project is assembled:
+## Build
 
 ```bash
-# Build for simulator
-xcodebuild -scheme VoxKeyboard -destination 'platform=iOS Simulator,name=iPhone 15' build
-
-# Build for device
-xcodebuild -scheme VoxKeyboard -destination 'generic/platform=iOS' archive
+brew install xcodegen
+cd ios
+VOXLEN_DEVELOPMENT_TEAM=<your Apple team ID> xcodegen generate
+open Voxlen.xcodeproj
 ```
 
-## App Store Submission
+Without `VOXLEN_DEVELOPMENT_TEAM` the project builds unsigned (simulator only). Bundle IDs: `com.voxlen.app` and `com.voxlen.app.keyboard`; both need the App Group `group.com.voxlen.app` on your team.
 
-1. In Xcode: **Product > Archive**
-2. Open **Window > Organizer**
-3. Click **Distribute App** and follow the prompts
-4. Submit for review in App Store Connect
+Tests for the shared logic run anywhere Swift runs on macOS:
 
-## How It Works
+```bash
+swift test --package-path ios/VoxlenKit
+```
 
-- The main app (`VoxApp`) provides settings management and key configuration (Voxlen account key or BYOK)
-- The keyboard extension (`VoxKeyboardExtension`) is a custom keyboard
-- Settings are shared via App Groups (`group.com.voxlen.app`)
-- Voice dictation streams microphone audio to Deepgram Nova-3 over WebSocket (with `mip_opt_out=true` to opt out of model training) for low-latency, real-time transcription in 20+ languages
-- The "Polish" button in the keyboard bar sends text to Claude/OpenAI for grammar correction
-- Corrected text replaces the original directly in any text field
+CI builds the app and runs these tests on GitHub's hosted macOS runners (`.github/workflows/ios.yml`). `.gluecron/workflows/ios.yml` does the same on Voxlen's own Mac once it is a Gluecron runner.
 
-## iPad Support
+## How Fix works
 
-The keyboard extension works on both iPhone and iPad. The layout adapts automatically to the larger iPad screen, providing a comfortable dictation and editing experience on all iOS devices.
+1. The keyboard picks the selection, or the sentence ending at the cursor (`TextTargeting`; decimals and legal abbreviations such as "v." and "Pty." do not end a sentence).
+2. It sends that span to `voxlen.ai/api/grammar-fix` (Voxlen account) or straight to Anthropic (the user's own key).
+3. The model returns **edits**, not rewritten text. Each must occur exactly once in the span, may not change a number, and may not touch a protected term (`EditValidator`, the same rules as the server, pinned by `shared/grammar-fix/`).
+4. The keyboard retypes only from the first changed character, after checking the text has not changed meanwhile, and offers Undo. A change touching more than 35% of the text is shown for approval instead of applied.
 
-## API Usage & Cost (BYOK mode, rough estimates)
-
-Grammar correction uses Claude Sonnet 4.6 (roughly $3 per 1M input tokens / $15 per 1M output tokens at the time of writing — check current Anthropic pricing):
-
-- Average text correction: ~100 tokens round-trip ≈ well under $0.001 per correction
-- 1000 corrections per month ≈ under $1/month
-
-Deepgram Nova-3 voice dictation is roughly $0.0043–0.0077 per minute pay-as-you-go (check current Deepgram pricing):
-
-- 10 minutes of dictation per day ≈ $1.50–2.50/month
-
-Combined typical usage stays in the low single dollars per month. With a Voxlen account, usage is covered by the plan instead.
+Typing works without Full Access, as App Review guideline 4.4.1 requires; Fix needs it to reach the network. Nothing the user types is logged.

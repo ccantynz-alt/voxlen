@@ -50,3 +50,14 @@ jobs:
             exit 1
           fi
           xcrun simctl list runtimes available | grep "iOS"
+
+      - name: Build app and keyboard (unsigned, simulator)
+        run: |
+          command -v xcodegen >/dev/null || { echo "ERROR: install XcodeGen on the Mac: brew install xcodegen" >&2; exit 1; }
+          cd ios
+          xcodegen generate
+          xcodebuild build -project Voxlen.xcodeproj -scheme Voxlen \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+
+      - name: VoxlenKit tests
+        run: swift test --package-path ios/VoxlenKit

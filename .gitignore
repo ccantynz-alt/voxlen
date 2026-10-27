@@ -33,10 +33,9 @@ Thumbs.db
 npm-debug.log*
 
 # iOS
-ios/VoxKeyboard/build/
-ios/VoxKeyboard/DerivedData/
-ios/VoxKeyboard/*.xcworkspace
-ios/VoxKeyboard/xcuserdata/
+ios/Voxlen.xcodeproj/
+ios/DerivedData/
+ios/build/
 
 # Test
 coverage/

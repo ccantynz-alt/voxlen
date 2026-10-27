@@ -229,23 +229,3 @@ jobs:
           prerelease: false
           files: dist-release/*
           fail_on_unmatched_files: false
-
-  build-ios:
-    runs-on: macos-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build iOS keyboard
-        run: |
-          if [ -d "ios/VoxKeyboard/VoxKeyboard.xcodeproj" ] || [ -d "ios/VoxKeyboard/VoxKeyboard.xcworkspace" ]; then
-            cd ios/VoxKeyboard
-            xcodebuild -scheme VoxKeyboard \
-              -destination 'generic/platform=iOS' \
-              -configuration Release \
-              clean build \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO
-          else
-            echo "iOS Xcode project not yet initialised; skipping iOS keyboard build."
-          fi

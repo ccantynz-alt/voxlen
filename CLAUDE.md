@@ -38,7 +38,8 @@ Voxlen restarted 2026-10 after months on hold: build to this bar, and replace ol
 - **Auto-documents:** `src/lib/autoDoc.ts` + `src-tauri/src/commands/documents.rs` (per-matter .docx, atomic writes, opt-in)
 - **Review workflow:** `src/lib/reviewPacket.ts` + `src/stores/review.ts` + `src-tauri/src/commands/review.rs` (file queue under `<shared>/voxlen-review/`, statuses `pending_review`/`in_review`/`finalized`)
 - **Text injection:** OS keyboard simulation (osascript / SendInput / xdotool)
-- **Mobile:** iOS Swift keyboard `ios/VoxKeyboard/`; Android keyboard builds in CI (debug+release APKs)
+- **Mobile:** iOS in `ios/`: XcodeGen spec `project.yml` (project is generated, not committed), SwiftUI app `App/`, UIKit keyboard `Keyboard/`, shared Swift package `VoxlenKit/` (VoxlenCore: Foundation-only, tested with `swift test`; VoxlenSecrets: keychain). Bundle IDs `com.voxlen.app` / `com.voxlen.app.keyboard`, App Group `group.com.voxlen.app`. Built and tested on GitHub's hosted macOS runners (`.github/workflows/ios.yml`) until Gluecron has a Mac runner. Android keyboard builds in CI (debug+release APKs)
+- **Grammar fix contract:** `shared/grammar-fix/` (edit-validation cases + prompt) pins the server (`landing/api/_grammar-fix.ts`) and iOS (`VoxlenCore`) to identical behaviour; change both sides together
 - **Web SDK / Landing:** `sdk/` (embeddable JS); `landing/` (Vite + React + Tailwind, Vercel auto-deploys from main)
 - **CI:** Gluecron gate `.gluecron/workflows/ci.yml` (shared runner: Node 22, no Rust/Java); `.gluecron/workflows/ios.yml` targets the Xcode Mac runner (`[self-hosted, macos, xcode]`); GitHub `.github/workflows/` for Rust tests, Tauri releases, Android APKs
 - **Future:** GateTest (auto-test/fix loop) integrates later — keep architecture open, do not implement yet.
@@ -46,7 +47,7 @@ Voxlen restarted 2026-10 after months on hold: build to this bar, and replace ol
 ## Open Gaps (fix when you can)
 
 - macOS meeting capture backend (ScreenCaptureKit; `meeting_capture_supported()` gates it)
-- iOS: no committed Xcode project; restore real `SFSpeechRecognizer` on-device STT (stub removed in `77d9e93`); container-app mic permission flow
+- iOS Phase 2: mic key via app-hop session (audio in the app, keyboard signals via App Group + Darwin notifications), on-device STT with SpeechAnalyzer; app icon/asset catalog; Sign in with Apple/Google instead of pasting an account key
 - Xcode Mac as a Gluecron runner: blocked on Gluecron.com #16478 (label-only runners). Do NOT register it as a `ccantynz` account runner before that lands: an account runner takes every `runs-on: self` job across all of the account's repos and switches off the shared lane. Once it lands: register with label `xcode`, dispatch `ios.yml`
 - Android keyboard: real-device testing + release signing before shipping
 - Stripe: endpoints + KV entitlement shipped; only real `STRIPE_*` env vars in Vercel remain
